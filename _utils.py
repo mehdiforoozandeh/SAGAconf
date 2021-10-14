@@ -1,6 +1,7 @@
 from math import log
 import pandas as pd
 import numpy as np
+import shutil
 from scipy.optimize import linear_sum_assignment
 import os 
 import multiprocessing as mp
@@ -16,6 +17,94 @@ def read_bedgraph(bg_file):
             tl[-1] = float(tl[-1].replace('\n', ''))/100
             df.append(tl)
     return pd.DataFrame(df, columns=['chr', 'start', 'end', 'posterior'])
+
+def read_posteriordir(posteriordir):
+    ls_dir = os.listdir(posteriordir)
+    ls = []
+
+    for f in ls_dir:
+        if ".bedGraph" in f:
+            ls.append(f)
+
+
+    posterior_df_list = {}
+
+    for f in ls:
+        posterior_id = f.replace('.bedGraph','')
+        posterior_df_list[posterior_id.replace('posterior','')] = read_bedgraph(posteriordir+'/'+f)
+
+    print(posterior_df_list.keys())
+
+    return posterior_df_list
+
+"""
+name_sig is the name_signiture of each run
+which basically indicates the name of the 
+final result directory containing posterior 
+values, segway.bed, and other analysis.
+"""
+
+def gather_results(traindir, posteriordir, name_sig):
+    os.system('mkdir {}'.format(name_sig))
+    os.system('cp {}/*.gz {}'.format(posteriordir, name_sig))
+    os.system('gzip -d {}/*.gz'.format(name_sig))
+    os.system('cp {}/log/segway.sh {}/segway.sh'.format(traindir, name_sig))
+
+def clean_up(traindir, posteriordir):
+    shutil.rmtree(traindir)
+    shutil.rmtree(posteriordir)
+
+def run_segtools(name_sig):
+    os.system("cd {} && segtools-length-distribution segway.bed".format(name_sig))
+    os.system("cd {} && segtools-gmtk-parameters params.params".format(name_sig))
+
+'''
+TERMINOLOGY NOTE: posterior_df_list IS THE SAME AS bg_dfs
+'''
+
+def QC(posterior_df_list):
+    '''
+    returns 1 - (ratio of (bad values * length))
+    higher values indicate better quality
+    '''
+
+    total_length_bp = 0
+    bad_val_lengthcount = 0
+
+    test_df = posterior_df_list['0']
+    for j in range(len(test_df)):
+        total_length_bp += int(test_df['end'][j]) - int(test_df['start'][j])
+
+
+    for post_df in posterior_df_list.values():
+        for i in range(len(post_df)):
+
+            if post_df['posterior'][i] > 0.5:
+                if post_df['posterior'][i] == 1:
+                    bad_val_lengthcount += int(post_df['end'][i]) - int(post_df['start'][i])
+
+    return 1 - float(bad_val_lengthcount/ total_length_bp)            
+    
+def diagnose_zero_one_ratio(bg_dfs):
+    ones_count=0
+    zeros_count=0
+    posterior_count=0
+
+    for i in bg_dfs.keys():
+        post = np.array(bg_dfs[i].posterior)
+        posterior_count += len(post)
+        ones_count += len(post[post == 1])
+        zeros_count += len(post[post == 0])
+    
+    return float(ones_count/posterior_count), float(zeros_count/posterior_count)
+
+def diagnose_label_ratios(bg_dfs):
+    label_ratios = {}
+    for i in bg_dfs.keys():
+        post = np.array(bg_dfs[i].posterior)
+        label_ratios[i] = len(post[post >= 0.5])/len(post)
+    
+    return label_ratios
 
 def define_positions(regions_file, windowsize):
     windowsize = int(windowsize)
@@ -161,3 +250,4 @@ def connect_bipartite(loci_1, loci_2, assignment_matching):
 
     corrected_loci_2.columns = loci_1.columns
     return loci_1, corrected_loci_2
+
