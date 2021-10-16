@@ -106,7 +106,10 @@ def diagnose_label_ratios(bg_dfs):
     
     return label_ratios
 
-def define_positions(regions_file, windowsize):
+def define_positions(regions_file, windowsize): 
+    '''
+    CAN BE SUBSTITUTED WITH INITIALIZE EMPTYBINS FUNCTION
+    '''
     windowsize = int(windowsize)
     with open(regions_file, 'r') as rf:
         lines = rf.readlines()

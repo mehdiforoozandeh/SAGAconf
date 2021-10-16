@@ -6,86 +6,121 @@ create genomefiles using the track data
 and reference genome position files
 """
 
-def prepare_track(infile, outfile):
-    '''prepare Wig or bedGraph track files for creating genomedata file'''
-    pass
+def bigwig_to_bedgraph_rep(repath):
+    '''
+    provide a directroy containing sub-directories named after the track-name.
+    these subdirectories must contain bigWig files of the track.
+    the bigWig file will be converted to bedGraph
+    '''
+    lsr = os.listdir(repath)
+
+    for i in lsr:    
+
+        track_ls = os.listdir(repath + '/' + i)
+        if len(track_ls) > 1:
+            for j in range(len(track_ls)):
+                if 'bigWig' in track_ls[j]:
+                    bw_path = repath + '/' + i + '/' + track_ls[j]
+        else: 
+            bw_path = repath + '/' + i + '/' + track_ls[0]
+
+        accname = bw_path[bw_path.find('ENC'):bw_path.find('.')]
+        os.system('../bigWigToBedGraph {} {}'.format(bw_path, bw_path.replace("bigWig", "bedGraph")))
+        print("made BedGraph for {}".format(i))
+
+def create_genomedata_rep(repath, seqfile):
+    '''
+    provide a directroy containing sub-directories named after the track-name.
+    these subdirectories must contain bedGraph files of the track.
+    this function integrate all of these data and loads them on a genomedata file
+    '''
+    lsr = os.listdir(repath)
+    tracks_bgs = {}
+
+    for i in lsr:
+        track_ls = os.listdir(repath + '/' + i)
+        if len(track_ls) > 1:
+            for j in range(len(track_ls)):
+                if 'bedGraph' in track_ls[j]:
+                    tracks_bgs[i] = repath + '/' + i + '/' + track_ls[j]
     
-
-def create_genomefile(seq_file, track_file, out_dir):
-    '''
-    seq_file and track_file both should be list
-    '''
-
-    seq_cmd = ' '.join("-s " + sf for sf in list(seq_file))
-    track_cmd = ' '.join("-t " + tf for tf in list(track_file))
+    tracklist = ''
+    for k, v in tracks_bgs.items():
+        tracklist = tracklist + '-t {}={} '.format(k, v)
     
-    os.system(
-        'genomedata-load {} {} {} --verbose'.format(
-            seq_cmd, track_cmd, out_dir
-            ))
+    os.system('genomedata-load -s {} --sizes {} --verbose {}.genomedata'.format(seqfile, tracklist, repath))
 
-'''
-run segway train and segway posterior
-'''
 
-def run_segway_train_and_posterior(slurm_job_filename,
-    genomedata_file, traindir, posteriordir, include_coords_file, 
-    num_labels, resolution, track_weight, segtransition_weight, 
-    cluster=False,
-    base_job_file=None, memory="30G", n_cpus='5', time="0-10:00", 
-    num_instances=10, submit=True):
-
+def run_segway_and_post_process(param_dict):
     '''
-    initiates .sh job file to be submitted using slurm's "sbatch"
-    - if cluster == True AND base_job_file == None use default base for Cedar cluster
-    
-    '''
+    run segway train and segway posterior
 
-    if base_job_file == None:
-        default_base = '''#!/bin/bash\n#SBATCH --account=def-maxwl\n'''
-        
-        base_args = '''#SBATCH --cpus-per-task={}\n#SBATCH --mem={}\n#SBATCH --time={}\n'''.format(
-            n_cpus, memory, time
-        )
+    ======== param_dict sample ======== #
 
-        base = default_base + base_args
+    {"name_sig":None, "random_seed":None, "include":None, "track_weight":None,
+    "stws":None, "ruler_scale":None, "prior_strength":None, "resolution":None,
+    "num_labels":None, "genomedata_file":None, "traindir":None, "posteriordir":None}'''
+
+    for k, v in param_dict.items():
+        param_dict[k] = str(v) 
+
+    os.system('mkdir {}'.format(param_dict['traindir']))
+
+    os.system('SEGWAY_RAND_SEED={} segway train --include-coords={}\
+         --num-instances=1 --track-weight={} --segtransition-weight-scale={}\
+             --ruler-scale={} --prior-strength={} --resolution={}\
+                  --num-labels={} {} {}'.format(
+                      param_dict["random_seed"], param_dict["include"], param_dict["track_weight"],
+                      param_dict["stws"], param_dict["ruler_scale"], param_dict["prior_strength"], 
+                      param_dict["resolution"], param_dict["num_labels"], 
+                      param_dict["genomedata_file"], param_dict["traindir"]
+                  ))
+
+    os.system('mkdir {}'.format(param_dict['posteriordir']))
+    if os.path.isfile(param_dict['traindir']+'/params/params.params'):
+        os.system('segway posterior --include-coords={} {} {} {}'.format(
+            param_dict["include"], param_dict["genomedata_file"], 
+            param_dict["traindir"], param_dict["posteriordir"]
+        ))
+
+    if os.path.isfile(param_dict['posteriordir']+'/segway.bed.gz'):
+        gather_results(param_dict["traindir"], param_dict['posteriordir'], param_dict["name_sig"])
+        run_segtools(param_dict["name_sig"])
+        clean_up(param_dict["traindir"], param_dict['posteriordir'])
+
+        with open(param_dict["name_sig"]+"/run_parameters", 'w') as write_params:
+            write_params.write(str(param_dict))
+
+        posterior_df_list = read_posteriordir(param_dict["name_sig"])
+        print('{}: loaded posterior bedgraphs'.format(param_dict['name_sig']))
+
+        write_qc = open('{}/QC.txt'.format(param_dict['name_sig']), 'w') 
+
+        try:
+            posterior_quality = QC(posterior_df_list)
+            print('{}: calculated QC'.format(param_dict['name_sig']))
+            write_qc.write('posterior_QC(length dependent): {}\n'.format(posterior_quality))
+        except:
+            write_qc.write('FAILED AT CALCULATING QC score')
+
+        try:
+            number_of_segments = sum(1 for line in open(param_dict["name_sig"]+'/segway.bed', 'r'))
+            print('{}: counted # of segments'.format(param_dict['name_sig']))
+            write_qc.write('number_of_segments: {}\n'.format(number_of_segments))
+        except:
+            write_qc.write('FAILED AT COUNTING NUMBER OF SEGMENTS')
+            
+        write_qc.close()
+
+        print('wrote the results into {}/QC.txt'.format(param_dict['name_sig']))
 
     else:
-        with open(base_job_file, 'r') as fobj:
-            base = fobj.read()
+        print("FAILED AT RUNNING SEGWAY!")
+        clean_up(param_dict["traindir"], param_dict['posteriordir'])
 
-
-    if os.path.exists(traindir):
-        os.system('rm -r {}'.format(traindir))
-        os.system('mkdir {}'.format(traindir))
-    
-    train_cmd = '''segway train --include-coords={} --num-instances={}\
-         --track-weight={} --segtransition-weight-scale={} --resolution={}\
-              --num-labels={} {} {}'''.format(
-                  include_coords_file, num_instances, track_weight, segtransition_weight, 
-                  resolution, num_labels, genomedata_file, traindir
-              )
-
-    if os.path.exists(posteriordir):
-        os.system('rm -r {}'.format(posteriordir))
-        os.system('mkdir {}'.format(posteriordir))
-
-    posterior_cmd = '''segway posterior --include-coords={} {} {} {}'''.format(
-        include_coords_file, genomedata_file, traindir, posteriordir
-    )
-        
-    final_cmd = base + '\n' + traindir + '\n' + posteriordir
-
-    with open(slurm_job_filename, 'w') as job_fobj:
-        job_fobj.write(final_cmd)
-
-    if submit:
-        os.system('sbatch {}'.format(slurm_job_filename))
-    
 '''
 parse results into resolution sized bins
-
-[[ NEEDS OPTIMIZATION! CURRENTLY NOT FAST ENOUGH! ]]
+[[ UPDATE PARSING/BINNING FUNCTION ACCORDING TO NEW METHOD INVOLVING SEARCH MARGIN ]]
 '''
 
 def posterior_results_into_bins(posterior_df_list, windowsize, regions_file, num_labels, n_subset):
