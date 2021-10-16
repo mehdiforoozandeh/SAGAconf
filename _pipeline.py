@@ -123,12 +123,20 @@ parse results into resolution sized bins
 [[ UPDATE PARSING/BINNING FUNCTION ACCORDING TO NEW METHOD INVOLVING SEARCH MARGIN ]]
 '''
 
-def posterior_results_into_bins(posterior_df_list, windowsize, regions_file, num_labels, n_subset):
-    position_map = define_positions(regions_file, windowsize)
-    # loci is the position map, updated with posterior values (completed position map)
+def parse_posterior_results(param_dict):
+    pass
+    # posteriors_df = read_posteriordir(param_dict['rep_dir'])
+    # print(posteriors_df.keys())
 
-    loci = position_labels(posterior_df_list, position_map, windowsize, num_labels=int(num_labels), n_subset=None)
-    return loci
+    # loci = pipeline.posterior_results_into_bins(
+    #     posteriors_df, param_dict['windowsize'], 
+    #     param_dict['regions_file'], param_dict['num_labels'], 
+    #     n_subset=None)
+
+    # loci.to_csv(param_dict['rep_dir']+'/parsed_posterior.csv')
+
+    # return loci
+
 
 '''
 match labels using hungarian algorithms & return corrected labels

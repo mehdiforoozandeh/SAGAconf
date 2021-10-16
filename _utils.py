@@ -201,7 +201,13 @@ def position_labels(posterior_df_list, position_map, windowsize, num_labels, n_s
     mpresults = pd.concat(mpresults, axis=1)
     loci = pd.concat([loci, mpresults], axis=1)
     return loci
-    
+
+
+def instance_binning():
+    pass
+def mp_binning():
+    pass
+
 def find_max_posteri(loci, num_labels=10):
     loci_posteri =  loci.loc[:, ['posterior'+str(i) for i in range(int(num_labels))]]
     for lpc in loci_posteri.columns:
@@ -223,8 +229,6 @@ def confusion_matrix(loci_1, loci_2, num_labels):
 
     for i in range(len(loci_1)):
         Confus_Mat.loc[max_1posteri[i], max_2posteri[i]] += 1
-
-    
     return Confus_Mat
 
 def Hungarian_algorithm(confusion_matrix, verbose=True):
