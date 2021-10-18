@@ -29,6 +29,9 @@ class visualize(object):
         plt.ylabel("Replicate 2 Labels")
         plt.show()
 
+    def sankey_diag(self):
+        pass
+
     def filter_overconf(self):
         # corrected_loci1 = self.loci_1.loc[:, ['posterior'+str(x) for x in range(self.num_labels)]]
         # corrected_loci2 = self.loci_2.loc[:, ['posterior'+str(x) for x in range(self.num_labels)]]

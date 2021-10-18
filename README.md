@@ -1,3 +1,5 @@
+[NOTE: NEED TO UPDATE REPROPDUCIBILITY AND VISUALIZE GREATLY]
+
 Segmentation and genome annotation (SAGA) algorithms such as ChromHMM and Segway have emerged as the predominant way to  model epigenomic data. However, despite the widespread use of SAGA methods, there is currently no principled way to realistically evaluate the confidence of SAGA annotations. While Segway uses a probabilistic graphical model that can output a probability value for each genomic position, these probabilities do not provide a realistic estimation of the model's confidence. In this study, we apply reproducibility analysis to calibrate confidence estimates for SAGA annotations. Although our analysis suggest a positive correlation between posterior probability and reproducibility, relatively limited confidence can be attributed to SAGA annotations in general.
 
 In this directory modules that start with _ contain core functions that are only meant to be imported in other modules. Therefore, core modules are not to be executed directly!

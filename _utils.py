@@ -26,7 +26,6 @@ def read_posteriordir(posteriordir):
         if ".bedGraph" in f:
             ls.append(f)
 
-
     posterior_df_list = {}
 
     for f in ls:
@@ -35,7 +34,7 @@ def read_posteriordir(posteriordir):
 
     print(posterior_df_list.keys())
 
-    return posterior_df_list
+    return posterior_df_list #dictionary actually :))
 
 """
 name_sig is the name_signiture of each run
@@ -106,107 +105,111 @@ def diagnose_label_ratios(bg_dfs):
     
     return label_ratios
 
-def define_positions(regions_file, windowsize): 
-    '''
-    CAN BE SUBSTITUTED WITH INITIALIZE EMPTYBINS FUNCTION
-    '''
-    windowsize = int(windowsize)
-    with open(regions_file, 'r') as rf:
-        lines = rf.readlines()
-        posmap = ([i.split('\t')[:-1] for i in lines])
-    
-    loci = []
-    for idx in range(len(posmap)):
-        for st in range(int(posmap[idx][1]), int(posmap[idx][2]), windowsize):
-
-            if st + windowsize - 1 > int(posmap[idx][2]):
-                loci.append([posmap[idx][0], st, int(posmap[idx][2])])
-                
-            else:
-                loci.append([posmap[idx][0], st, st + windowsize - 1])
-    
-    loci = pd.DataFrame(loci, columns=['chr', 'window_start', 'window_end'])
-    return loci
-
-def align_scores(input_dict):
-    # parse_input
-    k, v, loci, windowsize, num_labels = input_dict['k'], input_dict['v'], input_dict['loci'], input_dict['windowsize'], input_dict['num_labels']
-    
-    print('aligning posteriorfile -> {}/{}. number of segments: {}'.format(str(int(k)+1), str(num_labels), str(len(v))))
-    loci.insert(
-        loc=loci.shape[1], column='posterior'+str(k), 
-        value=[None for _ in range(loci.shape[0])]
-        )
-
-    # print(loci)
-
-    num_filled = 0
-    for ind in range(loci.shape[0]):
+def read_include_file(file): 
+    '''to parse the pilotregion file '''
+    with open(file, 'r') as inc_file:
+        lines = inc_file.readlines()
         
-        if num_filled % 10000 == 0:
-            print('{}th index, filled {}/{}'.format(ind, num_filled, loci.shape[0]))
+    include = []
+    for l in lines:
+        splitted = l.split('\t')[:-1]
+        # splitted[-1] = splitted[-1].replace('\n', '')
+        include.append(splitted)
+    
+    return pd.DataFrame(include, columns=['chr', 'start', 'end'])
 
-        subset_df = v.loc[v['chr'] == loci['chr'][ind]]
-        subset_df = subset_df.reset_index(drop=True)
 
-        bin_filling_status = False
-        for ssdf in range(len(subset_df)):
-            statement1 = bool(int(subset_df['start'][ssdf]) <= int(loci['window_start'][ind]) <= int(subset_df['end'][ssdf]))
-            statement2 = bool(int(loci['window_start'][ind]) <= int(subset_df['start'][ssdf]) <= int(loci['window_end'][ind]))
+def initialize_bins(coords, res): 
+    '''initializes empty bins according to the genome positions specified in the pilotregions file'''
 
-            if statement1 or statement2:
-                range_ref_map = range(int(loci['window_start'][ind]), int(loci['window_end'][ind]))
-                range_posteri = range(int(subset_df['start'][ssdf]), int(subset_df['end'][ssdf]))
-                
-                set_r1 = set(range_ref_map)
-                overlap = set_r1.intersection(range_posteri)
+    supercontig_in_progress = []
+    for i in range(len(coords)):
+        region_in_progress = list(coords.iloc[i,:])
+        for j in range(int(region_in_progress[1]), int(region_in_progress[2]), res):
 
-                if len(overlap) >= windowsize/2:
-                    loci.loc[ind, 'posterior'+str(k)] = subset_df['posterior'][ssdf]
-                    num_filled += 1
-                    bin_filling_status = True
+            if int(j + res) > int(region_in_progress[2]):
+                supercontig_in_progress.append(
+                    [region_in_progress[0], int(j), int(region_in_progress[2]) + int(res - (int(region_in_progress[2]) % res))])
 
-        if bin_filling_status == False:
-            print("could not fill {}th bin".format(ind))
+            else: 
+                supercontig_in_progress.append([region_in_progress[0], int(j), int(j + res)])
+
+    return pd.DataFrame(supercontig_in_progress, columns=['chr', 'start', 'end'])
+
+def instance_binning(input_dict):
+    """This function assigns the posterior value to each bin based on the corresponding 
+    value in the posterior*.bedGraph file. I used a "search margin" to prevent the function from 
+    performing in O(n^2). M denotes search margin and limits the inner loop to M indices 
+    only, starting from where the last bin was aligned with the raw data. The final posterior 
+    value of each bin is weighted by the length of alignment. """
+
+    bins_df, posterior_df, M, posteriorID = input_dict['bins_df'], input_dict['posterior_df'], input_dict['M'], input_dict['posteriorID']
+
+    bins_df.insert(3, posteriorID, np.zeros(len(bins_df)))
+    notfilled = 0
+    c = 0 # denotes the center of search space
+
+    for i in range(len(bins_df)): # i denotes index of empty bin
+        filledbool = False
+        # define search space
+        if i%100 == 0:
+            print("filled {} bins. could not fill {} bins".format(i-notfilled, notfilled))
         
-    return loci['posterior'+str(k)]
+        if c < M:
+            search_start_loc = 0
+        else:
+            search_start_loc = c - int(M/10)
+    
+        if c + M > len(posterior_df):
+            search_end_loc = len(posterior_df)
+        else:
+            search_end_loc = c + M
 
+        for j in range(search_start_loc, search_end_loc): # j denotes index of posterior segment
 
-def position_labels(posterior_df_list, position_map, windowsize, num_labels, n_subset=None): 
-    windowsize = int(windowsize)
-    '''
-    chooses the predicted label for each position based on posterior 
-    probability value.
-    '''
-    # define all positions (windowsize=resolution)
+            if bins_df.iloc[i, 0] == posterior_df.iloc[j, 0]: # check chr match
 
-    loci = position_map
+                statement1 = bool(int(bins_df.iloc[i,1]) <= int(posterior_df.iloc[j, 1]) <= int(bins_df.iloc[i,2]) )
+                statement2 = bool(int(posterior_df.iloc[j, 1]) <= int(bins_df.iloc[i,1]) <= int(posterior_df.iloc[j, 2]) )
 
-    if n_subset != None:
-        loci = loci.iloc[list(range(0, loci.shape[0], int(loci.shape[0]/n_subset))), :]
-        loci = loci.reset_index(drop=True)
+                statement3 = bool(int(bins_df.iloc[i,2]) < int(posterior_df.iloc[j, 1])) # passed statement
 
-    print('number of positions: {}'.format(loci.shape[0]))
+                if statement1 or statement2:
+                    bin_range = range(int(bins_df.iloc[i,1]), int(bins_df.iloc[i,2]))
+                    signal_range = range(int(posterior_df.iloc[j, 1]), int(posterior_df.iloc[j, 2]))
+                    
+                    set_r1 = set(bin_range)
+                    overlap = set_r1.intersection(signal_range)
 
-    # align scores to windows
+                    if len(overlap) > 0:
+                        filledbool = True
+                        c = j # update the center of search space to the latest matched index
+                        bin_len = int(bins_df.iloc[i, 2]) - int(bins_df.iloc[i, 1]) #almost always is equal to resolution
+                        bins_df.iloc[i, 3] += float(posterior_df.iloc[j, 3] * (len(overlap) / bin_len))
+                
+                elif statement3:
+                    break
+
+        if filledbool == False:
+            notfilled +=1
+
+    return bins_df[posteriorID]
+
+def mp_binning(posterior_df_list, empty_bins, M):
+    print('number of positions: {}'.format(empty_bins.shape[0]))
     mp_inputs = []
     
     # k as in posterior_k, and v is the k-th posterior df
     for k, v in posterior_df_list.items():
-        mp_inputs.append({'k':k, 'v':v, 'loci':loci, 'windowsize':windowsize, 'num_labels':num_labels})
+        mp_inputs.append(
+            {"bins_df": empty_bins, "posterior_df": v, "M": M, "posteriorID": str(empty_bins)})
 
-    with mp.Pool(num_labels) as pool_obj:
-        mpresults = pool_obj.map(align_scores, mp_inputs)
+    with mp.Pool(len(list(posterior_df_list.keys()))) as pool_obj:
+        mpresults = pool_obj.map(instance_binning, mp_inputs)
     
     mpresults = pd.concat(mpresults, axis=1)
-    loci = pd.concat([loci, mpresults], axis=1)
-    return loci
-
-
-def instance_binning():
-    pass
-def mp_binning():
-    pass
+    parsed_bins = pd.concat([empty_bins, mpresults], axis=1)
+    return parsed_bins
 
 def find_max_posteri(loci, num_labels=10):
     loci_posteri =  loci.loc[:, ['posterior'+str(i) for i in range(int(num_labels))]]
