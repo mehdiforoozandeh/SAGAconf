@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 from scipy.optimize import linear_sum_assignment
+from sklearn.cluster import KMeans
+import plotly.express as px
+from sklearn.decomposition import PCA
 
 def find_max_posteri(loci, num_labels=10):
     loci_posteri =  loci.loc[:, ['posterior'+str(i) for i in range(int(num_labels))]]
@@ -77,6 +80,9 @@ def create_clustering_data(length_dist_1, length_dist_2, gmtk_params_1, gmtk_par
     rep2_data = pd.concat([gmtk_params_2, length_dist_2], axis=1)
 
     return rep1_data, rep2_data
+
+def PCA_plot():
+    pass
 
 def cluster(clustering_data):
     pass
