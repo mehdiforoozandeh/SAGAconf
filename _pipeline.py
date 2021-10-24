@@ -1,5 +1,7 @@
 from _utils import *
 import os
+from _visualize import visualize
+from _cluster_matching import cluster_matching
 
 """
 create genomefiles using the track data 
@@ -120,33 +122,28 @@ def run_segway_and_post_process(param_dict):
 
 '''
 parse results into resolution sized bins
-[[ UPDATE PARSING/BINNING FUNCTION ACCORDING TO NEW METHOD INVOLVING SEARCH MARGIN ]]
 '''
 
-def parse_posterior_results(param_dict):
-    pass
-    # posteriors_df = read_posteriordir(param_dict['rep_dir'])
-    # print(posteriors_df.keys())
+def parse_posterior_results(posterior_dir, include_file, resolution, M):
+    posterior_df_list = read_posteriordir(posterior_dir)
+    print(posterior_df_list.keys())
 
-    # loci = pipeline.posterior_results_into_bins(
-    #     posteriors_df, param_dict['windowsize'], 
-    #     param_dict['regions_file'], param_dict['num_labels'], 
-    #     n_subset=None)
 
-    # loci.to_csv(param_dict['rep_dir']+'/parsed_posterior.csv')
+    coords = read_include_file(include_file)
+    empty_bins = initialize_bins(coords, resolution)
+    parsed_df = mp_binning(posterior_df_list, empty_bins, M)
 
-    # return loci
-
+    parsed_df.to_csv(posterior_dir+'/parsed_posterior.csv')
+    return parsed_df
 
 '''
 match labels using hungarian algorithms & return corrected labels
 '''
 
-def match_labels(loci_1, loci_2, num_labels):
+def Hungarian_label_matching(loci_1, loci_2, num_labels):
     conf_mat = confusion_matrix(loci_1, loci_2, num_labels)
     assignment_pairs = Hungarian_algorithm(conf_mat, verbose=True)
     print("label_mapping:\t", assignment_pairs)
-
     loci_1, corrected_loci_2 = connect_bipartite(loci_1, loci_2, assignment_pairs)
 
     return loci_1, corrected_loci_2
