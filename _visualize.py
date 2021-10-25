@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from _utils import *
+from _cluster_matching import *
 from scipy.ndimage.filters import gaussian_filter1d
 
 class visualize(object):

@@ -1,7 +1,7 @@
 from _utils import *
 import os
 from _visualize import visualize
-from _cluster_matching import cluster_matching
+from _cluster_matching import *
 
 """
 create genomefiles using the track data 
