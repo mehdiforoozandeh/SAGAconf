@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from scipy.ndimage.measurements import center_of_mass
 from scipy.optimize import linear_sum_assignment
+from scipy.sparse import coo
 from scipy.spatial.kdtree import distance_matrix
 from sklearn.cluster import KMeans
 import plotly.express as px
@@ -14,8 +15,8 @@ from sklearn.cluster import KMeans
 from scipy.spatial.distance import pdist
 
 
-def find_max_posteri(loci, num_labels=10):
-    loci_posteri =  loci.loc[:, ['posterior'+str(i) for i in range(int(num_labels))]]
+def find_max_posteri(loci):
+    loci_posteri =  loci.iloc[:, 3:]
     for lpc in loci_posteri.columns:
         loci_posteri[lpc] = loci_posteri[lpc].astype('float')
 
@@ -24,8 +25,8 @@ def find_max_posteri(loci, num_labels=10):
 
 def confusion_matrix(loci_1, loci_2, num_labels):
     num_labels = int(num_labels)
-    max_1posteri = find_max_posteri(loci_1, num_labels=num_labels)
-    max_2posteri = find_max_posteri(loci_2, num_labels=num_labels)
+    max_1posteri = find_max_posteri(loci_1)
+    max_2posteri = find_max_posteri(loci_2)
 
     Confus_Mat = pd.DataFrame(
         np.zeros((int(num_labels), int(num_labels))),
@@ -56,20 +57,36 @@ def Hungarian_algorithm(matrix, conf_or_dis='conf'):
         assignment_pairs = [(i, best_assignments[1][i]) for i in range(len(best_assignments[0]))]
         return assignment_pairs
 
-def connect_bipartite(loci_1, loci_2, assignment_matching):
-    corrected_loci_2 = []
-    corrected_loci_2.append(loci_2.chr)
-    corrected_loci_2.append(loci_2.window_start)
-    corrected_loci_2.append(loci_2.window_end)
+def connect_bipartite(loci_1, loci_2, assignment_matching, conf_or_dis='conf'):
 
-    for i in range(len(assignment_matching)):
-        corrected_loci_2.append(loci_2['posterior'+str(assignment_matching[i][1])])
+    if conf_or_dis == 'conf':
+        corrected_loci_2 = []
+        corrected_loci_2.append(loci_2.chr)
+        corrected_loci_2.append(loci_2.window_start)
+        corrected_loci_2.append(loci_2.window_end)
 
-    corrected_loci_2 = pd.concat(corrected_loci_2, axis=1)
+        for i in range(len(assignment_matching)):
+            corrected_loci_2.append(loci_2['posterior'+str(assignment_matching[i][1])])
 
-    corrected_loci_2.columns = loci_1.columns
-    return loci_1, corrected_loci_2
-    
+        corrected_loci_2 = pd.concat(corrected_loci_2, axis=1)
+
+        corrected_loci_2.columns = loci_1.columns
+        return loci_1, corrected_loci_2
+
+    elif conf_or_dis == 'dist':
+        corrected_loci_1 = [loci_1.chr, loci_1.window_start, loci_1.window_end]
+        corrected_loci_2 = [loci_2.chr, loci_2.window_start, loci_2.window_end]
+
+        for i in range(len(assignment_matching)):
+            corrected_loci_1.append(loci_1['posterior_cluster_'+str(assignment_matching[i][0])])
+            corrected_loci_2.append(loci_2['posterior_cluster_'+str(assignment_matching[i][1])])
+
+        corrected_loci_1 = pd.concat(corrected_loci_1, axis=1)
+        corrected_loci_2 = pd.concat(corrected_loci_2, axis=1)
+        corrected_loci_2.columns = corrected_loci_1.columns
+        
+        return corrected_loci_1, corrected_loci_2
+            
 
 def read_length_dist_files(len_file_1, len_file_2):
     length_dist_1 = pd.read_csv(len_file_1, sep='\t')
@@ -181,3 +198,33 @@ def compute_pairwise_centroid_distance(clustering_obj_1, clustering_obj_2):
 
     distance_matrix = pd.DataFrame(distance_matrix)
     return distance_matrix
+
+def Cooccurrence_matrix(loci_1, loci_2):
+    cooc_mat = pd.DataFrame(
+        np.zeros((int(loci_1.shape[1])-3, int(loci_2.shape[1])-3)), 
+        index=loci_1.columns[3:],
+        columns=loci_2.columns[3:])
+    
+
+    max_1posteri = find_max_posteri(loci_1)
+    max_2posteri = find_max_posteri(loci_2)
+
+    for i in range(len(loci_1)):
+        try: # to handle some nan values in argmax vectors
+            cooc_mat.loc[max_1posteri[i], max_2posteri[i]] += 1
+
+        except:
+            pass
+    cooc_mat.index = [i.replace('posterior_cluster_','') for i in cooc_mat.index]
+    cooc_mat.columns = [i.replace('posterior_cluster_','') for i in cooc_mat.columns]
+    return cooc_mat
+
+def match_evaluation():
+    '''
+    as the matching is performed using either:
+    1. confusion matrix and hungarian algorithm
+    2. clustering
+    
+    the approach should be specified to the function.'''
+    pass
+
