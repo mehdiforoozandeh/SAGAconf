@@ -1,5 +1,6 @@
 from _cluster_matching import *
 from _pipeline import *
+from _visualize import visualize
 
 def distance_matrix_heatmap(distance_matrix):
         sns.heatmap(
@@ -24,6 +25,23 @@ def coocurence_matrix_heatmap(cooc_mat):
     plt.xlabel('Replicate 1 clusters')
     plt.ylabel("Replicate 2 clusters")
     plt.show()
+
+def old():
+    parsed_posterior_1 = pd.read_csv(
+        'tests/rep1/parsed_posterior.csv').drop('Unnamed: 0', axis=1)
+    parsed_posterior_2 = pd.read_csv(
+        'tests/rep2/parsed_posterior.csv').drop('Unnamed: 0', axis=1)
+    
+    conf_mat = confusion_matrix(parsed_posterior_1, parsed_posterior_2, parsed_posterior_1.shape[1]-3)
+    assignment_pairs = Hungarian_algorithm(conf_mat)
+    match_eval = match_evaluation(conf_mat, assignment_pairs)
+
+    # print("label_mapping:\t", assignment_pairs)
+    print(match_eval)
+    vis = visualize(parsed_posterior_1, parsed_posterior_2, parsed_posterior_1.shape[1]-3)
+    vis.confusion_matrix_heatmap()
+    corrected_loci_1, corrected_loci_2 = connect_bipartite(
+        parsed_posterior_1, parsed_posterior_2, assignment_pairs)
 
 def main():
     len1, len2 = read_length_dist_files(
@@ -62,9 +80,12 @@ def main():
         connect_bipartite(clustered_loci1, clustered_loci2, assignment_pairs, conf_or_dis='dist')
     
     cooc_mat = Cooccurrence_matrix(corrected_loci_1, corrected_loci_2)
-    # coocurence_matrix_heatmap(cooc_mat)
+    eval_results = match_evaluation(cooc_mat, [(i, i) for i in range(cooc_mat.shape[0])])
+    
+    print(eval_results)
+    coocurence_matrix_heatmap(cooc_mat)
     
     
-
 if __name__=="__main__":
+    old()
     main()

@@ -34,7 +34,10 @@ def confusion_matrix(loci_1, loci_2, num_labels):
         index=['posterior'+str(i)for i in range(num_labels)]
     )
     for i in range(len(loci_1)):
-        Confus_Mat.loc[max_1posteri[i], max_2posteri[i]] += 1
+        try:
+            Confus_Mat.loc[max_1posteri[i], max_2posteri[i]] += 1
+        except:
+            pass
     return Confus_Mat
 
 def Hungarian_algorithm(matrix, conf_or_dis='conf'):
@@ -219,12 +222,20 @@ def Cooccurrence_matrix(loci_1, loci_2):
     cooc_mat.columns = [i.replace('posterior_cluster_','') for i in cooc_mat.columns]
     return cooc_mat
 
-def match_evaluation():
+def match_evaluation(matrix, assignment_pairs):
     '''
     as the matching is performed using either:
     1. confusion matrix and hungarian algorithm
     2. clustering
     
     the approach should be specified to the function.'''
-    pass
+    
+    probability_array = {}
+    matched_sum = 0
+    for i in range(matrix.shape[0]):
+        probability_array[str(i)] = float(matrix.iloc[i, assignment_pairs[i][1]]) /  matrix.iloc[i,:].sum()
+        matched_sum += float(matrix.iloc[i, assignment_pairs[i][1]])    
+
+    probability_array['all'] = matched_sum / np.array(matrix).sum()
+    return pd.Series(probability_array)
 
