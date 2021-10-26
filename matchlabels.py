@@ -37,11 +37,13 @@ def old():
     match_eval = match_evaluation(conf_mat, assignment_pairs)
 
     # print("label_mapping:\t", assignment_pairs)
-    print(match_eval)
-    vis = visualize(parsed_posterior_1, parsed_posterior_2, parsed_posterior_1.shape[1]-3)
-    vis.confusion_matrix_heatmap()
     corrected_loci_1, corrected_loci_2 = connect_bipartite(
         parsed_posterior_1, parsed_posterior_2, assignment_pairs)
+    print(match_eval)
+
+    vis = visualize(corrected_loci_1, corrected_loci_2, corrected_loci_1.shape[1]-3)
+    vis.confusion_matrix_heatmap()
+    
 
 def main():
     len1, len2 = read_length_dist_files(
@@ -56,18 +58,17 @@ def main():
 
     c1 = cluster(rep1_data, 10)
     # tsne_plot(rep1_data, clusters=[str(i) for i in c1.labels_], n_components=2)
-    # PCA_plot(rep1_data, PC=4, clusters=[str(i) for i in c1.labels_])
+    # PCA_plot(rep1_data, PC=4, clusters=[str(i) for i in c1.labels_], px=False)
 
     c2 = cluster(rep2_data, 10)
     # tsne_plot(rep2_data, clusters=[str(i) for i in c2.labels_], n_components=2)
-    # PCA_plot(rep2_data, PC=4, clusters=[str(i) for i in c2.labels_])
+    # PCA_plot(rep2_data, PC=4, clusters=[str(i) for i in c2.labels_], px=False)
 
     dist_mat = compute_pairwise_centroid_distance(c1, c2)
     assignment_pairs = Hungarian_algorithm(dist_mat, conf_or_dis='dist')
     # print(assignment_pairs)
     # distance_matrix_heatmap(dist_mat)
     
-
     parsed_posterior_1 = pd.read_csv(
         'tests/rep1/parsed_posterior.csv').drop('Unnamed: 0', axis=1)
     parsed_posterior_2 = pd.read_csv(
@@ -81,7 +82,7 @@ def main():
     
     cooc_mat = Cooccurrence_matrix(corrected_loci_1, corrected_loci_2)
     eval_results = match_evaluation(cooc_mat, [(i, i) for i in range(cooc_mat.shape[0])])
-    
+
     print(eval_results)
     coocurence_matrix_heatmap(cooc_mat)
     

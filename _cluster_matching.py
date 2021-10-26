@@ -130,21 +130,31 @@ def create_clustering_data(length_dist_1, length_dist_2, gmtk_params_1, gmtk_par
 def PCA_plot(X, clusters,  PC=5, px=True):
     pca = PCA(n_components=PC)
     components = pca.fit_transform(X)
-    labels = {
-        str(i): f"PC {i+1} ({var:.1f}%)"
-        for i, var in enumerate(pca.explained_variance_ratio_ * 100)
-        }
+    if px:
+        labels = {
+            str(i): f"PC {i+1} ({var:.1f}%)"
+            for i, var in enumerate(pca.explained_variance_ratio_ * 100)
+            }
 
-    fig = px.scatter_matrix(
-        components,
-        labels=labels,
-        color=clusters,
-        dimensions=range(PC),
-        )
+        fig = px.scatter_matrix(
+            components,
+            labels=labels,
+            color=clusters,
+            dimensions=range(PC),
+            )
 
-    fig.update_traces(diagonal_visible=False)
-    fig.update_traces(marker_size=12)
-    fig.show()
+        fig.update_traces(diagonal_visible=False)
+        fig.update_traces(marker_size=12)
+        fig.show()
+    else:
+        sns.scatterplot(
+        x=components[:,0], y=components[:,1], hue=clusters, s=100)
+
+        plt.title("PCA plot")
+        plt.xlabel("PC_1")
+        plt.ylabel("PC_2")
+
+        plt.show()
 
 def tsne_plot(X, clusters, n_components):
     tsne = TSNE(
@@ -154,6 +164,7 @@ def tsne_plot(X, clusters, n_components):
     sns.scatterplot(
         x=z[:,0], y=z[:,1], hue=clusters, s=100)
 
+    plt.title("TSNE plot")
     plt.xlabel("TSNE_1")
     plt.ylabel("TSNE_2")
     
