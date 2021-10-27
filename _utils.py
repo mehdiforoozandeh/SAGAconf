@@ -48,6 +48,7 @@ def gather_results(traindir, posteriordir, name_sig):
     os.system('cp {}/*.gz {}'.format(posteriordir, name_sig))
     os.system('gzip -d {}/*.gz'.format(name_sig))
     os.system('cp {}/log/segway.sh {}/segway.sh'.format(traindir, name_sig))
+    os.system('cp {}/params/params.params {}/params.params'.format(traindir, name_sig))
 
 def clean_up(traindir, posteriordir):
     shutil.rmtree(traindir)

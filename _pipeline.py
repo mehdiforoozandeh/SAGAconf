@@ -69,7 +69,7 @@ def run_segway_and_post_process(param_dict):
     os.system('mkdir {}'.format(param_dict['traindir']))
 
     os.system('SEGWAY_RAND_SEED={} segway train --include-coords={}\
-         --num-instances=1 --track-weight={} --segtransition-weight-scale={}\
+         --num-instances=10 --track-weight={} --segtransition-weight-scale={}\
              --ruler-scale={} --prior-strength={} --resolution={}\
                   --num-labels={} {} {}'.format(
                       param_dict["random_seed"], param_dict["include"], param_dict["track_weight"],
