@@ -5,7 +5,7 @@ from scipy.ndimage.measurements import center_of_mass
 from scipy.optimize import linear_sum_assignment
 from scipy.sparse import coo
 from scipy.spatial.kdtree import distance_matrix
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, AgglomerativeClustering
 import plotly.express as px
 import seaborn as sns
 from sklearn.decomposition import PCA
@@ -170,10 +170,49 @@ def tsne_plot(X, clusters, n_components):
     
     plt.show()
 
-def cluster(clustering_data, k):
-    kmeans = KMeans(n_clusters=k, random_state=0)
-    kmeans.fit(clustering_data)
-    return kmeans
+class Clusterer(object):
+    def __init__(self, clustering_data, n_clusters, strategy='hier', ):
+        self.X = clustering_data
+        self.k = n_clusters
+
+        if strategy == 'hier':
+            self.model = AgglomerativeClustering
+        else:
+            self.model = KMeans
+            
+    def fit_hierarchical(self, metric='euclidean', linkage='ward'):
+        self.model = self.model(
+                n_clusters=self.k, affinity=metric,
+                linkage=linkage)
+        
+        self.predicted_labels =self.model.fit_predict(self.X)
+
+        centroids = []
+        for i in range(self.k):
+            points_with_cluster_i_labels = []
+
+            for j in range(len(self.predicted_labels)):
+                if self.predicted_labels[j] == i:
+                    points_with_cluster_i_labels.append(self.X.iloc[j, :])
+
+            centroids.append(np.array(
+                pd.DataFrame(points_with_cluster_i_labels).mean(axis=0)))
+
+        self.model.cluster_centers_ = np.array(centroids)
+        return self.model
+
+    def fit_kmeans(self):
+        self.model = self.model(
+            n_clusters=self.k, random_state=0)
+        
+        self.model.fit(self.X)
+        self.predicted_labels = self.model.predict(self.X)
+        return self.model
+
+# def cluster(clustering_data, k):
+#     kmeans = KMeans(n_clusters=k, random_state=0)
+#     kmeans.fit(clustering_data)
+#     return kmeans
 
 def update_labels_by_cluster(unclustered_loci, clustering_obj): 
     '''

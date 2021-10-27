@@ -56,14 +56,17 @@ def main():
     rep1_data, rep2_data = create_clustering_data(
         len1, len2, gmtk1, gmtk2)
 
-    c1 = cluster(rep1_data, 10)
+    # c1 = cluster(rep1_data, 10)
+    clstrer_1 = Clusterer(rep1_data, n_clusters=5)
+    c1= clstrer_1.fit_hierarchical(metric='euclidean', linkage='ward')
     # tsne_plot(rep1_data, clusters=[str(i) for i in c1.labels_], n_components=2)
-    # PCA_plot(rep1_data, PC=4, clusters=[str(i) for i in c1.labels_], px=False)
+    # PCA_plot(rep1_data, PC=2, clusters=[str(i) for i in c1.labels_], px=False)
 
-    c2 = cluster(rep2_data, 10)
+    clstrer_2 = Clusterer(rep2_data, n_clusters=5)
+    c2 = clstrer_2.fit_hierarchical(metric='euclidean', linkage='ward')
     # tsne_plot(rep2_data, clusters=[str(i) for i in c2.labels_], n_components=2)
-    # PCA_plot(rep2_data, PC=4, clusters=[str(i) for i in c2.labels_], px=False)
-
+    # PCA_plot(rep2_data, PC=2, clusters=[str(i) for i in c2.labels_], px=False)
+    
     dist_mat = compute_pairwise_centroid_distance(c1, c2)
     assignment_pairs = Hungarian_algorithm(dist_mat, conf_or_dis='dist')
     # print(assignment_pairs)
@@ -84,9 +87,9 @@ def main():
     eval_results = match_evaluation(cooc_mat, [(i, i) for i in range(cooc_mat.shape[0])])
 
     print(eval_results)
-    coocurence_matrix_heatmap(cooc_mat)
+    # coocurence_matrix_heatmap(cooc_mat)
     
     
 if __name__=="__main__":
-    old()
+    # old()
     main()
