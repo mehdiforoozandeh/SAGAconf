@@ -110,7 +110,7 @@ def gmtk_params_files(gmtk_file_1, gmtk_file_2):
 
     return gmtk_params_1, gmtk_params_2
 
-def create_clustering_data(length_dist_1, length_dist_2, gmtk_params_1, gmtk_params_2, normalize_len=True):
+def curate_dataset(length_dist_1, length_dist_2, gmtk_params_1, gmtk_params_2, normalize_len=True):
     if normalize_len:
         min_max_scaler = preprocessing.MinMaxScaler()
 
@@ -231,12 +231,11 @@ def update_labels_by_cluster(unclustered_loci, clustering_obj):
     
     return new_loci
 
-def compute_pairwise_centroid_distance(clustering_obj_1, clustering_obj_2):
+def compute_pairwise_centroid_distance(centroid_1, centroid_2):
     '''
-    connect centroids using min eucleadian distance.
+    connect centroids using min eucleadian distance. can also be used to 
+    compute the pairwise distance between any two sets of points
     '''
-    centroid_1 = np.array(clustering_obj_1.cluster_centers_)
-    centroid_2 = np.array(clustering_obj_2.cluster_centers_)
     
     distance_matrix = np.zeros(
         (centroid_1.shape[0], centroid_2.shape[0]))

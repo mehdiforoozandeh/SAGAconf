@@ -1,0 +1,85 @@
+<div class="module" id="length_distribution_length_distribution">
+  <h2><a href="#">^</a>  Length distribution</h2>
+  <table>
+    <tr>
+      <td valign="top">
+        <ul>
+          <li> Length distribution:<br />
+            A density plot of the lengths of all the segments for each label
+            (outliers are circled). A sharp left cutoff is expected if a
+            minimum segment length was imposed during segmentation.
+            <br />
+            <a href="length_distribution/length_distribution.slide.png">
+              <img src="length_distribution/length_distribution.thumb.png" />
+            </a>
+            <br />
+            [ <a href="length_distribution/length_distribution.png">PNG</a> ]
+            [ <a href="length_distribution/length_distribution.slide.png">SLIDE</a> ]
+            [ <a href="length_distribution/length_distribution.pdf">PDF</a> ]
+            [ <a href="length_distribution/length_distribution.tab">TAB</a> ]
+          </li><br />
+          <li> Size distribution:<br />
+            The fraction, for each segment label, of the total number of bases 
+            and segments in the entire segmentation. The ratio of the base
+            fraction to the segment fraction is the mean segment length.
+            <br />
+            <a href="length_distribution/segment_sizes.slide.png">
+              <img src="length_distribution/segment_sizes.thumb.png" />
+            </a>
+            <br />
+            [ <a href="length_distribution/segment_sizes.png">PNG</a> ]
+            [ <a href="length_distribution/segment_sizes.slide.png">SLIDE</a> ]
+            [ <a href="length_distribution/segment_sizes.pdf">PDF</a> ]
+          </li><br />
+        </ul>
+      </td>
+      <td>
+        
+<table border="1" cellpadding="4" cellspacing="1">
+<tr>
+<td style="background-color:rgb(204, 204, 204)">label</td>
+<td style="background-color:rgb(204, 204, 204)">num.segs</td>
+<td style="background-color:rgb(204, 204, 204)">mean.len</td>
+<td style="background-color:rgb(204, 204, 204)">median.len</td>
+<td style="background-color:rgb(204, 204, 204)">stdev.len</td>
+<td style="background-color:rgb(204, 204, 204)">num.bp</td>
+<td style="background-color:rgb(204, 204, 204)">frac.bp
+</td>
+</tr>
+<tr><td>all</td><td>6531</td><td>4586.617</td><td>3000.000</td><td>6107.399</td><td>29955196</td><td>1.000
+</td></tr>
+<tr><td>0</td><td>141</td><td>3269.504</td><td>2000.000</td><td>2405.312</td><td>461000</td><td>0.015
+</td></tr>
+<tr><td>1</td><td>1113</td><td>4027.118</td><td>3000.000</td><td>3456.632</td><td>4482182</td><td>0.150
+</td></tr>
+<tr><td>2</td><td>226</td><td>2433.628</td><td>2000.000</td><td>934.833</td><td>550000</td><td>0.018
+</td></tr>
+<tr><td>3</td><td>1339</td><td>5123.451</td><td>3000.000</td><td>8099.592</td><td>6860301</td><td>0.229
+</td></tr>
+<tr><td>4</td><td>48</td><td>3687.500</td><td>2000.000</td><td>4118.840</td><td>177000</td><td>0.006
+</td></tr>
+<tr><td>5</td><td>396</td><td>4987.374</td><td>3000.000</td><td>6604.432</td><td>1975000</td><td>0.066
+</td></tr>
+<tr><td>6</td><td>126</td><td>2452.381</td><td>2000.000</td><td>939.496</td><td>309000</td><td>0.010
+</td></tr>
+<tr><td>7</td><td>169</td><td>7650.888</td><td>4000.000</td><td>17980.990</td><td>1293000</td><td>0.043
+</td></tr>
+<tr><td>8</td><td>505</td><td>2664.539</td><td>2000.000</td><td>1246.901</td><td>1345592</td><td>0.045
+</td></tr>
+<tr><td>9</td><td>1920</td><td>4662.042</td><td>4000.000</td><td>3619.841</td><td>8951121</td><td>0.299
+</td></tr>
+<tr><td>10</td><td>264</td><td>8647.727</td><td>5000.000</td><td>10149.683</td><td>2283000</td><td>0.076
+</td></tr>
+<tr><td>11</td><td>184</td><td>5103.261</td><td>3000.000</td><td>4843.776</td><td>939000</td><td>0.031
+</td></tr>
+<tr><td>12</td><td>100</td><td>3290.000</td><td>3000.000</td><td>2050.829</td><td>329000</td><td>0.011
+</td></tr>
+</table>
+
+        <br />
+        [ <a href="length_distribution/segment_sizes.tab">TAB</a> ]
+      </td>
+    </tr>
+  </table>
+</div>
+

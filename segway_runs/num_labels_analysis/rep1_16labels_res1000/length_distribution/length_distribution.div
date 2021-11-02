@@ -1,0 +1,91 @@
+<div class="module" id="length_distribution_length_distribution">
+  <h2><a href="#">^</a>  Length distribution</h2>
+  <table>
+    <tr>
+      <td valign="top">
+        <ul>
+          <li> Length distribution:<br />
+            A density plot of the lengths of all the segments for each label
+            (outliers are circled). A sharp left cutoff is expected if a
+            minimum segment length was imposed during segmentation.
+            <br />
+            <a href="length_distribution/length_distribution.slide.png">
+              <img src="length_distribution/length_distribution.thumb.png" />
+            </a>
+            <br />
+            [ <a href="length_distribution/length_distribution.png">PNG</a> ]
+            [ <a href="length_distribution/length_distribution.slide.png">SLIDE</a> ]
+            [ <a href="length_distribution/length_distribution.pdf">PDF</a> ]
+            [ <a href="length_distribution/length_distribution.tab">TAB</a> ]
+          </li><br />
+          <li> Size distribution:<br />
+            The fraction, for each segment label, of the total number of bases 
+            and segments in the entire segmentation. The ratio of the base
+            fraction to the segment fraction is the mean segment length.
+            <br />
+            <a href="length_distribution/segment_sizes.slide.png">
+              <img src="length_distribution/segment_sizes.thumb.png" />
+            </a>
+            <br />
+            [ <a href="length_distribution/segment_sizes.png">PNG</a> ]
+            [ <a href="length_distribution/segment_sizes.slide.png">SLIDE</a> ]
+            [ <a href="length_distribution/segment_sizes.pdf">PDF</a> ]
+          </li><br />
+        </ul>
+      </td>
+      <td>
+        
+<table border="1" cellpadding="4" cellspacing="1">
+<tr>
+<td style="background-color:rgb(204, 204, 204)">label</td>
+<td style="background-color:rgb(204, 204, 204)">num.segs</td>
+<td style="background-color:rgb(204, 204, 204)">mean.len</td>
+<td style="background-color:rgb(204, 204, 204)">median.len</td>
+<td style="background-color:rgb(204, 204, 204)">stdev.len</td>
+<td style="background-color:rgb(204, 204, 204)">num.bp</td>
+<td style="background-color:rgb(204, 204, 204)">frac.bp
+</td>
+</tr>
+<tr><td>all</td><td>6930</td><td>4322.539</td><td>3000.000</td><td>4912.130</td><td>29955196</td><td>1.000
+</td></tr>
+<tr><td>0</td><td>89</td><td>2977.528</td><td>2000.000</td><td>1702.460</td><td>265000</td><td>0.009
+</td></tr>
+<tr><td>1</td><td>782</td><td>3762.381</td><td>3000.000</td><td>3228.468</td><td>2942182</td><td>0.098
+</td></tr>
+<tr><td>2</td><td>44</td><td>3727.273</td><td>2000.000</td><td>4249.939</td><td>164000</td><td>0.005
+</td></tr>
+<tr><td>3</td><td>1855</td><td>4503.030</td><td>3000.000</td><td>3401.634</td><td>8353121</td><td>0.279
+</td></tr>
+<tr><td>4</td><td>189</td><td>4582.011</td><td>3000.000</td><td>4146.764</td><td>866000</td><td>0.029
+</td></tr>
+<tr><td>5</td><td>224</td><td>2473.214</td><td>2000.000</td><td>972.477</td><td>554000</td><td>0.018
+</td></tr>
+<tr><td>6</td><td>431</td><td>6018.561</td><td>3000.000</td><td>8188.307</td><td>2594000</td><td>0.087
+</td></tr>
+<tr><td>7</td><td>176</td><td>7534.091</td><td>4000.000</td><td>17698.195</td><td>1326000</td><td>0.044
+</td></tr>
+<tr><td>8</td><td>327</td><td>5103.976</td><td>3000.000</td><td>4577.723</td><td>1669000</td><td>0.056
+</td></tr>
+<tr><td>9</td><td>240</td><td>5141.667</td><td>3000.000</td><td>5184.586</td><td>1234000</td><td>0.041
+</td></tr>
+<tr><td>10</td><td>1447</td><td>4251.072</td><td>3000.000</td><td>3577.192</td><td>6151301</td><td>0.205
+</td></tr>
+<tr><td>11</td><td>118</td><td>2500.000</td><td>2000.000</td><td>945.552</td><td>295000</td><td>0.010
+</td></tr>
+<tr><td>12</td><td>464</td><td>2611.190</td><td>2000.000</td><td>1151.124</td><td>1211592</td><td>0.040
+</td></tr>
+<tr><td>13</td><td>304</td><td>4838.816</td><td>3000.000</td><td>5084.517</td><td>1471000</td><td>0.049
+</td></tr>
+<tr><td>14</td><td>121</td><td>4181.818</td><td>3000.000</td><td>3656.761</td><td>506000</td><td>0.017
+</td></tr>
+<tr><td>15</td><td>119</td><td>2966.387</td><td>2000.000</td><td>1597.965</td><td>353000</td><td>0.012
+</td></tr>
+</table>
+
+        <br />
+        [ <a href="length_distribution/segment_sizes.tab">TAB</a> ]
+      </td>
+    </tr>
+  </table>
+</div>
+

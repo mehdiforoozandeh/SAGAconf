@@ -1,0 +1,87 @@
+<div class="module" id="length_distribution_length_distribution">
+  <h2><a href="#">^</a>  Length distribution</h2>
+  <table>
+    <tr>
+      <td valign="top">
+        <ul>
+          <li> Length distribution:<br />
+            A density plot of the lengths of all the segments for each label
+            (outliers are circled). A sharp left cutoff is expected if a
+            minimum segment length was imposed during segmentation.
+            <br />
+            <a href="length_distribution/length_distribution.slide.png">
+              <img src="length_distribution/length_distribution.thumb.png" />
+            </a>
+            <br />
+            [ <a href="length_distribution/length_distribution.png">PNG</a> ]
+            [ <a href="length_distribution/length_distribution.slide.png">SLIDE</a> ]
+            [ <a href="length_distribution/length_distribution.pdf">PDF</a> ]
+            [ <a href="length_distribution/length_distribution.tab">TAB</a> ]
+          </li><br />
+          <li> Size distribution:<br />
+            The fraction, for each segment label, of the total number of bases 
+            and segments in the entire segmentation. The ratio of the base
+            fraction to the segment fraction is the mean segment length.
+            <br />
+            <a href="length_distribution/segment_sizes.slide.png">
+              <img src="length_distribution/segment_sizes.thumb.png" />
+            </a>
+            <br />
+            [ <a href="length_distribution/segment_sizes.png">PNG</a> ]
+            [ <a href="length_distribution/segment_sizes.slide.png">SLIDE</a> ]
+            [ <a href="length_distribution/segment_sizes.pdf">PDF</a> ]
+          </li><br />
+        </ul>
+      </td>
+      <td>
+        
+<table border="1" cellpadding="4" cellspacing="1">
+<tr>
+<td style="background-color:rgb(204, 204, 204)">label</td>
+<td style="background-color:rgb(204, 204, 204)">num.segs</td>
+<td style="background-color:rgb(204, 204, 204)">mean.len</td>
+<td style="background-color:rgb(204, 204, 204)">median.len</td>
+<td style="background-color:rgb(204, 204, 204)">stdev.len</td>
+<td style="background-color:rgb(204, 204, 204)">num.bp</td>
+<td style="background-color:rgb(204, 204, 204)">frac.bp
+</td>
+</tr>
+<tr><td>all</td><td>6922</td><td>4327.535</td><td>3000.000</td><td>4714.670</td><td>29955196</td><td>1.000
+</td></tr>
+<tr><td>0</td><td>435</td><td>2502.510</td><td>2000.000</td><td>901.242</td><td>1088592</td><td>0.036
+</td></tr>
+<tr><td>1</td><td>224</td><td>4348.214</td><td>3000.000</td><td>3879.225</td><td>974000</td><td>0.033
+</td></tr>
+<tr><td>2</td><td>130</td><td>4223.077</td><td>3000.000</td><td>3623.142</td><td>549000</td><td>0.018
+</td></tr>
+<tr><td>3</td><td>1225</td><td>4396.164</td><td>3000.000</td><td>3681.997</td><td>5385301</td><td>0.180
+</td></tr>
+<tr><td>4</td><td>168</td><td>2565.476</td><td>2000.000</td><td>1157.994</td><td>431000</td><td>0.014
+</td></tr>
+<tr><td>5</td><td>1830</td><td>4684.766</td><td>4000.000</td><td>3653.704</td><td>8573121</td><td>0.286
+</td></tr>
+<tr><td>6</td><td>255</td><td>8066.667</td><td>5000.000</td><td>8763.084</td><td>2057000</td><td>0.069
+</td></tr>
+<tr><td>7</td><td>523</td><td>3464.627</td><td>3000.000</td><td>2235.681</td><td>1812000</td><td>0.060
+</td></tr>
+<tr><td>8</td><td>102</td><td>3000.000</td><td>2500.000</td><td>1686.161</td><td>306000</td><td>0.010
+</td></tr>
+<tr><td>9</td><td>549</td><td>4770.492</td><td>3000.000</td><td>4367.266</td><td>2619000</td><td>0.087
+</td></tr>
+<tr><td>10</td><td>123</td><td>3000.000</td><td>2000.000</td><td>1623.005</td><td>369000</td><td>0.012
+</td></tr>
+<tr><td>11</td><td>1132</td><td>3834.966</td><td>3000.000</td><td>3028.932</td><td>4341182</td><td>0.145
+</td></tr>
+<tr><td>12</td><td>67</td><td>3522.388</td><td>2000.000</td><td>4426.373</td><td>236000</td><td>0.008
+</td></tr>
+<tr><td>13</td><td>159</td><td>7635.220</td><td>4000.000</td><td>18336.965</td><td>1214000</td><td>0.041
+</td></tr>
+</table>
+
+        <br />
+        [ <a href="length_distribution/segment_sizes.tab">TAB</a> ]
+      </td>
+    </tr>
+  </table>
+</div>
+

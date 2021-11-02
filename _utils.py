@@ -153,7 +153,7 @@ def instance_binning(input_dict):
     for i in range(len(bins_df)): # i denotes index of empty bin
         filledbool = False
         # define search space
-        if i%100 == 0:
+        if i%5000 == 0:
             print("filled {} bins. could not fill {} bins".format(i-notfilled, notfilled))
         
         if c < M:
@@ -203,8 +203,8 @@ def mp_binning(posterior_df_list, empty_bins, M):
     # k as in posterior_k, and v is the k-th posterior df
     for k, v in posterior_df_list.items():
         mp_inputs.append(
-            {"bins_df": empty_bins, "posterior_df": v, "M": M, "posteriorID": str(empty_bins)})
-
+            {"bins_df": empty_bins, "posterior_df": v, "M": M, "posteriorID": 'posterior'+str(k)})
+        
     with mp.Pool(len(list(posterior_df_list.keys()))) as pool_obj:
         mpresults = pool_obj.map(instance_binning, mp_inputs)
     
