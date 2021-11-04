@@ -40,11 +40,11 @@ def plain_seg_matching(rep_dir_1, rep_dir_2, matching_strategy='conf_matrix'):
 
         # print("label_mapping:\t", assignment_pairs)
         corrected_loci_1, corrected_loci_2 = connect_bipartite(
-            parsed_posterior_1, parsed_posterior_2, assignment_pairs, conf_or_dis='conf')
+            parsed_posterior_1, parsed_posterior_2, assignment_pairs)
         print(match_eval)
 
         vis = visualize(corrected_loci_1, corrected_loci_2, corrected_loci_1.shape[1]-3)
-        vis.confusion_matrix_heatmap()
+        # vis.confusion_matrix_heatmap()
     
     elif matching_strategy == 'distance_matrix':
         len1, len2 = read_length_dist_files(
@@ -59,7 +59,7 @@ def plain_seg_matching(rep_dir_1, rep_dir_2, matching_strategy='conf_matrix'):
         dist_mat = compute_pairwise_centroid_distance(np.array(rep1_data), np.array(rep2_data))
         assignment_pairs = Hungarian_algorithm(dist_mat, conf_or_dis='dist')
         # print(assignment_pairs)
-        distance_matrix_heatmap(dist_mat)
+        # distance_matrix_heatmap(dist_mat)
 
         parsed_posterior_1 = pd.read_csv(
             '{}/parsed_posterior.csv'.format(rep_dir_1)).drop('Unnamed: 0', axis=1)
@@ -67,12 +67,12 @@ def plain_seg_matching(rep_dir_1, rep_dir_2, matching_strategy='conf_matrix'):
             '{}/parsed_posterior.csv'.format(rep_dir_2)).drop('Unnamed: 0', axis=1)
 
         corrected_loci_1, corrected_loci_2 = \
-            connect_bipartite(parsed_posterior_1, parsed_posterior_2, assignment_pairs, conf_or_dis='dist')
+            connect_bipartite(parsed_posterior_1, parsed_posterior_2, assignment_pairs)
         
         cooc_mat = Cooccurrence_matrix(corrected_loci_1, corrected_loci_2)
         eval_results = match_evaluation(cooc_mat, [(i, i) for i in range(cooc_mat.shape[0])])
 
-        coocurence_matrix_heatmap(cooc_mat)
+        # coocurence_matrix_heatmap(cooc_mat)
         print(eval_results)
 
 def cluster_matching(rep_dir_1, rep_dir_2, n_clust, matching_strategy='distance_matrix'):
@@ -102,7 +102,7 @@ def cluster_matching(rep_dir_1, rep_dir_2, n_clust, matching_strategy='distance_
         dist_mat = compute_pairwise_centroid_distance(c1.cluster_centers_, c2.cluster_centers_)
         assignment_pairs = Hungarian_algorithm(dist_mat, conf_or_dis='dist')
         # print(assignment_pairs)
-        distance_matrix_heatmap(dist_mat)
+        # distance_matrix_heatmap(dist_mat)
         
         parsed_posterior_1 = pd.read_csv(
             '{}/parsed_posterior.csv'.format(rep_dir_1)).drop('Unnamed: 0', axis=1)
@@ -113,13 +113,13 @@ def cluster_matching(rep_dir_1, rep_dir_2, n_clust, matching_strategy='distance_
         clustered_loci2 = update_labels_by_cluster(parsed_posterior_2, c2)
 
         corrected_loci_1, corrected_loci_2 = \
-            connect_bipartite(clustered_loci1, clustered_loci2, assignment_pairs, conf_or_dis='dist')
+            connect_bipartite(clustered_loci1, clustered_loci2, assignment_pairs)
         
         cooc_mat = Cooccurrence_matrix(corrected_loci_1, corrected_loci_2)
         eval_results = match_evaluation(cooc_mat, [(i, i) for i in range(cooc_mat.shape[0])])
 
         print(eval_results)
-        coocurence_matrix_heatmap(cooc_mat)
+        # coocurence_matrix_heatmap(cooc_mat)
 
     elif matching_strategy == 'conf_matrix':
         len1, len2 = read_length_dist_files(
@@ -149,40 +149,40 @@ def cluster_matching(rep_dir_1, rep_dir_2, n_clust, matching_strategy='distance_
         clustered_loci1 = update_labels_by_cluster(parsed_posterior_1, c1)
         clustered_loci2 = update_labels_by_cluster(parsed_posterior_2, c2)
         
-        conf_mat = confusion_matrix(clustered_loci1, clustered_loci2, parsed_posterior_1.shape[1]-3)
+        conf_mat = confusion_matrix(clustered_loci1, clustered_loci2, clustered_loci1.shape[1]-3)
         assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
         # print("label_mapping:\t", assignment_pairs)
 
         corrected_loci_1, corrected_loci_2 = \
-            connect_bipartite(clustered_loci1, clustered_loci2, assignment_pairs, conf_or_dis='conf')
+            connect_bipartite(clustered_loci1, clustered_loci2, assignment_pairs)
         
         cooc_mat = Cooccurrence_matrix(corrected_loci_1, corrected_loci_2)
         eval_results = match_evaluation(cooc_mat, [(i, i) for i in range(cooc_mat.shape[0])])
 
         print(eval_results)
-        coocurence_matrix_heatmap(cooc_mat)
+        # coocurence_matrix_heatmap(cooc_mat)
 
 
 if __name__=="__main__":
-    replicate_1_dir = 'segway_runs/num_labels_analysis/rep1_{}labels_res1000'.format(8)
-    parse_posterior_results(
-        replicate_1_dir,'segway_runs/encodePilotRegions.hg19.bed',1000,10)
 
-
-    exit()
+    pilot_regions_file = 'segway_runs/encodePilotRegions.hg19.bed'
 
     for n_labels in range(8,17):
         replicate_1_dir = 'segway_runs/num_labels_analysis/rep1_{}labels_res1000'.format(n_labels)
         replicate_2_dir = 'segway_runs/num_labels_analysis/rep2_{}labels_res1000'.format(n_labels)
-        pilot_regions_file = 'segway_runs/encodePilotRegions.hg19.bed'
 
-        plain_seg_matching(\
-            replicate_1_dir, replicate_2_dir, matching_strategy='conf_matrix')
+        # plain_seg_matching(\
+        #     replicate_1_dir, replicate_2_dir, matching_strategy='conf_matrix')
         plain_seg_matching(\
             replicate_1_dir, replicate_2_dir, matching_strategy='distance_matrix')
+        
+        replicate_1_dir = 'segway_runs/num_labels_analysis/rep1_{}labels_res1000'.format(16)
+        replicate_2_dir = 'segway_runs/num_labels_analysis/rep2_{}labels_res1000'.format(16)
 
-        # k = 5
         # cluster_matching(\
-        #     replicate_1_dir, replicate_2_dir, n_clust=k ,matching_strategy='conf_matrix')
-        # cluster_matching(\
-        #     replicate_1_dir, replicate_2_dir, n_clust=k ,matching_strategy='distance_matrix')
+        #     replicate_1_dir, replicate_2_dir, n_clust=n_labels ,matching_strategy='conf_matrix')
+        cluster_matching(\
+            replicate_1_dir, replicate_2_dir, n_clust=n_labels ,matching_strategy='distance_matrix')
+
+        print('\n\n\n')
+

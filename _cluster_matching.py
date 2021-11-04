@@ -60,35 +60,19 @@ def Hungarian_algorithm(matrix, conf_or_dis='conf'):
         assignment_pairs = [(i, best_assignments[1][i]) for i in range(len(best_assignments[0]))]
         return assignment_pairs
 
-def connect_bipartite(loci_1, loci_2, assignment_matching, conf_or_dis='conf'):
+def connect_bipartite(loci_1, loci_2, assignment_matching):
+    corrected_loci_1 = [loci_1.chr, loci_1.start, loci_1.end]
+    corrected_loci_2 = [loci_2.chr, loci_2.start, loci_2.end]
 
-    if conf_or_dis == 'conf':
-        corrected_loci_2 = []
-        corrected_loci_2.append(loci_2.chr)
-        corrected_loci_2.append(loci_2.window_start)
-        corrected_loci_2.append(loci_2.window_end)
+    for i in range(len(assignment_matching)):
+        corrected_loci_1.append(loci_1['posterior'+str(assignment_matching[i][0])])
+        corrected_loci_2.append(loci_2['posterior'+str(assignment_matching[i][1])])
 
-        for i in range(len(assignment_matching)):
-            corrected_loci_2.append(loci_2['posterior'+str(assignment_matching[i][1])])
-
-        corrected_loci_2 = pd.concat(corrected_loci_2, axis=1)
-
-        corrected_loci_2.columns = loci_1.columns
-        return loci_1, corrected_loci_2
-
-    elif conf_or_dis == 'dist':
-        corrected_loci_1 = [loci_1.chr, loci_1.window_start, loci_1.window_end]
-        corrected_loci_2 = [loci_2.chr, loci_2.window_start, loci_2.window_end]
-
-        for i in range(len(assignment_matching)):
-            corrected_loci_1.append(loci_1['posterior_cluster_'+str(assignment_matching[i][0])])
-            corrected_loci_2.append(loci_2['posterior_cluster_'+str(assignment_matching[i][1])])
-
-        corrected_loci_1 = pd.concat(corrected_loci_1, axis=1)
-        corrected_loci_2 = pd.concat(corrected_loci_2, axis=1)
-        corrected_loci_2.columns = corrected_loci_1.columns
-        
-        return corrected_loci_1, corrected_loci_2
+    corrected_loci_1 = pd.concat(corrected_loci_1, axis=1)
+    corrected_loci_2 = pd.concat(corrected_loci_2, axis=1)
+    corrected_loci_2.columns = corrected_loci_1.columns
+    
+    return corrected_loci_1, corrected_loci_2
             
 
 def read_length_dist_files(len_file_1, len_file_2):
@@ -219,15 +203,15 @@ def update_labels_by_cluster(unclustered_loci, clustering_obj):
     merges clusters and their corresponding posterior value in 
     each bin
     '''
-    new_loci = unclustered_loci.loc[:,('chr', 'window_start', 'window_end')]
+    new_loci = unclustered_loci.loc[:,('chr', 'start', 'end')]
     cluster_labels = clustering_obj.labels_
 
     for i in range(len(cluster_labels)): 
-        if "posterior_cluster_{}".format(cluster_labels[i]) not in new_loci.columns:
-            new_loci["posterior_cluster_{}".format(cluster_labels[i])] = unclustered_loci["posterior{}".format(i)]
+        if "posterior{}".format(cluster_labels[i]) not in new_loci.columns:
+            new_loci["posterior{}".format(cluster_labels[i])] = unclustered_loci["posterior{}".format(i)]
         else:
-            new_loci["posterior_cluster_{}".format(cluster_labels[i])] = \
-                new_loci["posterior_cluster_{}".format(cluster_labels[i])] + unclustered_loci["posterior{}".format(i)]
+            new_loci["posterior{}".format(cluster_labels[i])] = \
+                new_loci["posterior{}".format(cluster_labels[i])] + unclustered_loci["posterior{}".format(i)]
     
     return new_loci
 
