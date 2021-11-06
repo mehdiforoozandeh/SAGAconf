@@ -171,16 +171,22 @@ if __name__=="__main__":
         replicate_1_dir = 'segway_runs/num_labels_analysis/rep1_{}labels_res1000'.format(n_labels)
         replicate_2_dir = 'segway_runs/num_labels_analysis/rep2_{}labels_res1000'.format(n_labels)
 
-        # plain_seg_matching(\
-        #     replicate_1_dir, replicate_2_dir, matching_strategy='conf_matrix')
+        print('plain seg => conf_mat // k = {}'.format(n_labels))
+        plain_seg_matching(\
+            replicate_1_dir, replicate_2_dir, matching_strategy='conf_matrix')
+
+        print('plain seg => dist_mat // k = {}'.format(n_labels))
         plain_seg_matching(\
             replicate_1_dir, replicate_2_dir, matching_strategy='distance_matrix')
         
         replicate_1_dir = 'segway_runs/num_labels_analysis/rep1_{}labels_res1000'.format(16)
         replicate_2_dir = 'segway_runs/num_labels_analysis/rep2_{}labels_res1000'.format(16)
-
-        # cluster_matching(\
-        #     replicate_1_dir, replicate_2_dir, n_clust=n_labels ,matching_strategy='conf_matrix')
+        
+        print('post clst => conf_mat // k = {}'.format(n_labels))
+        cluster_matching(\
+            replicate_1_dir, replicate_2_dir, n_clust=n_labels ,matching_strategy='conf_matrix')
+        
+        print('post clst => dist_mat // k = {}'.format(n_labels))
         cluster_matching(\
             replicate_1_dir, replicate_2_dir, n_clust=n_labels ,matching_strategy='distance_matrix')
 
