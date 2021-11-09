@@ -248,7 +248,7 @@ length_dists = {}
 for celltype in length_dist_dir.listdir():
     celltype = celltype.basename()
     if celltype in ["run.py", "stdout.txt", "trackname_assay.txt"]: continue
-    length_dist_fname = length_dist_dir / celltype / "glob-a287da44f32bf6a3fc6d7c51c52ddafa" / "segment_sizes.tab"
+    length_dist_fname = length_dist_dir / celltype / "plots" / "segment_sizes.tab"
     if length_dist_fname.exists():
         print(celltype)
         length_dists[celltype] = pandas.read_table(length_dist_fname)
@@ -513,7 +513,7 @@ if not Path("Length_distribution/Clusters").exists():
     Path("Length_distribution/Clusters").makedirs()
 
 for key in common_celltypes:
-	length_distr_fname = length_dist_dir / key / "glob-a287da44f32bf6a3fc6d7c51c52ddafa" / "length_distribution.tab"
+	length_distr_fname = length_dist_dir / key / "plots" / "length_distribution.tab"
 	length_distr_df = pandas.read_table(length_distr_fname)
 
 	clusters = length_distr_df.label.unique()
@@ -558,7 +558,7 @@ if not Path("Length_distribution/Bio_labels").exists():
 		#bio_labels = pickle.load(f)
 
 for key in common_celltypes:
-	length_distr_fname = length_dist_dir / key / "glob-a287da44f32bf6a3fc6d7c51c52ddafa" / "length_distribution.tab"
+	length_distr_fname = length_dist_dir / key / "plots" / "length_distribution.tab"
 	length_distr_df = pandas.read_table(length_distr_fname)
 
 	length_distr_df['label'] = length_distr_df['label'].astype(str)

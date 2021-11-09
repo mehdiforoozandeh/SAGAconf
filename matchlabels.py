@@ -47,14 +47,14 @@ def plain_seg_matching(rep_dir_1, rep_dir_2, matching_strategy='conf_matrix'):
         # vis.confusion_matrix_heatmap()
     
     elif matching_strategy == 'distance_matrix':
-        len1, len2 = read_length_dist_files(
-            '{}/length_distribution/segment_sizes.tab'.format(rep_dir_1), 
-            '{}/length_distribution/segment_sizes.tab'.format(rep_dir_2))
+        # len1, len2 = read_length_dist_files(
+        #     '{}/length_distribution/segment_sizes.tab'.format(rep_dir_1), 
+        #     '{}/length_distribution/segment_sizes.tab'.format(rep_dir_2))
         gmtk1, gmtk2 = gmtk_params_files(
             '{}/gmtk_parameters/gmtk_parameters.stats.csv'.format(rep_dir_1), 
             '{}/gmtk_parameters/gmtk_parameters.stats.csv'.format(rep_dir_2))
         
-        rep1_data, rep2_data = curate_dataset(len1, len2, gmtk1, gmtk2) 
+        rep1_data, rep2_data = gmtk1, gmtk2 #curate_dataset(len1, len2, gmtk1, gmtk2) 
 
         dist_mat = compute_pairwise_centroid_distance(np.array(rep1_data), np.array(rep2_data))
         assignment_pairs = Hungarian_algorithm(dist_mat, conf_or_dis='dist')
@@ -78,16 +78,15 @@ def plain_seg_matching(rep_dir_1, rep_dir_2, matching_strategy='conf_matrix'):
 def cluster_matching(rep_dir_1, rep_dir_2, n_clust, matching_strategy='distance_matrix'):
 
     if matching_strategy == 'distance_matrix':
-        len1, len2 = read_length_dist_files(
-                '{}/length_distribution/segment_sizes.tab'.format(rep_dir_1), 
-                '{}/length_distribution/segment_sizes.tab'.format(rep_dir_2))
+        # len1, len2 = read_length_dist_files(
+        #         '{}/length_distribution/segment_sizes.tab'.format(rep_dir_1), 
+        #         '{}/length_distribution/segment_sizes.tab'.format(rep_dir_2))
 
         gmtk1, gmtk2 = gmtk_params_files(
                 '{}/gmtk_parameters/gmtk_parameters.stats.csv'.format(rep_dir_1), 
                 '{}/gmtk_parameters/gmtk_parameters.stats.csv'.format(rep_dir_2))
 
-        rep1_data, rep2_data = curate_dataset(
-            len1, len2, gmtk1, gmtk2)
+        rep1_data, rep2_data = gmtk1, gmtk2 #curate_dataset(len1, len2, gmtk1, gmtk2) 
 
         clstrer_1 = Clusterer(rep1_data, n_clusters=int(n_clust))
         c1= clstrer_1.fit_hierarchical(metric='euclidean', linkage='ward')
@@ -122,14 +121,14 @@ def cluster_matching(rep_dir_1, rep_dir_2, n_clust, matching_strategy='distance_
         # coocurence_matrix_heatmap(cooc_mat)
 
     elif matching_strategy == 'conf_matrix':
-        len1, len2 = read_length_dist_files(
-                '{}/length_distribution/segment_sizes.tab'.format(rep_dir_1), 
-                '{}/length_distribution/segment_sizes.tab'.format(rep_dir_2))
+        # len1, len2 = read_length_dist_files(
+        #         '{}/length_distribution/segment_sizes.tab'.format(rep_dir_1), 
+        #         '{}/length_distribution/segment_sizes.tab'.format(rep_dir_2))
         gmtk1, gmtk2 = gmtk_params_files(
                 '{}/gmtk_parameters/gmtk_parameters.stats.csv'.format(rep_dir_1), 
                 '{}/gmtk_parameters/gmtk_parameters.stats.csv'.format(rep_dir_2))
 
-        rep1_data, rep2_data = curate_dataset(len1, len2, gmtk1, gmtk2)
+        rep1_data, rep2_data = gmtk1, gmtk2 #curate_dataset(len1, len2, gmtk1, gmtk2) 
 
         clstrer_1 = Clusterer(rep1_data, n_clusters=int(n_clust))
         c1= clstrer_1.fit_hierarchical(metric='euclidean', linkage='ward')
