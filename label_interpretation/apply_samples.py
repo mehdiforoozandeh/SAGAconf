@@ -229,6 +229,8 @@ for ann_index, ann in enumerate(target_anns):
                 f.write("\t".join(map(str, probs[i,:])))
                 f.write("\n")
 
+exit()
+
 ##################################
 ##################################
 # Diagnostic plots
