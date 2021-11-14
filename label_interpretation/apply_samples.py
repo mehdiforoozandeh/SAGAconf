@@ -158,7 +158,7 @@ for ann_index, ann in enumerate(target_anns):
 
     if (len(feature_list) < 16): # if histone tracks are missing
         logger.info("Histone tracks are missing, skipping.".format(**locals()))
-        continue
+        # continue
 
     target_dir = classification_dir / str(target_anns[ann_index]['celltype'])
     print('8', target_dir) ###testprint
