@@ -19,10 +19,9 @@ def create_input_dir(exp_name):
     segwayOutput/exp_name
     segwayOutput/exp_name/feature_aggegation.tab
     segwayOutput/exp_name/signal_distribution.tab
-    segwayOutput/exp_name/plots/
     '''
     os.mkdir('label_interpretation/segwayOutput/exp_name/')
-    os.mkdir('label_interpretation/segwayOutput/exp_name/plots/')
+    # os.mkdir('label_interpretation/segwayOutput/exp_name/plots/')
 
 def feature_aggreg(exp_name, segbed, gtf):
     '''
@@ -40,15 +39,12 @@ def signal_dist(exp_name, segbed, gd):
 
     os.system('segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
 
-def run_apply(exp_name):
+def run_apply():
     '''
     run apply_samples.py as follows:
         python apply_samples.py output_folder
     '''
-    pass
-
-def run_plots(exp_name):
-    pass
+    os.system('python apply_samples.py model_outputs')
 
 def gather_output(exp_name):
     '''
