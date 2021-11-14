@@ -99,7 +99,7 @@ bio_label_order_ref_R =  """c('Quiescent', 'ConstitutiveHet', 'FacultativeHet', 
 
 ###################### Choose one of the following ################
 # This one for colour sclae same as the paper with scales predefined
-# feature_heatmap_disc_vals_R = "c(-Inf, -1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5, Inf)"
+feature_heatmap_disc_vals_R = "c(-1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5)"
 # This one for variable colour sclae containing 11 colours
 #feature_heatmap_disc_vals_R =  11
 
