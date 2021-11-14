@@ -226,9 +226,14 @@ bio_label_dir = classification_dir
 bio_labels = {} # {celltype: {int_label: bio_label}}
 
 for celltype in bio_label_dir.listdir():
+    print('bio_label_dir.listdir()', bio_label_dir.listdir()) ###
+    print('celltype', celltype)###
     celltype = celltype.basename()
+    print('celltypebasename', celltype)###
     mnem_fname = bio_label_dir / celltype / "mnemonics.txt"
+    print('mnem_fname', mnem_fname)###
     if mnem_fname.exists():
+        print('mnem_fname.exists()')###
         celltype_bio_labels = {}
         features_missing = False
         with open(mnem_fname, "r") as f:
