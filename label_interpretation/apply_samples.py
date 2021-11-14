@@ -398,6 +398,7 @@ key_cluster = "indiv/Normalized/Clusters/classification_features_normalized"
 data_fname = workdir / "{key}.tab".format(**locals())
 with open(data_fname, "w") as f:
     f.write("celltype\tfeature_name\tint_label\tbio_label\tlabel_key\tfeature_val\n")
+    print('xxx', common_celltypes)
     for celltype_index, celltype in enumerate(common_celltypes):
         print('11', celltype, bio_labels)
         if not celltype in bio_labels: continue
