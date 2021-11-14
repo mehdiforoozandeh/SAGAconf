@@ -399,6 +399,7 @@ data_fname = workdir / "{key}.tab".format(**locals())
 with open(data_fname, "w") as f:
     f.write("celltype\tfeature_name\tint_label\tbio_label\tlabel_key\tfeature_val\n")
     for celltype_index, celltype in enumerate(common_celltypes):
+        print('11', celltype, bio_labels)
         if not celltype in bio_labels: continue
         print(celltype)
         target_dir = classification_dir / celltype
@@ -488,11 +489,11 @@ p <- ggplot(data, aes(y=label_celltype_key, x=feature_name, fill=feature_val_dis
 ggsave("{key}_all.pdf", p, width=15, height=350, units="in", limitsize=FALSE)
 """.format(**locals())
 
-# with open(script_fname, "w") as f:
-#     f.write(script)
-# cmd = ["Rscript", script_fname]
-# logger.info(" ".join(cmd))
-# subprocess.check_call(cmd)
+with open(script_fname, "w") as f:
+    f.write(script)
+cmd = ["Rscript", script_fname]
+logger.info(" ".join(cmd))
+subprocess.check_call(cmd)
 
 log_mem()
 
