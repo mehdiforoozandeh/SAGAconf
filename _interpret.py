@@ -30,7 +30,7 @@ def feature_aggreg(exp_name, segbed, gtf):
     '''
     outdir = 'label_interpretation/segwayOutput/{}'.format(exp_name)
 
-    os.system('segtools-aggregation --normalize {} {} --outdir={}'.format(segbed, gtf, outdir))
+    os.system('segtools-aggregation --normalize --mode=gene {} {} --outdir={}'.format(segbed, gtf, outdir))
 
 def signal_dist(exp_name, segbed, gd):
     '''

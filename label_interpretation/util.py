@@ -289,6 +289,8 @@ def features_from_segtools_dir(gencode_path, histone_path, segtools_trackname_ma
                 assert numpy.isfinite(ann_features[label_name][feature_name])
                 feature_names.add(feature_name)
             
+        print("found {} out of 6 necessary histone tracks".format(sixcounter))
+        
     if not signal_labels == gencode_labels:
         raise Exception("signal_labels and gencode_labels don't match: signal_labels = {}. gencode_labels = {}".format(signal_labels, gencode_labels))
     return ann_features, ann_label_bases, feature_names
