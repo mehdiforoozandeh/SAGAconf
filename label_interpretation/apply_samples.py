@@ -89,7 +89,7 @@ with open(trackname_mapping_fname, "r") as f:
          line = line.split()
          segtools_trackname_mapping[line[0]] = line[1]
 
-print('1', segtools_trackname_mapping) ###testprint
+# print('1', segtools_trackname_mapping) ###testprint
 
 ########################################################
 # For Plotting
@@ -118,7 +118,7 @@ next_id = 0
 # get a list of cell-types or annotations
 
 celltypedirs = [name for name in os.listdir(segtools_dir) if os.path.isdir(os.path.join(segtools_dir, name))]
-print('2', segtools_dir, celltypedirs)###testprint
+# print('2', segtools_dir, celltypedirs)###testprint
 for celltype in celltypedirs:
     signal_dist_fname = segtools_dir / celltype / "signal_distribution.tab"
     gene_agg_fname = segtools_dir / celltype / "feature_aggregation.tab"
@@ -127,7 +127,7 @@ for celltype in celltypedirs:
            "signal_dist_fname": signal_dist_fname, "gene_agg_fname": gene_agg_fname}
     next_id += 1
     target_anns.append(ann)
-print('3', target_anns)###testprint
+# print('3', target_anns)###testprint
 #######################################################
 # Classify our annotations
 #######################################################
@@ -139,7 +139,7 @@ feature_names = ['(09) initial exon', '(01) H3K9me3', '(10) initial intron', '(0
 
 num_anns = len(target_anns)
 model_classes_dict = {label: i for i, label in enumerate(model.classes_)}
-print('4', model_classes_dict) ###testprint
+# print('4', model_classes_dict) ###testprint
 classification_dir = Path("classification")
 if not classification_dir.exists():
     classification_dir.makedirs()
@@ -148,31 +148,31 @@ bio_labels = {} # {ann_id: {int_label: bio_label}}
 bio_label_probs = {} # {ann_id: {int_label: {bio_label: prob}}}
 
 for ann_index, ann in enumerate(target_anns):
-    print('5', target_anns[ann_index]['celltype'], ann_index) ###testprint
+    # print('5', target_anns[ann_index]['celltype'], ann_index) ###testprint
     ann_id = ann["ann_id"]
 
     ann_features, _, feature_list = util.features_from_segtools_dir(ann["gene_agg_fname"], ann["signal_dist_fname"], segtools_trackname_mapping)
 
-    print('6', ann_features) ###testprint
-    print('6`', len(ann_features)) ###testprint
-    print('7', feature_list) ###testprint
-    print('7`', len(feature_list)) ###testprint
+    # print('6', ann_features) ###testprint
+    # print('6`', len(ann_features)) ###testprint
+    # print('7', feature_list) ###testprint
+    # print('7`', len(feature_list)) ###testprint
 
     if (len(feature_list) < 16): # if histone tracks are missing
         logger.info("Histone tracks are missing, skipping.".format(**locals()))
         continue
 
     target_dir = classification_dir / str(target_anns[ann_index]['celltype'])
-    print('8', target_dir) ###testprint
+    # print('8', target_dir) ###testprint
     if not target_dir.exists():
         target_dir.makedirs()
     
-    print('9', 'made target dir', target_dir) ###testprint
+    # print('9', 'made target dir', target_dir) ###testprint
     mnemonics_outfn = target_dir / "mnemonics.txt"
     classifier_data_outfn = target_dir / "classifier_data.tab"
 
-    print('10', mnemonics_outfn) ###testprint
-    print('11', classifier_data_outfn) ###testprint
+    # print('10', mnemonics_outfn) ###testprint
+    # print('11', classifier_data_outfn) ###testprint
 
     if mnemonics_outfn.exists():
         logger.info("Found mnemonics for  {ann_id}, skipping.".format(**locals()))
@@ -229,8 +229,6 @@ for ann_index, ann in enumerate(target_anns):
                 f.write("\t".join(map(str, probs[i,:])))
                 f.write("\n")
 
-exit()
-
 ##################################
 ##################################
 # Diagnostic plots
@@ -242,18 +240,18 @@ exit()
 ##################################
 
 bio_label_dir = classification_dir
-print("bio_label_dir", bio_label_dir) ###testprint
+# print("bio_label_dir", bio_label_dir) ###testprint
 bio_labels = {} # {celltype: {int_label: bio_label}}
 
 for celltype in bio_label_dir.listdir():
-    print('bio_label_dir.listdir()', bio_label_dir.listdir()) ###testprint
-    print('celltype', celltype)###testprint
+    # print('bio_label_dir.listdir()', bio_label_dir.listdir()) ###testprint
+    # print('celltype', celltype)###testprint
     celltype = celltype.basename()
-    print('celltypebasename', celltype)###testprint
+    # print('celltypebasename', celltype)###testprint
     mnem_fname = bio_label_dir / celltype / "mnemonics.txt"
-    print('mnem_fname', mnem_fname)###testprint
+    # print('mnem_fname', mnem_fname)###testprint
     if mnem_fname.exists():
-        print('mnem_fname.exists()')###testprint
+        # print('mnem_fname.exists()')###testprint
         celltype_bio_labels = {}
         features_missing = False
         with open(mnem_fname, "r") as f:
@@ -366,7 +364,7 @@ for celltype in length_dist_dir.listdir():
         print(celltype)
         length_dists[celltype] = pandas.read_table(length_dist_fname)
 
-
+exit()
 ##################################
 # common cell types
 ##################################
