@@ -245,6 +245,7 @@ for celltype in bio_label_dir.listdir():
 
 #bio_labels = {celltype: bio_labels[celltype] for celltype in bio_labels if bio_labels[celltype]['0'] != "FeaturesMissing"}
 bio_labels = {celltype: bio_labels[celltype] for celltype in bio_labels}  
+print(bio_labels)
 
 all_bio_labels = set.union(*map(set, map(lambda x: x.values(), bio_labels.values())))
 
