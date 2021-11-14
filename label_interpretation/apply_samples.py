@@ -102,9 +102,9 @@ bio_label_order_ref_R =  """c('Quiescent', 'ConstitutiveHet', 'FacultativeHet', 
 
 ###################### Choose one of the following ################
 # This one for colour sclae same as the paper with scales predefined
-# feature_heatmap_disc_vals_R = "c(-Inf, -1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5, Inf)"
+feature_heatmap_disc_vals_R = "c(-Inf, -1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5, Inf)"
 # This one for variable colour sclae containing 11 colours
-feature_heatmap_disc_vals_R =  11
+# feature_heatmap_disc_vals_R =  11
 
 
 #######################################################
@@ -488,11 +488,11 @@ p <- ggplot(data, aes(y=label_celltype_key, x=feature_name, fill=feature_val_dis
 ggsave("{key}_all.pdf", p, width=15, height=350, units="in", limitsize=FALSE)
 """.format(**locals())
 
-with open(script_fname, "w") as f:
-    f.write(script)
-cmd = ["Rscript", script_fname]
-logger.info(" ".join(cmd))
-subprocess.check_call(cmd)
+# with open(script_fname, "w") as f:
+#     f.write(script)
+# cmd = ["Rscript", script_fname]
+# logger.info(" ".join(cmd))
+# subprocess.check_call(cmd)
 
 log_mem()
 
