@@ -146,12 +146,15 @@ if not classification_dir.exists():
 
 bio_labels = {} # {ann_id: {int_label: bio_label}}
 bio_label_probs = {} # {ann_id: {int_label: {bio_label: prob}}}
-exit()
+
 for ann_index, ann in enumerate(target_anns):
-    print(target_anns[ann_index]['celltype'], ann_index)
+    print('5', target_anns[ann_index]['celltype'], ann_index) ###testprint
     ann_id = ann["ann_id"]
 
     ann_features, _, feature_list = util.features_from_segtools_dir(ann["gene_agg_fname"], ann["signal_dist_fname"], segtools_trackname_mapping)
+
+    print('6', ann_features) ###testprint
+    print('7', feature_list) ###testprint
 
     if (len(feature_list) < 16): # if histone tracks are missing
         logger.info("Histone tracks are missing, skipping.".format(**locals()))
@@ -217,6 +220,7 @@ for ann_index, ann in enumerate(target_anns):
                 f.write("\t".join(map(str, probs[i,:])))
                 f.write("\n")
 
+exit()
 
 ##################################
 ##################################
