@@ -15,10 +15,13 @@ def gtf_file(gtf_filename = 'label_interpretation/gencode.v29.primary_assembly.a
         return gtf_filename
 
 def create_input_dir(exp_name):
-    '''
+    ''' MUST CONTAIN:
     segwayOutput/exp_name
     segwayOutput/exp_name/feature_aggegation.tab
     segwayOutput/exp_name/signal_distribution.tab
+    segwayOutput/exp_name/segway.bed
+    segwayOutput/exp_name/{gtf_file}
+    segwayOutput/exp_name/{genomedata_file}
     '''
     os.mkdir('label_interpretation/segwayOutput/exp_name/')
     # os.mkdir('label_interpretation/segwayOutput/exp_name/plots/')
