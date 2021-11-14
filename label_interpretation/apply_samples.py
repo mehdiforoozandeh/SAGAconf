@@ -223,6 +223,7 @@ for ann_index, ann in enumerate(target_anns):
 ##################################
 
 bio_label_dir = classification_dir
+print("bio_label_dir", bio_label_dir) ###
 bio_labels = {} # {celltype: {int_label: bio_label}}
 
 for celltype in bio_label_dir.listdir():
