@@ -161,10 +161,17 @@ for ann_index, ann in enumerate(target_anns):
         continue
 
     target_dir = classification_dir / str(target_anns[ann_index]['celltype'])
+    print('8', target_dir) ###testprint
     if not target_dir.exists():
         target_dir.makedirs()
+    
+    print('9', 'made target dir', target_dir) ###testprint
     mnemonics_outfn = target_dir / "mnemonics.txt"
     classifier_data_outfn = target_dir / "classifier_data.tab"
+
+    print('10', mnemonics_outfn) ###testprint
+    print('11', classifier_data_outfn) ###testprint
+
     if mnemonics_outfn.exists():
         logger.info("Found mnemonics for  {ann_id}, skipping.".format(**locals()))
     else:
