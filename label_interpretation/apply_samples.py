@@ -154,11 +154,13 @@ for ann_index, ann in enumerate(target_anns):
     ann_features, _, feature_list = util.features_from_segtools_dir(ann["gene_agg_fname"], ann["signal_dist_fname"], segtools_trackname_mapping)
 
     print('6', ann_features) ###testprint
+    print('6`', len(ann_features)) ###testprint
     print('7', feature_list) ###testprint
+    print('7`', len(feature_list)) ###testprint
 
     if (len(feature_list) < 16): # if histone tracks are missing
         logger.info("Histone tracks are missing, skipping.".format(**locals()))
-        # continue
+        continue
 
     target_dir = classification_dir / str(target_anns[ann_index]['celltype'])
     print('8', target_dir) ###testprint
