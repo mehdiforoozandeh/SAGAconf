@@ -102,7 +102,7 @@ bio_label_order_ref_R =  """c('Quiescent', 'ConstitutiveHet', 'FacultativeHet', 
 
 ###################### Choose one of the following ################
 # This one for colour sclae same as the paper with scales predefined
-feature_heatmap_disc_vals_R = "c(-1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5)"
+feature_heatmap_disc_vals_R = "c(-Inf, -1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5, Inf)"
 # This one for variable colour sclae containing 11 colours
 #feature_heatmap_disc_vals_R =  11
 
@@ -430,7 +430,7 @@ require(RColorBrewer)
 
 data <- read.delim("{data_fname}", header=TRUE)
 
-data$feature_val_disc <- cut(data$feature_val, breaks={feature_heatmap_disc_vals_R})
+data$feature_val_disc <- cut(data$feature_val)
 palette="RdBu"
 colors <- brewer.pal(palette, n=length(levels(data$feature_val_disc)))
 color_mapping <- length(levels(data$feature_val_disc))
