@@ -177,7 +177,8 @@ def segway_concatenated_and_postprocess(concat_param_dict):
         gather_results(concat_param_dict["traindir"], concat_param_dict['posteriordir_aux'], concat_param_dict["name_sig_aux"])
         run_segtools(concat_param_dict["name_sig_aux"])
 
-        clean_up(concat_param_dict["traindir"], concat_param_dict['posteriordir'])
+        clean_up(concat_param_dict["traindir"], concat_param_dict['posteriordir_main'])
+        clean_up(concat_param_dict["traindir"], concat_param_dict['posteriordir_aux'])
 
         with open(concat_param_dict["name_sig_main"]+"/run_parameters", 'w') as write_params:
             write_params.write(str(concat_param_dict))
