@@ -61,6 +61,7 @@ def run_segway_and_post_process(param_dict):
 
     {"name_sig":None, "random_seed":None, "include":None, "track_weight":None,
     "stws":None, "ruler_scale":None, "prior_strength":None, "resolution":None,
+    "mini_batch_fraction":None,
     "num_labels":None, "genomedata_file":None, "traindir":None, "posteriordir":None}'''
 
     for k, v in param_dict.items():
@@ -71,11 +72,12 @@ def run_segway_and_post_process(param_dict):
     os.system('SEGWAY_RAND_SEED={} segway train --include-coords={}\
          --num-instances=10 --track-weight={} --segtransition-weight-scale={}\
              --ruler-scale={} --prior-strength={} --resolution={}\
-                  --num-labels={} {} {}'.format(
+                  --mini-batch-fraction={} --num-labels={} {} {}'.format(
                       param_dict["random_seed"], param_dict["include"], param_dict["track_weight"],
                       param_dict["stws"], param_dict["ruler_scale"], param_dict["prior_strength"], 
-                      param_dict["resolution"], param_dict["num_labels"], 
-                      param_dict["genomedata_file"], param_dict["traindir"]
+                      param_dict["resolution"], param_dict["mini_batch_fraction"],
+                      param_dict["num_labels"], param_dict["genomedata_file"], 
+                      param_dict["traindir"]
                   ))
 
     os.system('mkdir {}'.format(param_dict['posteriordir']))
@@ -132,7 +134,7 @@ def segway_concatenated_and_postprocess(concat_param_dict):
     {"name_sig_main":None, "name_sig_aux":None,
     "random_seed":None, "include":None, "track_weight":None,
     "stws":None, "ruler_scale":None, "prior_strength":None, "resolution":None,
-    "num_labels":None, "traindir":None,  
+    "num_labels":None, "traindir":None, "mini_batch_fraction":None,
     "genomedata_file_main":None,  "genomedata_file_aux":None,
     "posteriordir_main":None,  "posteriordir_aux":None}
     =======================================================
@@ -145,11 +147,12 @@ def segway_concatenated_and_postprocess(concat_param_dict):
     os.system('SEGWAY_RAND_SEED={} segway train --include-coords={}\
          --num-instances=10 --track-weight={} --segtransition-weight-scale={}\
              --ruler-scale={} --prior-strength={} --resolution={}\
-                  --num-labels={} {} {}'.format(
+                  --mini-batch-fraction={} --num-labels={} {} {}'.format(
                       concat_param_dict["random_seed"], concat_param_dict["include"], concat_param_dict["track_weight"],
                       concat_param_dict["stws"], concat_param_dict["ruler_scale"], concat_param_dict["prior_strength"], 
-                      concat_param_dict["resolution"], concat_param_dict["num_labels"], 
-                      concat_param_dict["genomedata_file_main"], concat_param_dict["traindir"]
+                      concat_param_dict["resolution"], concat_param_dict["mini_batch_fraction"],
+                      concat_param_dict["num_labels"], concat_param_dict["genomedata_file_main"], 
+                      concat_param_dict["traindir"]
                   ))
 
     # run main posterior
