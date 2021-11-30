@@ -1,7 +1,7 @@
 import os, sys
 import pandas as pd
 
-def create_bed_sebset(original_bed, include_bed, output_bed):
+def intersect_bed(original_bed, include_bed, output_bed):
     cmdline = """bedtools intersect -a {} -b {} > {}"""
     os.system(
         cmdline.format(
@@ -22,8 +22,8 @@ def create_cellmarkfiletable(celltype_dir, out_filename):
                         celltype_dir, dirs_and_subdirs[i][0].split('/')[1],dirs_and_subdirs[i][0]+'/'+j
                     ))
 
-def binarize_data(inputbeddir, cellmarkfiletable, outputdir, resolution=100, chromlength='hg38'):
-    cmdline = "java -mx1600M -jar ChromHMM.jar BinarizeBed -b {} {} {} {} {}".format(
+def binarize_data(inputbeddir, cellmarkfiletable, outputdir, resolution=100, chromlength='hg19'):
+    cmdline = "java -mx1600M -jar ChromHMM.jar BinarizeBed -center -b {} {} {} {} {}".format(
         resolution, chromlength, inputbeddir, cellmarkfiletable, outputdir
     )
     os.system(cmdline)
@@ -31,8 +31,11 @@ def binarize_data(inputbeddir, cellmarkfiletable, outputdir, resolution=100, chr
 def prepare_inputdir():
     pass
 
-def run_chromhmm():
-    pass
+def run_chromhmm(binary_input_dir, output_dir, num_labels='16', assembly='hg19', n_threads='0'):
+    learnmodel_cmdline = "java -mx1600M -jar ChromHMM.jar LearnModel -init random -printposterior -p {} {} {} {} {}".format(
+        n_threads, binary_input_dir, output_dir, num_labels, assembly
+    )
+    os.system(learnmodel_cmdline)
 
 def QC():
     pass
