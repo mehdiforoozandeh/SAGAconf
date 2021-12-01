@@ -41,9 +41,6 @@ def run_chromhmm(
     num_labels='16', assembly='hg19', n_threads='0'):
     '''run the whole chromhmm pipeline for a celltype'''
 
-    if '/' in celltype_dir:
-        celltype_dir = celltype_dir.replace("/","")
-
     cellmarkfiletable_filename =  celltype_dir + '/cmft.txt'
     binarized_files_directory = celltype_dir + '/binarized_data'
     final_output_directory = celltype_dir + '/chromhmm_output'
