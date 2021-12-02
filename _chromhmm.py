@@ -19,17 +19,18 @@ def create_cellmarkfiletable(celltype_dir, out_filename, suffix_to_look_for="bed
             for j in dirs_and_subdirs[i][2]:
                 if suffix_to_look_for in j:
                     cmft_file.write('{}\t{}\t{}\n'.format(
-                        celltype_dir, dirs_and_subdirs[i][0].split('/')[1],dirs_and_subdirs[i][0]+'/'+j
+                        celltype_dir.split('/')[-1], dirs_and_subdirs[i][0].split('/')[-1],
+                        dirs_and_subdirs[i][0].split('/')[-1]+'/'+j
                     ))
 
 def binarize_data(inputbeddir, cellmarkfiletable, outputdir, resolution=100, chromlength='CHROMSIZES/hg19.txt'):
-    cmdline = "java -mx1600M -jar ChromHMM.jar BinarizeBed -center -b {} {} {} {} {}".format(
+    cmdline = "java -Xmx10g -jar ChromHMM.jar BinarizeBed -center -b {} {} {} {} {}".format(
         resolution, chromlength, inputbeddir, cellmarkfiletable, outputdir
     )
     os.system(cmdline)
 
 def learnModel(binary_input_dir, output_dir, num_labels='16', assembly='hg19', n_threads='0'):
-    learnmodel_cmdline = "java -mx1600M -jar ChromHMM.jar LearnModel -init random -printposterior -p {} {} {} {} {}".format(
+    learnmodel_cmdline = "java -Xmx10g -jar ChromHMM.jar LearnModel -init random -printposterior -p {} {} {} {} {}".format(
         n_threads, binary_input_dir, output_dir, num_labels, assembly
     )
     os.system(learnmodel_cmdline)
@@ -45,7 +46,6 @@ def run_chromhmm(
     binarized_files_directory = celltype_dir + '/binarized_data'
     final_output_directory = celltype_dir + '/chromhmm_output'
 
-    # if include!= None: for i in original bedgraphs: trim i
     if include_bed != None:
         walk_obj = os.walk(celltype_dir)
         dirs_and_subdirs = [x for x in walk_obj]
@@ -54,13 +54,13 @@ def run_chromhmm(
                 if "bedGraph" in j:
                     original_bed = dirs_and_subdirs[i][0]+'/'+j
                     output_bed = original_bed.replace(".bedGraph", "_trimmed.BED")
-                    intersect_bed(original_bed, include_bed, output_bed)
+                    # intersect_bed(original_bed, include_bed, output_bed)
                 
     # create cmft
     if include_bed != None:
-        create_cellmarkfiletable(celltype_dir, cellmarkfiletable_filename, suffix_to_look_for="bedGraph")
-    else:
         create_cellmarkfiletable(celltype_dir, cellmarkfiletable_filename, suffix_to_look_for="_trimmed.BED")
+    else:
+        create_cellmarkfiletable(celltype_dir, cellmarkfiletable_filename, suffix_to_look_for="bedGraph")
 
     # binarize data
     binarize_data(
@@ -80,6 +80,13 @@ def read_emissions():
     pass
 
 def read_posteriors():
+    '''
+    return DF
+    '''
+    pass
+
+
+def read_segmentation():
     '''
     return DF
     '''
