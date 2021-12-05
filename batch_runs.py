@@ -17,9 +17,9 @@ def batch_run_mp(grid_list, static_params, n_threads=1):
     for instance in grid_list:
         counter += 1 
         run_instances.append({
-            "name_sig": "batch_runs/"+folder_prefix+'/'+str(counter), 
-            "traindir": "batch_runs/"+folder_prefix+"/train_"+str(counter), 
-            "posteriordir": "batch_runs/"+folder_prefix+"/posterior_"+str(counter),
+            "name_sig": "batch_runs/"+folder_prefix+'_'+str(counter), 
+            "traindir": "batch_runs/"+folder_prefix+"_train_"+str(counter), 
+            "posteriordir": "batch_runs/"+folder_prefix+"_posterior_"+str(counter),
             **instance, **static_params})
         
     random.shuffle(run_instances)
