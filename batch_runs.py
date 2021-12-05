@@ -38,7 +38,8 @@ if __name__ == "__main__":
 
     # {"name_sig":None, "random_seed":None, "include":None, "track_weight":None,
     # "stws":None, "ruler_scale":None, "prior_strength":None, "resolution":None,
-    # "num_labels":None, "genomedata_file":None, "traindir":None, "posteriordir":None}
+    # "mini_batch_fraction":None,
+    # "num_labels":None, "genomedata_file":None, "traindir":None, "posteriordir":None}'''
 
     genomedatafile = sys.argv[1]
     include = sys.argv[2]
@@ -52,7 +53,8 @@ if __name__ == "__main__":
     # ======== static parameters ======== #
     static_params = {
         "random_seed":73, "include":include, 
-        "genomedata_file":genomedatafile, "resolution":100
+        "genomedata_file":genomedatafile, "resolution":100,
+        "mini_batch_fraction":0.5,
     }
 
     grid_list = grid_search(grid_space)
