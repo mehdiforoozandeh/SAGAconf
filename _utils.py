@@ -51,8 +51,15 @@ def gather_results(traindir, posteriordir, name_sig):
     os.system('cp {}/params/params.params {}/params.params'.format(traindir, name_sig))
 
 def clean_up(traindir, posteriordir):
-    shutil.rmtree(traindir)
-    shutil.rmtree(posteriordir)
+    try:
+        shutil.rmtree(traindir)
+    except:
+        pass
+
+    try:
+        shutil.rmtree(posteriordir)
+    except:
+        pass
 
 def run_segtools(name_sig):
     os.system("cd {} && segtools-length-distribution segway.bed".format(name_sig))
