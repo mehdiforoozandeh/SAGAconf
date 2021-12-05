@@ -236,7 +236,8 @@ def segway_concatenated_and_postprocess(concat_param_dict):
 
     else:
         print("FAILED AT RUNNING SEGWAY!")
-        clean_up(concat_param_dict["traindir"], concat_param_dict['posteriordir'])
+        clean_up(concat_param_dict["traindir"], concat_param_dict['posteriordir_main'])
+        clean_up(concat_param_dict["traindir"], concat_param_dict['posteriordir_aux'])
 
 
 def parse_posterior_results(posterior_dir, include_file, resolution, M):

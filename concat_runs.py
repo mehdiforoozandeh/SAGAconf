@@ -1,4 +1,3 @@
-from numpy import empty
 from _utils import *
 from _pipeline import *
 import os, random,sys
