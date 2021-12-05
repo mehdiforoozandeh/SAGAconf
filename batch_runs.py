@@ -56,5 +56,5 @@ if __name__ == "__main__":
     }
 
     grid_list = grid_search(grid_space)
-    list_of_name_sigs = batch_run_mp(grid_list, static_params, n_threads=5)
+    list_of_name_sigs = batch_run_mp(grid_list, static_params, n_threads=16)
     parse_posterior_batch(list_of_name_sigs, include, static_params['resolution'], M=50)

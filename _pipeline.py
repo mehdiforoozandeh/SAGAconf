@@ -72,7 +72,7 @@ def run_segway_and_post_process(param_dict):
     os.system('SEGWAY_RAND_SEED={} segway train --include-coords={}\
          --num-instances=10 --track-weight={} --segtransition-weight-scale={}\
              --ruler-scale={} --prior-strength={} --resolution={}\
-                  --mini-batch-fraction={} --num-labels={} {} {}'.format(
+                  --minibatch-fraction={} --num-labels={} {} {}'.format(
                       param_dict["random_seed"], param_dict["include"], param_dict["track_weight"],
                       param_dict["stws"], param_dict["ruler_scale"], param_dict["prior_strength"], 
                       param_dict["resolution"], param_dict["mini_batch_fraction"],
@@ -147,7 +147,7 @@ def segway_concatenated_and_postprocess(concat_param_dict):
     os.system('SEGWAY_RAND_SEED={} segway train --include-coords={}\
          --num-instances=10 --track-weight={} --segtransition-weight-scale={}\
              --ruler-scale={} --prior-strength={} --resolution={}\
-                  --mini-batch-fraction={} --num-labels={} {} {}'.format(
+                  --minibatch-fraction={} --num-labels={} {} {}'.format(
                       concat_param_dict["random_seed"], concat_param_dict["include"], concat_param_dict["track_weight"],
                       concat_param_dict["stws"], concat_param_dict["ruler_scale"], concat_param_dict["prior_strength"], 
                       concat_param_dict["resolution"], concat_param_dict["mini_batch_fraction"],
