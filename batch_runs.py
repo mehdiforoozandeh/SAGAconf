@@ -46,7 +46,7 @@ if __name__ == "__main__":
     # ======== param_grid_space ======== #
     grid_space = {
         "track_weight":[1, 1e-1, 1e-2, 1e-3], 
-        "stws":[1e-2, 1e-1, 1, 10, 100], "ruler_scale":[100], 
+        "stws":[1e-1, 1, 10], "ruler_scale":[100], 
         "prior_strength":[0, 1], "num_labels":[16]
         }
 
@@ -54,9 +54,9 @@ if __name__ == "__main__":
     static_params = {
         "random_seed":73, "include":include, 
         "genomedata_file":genomedatafile, "resolution":100,
-        "mini_batch_fraction":0.5,
+        "mini_batch_fraction":0.2,
     }
 
     grid_list = grid_search(grid_space)
-    list_of_name_sigs = batch_run_mp(grid_list, static_params, n_threads=5)
+    list_of_name_sigs = batch_run_mp(grid_list, static_params, n_threads=8)
     parse_posterior_batch(list_of_name_sigs, include, static_params['resolution'], M=50)
