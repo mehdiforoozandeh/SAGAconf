@@ -38,7 +38,7 @@ def plain_seg_matching(rep_dir_1, rep_dir_2, matching_strategy='conf_matrix'):
         assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
         match_eval = match_evaluation(conf_mat, assignment_pairs)
 
-        # print("label_mapping:\t", assignment_pairs)
+        print("label_mapping:\t", assignment_pairs)
         corrected_loci_1, corrected_loci_2 = connect_bipartite(
             parsed_posterior_1, parsed_posterior_2, assignment_pairs)
         print(match_eval)
@@ -74,6 +74,8 @@ def plain_seg_matching(rep_dir_1, rep_dir_2, matching_strategy='conf_matrix'):
 
         # coocurence_matrix_heatmap(cooc_mat)
         print(eval_results)
+    
+    return corrected_loci_1, corrected_loci_2
 
 def cluster_matching(rep_dir_1, rep_dir_2, n_clust, matching_strategy='distance_matrix'):
 
@@ -150,7 +152,7 @@ def cluster_matching(rep_dir_1, rep_dir_2, n_clust, matching_strategy='distance_
         
         conf_mat = confusion_matrix(clustered_loci1, clustered_loci2, clustered_loci1.shape[1]-3)
         assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
-        # print("label_mapping:\t", assignment_pairs)
+        print("label_mapping:\t", assignment_pairs)
 
         corrected_loci_1, corrected_loci_2 = \
             connect_bipartite(clustered_loci1, clustered_loci2, assignment_pairs)
@@ -160,6 +162,8 @@ def cluster_matching(rep_dir_1, rep_dir_2, n_clust, matching_strategy='distance_
 
         print(eval_results)
         # coocurence_matrix_heatmap(cooc_mat)
+
+    return corrected_loci_1, corrected_loci_2
 
 
 if __name__=="__main__":
