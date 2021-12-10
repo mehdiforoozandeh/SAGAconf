@@ -164,7 +164,7 @@ class correspondence_curve(object):
             
             return sigma / len(self.loci_1)
     
-    def plot_curve(self, num_t_steps=100, plot_labels=True, plot_general=True, merge_plots=True):
+    def plot_curve(self, num_t_steps=100, plot_labels=True, plot_general=True, merge_plots=False):
         self.psi_over_t = {}
         if plot_labels:
             for k in range(self.num_labels):
@@ -191,7 +191,7 @@ class correspondence_curve(object):
             t_list.append(i / num_t_steps)
 
         if merge_plots:
-            plt.plot(t_list, t_list, '--', label='perfect reproducibility')
+            plt.plot(t_list, t_list, '--', label='Perfect Reproducibility')
             for p in self.psi_over_t.keys():
                 URIs = self.psi_over_t[p]
                 plt.plot(t_list, URIs, label=str(p))
@@ -204,11 +204,17 @@ class correspondence_curve(object):
 
         else:
             for p in self.psi_over_t.keys():
-                plt.plot(t_list, t_list, '--', label='perfect reproducibility')
+                plt.plot(t_list, t_list, '--', label='Perfect Reproducibility')
                 URIs = self.psi_over_t[p]
-                plt.plot(t_list, URIs, label = 'correspondence')
-                
-                plt.title('Correspondence curve for '+str(p))
+
+                coeffs = np.polyfit(t_list, URIs, 5)
+                ffit = np.poly1d(coeffs)
+                fderiv = ffit.deriv()
+                URIprime = fderiv(t_list)
+                plt.plot(t_list, URIprime, label = 'Derivative Correspondence')
+
+                plt.plot(t_list, URIs, label = 'Correspondence')
+                plt.title('Correspondence Curve for '+str(p))
                 plt.xlabel('t')
                 plt.ylabel("PSI")
                 plt.legend()
