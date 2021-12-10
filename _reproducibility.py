@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.ndimage.measurements import label
 
 class Agreement(object):
     def __init__(self, loci_1, loci_2):
@@ -87,6 +88,10 @@ class Reprodroducibility_vs_posterior(object):
         pass
 
 class correspondence_curve(object):
+    '''
+    implementation of the method described at
+    https://arxiv.org/pdf/1110.4705.pdf
+    '''
     def __init__(self, loci_1, loci_2):
         self.loci_1 = loci_1
         self.loci_2 = loci_2
@@ -116,16 +121,96 @@ class correspondence_curve(object):
         self.annot_1 = pd.DataFrame(self.annot_1, columns=['chr', 'start', 'end', 'MAP', 'posterior'])
         self.annot_2 = pd.DataFrame(self.annot_2, columns=['chr', 'start', 'end', 'MAP', 'posterior'])
 
-    def rank(self):
+        self.is_ranked = False
+
+    def rank_general(self):
         self.annot_1 = self.annot_1.sort_values(by=['posterior'], axis=0, ascending=False)
         self.annot_2 = self.annot_2.sort_values(by=['posterior'], axis=0, ascending=False)
 
         self.loci_1 = self.loci_1.reindex(self.annot_1.index).reset_index()
         self.loci_2 = self.loci_2.reindex(self.annot_2.index).reset_index()
+        self.is_ranked = True
 
-    def psi(self, per_label=True):
-        pass
+    def psi(self, t, per_label=True):
+        if per_label:
+            perlabel_psi = {}
+            for k in range(self.num_labels):
+                k_sorted_loci_1 = self.loci_1.sort_values(by=['posterior'+str(k)], axis=0, ascending=False).reset_index()
+                k_sorted_loci_2 = self.loci_2.sort_values(by=['posterior'+str(k)], axis=0, ascending=False).reset_index()
 
-    def psi_prime():
-        ''' derivation of psi '''
-        pass
+                sigma = 0
+                upper_tn_1 = set(k_sorted_loci_1.loc[:int(t*len(self.loci_1)), 'index'])
+                upper_tn_2 = set(k_sorted_loci_2.loc[:int(t*len(self.loci_2)), 'index'])
+
+                for i in upper_tn_1:
+                    if i in upper_tn_2:
+                        sigma +=1
+                
+                perlabel_psi['posterior'+str(k)] = float(sigma) / len(self.loci_1)
+            return perlabel_psi
+
+        else:
+            if not self.is_ranked:
+                self.rank_general()
+
+            sigma = 0
+            upper_tn_1 = list(self.loci_1.loc[:int(t*len(self.loci_1)), 'index'])
+            upper_tn_2 = list(self.loci_2.loc[:int(t*len(self.loci_2)), 'index'])
+
+            for i in upper_tn_1:
+                if i in upper_tn_2:
+                    if self.annot_1['MAP'][i] == self.annot_2['MAP'][i]:
+                        sigma += 1
+            
+            return sigma / len(self.loci_1)
+    
+    def plot_curve(self, num_t_steps=100, plot_labels=True, plot_general=True, merge_plots=True):
+        self.psi_over_t = {}
+        if plot_labels:
+            for k in range(self.num_labels):
+                self.psi_over_t['posterior'+str(k)] = []
+
+            for t in range(0, num_t_steps + 1):
+                t = float(t)/num_t_steps
+                pl_psi = self.psi(t=t, per_label=True)
+
+                for k in pl_psi.keys():
+                    self.psi_over_t[k].append(pl_psi[k])
+            
+            self.per_label_psi_over_t = self.psi_over_t
+
+        if plot_general:
+            self.psi_over_t['general'] = []
+            for t in range(0, num_t_steps + 1):
+                t = float(t)/num_t_steps
+                self.psi_over_t['general'].append(self.psi(t=t, per_label=False))
+        
+        # start plotting
+        t_list = []
+        for i in range(0, num_t_steps + 1):
+            t_list.append(i / num_t_steps)
+
+        if merge_plots:
+            plt.plot(t_list, t_list, '--', label='perfect reproducibility')
+            for p in self.psi_over_t.keys():
+                URIs = self.psi_over_t[p]
+                plt.plot(t_list, URIs, label=str(p))
+
+            plt.title('Correspondence Curve')
+            plt.xlabel('t')
+            plt.ylabel("PSI")
+            plt.legend()
+            plt.show()
+
+        else:
+            for p in self.psi_over_t.keys():
+                plt.plot(t_list, t_list, '--', label='perfect reproducibility')
+                URIs = self.psi_over_t[p]
+                plt.plot(t_list, URIs, label = 'correspondence')
+                
+                plt.title('Correspondence curve for '+str(p))
+                plt.xlabel('t')
+                plt.ylabel("PSI")
+                plt.legend()
+                plt.show()
+
