@@ -1,7 +1,8 @@
+from math import log
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.ndimage.measurements import label
+from scipy.ndimage.filters import gaussian_filter1d
 
 class Agreement(object):
     def __init__(self, loci_1, loci_2):
@@ -74,18 +75,194 @@ class Agreement(object):
         self.overall_CK = \
             (self.overall_agreement - self.expected_agreement) / (1 - self.expected_agreement)
         return self.overall_CK
+    
+    def plot_agreement(self):
+        self.per_label_agreement()
+        x = []
+        height = []
+        for k, v in self.label_agreements.items():
+            x.append(k)
+            height.append(v)
+        
+        self.general_agreement()
+        x.append('Overall')
+        height.append(self.overall_agreement)
+        plt.bar(x, height, width=0.4, color='black', alpha=0.5)
+        plt.xticks(rotation=45)
+        plt.yticks(np.arange(0, 1.1, step=0.1))
+        plt.xlabel('Label')
+        plt.ylabel('Agreement')
+        plt.show()
+
+    def plot_OE(self):
+        self.per_label_OE_ratio()
+        x = []
+        height = []
+        for k, v in self.label_OE.items():
+            x.append(k)
+            height.append(v)
+
+        self.general_OE_ratio()
+        x.append('Overall')
+        height.append(self.overall_OE)
+        plt.bar(x, height, width=0.4, color='black', alpha=0.5)
+        plt.xticks(rotation=45)
+        plt.xlabel('Label')
+        plt.ylabel('Observed Agreement/Expected Agreement')
+        plt.show()
+
+    def plot_CK(self):
+        self.per_label_cohens_kappa()
+        x = []
+        height = []
+        for k, v in self.label_CK.items():
+            x.append(k)
+            height.append(v)
+
+        self.general_cohens_kappa()
+        x.append('Overall')
+        height.append(self.overall_CK)
+        plt.bar(x, height, width=0.4, color='black', alpha=0.5)
+        plt.xticks(rotation=45)
+        plt.yticks(np.arange(0, 1.1, step=0.1))
+        plt.xlabel('Label')
+        plt.ylabel("Cohen's Kappa Score")
+        plt.show()
 
 
 class Reprodroducibility_vs_posterior(object):
-    def __init__(self, loci_1, loci_2):
+    def __init__(self, loci_1, loci_2, log_transform=True, ignore_overconf=True):
         self.loci_1 = loci_1
         self.loci_2 = loci_2
+        self.num_labels = len(self.loci_1.columns)-3
+        self.log_transform = log_transform
 
-    def per_label_count_independent():
-        pass
+        self.post_mat_1 = self.loci_1.loc[:, ['posterior'+str(x) for x in range(self.num_labels)]]
+        self.post_mat_2 = self.loci_2.loc[:, ['posterior'+str(x) for x in range(self.num_labels)]]
 
-    def general_count_independent():
-        pass
+        if ignore_overconf:
+            max_posteri1 = self.post_mat_1.max(axis=1)
+            max_posteri2 = self.post_mat_2.max(axis=1)
+            to_drop = []
+            for i in range(len(max_posteri1)):
+                if max_posteri1[i] == 1 or max_posteri2[i] == 1:
+                    to_drop.append(i)
+
+            print("filtered results for overconfident bins: ignored {}/{}".format(len(to_drop), len(self.post_mat_1)))
+            self.post_mat_1 = self.post_mat_1.drop(to_drop, axis=0)
+            self.post_mat_1 = self.post_mat_1.reset_index(drop=True)
+
+            self.post_mat_2 = self.post_mat_2.drop(to_drop, axis=0)
+            self.post_mat_2 = self.post_mat_2.reset_index(drop=True)
+        
+        self.MAPestimate1 = self.post_mat_1.idxmax(axis=1)
+        self.MAPestimate2 = self.post_mat_2.idxmax(axis=1)
+
+        if log_transform:
+            self.post_mat_1 = -1 * pd.DataFrame(
+                np.log(1 - self.post_mat_1) , 
+                columns=self.post_mat_1.columns
+            )
+            self.post_mat_2 = -1 * pd.DataFrame(
+                np.log(1 - self.post_mat_2) , 
+                columns=self.post_mat_2.columns
+            )
+
+        print(self.post_mat_1)
+        print(self.post_mat_2)
+        print(self.MAPestimate1)
+        print(self.MAPestimate2)
+
+    def per_label_count_independent(self, num_bins=100):
+        for k in range(self.post_mat_1.shape[1]):
+            try:
+                bins = []
+                posterior_vector_1 = np.array(self.post_mat_1[self.post_mat_1.columns[k]])
+                bin_length = (float(np.max(posterior_vector_1)) - float(np.min(posterior_vector_1))) / num_bins
+                for j in range(int(np.min(posterior_vector_1)*1000), int(np.max(posterior_vector_1)*1000), int(bin_length*1000)):
+                    bins.append([float(j/1000), float(j/1000) + int(bin_length*1000)/1000, 0, 0, 0, 0, 0])
+                    # [bin_start, bin_end, num_values_in_bin, num_agreement_in_bin, num_mislabeled, ratio_correctly_labeled, ratio_mislabeled]
+                
+                for b in range(len(bins)):
+                    
+                    for i in range(len(posterior_vector_1)):
+                        if bins[b][0] <= posterior_vector_1[i] <= bins[b][1]:
+                            bins[b][2] += 1
+
+                            if 'posterior'+str(k) == self.MAPestimate2[i]:
+                                bins[b][3] += 1
+                            else:
+                                bins[b][4] += 1
+
+                for b in range(len(bins)):
+                    if bins[b][2] != 0:
+                        bins[b][5] = bins[b][3] / bins[b][2]
+                        bins[b][6] = (bins[b][4]) / bins[b][2]
+
+                bins = np.array(bins)
+                plt.scatter(x=bins[:,0], y=bins[:,5], c='black', s=100)
+                ysmoothed = gaussian_filter1d(bins[:,5], sigma=3)
+                plt.plot(bins[:,0], ysmoothed, c='r')
+                plt.title("Reproduciblity Plot label {}".format(k))
+                plt.ylabel("Ratio of Similarly Labeled Bins in replicate 2")
+
+                if self.log_transform:
+                    plt.xlabel("- log(1-posterior) in Replicate 1")
+
+                else:
+                    plt.xlabel("Posterior in Replicate 1")
+                
+                plt.tick_params(axis='x', which='both', bottom=False,top=False,labelbottom=False)
+                plt.show()
+
+            except:
+                print('could not process label {}'.format(k))
+
+    def general_count_independent(self, num_bins=100):
+        # try:
+        bins = []
+        max_post, min_post = self.post_mat_1.max(axis=1).max(axis=0), self.post_mat_1.min(axis=1).min(axis=0)
+        bin_length = (float(max_post) - float(min_post)) / num_bins
+
+        for j in range(int(min_post*1000), int(max_post*1000), int(bin_length*1000)):
+            bins.append([float(j/1000), float(j/1000) + int(bin_length*1000)/1000, 0, 0, 0, 0, 0])
+            # [bin_start, bin_end, num_values_in_bin, num_agreement_in_bin, num_mislabeled, ratio_correctly_labeled, ratio_mislabeled]
+        
+        for b in range(len(bins)):
+            for k in range(self.post_mat_1.shape[1]):
+                for i in range(self.post_mat_1.shape[0]):
+
+                    if bins[b][0] <= self.post_mat_1.iloc[i, k] <= bins[b][1]:
+                        bins[b][2] += 1
+
+                        if 'posterior'+str(k) == self.MAPestimate2[i]:
+                            bins[b][3] += 1
+                        else:
+                            bins[b][4] += 1
+
+        for b in range(len(bins)):
+            if bins[b][2] != 0:
+                bins[b][5] = bins[b][3] / bins[b][2]
+                bins[b][6] = (bins[b][4]) / bins[b][2]
+
+        bins = np.array(bins)
+        plt.scatter(x=bins[:,0], y=bins[:,5], c='black', s=100)
+        ysmoothed = gaussian_filter1d(bins[:,5], sigma=3)
+        plt.plot(bins[:,0], ysmoothed, c='r')
+        plt.title("Reproduciblity Plot All Labels")
+        plt.ylabel("Ratio of Similarly Labeled Bins in replicate 2")
+
+        if self.log_transform:
+            plt.xlabel("- log(1-posterior) in Replicate 1")
+
+        else:
+            plt.xlabel("Posterior in Replicate 1")
+        
+        plt.tick_params(axis='x', which='both', bottom=False,top=False,labelbottom=False)
+        plt.show()
+        
+        # except:
+        #     print('could not process label {}'.format(k))
 
 class correspondence_curve(object):
     '''

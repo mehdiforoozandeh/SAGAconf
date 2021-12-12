@@ -1,3 +1,4 @@
+import random
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -5,12 +6,15 @@ import seaborn as sns
 from _utils import *
 from _cluster_matching import *
 from scipy.ndimage.filters import gaussian_filter1d
+import plotly.graph_objects as go
+import plotly.express as px
+
 
 class visualize(object):
-    def __init__(self, loci_1, corrected_loci_2, num_labels, savedir=None):
+    def __init__(self, loci_1, corrected_loci_2, savedir=None):
         self.loci_1 = loci_1
         self.loci_2 = corrected_loci_2
-        self.num_labels = int(num_labels)
+        self.num_labels = len(self.loci_1.columns)-3
         self.savedir = bool(savedir)
     
     def confusion_matrix_heatmap(self):
@@ -31,7 +35,40 @@ class visualize(object):
         plt.show()
 
     def sankey_diag(self):
-        pass
+        confmat = confusion_matrix(self.loci_1, self.loci_2, self.num_labels)
+        label_1 = [i.replace('posterior','replicate1_label') for i in confmat.columns]
+        label_2 = [i.replace('posterior','replicate2_label') for i in confmat.columns]
+        label = label_1 + label_2
+
+        source = []
+        target = []
+        value = []  
+        for i in range(confmat.shape[0]):
+            for j in range(confmat.shape[1]):
+                source.append(i)
+                target.append(confmat.shape[0] + j)
+                value.append(confmat.iloc[i,j])
+
+        color_list = []
+        opacity = 0.7
+        for i in range(len(confmat.columns)):
+            clist = px.colors.qualitative.Prism
+            color_list.append(clist[i%len(clist)].replace("rgb","rgba").replace(")", ", {})".format(opacity)))
+
+        color_link = []
+        for i in range(len(confmat.columns)):
+             color_link = color_link + color_list
+
+        # print(color_link)
+        link = dict(source = source, target=target, value=value, color=color_link)
+        node = dict(label = label, pad = 10, thickness = 20)
+        data = go.Sankey(link=link, node=node)
+
+        fig = go.Figure(data)
+        fig.update_layout(
+            hovermode = 'y', title = "Agreement Sankey", 
+            font=dict(size = 10))
+        fig.show()
 
     def filter_overconf(self):
         # corrected_loci1 = self.loci_1.loc[:, ['posterior'+str(x) for x in range(self.num_labels)]]

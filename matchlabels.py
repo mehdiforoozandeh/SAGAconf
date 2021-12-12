@@ -1,3 +1,4 @@
+from matplotlib.pyplot import plot
 from _cluster_matching import *
 from _pipeline import *
 from _visualize import visualize
@@ -77,7 +78,7 @@ def plain_seg_matching(rep_dir_1, rep_dir_2, matching_strategy='conf_matrix'):
     
     return corrected_loci_1, corrected_loci_2
 
-def cluster_matching(rep_dir_1, rep_dir_2, n_clust, matching_strategy='distance_matrix'):
+def cluster_matching(rep_dir_1, rep_dir_2, n_clust, matching_strategy='distance_matrix', plot_dendogram=False):
 
     if matching_strategy == 'distance_matrix':
         # len1, len2 = read_length_dist_files(
@@ -99,6 +100,10 @@ def cluster_matching(rep_dir_1, rep_dir_2, n_clust, matching_strategy='distance_
         c2 = clstrer_2.fit_hierarchical(metric='euclidean', linkage='ward')
         # tsne_plot(rep2_data, clusters=[str(i) for i in c2.labels_], n_components=2)
         # PCA_plot(rep2_data, PC=2, clusters=[str(i) for i in c2.labels_], px=False)
+
+        if plot_dendogram:
+            clstrer_1.plot_dendrogram(truncate_mode=None, distance_sort='ascending', color_threshold=1)
+            clstrer_2.plot_dendrogram(truncate_mode=None, distance_sort='ascending', color_threshold=1)
         
         dist_mat = compute_pairwise_centroid_distance(c1.cluster_centers_, c2.cluster_centers_)
         assignment_pairs = Hungarian_algorithm(dist_mat, conf_or_dis='dist')
@@ -141,6 +146,10 @@ def cluster_matching(rep_dir_1, rep_dir_2, n_clust, matching_strategy='distance_
         c2 = clstrer_2.fit_hierarchical(metric='euclidean', linkage='ward')
         # tsne_plot(rep2_data, clusters=[str(i) for i in c2.labels_], n_components=2)
         # PCA_plot(rep2_data, PC=2, clusters=[str(i) for i in c2.labels_], px=False)
+
+        if plot_dendogram:
+            clstrer_1.plot_dendrogram(truncate_mode=None, distance_sort='ascending', color_threshold=1)
+            clstrer_2.plot_dendrogram(truncate_mode=None, distance_sort='ascending', color_threshold=1)
         
         parsed_posterior_1 = pd.read_csv(
             '{}/parsed_posterior.csv'.format(rep_dir_1)).drop('Unnamed: 0', axis=1)

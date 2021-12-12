@@ -1,10 +1,9 @@
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.ndimage.measurements import center_of_mass
 from scipy.optimize import linear_sum_assignment
 from scipy.sparse import coo
-from scipy.spatial.kdtree import distance_matrix
+from scipy.cluster.hierarchy import dendrogram
 from sklearn.cluster import KMeans, AgglomerativeClustering
 import plotly.express as px
 import seaborn as sns
@@ -38,6 +37,7 @@ def confusion_matrix(loci_1, loci_2, num_labels):
             Confus_Mat.loc[max_1posteri[i], max_2posteri[i]] += 1
         except:
             pass
+
     return Confus_Mat
 
 def Hungarian_algorithm(matrix, conf_or_dis='conf'):
@@ -167,7 +167,8 @@ class Clusterer(object):
     def fit_hierarchical(self, metric='euclidean', linkage='ward'):
         self.model = self.model(
                 n_clusters=self.k, affinity=metric,
-                linkage=linkage)
+                linkage=linkage,
+                compute_distances=True)
         
         self.predicted_labels =self.model.fit_predict(self.X)
 
@@ -184,6 +185,32 @@ class Clusterer(object):
 
         self.model.cluster_centers_ = np.array(centroids)
         return self.model
+
+    def plot_dendrogram(self, **kwargs):
+        counts = np.zeros(self.model.children_.shape[0])
+        print(counts)
+        n_samples = len(self.model.labels_)
+
+        for i, merge in enumerate(self.model.children_):
+            current_count = 0
+            for child_idx in merge:
+                if child_idx < n_samples:
+                    current_count += 1  
+                else:
+                    current_count += counts[child_idx - n_samples]
+            counts[i] = current_count
+
+        linkage_matrix = np.column_stack(
+            [self.model.children_, self.model.distances_, counts]
+        ).astype(float)
+
+        print(linkage_matrix)
+
+        # Plot the corresponding dendrogram
+        dendrogram(linkage_matrix, **kwargs)
+        plt.xlabel("Label")
+        plt.ylabel("Distance")
+        plt.show()
 
     def fit_kmeans(self):
         self.model = self.model(
@@ -251,6 +278,7 @@ def Cooccurrence_matrix(loci_1, loci_2):
 
         except:
             pass
+
     cooc_mat.index = [i.replace('posterior_cluster_','') for i in cooc_mat.index]
     cooc_mat.columns = [i.replace('posterior_cluster_','') for i in cooc_mat.columns]
     return cooc_mat
