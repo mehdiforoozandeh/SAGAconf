@@ -5,7 +5,14 @@ import matplotlib.pyplot as plt
 from scipy.ndimage.filters import gaussian_filter1d
 
 class Agreement(object):
-    def __init__(self, loci_1, loci_2):
+    def __init__(self, loci_1, loci_2, filter_nan=True):
+        if filter_nan:
+            loci_1 = loci_1.dropna()
+            loci_1 = loci_1.reset_index(drop=True)
+            loci_2 = loci_2.dropna()
+            loci_2 = loci_2.reset_index(drop=True)
+
+
         self.loci_1 = loci_1
         self.loci_2 = loci_2
         self.num_labels = len(self.loci_1.columns)-3
@@ -24,11 +31,14 @@ class Agreement(object):
             label_dict['posterior'+str(c)] = [0, 0] # [agreement_count, disagreement_count]
 
         for i in range(self.loci_1.shape[0]):
+
             if self.max_posteri1[i] == self.max_posteri2[i]:
                 label_dict[self.max_posteri1[i]][0] += 1 
 
             else:
                 label_dict[self.max_posteri1[i]][1] += 1 
+
+
         
         for k in label_dict.keys():
             label_dict[k] = label_dict[k][0] / (label_dict[k][0]+label_dict[k][1])
@@ -81,7 +91,7 @@ class Agreement(object):
         x = []
         height = []
         for k, v in self.label_agreements.items():
-            x.append(k)
+            x.append(k.replace('posterior', 'label'))
             height.append(v)
         
         self.general_agreement()
@@ -89,6 +99,7 @@ class Agreement(object):
         height.append(self.overall_agreement)
         plt.bar(x, height, width=0.4, color='black', alpha=0.5)
         plt.xticks(rotation=45)
+        plt.title('Agreement between two replicates')
         plt.yticks(np.arange(0, 1.1, step=0.1))
         plt.xlabel('Label')
         plt.ylabel('Agreement')
@@ -99,7 +110,7 @@ class Agreement(object):
         x = []
         height = []
         for k, v in self.label_OE.items():
-            x.append(k)
+            x.append(k.replace('posterior', 'label'))
             height.append(v)
 
         self.general_OE_ratio()
@@ -108,7 +119,8 @@ class Agreement(object):
         plt.bar(x, height, width=0.4, color='black', alpha=0.5)
         plt.xticks(rotation=45)
         plt.xlabel('Label')
-        plt.ylabel('Observed Agreement/Expected Agreement')
+        plt.title('Observed Agreement/Expected Agreement plot')
+        plt.ylabel('log(O/E)')
         plt.show()
 
     def plot_CK(self):
@@ -116,7 +128,7 @@ class Agreement(object):
         x = []
         height = []
         for k, v in self.label_CK.items():
-            x.append(k)
+            x.append(k.replace('posterior', 'label'))
             height.append(v)
 
         self.general_cohens_kappa()
@@ -126,12 +138,19 @@ class Agreement(object):
         plt.xticks(rotation=45)
         plt.yticks(np.arange(0, 1.1, step=0.1))
         plt.xlabel('Label')
+        plt.title("Cohen's Kappa")
         plt.ylabel("Cohen's Kappa Score")
         plt.show()
 
 
 class Reprodroducibility_vs_posterior(object):
-    def __init__(self, loci_1, loci_2, log_transform=True, ignore_overconf=True):
+    def __init__(self, loci_1, loci_2, log_transform=True, ignore_overconf=True, filter_nan=True):
+        if filter_nan:
+            loci_1 = loci_1.dropna()
+            loci_1 = loci_1.reset_index(drop=True)
+            loci_2 = loci_2.dropna()
+            loci_2 = loci_2.reset_index(drop=True)
+
         self.loci_1 = loci_1
         self.loci_2 = loci_2
         self.num_labels = len(self.loci_1.columns)-3
@@ -168,55 +187,50 @@ class Reprodroducibility_vs_posterior(object):
                 columns=self.post_mat_2.columns
             )
 
-        print(self.post_mat_1)
-        print(self.post_mat_2)
-        print(self.MAPestimate1)
-        print(self.MAPestimate2)
-
     def per_label_count_independent(self, num_bins=100):
         for k in range(self.post_mat_1.shape[1]):
-            try:
-                bins = []
-                posterior_vector_1 = np.array(self.post_mat_1[self.post_mat_1.columns[k]])
-                bin_length = (float(np.max(posterior_vector_1)) - float(np.min(posterior_vector_1))) / num_bins
-                for j in range(int(np.min(posterior_vector_1)*1000), int(np.max(posterior_vector_1)*1000), int(bin_length*1000)):
-                    bins.append([float(j/1000), float(j/1000) + int(bin_length*1000)/1000, 0, 0, 0, 0, 0])
-                    # [bin_start, bin_end, num_values_in_bin, num_agreement_in_bin, num_mislabeled, ratio_correctly_labeled, ratio_mislabeled]
+            # try:
+            bins = []
+            posterior_vector_1 = np.array(self.post_mat_1[self.post_mat_1.columns[k]])
+            bin_length = (float(np.max(posterior_vector_1)) - float(np.min(posterior_vector_1))) / num_bins
+            for j in range(int(np.min(posterior_vector_1)*1000), int(np.max(posterior_vector_1)*1000), int(bin_length*1000)):
+                bins.append([float(j/1000), float(j/1000) + int(bin_length*1000)/1000, 0, 0, 0, 0, 0])
+                # [bin_start, bin_end, num_values_in_bin, num_agreement_in_bin, num_mislabeled, ratio_correctly_labeled, ratio_mislabeled]
+            
+            for b in range(len(bins)):
                 
-                for b in range(len(bins)):
-                    
-                    for i in range(len(posterior_vector_1)):
-                        if bins[b][0] <= posterior_vector_1[i] <= bins[b][1]:
-                            bins[b][2] += 1
+                for i in range(len(posterior_vector_1)):
+                    if bins[b][0] <= posterior_vector_1[i] <= bins[b][1]:
+                        bins[b][2] += 1
 
-                            if 'posterior'+str(k) == self.MAPestimate2[i]:
-                                bins[b][3] += 1
-                            else:
-                                bins[b][4] += 1
+                        if 'posterior'+str(k) == self.MAPestimate2[i]:
+                            bins[b][3] += 1
+                        else:
+                            bins[b][4] += 1
 
-                for b in range(len(bins)):
-                    if bins[b][2] != 0:
-                        bins[b][5] = bins[b][3] / bins[b][2]
-                        bins[b][6] = (bins[b][4]) / bins[b][2]
+            for b in range(len(bins)):
+                if bins[b][2] != 0:
+                    bins[b][5] = bins[b][3] / bins[b][2]
+                    bins[b][6] = (bins[b][4]) / bins[b][2]
 
-                bins = np.array(bins)
-                plt.scatter(x=bins[:,0], y=bins[:,5], c='black', s=100)
-                ysmoothed = gaussian_filter1d(bins[:,5], sigma=3)
-                plt.plot(bins[:,0], ysmoothed, c='r')
-                plt.title("Reproduciblity Plot label {}".format(k))
-                plt.ylabel("Ratio of Similarly Labeled Bins in replicate 2")
+            bins = np.array(bins)
+            plt.scatter(x=bins[:,0], y=bins[:,5], c='black', s=100)
+            ysmoothed = gaussian_filter1d(bins[:,5], sigma=3)
+            plt.plot(bins[:,0], ysmoothed, c='r')
+            plt.title("Reproduciblity Plot label {}".format(k))
+            plt.ylabel("Ratio of Similarly Labeled Bins in replicate 2")
 
-                if self.log_transform:
-                    plt.xlabel("- log(1-posterior) in Replicate 1")
+            if self.log_transform:
+                plt.xlabel("- log(1-posterior) in Replicate 1")
 
-                else:
-                    plt.xlabel("Posterior in Replicate 1")
-                
-                plt.tick_params(axis='x', which='both', bottom=False,top=False,labelbottom=False)
-                plt.show()
+            else:
+                plt.xlabel("Posterior in Replicate 1")
+            
+            plt.tick_params(axis='x', which='both', bottom=False,top=False,labelbottom=False)
+            plt.show()
 
-            except:
-                print('could not process label {}'.format(k))
+            # except:
+            #     print('could not process label {}'.format(k))
 
     def general_count_independent(self, num_bins=100):
         # try:
@@ -269,7 +283,13 @@ class correspondence_curve(object):
     implementation of the method described at
     https://arxiv.org/pdf/1110.4705.pdf
     '''
-    def __init__(self, loci_1, loci_2):
+    def __init__(self, loci_1, loci_2, filter_nan=True):
+        if filter_nan:
+            loci_1 = loci_1.dropna()
+            loci_1 = loci_1.reset_index(drop=True)
+            loci_2 = loci_2.dropna()
+            loci_2 = loci_2.reset_index(drop=True)
+
         self.loci_1 = loci_1
         self.loci_2 = loci_2
         self.num_labels = len(self.loci_1.columns)-3

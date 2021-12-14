@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
+from plotly import plot
 from scipy.optimize import linear_sum_assignment
 from scipy.sparse import coo
 from scipy.cluster.hierarchy import dendrogram
@@ -186,7 +187,7 @@ class Clusterer(object):
         self.model.cluster_centers_ = np.array(centroids)
         return self.model
 
-    def plot_dendrogram(self, **kwargs):
+    def dendrogram(self, plot=True, **kwargs):
         counts = np.zeros(self.model.children_.shape[0])
         print(counts)
         n_samples = len(self.model.labels_)
@@ -207,10 +208,48 @@ class Clusterer(object):
         print(linkage_matrix)
 
         # Plot the corresponding dendrogram
-        dendrogram(linkage_matrix, **kwargs)
-        plt.xlabel("Label")
-        plt.ylabel("Distance")
-        plt.show()
+        if plot:
+            dendrogram(linkage_matrix, **kwargs)
+            plt.xlabel("Label")
+            plt.ylabel("Distance")
+            plt.show()
+
+        return linkage_matrix
+
+    # def merge_clusters_by_order(self, unclustered_loci, clustering_obj, order=1): 
+    #     '''
+    #     merges clusters and their corresponding posterior value in 
+    #     each bin. merging is done based on the order of hierarchy in 
+    #     the dendogram.
+    #     '''
+
+    #     num_labels = unclustered_loci.shape[1]-3
+    #     linkage_matrix = self.dendrogram(plot=False)
+
+    #     new_loci = unclustered_loci.loc[:,('chr', 'start', 'end')]
+    #     last_cluster_name = num_labels - 1
+
+
+    #     for _ in range(order):
+    #         merge_criteria = min(np.array(linkage_matrix[:, 3]))
+    #         to_merge = {}
+    #         for i in range(linkage_matrix.shape[0]):
+    #             if linkage_matrix[i, 3] == merge_criteria:
+    #                 last_cluster_name += 1
+    #                 to_merge[last_cluster_name] = (linkage_matrix[i, 0], linkage_matrix[i, 1])
+
+
+    #     cluster_labels = clustering_obj.labels_
+
+    #     for i in range(len(cluster_labels)): 
+    #         if "posterior{}".format(cluster_labels[i]) not in new_loci.columns:
+    #             new_loci["posterior{}".format(cluster_labels[i])] = unclustered_loci["posterior{}".format(i)]
+    #         else:
+    #             new_loci["posterior{}".format(cluster_labels[i])] = \
+    #                 new_loci["posterior{}".format(cluster_labels[i])] + unclustered_loci["posterior{}".format(i)]
+        
+    #     return new_loci
+    
 
     def fit_kmeans(self):
         self.model = self.model(
@@ -220,16 +259,12 @@ class Clusterer(object):
         self.predicted_labels = self.model.predict(self.X)
         return self.model
 
-# def cluster(clustering_data, k):
-#     kmeans = KMeans(n_clusters=k, random_state=0)
-#     kmeans.fit(clustering_data)
-#     return kmeans
-
 def update_labels_by_cluster(unclustered_loci, clustering_obj): 
     '''
     merges clusters and their corresponding posterior value in 
-    each bin
+    each bin.  merging is done based on the number of clusters.
     '''
+
     new_loci = unclustered_loci.loc[:,('chr', 'start', 'end')]
     cluster_labels = clustering_obj.labels_
 
