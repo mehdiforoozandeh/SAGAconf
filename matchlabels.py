@@ -175,7 +175,38 @@ def cluster_matching(rep_dir_1, rep_dir_2, n_clust, matching_strategy='distance_
     return corrected_loci_1, corrected_loci_2
 
 
+def order_based_clustering(rep_dir_1, rep_dir_2):
+    '''
+    read posterior
+    create cooccurence matrix based on overlap
+    match labels using hungarian
+    update cooc-matrix
+    use cooc-matrix as similarity matrix (or inverse function to convert it to distance matrix)
+    agglomerative clustering
+    check different orders of clustering and record matching rate at different levels
+    '''
+    parsed_posterior_1 = pd.read_csv(
+            '{}/parsed_posterior.csv'.format(rep_dir_1)).drop('Unnamed: 0', axis=1)
+    parsed_posterior_2 = pd.read_csv(
+            '{}/parsed_posterior.csv'.format(rep_dir_2)).drop('Unnamed: 0', axis=1)
+
+    conf_mat = confusion_matrix(parsed_posterior_1, parsed_posterior_2, parsed_posterior_1.shape[1]-3)
+    coocurence_matrix_heatmap(conf_mat)
+
+    assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
+    print("label_mapping:\t", assignment_pairs)
+
+    corrected_loci_1, corrected_loci_2 = \
+        connect_bipartite(parsed_posterior_1, parsed_posterior_2, assignment_pairs)
+    
+    conf_mat = confusion_matrix(corrected_loci_1, corrected_loci_2, corrected_loci_1.shape[1]-3)
+    coocurence_matrix_heatmap(conf_mat) 
+    distance_matrix = 1 / (conf_mat + 1)
+    
+
 if __name__=="__main__":
+    order_based_clustering('tests/rep1', 'tests/rep2')
+    exit()
 
     pilot_regions_file = 'segway_runs/encodePilotRegions.hg19.bed'
 
