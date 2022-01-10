@@ -216,39 +216,42 @@ class Clusterer(object):
 
         return linkage_matrix
 
-    # def merge_clusters_by_order(self, unclustered_loci, clustering_obj, order=1): 
-    #     '''
-    #     merges clusters and their corresponding posterior value in 
-    #     each bin. merging is done based on the order of hierarchy in 
-    #     the dendogram.
-    #     '''
+    def distance_based_agglomerative_clustering(distance_matrix):
+        pass
 
-    #     num_labels = unclustered_loci.shape[1]-3
-    #     linkage_matrix = self.dendrogram(plot=False)
+    def merge_clusters_by_order(self, unclustered_loci, clustering_obj, order=1): 
+        '''
+        merges clusters and their corresponding posterior value in 
+        each bin. merging is done based on the order of hierarchy in 
+        the dendogram.
+        '''
 
-    #     new_loci = unclustered_loci.loc[:,('chr', 'start', 'end')]
-    #     last_cluster_name = num_labels - 1
+        num_labels = unclustered_loci.shape[1]-3
+        linkage_matrix = self.dendrogram(plot=False)
 
-
-    #     for _ in range(order):
-    #         merge_criteria = min(np.array(linkage_matrix[:, 3]))
-    #         to_merge = {}
-    #         for i in range(linkage_matrix.shape[0]):
-    #             if linkage_matrix[i, 3] == merge_criteria:
-    #                 last_cluster_name += 1
-    #                 to_merge[last_cluster_name] = (linkage_matrix[i, 0], linkage_matrix[i, 1])
+        new_loci = unclustered_loci.loc[:,('chr', 'start', 'end')]
+        last_cluster_name = num_labels - 1
 
 
-    #     cluster_labels = clustering_obj.labels_
+        for _ in range(order):
+            merge_criteria = min(np.array(linkage_matrix[:, 3]))
+            to_merge = {}
+            for i in range(linkage_matrix.shape[0]):
+                if linkage_matrix[i, 3] == merge_criteria:
+                    last_cluster_name += 1
+                    to_merge[last_cluster_name] = (linkage_matrix[i, 0], linkage_matrix[i, 1])
 
-    #     for i in range(len(cluster_labels)): 
-    #         if "posterior{}".format(cluster_labels[i]) not in new_loci.columns:
-    #             new_loci["posterior{}".format(cluster_labels[i])] = unclustered_loci["posterior{}".format(i)]
-    #         else:
-    #             new_loci["posterior{}".format(cluster_labels[i])] = \
-    #                 new_loci["posterior{}".format(cluster_labels[i])] + unclustered_loci["posterior{}".format(i)]
+
+        cluster_labels = clustering_obj.labels_
+
+        for i in range(len(cluster_labels)): 
+            if "posterior{}".format(cluster_labels[i]) not in new_loci.columns:
+                new_loci["posterior{}".format(cluster_labels[i])] = unclustered_loci["posterior{}".format(i)]
+            else:
+                new_loci["posterior{}".format(cluster_labels[i])] = \
+                    new_loci["posterior{}".format(cluster_labels[i])] + unclustered_loci["posterior{}".format(i)]
         
-    #     return new_loci
+        return new_loci
     
 
     def fit_kmeans(self):

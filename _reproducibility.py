@@ -189,48 +189,48 @@ class Reprodroducibility_vs_posterior(object):
 
     def per_label_count_independent(self, num_bins=100):
         for k in range(self.post_mat_1.shape[1]):
-            # try:
-            bins = []
-            posterior_vector_1 = np.array(self.post_mat_1[self.post_mat_1.columns[k]])
-            bin_length = (float(np.max(posterior_vector_1)) - float(np.min(posterior_vector_1))) / num_bins
-            for j in range(int(np.min(posterior_vector_1)*1000), int(np.max(posterior_vector_1)*1000), int(bin_length*1000)):
-                bins.append([float(j/1000), float(j/1000) + int(bin_length*1000)/1000, 0, 0, 0, 0, 0])
-                # [bin_start, bin_end, num_values_in_bin, num_agreement_in_bin, num_mislabeled, ratio_correctly_labeled, ratio_mislabeled]
-            
-            for b in range(len(bins)):
+            try:
+                bins = []
+                posterior_vector_1 = np.array(self.post_mat_1[self.post_mat_1.columns[k]])
+                bin_length = (float(np.max(posterior_vector_1)) - float(np.min(posterior_vector_1))) / num_bins
+                for j in range(int(np.min(posterior_vector_1)*1000), int(np.max(posterior_vector_1)*1000), int(bin_length*1000)):
+                    bins.append([float(j/1000), float(j/1000) + int(bin_length*1000)/1000, 0, 0, 0, 0, 0])
+                    # [bin_start, bin_end, num_values_in_bin, num_agreement_in_bin, num_mislabeled, ratio_correctly_labeled, ratio_mislabeled]
                 
-                for i in range(len(posterior_vector_1)):
-                    if bins[b][0] <= posterior_vector_1[i] <= bins[b][1]:
-                        bins[b][2] += 1
+                for b in range(len(bins)):
+                    
+                    for i in range(len(posterior_vector_1)):
+                        if bins[b][0] <= posterior_vector_1[i] <= bins[b][1]:
+                            bins[b][2] += 1
 
-                        if 'posterior'+str(k) == self.MAPestimate2[i]:
-                            bins[b][3] += 1
-                        else:
-                            bins[b][4] += 1
+                            if 'posterior'+str(k) == self.MAPestimate2[i]:
+                                bins[b][3] += 1
+                            else:
+                                bins[b][4] += 1
 
-            for b in range(len(bins)):
-                if bins[b][2] != 0:
-                    bins[b][5] = bins[b][3] / bins[b][2]
-                    bins[b][6] = (bins[b][4]) / bins[b][2]
+                for b in range(len(bins)):
+                    if bins[b][2] != 0:
+                        bins[b][5] = bins[b][3] / bins[b][2]
+                        bins[b][6] = (bins[b][4]) / bins[b][2]
 
-            bins = np.array(bins)
-            plt.scatter(x=bins[:,0], y=bins[:,5], c='black', s=100)
-            ysmoothed = gaussian_filter1d(bins[:,5], sigma=3)
-            plt.plot(bins[:,0], ysmoothed, c='r')
-            plt.title("Reproduciblity Plot label {}".format(k))
-            plt.ylabel("Ratio of Similarly Labeled Bins in replicate 2")
+                bins = np.array(bins)
+                plt.scatter(x=bins[:,0], y=bins[:,5], c='black', s=100)
+                ysmoothed = gaussian_filter1d(bins[:,5], sigma=3)
+                plt.plot(bins[:,0], ysmoothed, c='r')
+                plt.title("Reproduciblity Plot label {}".format(k))
+                plt.ylabel("Ratio of Similarly Labeled Bins in replicate 2")
 
-            if self.log_transform:
-                plt.xlabel("- log(1-posterior) in Replicate 1")
+                if self.log_transform:
+                    plt.xlabel("- log(1-posterior) in Replicate 1")
 
-            else:
-                plt.xlabel("Posterior in Replicate 1")
-            
-            plt.tick_params(axis='x', which='both', bottom=False,top=False,labelbottom=False)
-            plt.show()
+                else:
+                    plt.xlabel("Posterior in Replicate 1")
+                
+                plt.tick_params(axis='x', which='both', bottom=False,top=False,labelbottom=False)
+                plt.show()
 
-            # except:
-            #     print('could not process label {}'.format(k))
+            except:
+                print('could not process label {}'.format(k))
 
     def general_count_independent(self, num_bins=100):
         # try:
