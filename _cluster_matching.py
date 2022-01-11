@@ -1,3 +1,4 @@
+from math import log
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
@@ -23,23 +24,71 @@ def find_max_posteri(loci):
     max_posteri = loci_posteri.idxmax(axis=1)
     return max_posteri
 
-def confusion_matrix(loci_1, loci_2, num_labels):
+def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, log_transform=True):
     num_labels = int(num_labels)
     max_1posteri = find_max_posteri(loci_1)
     max_2posteri = find_max_posteri(loci_2)
 
-    Confus_Mat = pd.DataFrame(
+    observed_overlap = pd.DataFrame(
         np.zeros((int(num_labels), int(num_labels))),
-        columns=['posterior'+str(i)for i in range(num_labels)],
-        index=['posterior'+str(i)for i in range(num_labels)]
+        columns=['posterior{}'.format(i) for i in range(num_labels)],
+        index=['posterior{}'.format(i) for i in range(num_labels)]
     )
+
     for i in range(len(loci_1)):
         try:
-            Confus_Mat.loc[max_1posteri[i], max_2posteri[i]] += 1
+            observed_overlap.loc[max_1posteri[i], max_2posteri[i]] += 1
         except:
             pass
+    
+    if OE_transform:
+        epsilon = 1e-3
+        expected_overlap = np.zeros((num_labels, num_labels))
+        r1_label_bin_count = {}
+        r2_label_bin_count = {}
+        
+        '''
+        expected overlap of label x = fraction of genome with label x 
+        in rep1 * fraction of genome with label x in rep2
+        '''
 
-    return Confus_Mat
+        for i in range(len(loci_1)):
+            if max_1posteri[i] in r1_label_bin_count.keys():
+                r1_label_bin_count[max_1posteri[i]] += 1
+
+            else:
+                r1_label_bin_count[max_1posteri[i]] = 1
+
+
+        for i in range(len(loci_2)):
+            if max_2posteri[i] in r2_label_bin_count.keys():
+                r2_label_bin_count[max_2posteri[i]] += 1
+
+            else:
+                r2_label_bin_count[max_2posteri[i]] = 1
+
+        for i in range(num_labels):
+            for j in range(num_labels):
+
+                # expected_overlap[i, j] = (r1_label_bin_count['posterior'+str(i)]/corrected_loci_1.shape[0])\
+                #      * (r2_label_bin_count['posterior'+str(j)]/corrected_loci_2.shape[0]) * corrected_loci_1.shape[0]
+
+                expected_overlap[i, j] = (r1_label_bin_count['posterior'+str(i)] * r2_label_bin_count['posterior'+str(j)])\
+                    / loci_1.shape[0]
+
+        expected_overlap = pd.DataFrame(
+            expected_overlap, 
+            columns=['posterior'+str(i)for i in range(num_labels)], 
+            index=['posterior'+str(i)for i in range(num_labels)])
+            
+        oe_overlap = (observed_overlap + epsilon) / (expected_overlap + epsilon)
+        if log_transform:
+            oe_overlap = np.log(oe_overlap)
+
+        return oe_overlap
+
+    else:
+        return observed_overlap
 
 def Hungarian_algorithm(matrix, conf_or_dis='conf'):
 
@@ -156,7 +205,7 @@ def tsne_plot(X, clusters, n_components):
     plt.show()
 
 class Clusterer(object):
-    def __init__(self, clustering_data, n_clusters, strategy='hier', ):
+    def __init__(self, clustering_data, n_clusters, strategy='hier'):
         self.X = clustering_data
         self.k = n_clusters
 
@@ -216,8 +265,14 @@ class Clusterer(object):
 
         return linkage_matrix
 
-    def distance_based_agglomerative_clustering(distance_matrix):
-        pass
+    def distance_based_agglomerative_clustering(self, distance_matrix):
+        self.model = AgglomerativeClustering(
+            affinity='precomputed', n_clusters=distance_matrix.shape[0], 
+            linkage='complete', compute_distances=True).fit(distance_matrix)
+        print(self.model.labels_)
+        # print(self.model.distances_)
+
+        self.dendrogram()
 
     def merge_clusters_by_order(self, unclustered_loci, clustering_obj, order=1): 
         '''
@@ -253,7 +308,6 @@ class Clusterer(object):
         
         return new_loci
     
-
     def fit_kmeans(self):
         self.model = self.model(
             n_clusters=self.k, random_state=0)
@@ -261,6 +315,7 @@ class Clusterer(object):
         self.model.fit(self.X)
         self.predicted_labels = self.model.predict(self.X)
         return self.model
+
 
 def update_labels_by_cluster(unclustered_loci, clustering_obj): 
     '''
@@ -332,7 +387,7 @@ def match_evaluation(matrix, assignment_pairs):
     probability_array = {}
     matched_sum = 0
     for i in range(matrix.shape[0]):
-        probability_array[str(i)] = float(matrix.iloc[i, assignment_pairs[i][1]]) /  matrix.iloc[i,:].sum()
+        probability_array[matrix.columns[i]] = float(matrix.iloc[i, assignment_pairs[i][1]]) /  (matrix.iloc[i,:].sum() + 1e-3)
         matched_sum += float(matrix.iloc[i, assignment_pairs[i][1]])    
 
     probability_array['all'] = matched_sum / np.array(matrix).sum()

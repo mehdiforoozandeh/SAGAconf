@@ -1,4 +1,9 @@
+from math import exp
+from os import link
 from matplotlib.pyplot import plot
+from numpy import NaN
+import scipy.spatial as sp, scipy.cluster.hierarchy as hc
+import seaborn as sns
 from _cluster_matching import *
 from _pipeline import *
 from _visualize import visualize
@@ -16,11 +21,13 @@ def distance_matrix_heatmap(distance_matrix):
         plt.show()
 
 def coocurence_matrix_heatmap(cooc_mat):
+    matmax = cooc_mat.max(axis=1).max(axis=0)
+    matmin = cooc_mat.min(axis=1).min(axis=0)
     sns.heatmap(
         cooc_mat.astype('int'), annot=True, fmt="d",
         linewidths=0.01, center=0, cbar=False,
-        vmin=0,
-        vmax=250)
+        vmin=matmin/2,
+        vmax=matmax/2)
         
     plt.title('Cooccurrence_matrix Heatmap')
     plt.xlabel('Replicate 1 clusters')
@@ -175,33 +182,129 @@ def cluster_matching(rep_dir_1, rep_dir_2, n_clust, matching_strategy='distance_
     return corrected_loci_1, corrected_loci_2
 
 
-def order_based_clustering(rep_dir_1, rep_dir_2):
+def order_based_clustering(rep_dir_1, rep_dir_2, OE_transform=True, log_transform=True):
     '''
     read posterior
-    create cooccurence matrix based on overlap
+    create cooccurence matrix based on overlap (OE transformed ?)
     match labels using hungarian
-    update cooc-matrix
+    update cooc-matrix (OE transformed)
+
     use cooc-matrix as similarity matrix (or inverse function to convert it to distance matrix)
+
     agglomerative clustering
     check different orders of clustering and record matching rate at different levels
     '''
+
     parsed_posterior_1 = pd.read_csv(
             '{}/parsed_posterior.csv'.format(rep_dir_1)).drop('Unnamed: 0', axis=1)
     parsed_posterior_2 = pd.read_csv(
             '{}/parsed_posterior.csv'.format(rep_dir_2)).drop('Unnamed: 0', axis=1)
 
-    conf_mat = confusion_matrix(parsed_posterior_1, parsed_posterior_2, parsed_posterior_1.shape[1]-3)
-    coocurence_matrix_heatmap(conf_mat)
+    num_labels = parsed_posterior_1.shape[1]-3
 
+    conf_mat = confusion_matrix(
+        parsed_posterior_1, parsed_posterior_2, num_labels, 
+        OE_transform=OE_transform, log_transform=log_transform)
+    
     assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
     print("label_mapping:\t", assignment_pairs)
 
     corrected_loci_1, corrected_loci_2 = \
         connect_bipartite(parsed_posterior_1, parsed_posterior_2, assignment_pairs)
+
+
+    '''
+    coocurrence_matrix ->  records the original cooc_mat which is 
+    going to be updated in the order of cluster merging'''
+
     
-    conf_mat = confusion_matrix(corrected_loci_1, corrected_loci_2, corrected_loci_1.shape[1]-3)
-    coocurence_matrix_heatmap(conf_mat) 
-    distance_matrix = 1 / (conf_mat + 1)
+    coocurrence_matrix = confusion_matrix(
+                    corrected_loci_1, corrected_loci_2, num_labels, 
+                    OE_transform=False, log_transform=False)
+                    
+    print('Match Rate:\n {}'.format(
+            match_evaluation(coocurrence_matrix, 
+            [(i, i) for i in range(num_labels)])
+            ))
+
+    conf_mat = confusion_matrix(
+        corrected_loci_1, corrected_loci_2, num_labels, 
+        OE_transform=OE_transform, log_transform=log_transform)    
+
+    max_similarity = conf_mat.max(axis=1).max(axis=0)
+    min_similarity = conf_mat.min(axis=1).min(axis=0)
+
+    # min-max scale the similarity matrix
+    conf_mat = (conf_mat - min_similarity) / (max_similarity - min_similarity)
+    # coocurence_matrix_heatmap(conf_mat*100) 
+
+    conf_mat = conf_mat.corr()
+    # coocurence_matrix_heatmap(conf_mat*100)
+
+    distance_matrix = 1 - conf_mat
+    # print(distance_matrix)
+
+    linkage = hc.linkage(sp.distance.squareform(distance_matrix), method='average')
+    c_grid = sns.clustermap(distance_matrix, row_linkage=linkage, col_linkage=linkage, annot=True)
+    print(linkage)
+    plt.show()
+
+    orders_of_branching = np.unique(linkage[:,3])
+    
+    record = {
+        'new_clust_address':[], 'linkage':linkage,
+        'order_of_branching':[], 'num_subclusters':[],
+        'loci_1_history':[], 'loci_2_history':[], 
+        'overlap_history':[], 'match_rate':[]}
+
+    for o in orders_of_branching:
+        for m in range(len(linkage)):
+            if linkage[m, 3] == o:
+                to_be_merged = [
+                    "posterior{}".format(int(linkage[m, 0])), 
+                    "posterior{}".format(int(linkage[m, 1]))]
+
+                # print('posterior{}'.format(num_labels + m), to_be_merged, int(np.where(orders_of_branching == o)[0])+1 )
+
+                corrected_loci_1['posterior{}'.format(num_labels + m)] = \
+                    corrected_loci_1[to_be_merged[0]] + corrected_loci_1[to_be_merged[1]]
+
+                corrected_loci_1 = corrected_loci_1.drop(to_be_merged, axis=1)
+
+                corrected_loci_2['posterior{}'.format(num_labels + m)] = \
+                    corrected_loci_2[to_be_merged[0]] + corrected_loci_2[to_be_merged[1]]
+
+                corrected_loci_2 = corrected_loci_2.drop(to_be_merged, axis=1)
+
+                max_1posteri = find_max_posteri(corrected_loci_1)
+                max_2posteri = find_max_posteri(corrected_loci_2)
+
+                observed_overlap = pd.DataFrame(
+                    np.zeros((int(corrected_loci_2.shape[1]-3), int(corrected_loci_2.shape[1]-3))),
+                    columns=list(corrected_loci_1.columns)[3:],
+                    index=list(corrected_loci_1.columns)[3:])
+
+                for i in range(len(corrected_loci_1)):
+                    try:
+                        observed_overlap.loc[max_1posteri[i], max_2posteri[i]] += 1
+                    except:
+                        pass
+                
+                MR = match_evaluation(observed_overlap, [(i, i) for i in range(corrected_loci_1.shape[1]-3)])['all']
+
+                record['new_clust_address'].append(['posterior{}'.format(num_labels + m), to_be_merged])
+                record['order_of_branching'].append(int(np.where(orders_of_branching == o)[0])+1)
+                record['num_subclusters'].append(o)
+                record['loci_1_history'].append(corrected_loci_1)
+                record['loci_2_history'].append(corrected_loci_2)
+                record['overlap_history'].append(observed_overlap)
+                record['match_rate'].append(MR)
+
+                print('Match Rate:\n {}'.format(MR))
+
+    print(record)
+    return record
+
     
 
 if __name__=="__main__":
