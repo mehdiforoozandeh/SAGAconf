@@ -236,21 +236,26 @@ def order_based_clustering(rep_dir_1, rep_dir_2, OE_transform=True, log_transfor
 
     # min-max scale the similarity matrix
     conf_mat = (conf_mat - min_similarity) / (max_similarity - min_similarity)
-    # coocurence_matrix_heatmap(conf_mat*100) 
 
+    # calculate pairwise correlation, so that the matrix is symmetrical
     conf_mat = conf_mat.corr()
-    # coocurence_matrix_heatmap(conf_mat*100)
 
+    # convert similarity (corr) to distance matrix
     distance_matrix = 1 - conf_mat
-    # print(distance_matrix)
 
+    # generate linkage matrix to be used for clustering and creating dendograms
     linkage = hc.linkage(sp.distance.squareform(distance_matrix), method='average')
+
+    # use sns to visualize heatmap and dendogram
     c_grid = sns.clustermap(distance_matrix, row_linkage=linkage, col_linkage=linkage, annot=True)
+
     print(linkage)
     plt.show()
 
+    # merge clusters recursively based on the order of branching 
     orders_of_branching = np.unique(linkage[:,3])
-    
+
+    # record all the intermediate steps and return for further analysis
     record = {
         'new_clust_address':[], 'linkage':linkage,
         'order_of_branching':[], 'num_subclusters':[],
@@ -302,10 +307,7 @@ def order_based_clustering(rep_dir_1, rep_dir_2, OE_transform=True, log_transfor
 
                 print('Match Rate:\n {}'.format(MR))
 
-    print(record)
-    return record
-
-    
+    return record    
 
 if __name__=="__main__":
     order_based_clustering('tests/rep1', 'tests/rep2')
