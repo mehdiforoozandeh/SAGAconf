@@ -1,6 +1,6 @@
 from _utils import *
 from _pipeline import *
-import os, random,sys
+import random,sys
 from sklearn.model_selection import ParameterGrid
 import multiprocessing as mp    
 from datetime import datetime

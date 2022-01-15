@@ -2,12 +2,9 @@ from math import log
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
-from plotly import plot
 from scipy.optimize import linear_sum_assignment
-from scipy.sparse import coo
 from scipy.cluster.hierarchy import dendrogram
 from sklearn.cluster import KMeans, AgglomerativeClustering
-import plotly.express as px
 import seaborn as sns
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
@@ -80,6 +77,9 @@ def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, log_transfor
             expected_overlap, 
             columns=['posterior'+str(i)for i in range(num_labels)], 
             index=['posterior'+str(i)for i in range(num_labels)])
+        
+        print('expected\n\n', expected_overlap)
+        print('observed\n\n', observed_overlap)
             
         oe_overlap = (observed_overlap + epsilon) / (expected_overlap + epsilon)
         if log_transform:

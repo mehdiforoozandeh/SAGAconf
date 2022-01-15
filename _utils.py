@@ -1,11 +1,8 @@
-from math import log
 import pandas as pd
 import numpy as np
 import shutil
-from scipy.optimize import linear_sum_assignment
 import os 
 import multiprocessing as mp
-import matplotlib.pyplot as plt
 
 def read_bedgraph(bg_file):
     df = []

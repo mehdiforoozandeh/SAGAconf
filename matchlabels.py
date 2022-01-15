@@ -20,7 +20,7 @@ def distance_matrix_heatmap(distance_matrix):
         plt.ylabel("Replicate 2 Centroids")
         plt.show()
 
-def coocurence_matrix_heatmap(cooc_mat):
+def coocurence_matrix_heatmap(cooc_mat, name):
     matmax = cooc_mat.max(axis=1).max(axis=0)
     matmin = cooc_mat.min(axis=1).min(axis=0)
     sns.heatmap(
@@ -29,7 +29,7 @@ def coocurence_matrix_heatmap(cooc_mat):
         vmin=matmin/2,
         vmax=matmax/2)
         
-    plt.title('Cooccurrence_matrix Heatmap')
+    plt.title(name)
     plt.xlabel('Replicate 1 clusters')
     plt.ylabel("Replicate 2 clusters")
     plt.show()
@@ -205,13 +205,24 @@ def order_based_clustering(rep_dir_1, rep_dir_2, OE_transform=True, log_transfor
     conf_mat = confusion_matrix(
         parsed_posterior_1, parsed_posterior_2, num_labels, 
         OE_transform=OE_transform, log_transform=log_transform)
+
+    coocurence_matrix_heatmap(
+        confusion_matrix(
+            parsed_posterior_1, parsed_posterior_2, num_labels, 
+            OE_transform=False, log_transform=False), 
+            "1_ raw overlap (#bins overlapped)")
+    
+    coocurence_matrix_heatmap(
+        confusion_matrix(
+            parsed_posterior_1, parsed_posterior_2, num_labels, 
+            OE_transform=True, log_transform=True), 
+            "2_ log(O/E) not_matched")
     
     assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
     print("label_mapping:\t", assignment_pairs)
 
     corrected_loci_1, corrected_loci_2 = \
         connect_bipartite(parsed_posterior_1, parsed_posterior_2, assignment_pairs)
-
 
     '''
     coocurrence_matrix ->  records the original cooc_mat which is 
@@ -229,25 +240,41 @@ def order_based_clustering(rep_dir_1, rep_dir_2, OE_transform=True, log_transfor
 
     conf_mat = confusion_matrix(
         corrected_loci_1, corrected_loci_2, num_labels, 
-        OE_transform=OE_transform, log_transform=log_transform)    
+        OE_transform=OE_transform, log_transform=log_transform)  
+
+    coocurence_matrix_heatmap(
+            conf_mat, 
+            "3_ log(O/E) matched")  
 
     max_similarity = conf_mat.max(axis=1).max(axis=0)
     min_similarity = conf_mat.min(axis=1).min(axis=0)
 
     # min-max scale the similarity matrix
     conf_mat = (conf_mat - min_similarity) / (max_similarity - min_similarity)
+    coocurence_matrix_heatmap(
+            conf_mat*100, 
+            "4_ log(O/E) scaled *100")  
 
     # calculate pairwise correlation, so that the matrix is symmetrical
     conf_mat = conf_mat.corr()
+    coocurence_matrix_heatmap(
+            conf_mat*100, 
+            "5_ log(O/E) Correlation *100") 
 
     # convert similarity (corr) to distance matrix
     distance_matrix = 1 - conf_mat
+
+    coocurence_matrix_heatmap(
+            distance_matrix*100, 
+            "6_ distance *100")
 
     # generate linkage matrix to be used for clustering and creating dendograms
     linkage = hc.linkage(sp.distance.squareform(distance_matrix), method='average')
 
     # use sns to visualize heatmap and dendogram
     c_grid = sns.clustermap(distance_matrix, row_linkage=linkage, col_linkage=linkage, annot=True)
+
+    exit()
 
     print(linkage)
     plt.show()
@@ -306,6 +333,18 @@ def order_based_clustering(rep_dir_1, rep_dir_2, OE_transform=True, log_transfor
                 record['match_rate'].append(MR)
 
                 print('Match Rate:\n {}'.format(MR))
+
+    print(len(record['match_rate']))
+    print(len(record['order_of_branching']))
+
+    plt.plot( 
+        record['order_of_branching'],
+        record['match_rate'])
+
+    plt.xlabel('Order of Merging')
+    plt.ylabel('Match Rate')
+    
+    plt.show()
 
     return record    
 

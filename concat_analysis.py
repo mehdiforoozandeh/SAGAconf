@@ -1,6 +1,5 @@
 from _cluster_matching import *
 from _pipeline import *
-from _visualize import visualize
 from matchlabels import *
 
 def concat_label_matching(replicate_1_dir, replicate_2_dir, num_labels, num_clusters=None):
