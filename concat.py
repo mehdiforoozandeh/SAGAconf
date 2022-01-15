@@ -241,4 +241,6 @@ def main(rep1dir, rep2dir, concat_dir, include_file, seqfile):
     segway_concatenated_and_postprocess(concat_param_dict)
 
 if __name__=="__main__":
-    pass
+    main(
+        'rep1', 'rep2', 'concatenated_files', 
+        'encodePilotRegions.hg19.bed', 'hg38.chrom.sizes')
