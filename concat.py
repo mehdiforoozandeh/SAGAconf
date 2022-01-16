@@ -23,7 +23,6 @@ def navigate_bgs(repath):
 
     return tracklist
 
-
 def rename_chroms(in_bg_file, out_bg_file, chr_suffix): 
     # chr_suffix should be either 1 or 2
     with open(in_bg_file, 'r') as inf:
@@ -182,7 +181,7 @@ def segway_concatenated_and_postprocess(concat_param_dict):
         clean_up(concat_param_dict["traindir"], concat_param_dict['posteriordir_rep2'])
 
 
-def main(rep1dir, rep2dir, concat_dir, include_file, seqfile):
+def main(rep1dir, rep2dir, concat_dir, include_file, sizesfile, seqfile):
     # search both replicate folders for bedgraph files to edit (make 2 dictionaries)
     rep1_tracks = navigate_bgs(rep1dir)
     rep2_tracks = navigate_bgs(rep2dir)
@@ -218,9 +217,12 @@ def main(rep1dir, rep2dir, concat_dir, include_file, seqfile):
         concat_tracks[k] = concat_dir+'/'+str(k)+'/'+str(k)+'_concatenated.bedGraph'
         
 
-    # update/virtualize include file
-        virtualize_include_file(
-            include_file, include_file.replace('.', '_concat.'))
+    # update/virtualize include file and chromsizes file
+    virtualize_include_file(
+        include_file, include_file.replace('.', '_concat.'))
+    virtualize_include_file(
+        sizesfile, sizesfile.replace('.', '_concat.'))
+    
 
     # make 3 genomedata files for 1)concat 2)rep1 3)rep2 (all using updated bgs)
     make_concat_genomedata(concat_tracks, seqfile, concat_dir+'/concat.gd')
