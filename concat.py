@@ -225,9 +225,12 @@ def main(rep1dir, rep2dir, concat_dir, include_file, sizesfile, seqfile):
     
 
     # make 3 genomedata files for 1)concat 2)rep1 3)rep2 (all using updated bgs)
-    make_concat_genomedata(concat_tracks, seqfile, concat_dir+'/concat.gd')
-    make_concat_genomedata(rep1_tracks, seqfile, concat_dir+'/rep1.gd')
-    make_concat_genomedata(rep2_tracks, seqfile, concat_dir+'/rep2.gd')
+    make_concat_genomedata(
+        concat_tracks, sizesfile.replace('.', '_concat.'), concat_dir+'/concat.gd')
+    make_concat_genomedata(
+        rep1_tracks, sizesfile.replace('.', '_concat.'), concat_dir+'/rep1.gd')
+    make_concat_genomedata(
+        rep2_tracks, sizesfile.replace('.', '_concat.'), concat_dir+'/rep2.gd')
     
     # create concat_param_dict
     concat_param_dict = {
