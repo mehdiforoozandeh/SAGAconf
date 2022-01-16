@@ -245,4 +245,5 @@ def main(rep1dir, rep2dir, concat_dir, include_file, sizesfile, seqfile):
 if __name__=="__main__":
     main(
         'rep1', 'rep2', 'concatenated_files', 
-        'encodePilotRegions.hg19.bed', 'hg38.chrom.sizes')
+        'encodePilotRegions.hg19.bed', 'hg38.chrom.sizes', 
+        'hg38.chrom.sizes')
