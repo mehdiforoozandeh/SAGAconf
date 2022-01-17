@@ -1,4 +1,5 @@
 from math import log
+from traceback import print_tb
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
@@ -21,7 +22,7 @@ def find_max_posteri(loci):
     max_posteri = loci_posteri.idxmax(axis=1)
     return max_posteri
 
-def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, log_transform=True):
+def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True):
     num_labels = int(num_labels)
     max_1posteri = find_max_posteri(loci_1)
     max_2posteri = find_max_posteri(loci_2)
@@ -64,26 +65,31 @@ def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, log_transfor
             else:
                 r2_label_bin_count[max_2posteri[i]] = 1
 
+        # calculate ratio of coverage for each label
+
+        for k, v in r1_label_bin_count.items():
+            r1_label_bin_count[k] = float(v) /  loci_1.shape[0]
+
+        for k, v in r2_label_bin_count.items():
+            r2_label_bin_count[k] = float(v) /  loci_2.shape[0]
+
+
         for i in range(num_labels):
             for j in range(num_labels):
 
                 # expected_overlap[i, j] = (r1_label_bin_count['posterior'+str(i)]/corrected_loci_1.shape[0])\
                 #      * (r2_label_bin_count['posterior'+str(j)]/corrected_loci_2.shape[0]) * corrected_loci_1.shape[0]
 
-                expected_overlap[i, j] = (r1_label_bin_count['posterior'+str(i)] * r2_label_bin_count['posterior'+str(j)])\
-                    / loci_1.shape[0]
+                expected_overlap[i, j] = (
+                    r1_label_bin_count['posterior'+str(i)] * r2_label_bin_count['posterior'+str(j)]) * loci_1.shape[0]
 
         expected_overlap = pd.DataFrame(
             expected_overlap, 
             columns=['posterior'+str(i)for i in range(num_labels)], 
             index=['posterior'+str(i)for i in range(num_labels)])
-        
-        print('expected\n\n', expected_overlap)
-        print('observed\n\n', observed_overlap)
             
         oe_overlap = (observed_overlap + epsilon) / (expected_overlap + epsilon)
-        if log_transform:
-            oe_overlap = np.log(oe_overlap)
+        oe_overlap = np.log(oe_overlap)
 
         return oe_overlap
 
@@ -111,16 +117,14 @@ def Hungarian_algorithm(matrix, conf_or_dis='conf'):
         return assignment_pairs
 
 def connect_bipartite(loci_1, loci_2, assignment_matching):
-    corrected_loci_1 = [loci_1.chr, loci_1.start, loci_1.end]
-    corrected_loci_2 = [loci_2.chr, loci_2.start, loci_2.end]
+    corrected_loci_1 = loci_1.iloc[:, :3]
+    corrected_loci_2 = loci_2.iloc[:, :3]
 
     for i in range(len(assignment_matching)):
-        corrected_loci_1.append(loci_1['posterior'+str(assignment_matching[i][0])])
-        corrected_loci_2.append(loci_2['posterior'+str(assignment_matching[i][1])])
-
-    corrected_loci_1 = pd.concat(corrected_loci_1, axis=1)
-    corrected_loci_2 = pd.concat(corrected_loci_2, axis=1)
-    corrected_loci_2.columns = corrected_loci_1.columns
+        corrected_loci_1[
+            'posterior'+str(assignment_matching[i][0])] = loci_1['posterior'+str(assignment_matching[i][0])]
+        corrected_loci_2[
+            'posterior'+str(assignment_matching[i][0])] = loci_2['posterior'+str(assignment_matching[i][1])]
     
     return corrected_loci_1, corrected_loci_2
             
