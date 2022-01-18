@@ -238,8 +238,9 @@ def main(rep1dir, rep2dir, concat_dir, include_file, sizesfile, seqfile):
         "random_seed":73, "include":include_file, "track_weight":0.01,
         "stws":10, "ruler_scale":100, "prior_strength":0, "resolution":100,
         "num_labels":16, "traindir":"seg_concat_train", "mini_batch_fraction":0.2,
-        "genomedata_file_concat":concat_dir+'/concat.gd',  "genomedata_file_rep1":concat_dir+'/rep1.gd', 
-        "genomedata_file_rep2":concat_dir+'/rep2.gd',
+        "genomedata_file_concat":concat_dir+'/concat.gd.genomedata',  
+        "genomedata_file_rep1":concat_dir+'/rep1.gd.genomedata', 
+        "genomedata_file_rep2":concat_dir+'/rep2.gd.genomedata',
         "posteriordir_rep1":'seg_rep1_posterior', "posteriordir_rep2":'seg_rep2_posterior'
         }
 

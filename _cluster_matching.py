@@ -22,7 +22,7 @@ def find_max_posteri(loci):
     max_posteri = loci_posteri.idxmax(axis=1)
     return max_posteri
 
-def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True):
+def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, plot=False):
     num_labels = int(num_labels)
     max_1posteri = find_max_posteri(loci_1)
     max_2posteri = find_max_posteri(loci_2)

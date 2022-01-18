@@ -27,7 +27,7 @@ def coocurence_matrix_heatmap(cooc_mat, name):
     matmin = cooc_mat.min(axis=1).min(axis=0)
     sns.heatmap(
         cooc_mat.astype('float'), annot=True,
-        linewidths=0.01, center=0, cbar=False,
+        linewidths=0.01, center=0, cbar=True,
         vmin=matmin,
         vmax=matmax)
         
@@ -183,6 +183,14 @@ def cluster_matching(rep_dir_1, rep_dir_2, n_clust, matching_strategy='distance_
 
     return corrected_loci_1, corrected_loci_2
 
+def update_matrix_pnemonics(matrix, pnemonics):
+    '''
+    matrix should be nxn. and len(pnemonics) = n
+    '''
+    new_mat = matrix
+    new_mat.columns = pnemonics
+    new_mat.index = pnemonics
+    return new_mat
 
 def order_based_clustering(
     rep_dir_1, rep_dir_2, OE_transform=True, euclidean_transform=False, plot=True):
@@ -210,10 +218,17 @@ def order_based_clustering(
         OE_transform=OE_transform)
     
     if plot:
+        coocurence_matrix_heatmap(
+            confusion_matrix(
+            parsed_posterior_1, parsed_posterior_2, num_labels, 
+            OE_transform=False), 
+            'observed overlapping bins')
+
         coocurence_matrix_heatmap(conf_mat, 'raw log(O/E)')
     
     assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
     print("label_mapping:\t", assignment_pairs)
+    pnem = ["labels_{}".format(i) for i in assignment_pairs]
 
     corrected_loci_1, corrected_loci_2 = \
         connect_bipartite(parsed_posterior_1, parsed_posterior_2, assignment_pairs)
@@ -233,7 +248,8 @@ def order_based_clustering(
         OE_transform=OE_transform)  
 
     if plot:
-        coocurence_matrix_heatmap(conf_mat, 'log(O/E) - matched')
+        coocurence_matrix_heatmap(
+            update_matrix_pnemonics(conf_mat, pnem), 'log(O/E) - matched')
     
     mat_max = conf_mat.max(axis=1).max(axis=0)
     mat_min = conf_mat.min(axis=1).min(axis=0)
@@ -242,7 +258,8 @@ def order_based_clustering(
     conf_mat = (conf_mat - mat_min) / (mat_max - mat_min)
     
     if plot:
-        coocurence_matrix_heatmap(conf_mat, 'log(O/E) - matched - scaled')
+        coocurence_matrix_heatmap(
+            update_matrix_pnemonics(conf_mat, pnem), 'log(O/E) - matched - scaled')
 
     if euclidean_transform:
         distance_matrix = pd.DataFrame(np.zeros(
@@ -259,32 +276,30 @@ def order_based_clustering(
         distance_matrix = 1 - conf_mat
 
     if plot:
-        coocurence_matrix_heatmap(distance_matrix, 'distance_matrix')
-    
-    # # setting the diagonal to zero
-    for i in range(num_labels):
-        distance_matrix.iloc[i, i] = 0
-    
-    if plot:
-        coocurence_matrix_heatmap(distance_matrix, 'sqrt(dm .* dm)_diagonal set to zero')
+        coocurence_matrix_heatmap(
+            update_matrix_pnemonics(distance_matrix, pnem), 'distance_matrix')
 
 
     # transform overlap conf-mat to symmetrical distance matrix
     distance_matrix = np.sqrt(distance_matrix* distance_matrix.T)
-
+    
     if plot:
         coocurence_matrix_heatmap(distance_matrix, 'sqrt(dm .* dm)')    
-
     
     # generate linkage matrix to be used for clustering and creating dendograms
-    linkage = hc.linkage(sp.distance.squareform(distance_matrix), method='average')
+    # linkage = hc.linkage(sp.distance.squareform(distance_matrix), method='average')
+    linkage = hc.linkage(distance_matrix, method='average')
 
     # use sns to visualize heatmap and dendogram
-    c_grid = sns.clustermap(distance_matrix, row_linkage=linkage, col_linkage=linkage, annot=True)
+    # update distance matrix pnemonics for visualization
 
+    c_grid = sns.clustermap(
+        update_matrix_pnemonics(distance_matrix, pnem), 
+        row_linkage=linkage, col_linkage=linkage, annot=True)
 
     print(linkage)
-    plt.show()
+    if plot:
+        plt.show()
 
     # merge clusters recursively based on the order of branching 
     orders_of_branching = np.unique(linkage[:,3])
@@ -341,14 +356,22 @@ def order_based_clustering(
 
                 print('Match Rate:\n {}'.format(MR))
 
-    plt.plot( 
-        record['order_of_branching'],
-        record['match_rate'])
+    if plot:
+        plt.plot( 
+            record['order_of_branching'],
+            record['match_rate'], c='g')
 
-    plt.xlabel('Order of Merging')
-    plt.ylabel('Match Rate')
-    
-    plt.show()
+        plt.xlabel('Order of Merging')
+        plt.ylabel('Match Rate')
+        plt.show()
+
+    if plot:
+        plt.bar( 
+            [str(num_labels - (i+1)) for i in range(len(record['match_rate']))],
+            record['match_rate'])
+        plt.xlabel('Number of Labels')
+        plt.ylabel('Match Rate')
+        plt.show()
 
     return record    
 
