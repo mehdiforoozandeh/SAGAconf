@@ -22,7 +22,35 @@ def find_max_posteri(loci):
     max_posteri = loci_posteri.idxmax(axis=1)
     return max_posteri
 
-def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, plot=False):
+def make_symmetric_matrix(matrix0):
+    '''
+    this function gets an asymmetric confusion/distance/similarity matrix
+    and makes a symmetric one based on the hypothetical overlap of merging 
+    all possible pairs of labels.'''
+    
+    num_labels = matrix0.shape[0]
+    matrix1 = pd.DataFrame(
+        np.zeros((num_labels,num_labels)), 
+        columns=matrix0.columns, index=matrix0.index)
+    
+    for i in matrix0.columns:
+        for j in matrix0.index:
+
+            if i == j:
+                matrix1.loc[i, j] = matrix0.loc[i, j]
+
+            else:
+                #overlap corresponds to the sum of two values from matrix0 
+                overlap = matrix0.loc[i, j] + matrix0.loc[j, i]
+
+                # matrix1[i, j] == matrix1[j, i] == overlap 
+                matrix1.loc[i, j] = overlap
+                matrix1.loc[j, i] = overlap
+    
+    return matrix1
+
+
+def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, symmetric=False):
     num_labels = int(num_labels)
     max_1posteri = find_max_posteri(loci_1)
     max_2posteri = find_max_posteri(loci_2)
@@ -42,6 +70,8 @@ def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, plot=False):
     if OE_transform:
         epsilon = 1e-3
         expected_overlap = np.zeros((num_labels, num_labels))
+        
+        
         r1_label_bin_count = {}
         r2_label_bin_count = {}
         
@@ -80,13 +110,20 @@ def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, plot=False):
                 # expected_overlap[i, j] = (r1_label_bin_count['posterior'+str(i)]/corrected_loci_1.shape[0])\
                 #      * (r2_label_bin_count['posterior'+str(j)]/corrected_loci_2.shape[0]) * corrected_loci_1.shape[0]
 
-                expected_overlap[i, j] = (
-                    r1_label_bin_count['posterior'+str(i)] * r2_label_bin_count['posterior'+str(j)]) * loci_1.shape[0]
+                expected_overlap[i, j] = (r1_label_bin_count['posterior'+str(i)] * r2_label_bin_count['posterior'+str(j)]) * loci_1.shape[0]
 
         expected_overlap = pd.DataFrame(
             expected_overlap, 
             columns=['posterior'+str(i)for i in range(num_labels)], 
             index=['posterior'+str(i)for i in range(num_labels)])
+
+        if symmetric:
+            print('OO_0\n', observed_overlap)
+            observed_overlap = make_symmetric_matrix(observed_overlap)
+            print('OO_1\n', observed_overlap)
+            print('EO_0\n', expected_overlap)
+            expected_overlap = make_symmetric_matrix(expected_overlap)
+            print('EO_1\n', expected_overlap)
             
         oe_overlap = (observed_overlap + epsilon) / (expected_overlap + epsilon)
         oe_overlap = np.log(oe_overlap)
@@ -94,6 +131,8 @@ def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, plot=False):
         return oe_overlap
 
     else:
+        if symmetric:
+            observed_overlap = make_symmetric_matrix(observed_overlap)
         return observed_overlap
 
 def Hungarian_algorithm(matrix, conf_or_dis='conf'):

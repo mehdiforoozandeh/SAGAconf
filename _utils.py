@@ -29,7 +29,7 @@ def read_posteriordir(posteriordir):
         posterior_id = f.replace('.bedGraph','')
         posterior_df_list[posterior_id.replace('posterior','')] = read_bedgraph(posteriordir+'/'+f)
 
-    print(posterior_df_list.keys())
+    # print(posterior_df_list.keys())
 
     return posterior_df_list #dictionary actually :))
 

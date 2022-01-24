@@ -193,7 +193,7 @@ def update_matrix_pnemonics(matrix, pnemonics):
     return new_mat
 
 def order_based_clustering(
-    rep_dir_1, rep_dir_2, OE_transform=True, euclidean_transform=False, plot=True):
+    rep_dir_1, rep_dir_2, OE_transform=True, plot=True):
     '''
     read posterior
     create cooccurence matrix based on overlap (OE transformed ?)
@@ -215,13 +215,13 @@ def order_based_clustering(
 
     conf_mat = confusion_matrix(
         parsed_posterior_1, parsed_posterior_2, num_labels, 
-        OE_transform=OE_transform)
+        OE_transform=True, symmetric=False)
     
     if plot:
         coocurence_matrix_heatmap(
             confusion_matrix(
             parsed_posterior_1, parsed_posterior_2, num_labels, 
-            OE_transform=False), 
+            OE_transform=False, symmetric=False), 
             'observed overlapping bins')
 
         coocurence_matrix_heatmap(conf_mat, 'raw log(O/E)')
@@ -234,22 +234,21 @@ def order_based_clustering(
         connect_bipartite(parsed_posterior_1, parsed_posterior_2, assignment_pairs)
 
     coocurrence_matrix = confusion_matrix(
-                    corrected_loci_1, corrected_loci_2, num_labels, 
-                    OE_transform=False)
-
+            corrected_loci_1, corrected_loci_2, 
+            num_labels, OE_transform=False)
     print('Match Rate:\n {}'.format(
             match_evaluation(coocurrence_matrix, 
-            [(i, i) for i in range(num_labels)])
-            ))
+            [(i, i) for i in range(num_labels)])))
 
     # new matched confusion matrix of overlaps
     conf_mat = confusion_matrix(
         corrected_loci_1, corrected_loci_2, num_labels, 
-        OE_transform=OE_transform)  
+        OE_transform=OE_transform, symmetric=True)  
 
+    print(conf_mat)
     if plot:
         coocurence_matrix_heatmap(
-            update_matrix_pnemonics(conf_mat, pnem), 'log(O/E) - matched')
+            update_matrix_pnemonics(conf_mat, pnem), 'log(O/E) - matched - symmetric')
     
     mat_max = conf_mat.max(axis=1).max(axis=0)
     mat_min = conf_mat.min(axis=1).min(axis=0)
@@ -259,35 +258,15 @@ def order_based_clustering(
     
     if plot:
         coocurence_matrix_heatmap(
-            update_matrix_pnemonics(conf_mat, pnem), 'log(O/E) - matched - scaled')
+            update_matrix_pnemonics(conf_mat, pnem), 'log(O/E) - matched - scaled- symmetric')
 
-    if euclidean_transform:
-        distance_matrix = pd.DataFrame(np.zeros(
-            (num_labels, num_labels)), 
-            columns=conf_mat.columns,
-            index=conf_mat.index)
-
-        for i in range(num_labels):
-            for j in range(num_labels):
-                distance_matrix.iloc[i, j] = sp.distance.euclidean(
-                    conf_mat.iloc[i, :], conf_mat.iloc[:, j]
-                )
-    else:
-        distance_matrix = 1 - conf_mat
+    distance_matrix = 1 - conf_mat
 
     if plot:
         coocurence_matrix_heatmap(
-            update_matrix_pnemonics(distance_matrix, pnem), 'distance_matrix')
+            update_matrix_pnemonics(distance_matrix, pnem), 'distance_matrix - symmetric')
 
-
-    # transform overlap conf-mat to symmetrical distance matrix
-    distance_matrix = np.sqrt(distance_matrix* distance_matrix.T)
-    
-    if plot:
-        coocurence_matrix_heatmap(distance_matrix, 'sqrt(dm .* dm)')    
-    
     # generate linkage matrix to be used for clustering and creating dendograms
-    # linkage = hc.linkage(sp.distance.squareform(distance_matrix), method='average')
     linkage = hc.linkage(distance_matrix, method='average')
 
     # use sns to visualize heatmap and dendogram
