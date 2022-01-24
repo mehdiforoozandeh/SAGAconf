@@ -1,5 +1,6 @@
 import os
 from _utils import *
+from _pipeline import *
 
 def navigate_bgs(repath): 
     '''
@@ -181,7 +182,7 @@ def segway_concatenated_and_postprocess(concat_param_dict):
         clean_up(concat_param_dict["traindir"], concat_param_dict['posteriordir_rep2'])
 
 
-def main(rep1dir, rep2dir, concat_dir, include_file, sizesfile, seqfile):
+def main(rep1dir, rep2dir, concat_dir, include_file, sizesfile):
     # search both replicate folders for bedgraph files to edit (make 2 dictionaries)
     rep1_tracks = navigate_bgs(rep1dir)
     rep2_tracks = navigate_bgs(rep2dir)
@@ -235,8 +236,8 @@ def main(rep1dir, rep2dir, concat_dir, include_file, sizesfile, seqfile):
     # create concat_param_dict
     concat_param_dict = {
         "name_sig_concat":"seg_concat", "name_sig_rep1":"seg_rep1", "name_sig_rep2":"seg_rep2",
-        "random_seed":73, "include":include_file, "track_weight":0.01,
-        "stws":10, "ruler_scale":100, "prior_strength":0, "resolution":100,
+        "random_seed":73, "include":include_file.replace('.', '_concat.'), 
+        "track_weight":0.01, "stws":10, "ruler_scale":100, "prior_strength":0, "resolution":100,
         "num_labels":16, "traindir":"seg_concat_train", "mini_batch_fraction":0.2,
         "genomedata_file_concat":concat_dir+'/concat.gd.genomedata',  
         "genomedata_file_rep1":concat_dir+'/rep1.gd.genomedata', 
@@ -247,7 +248,11 @@ def main(rep1dir, rep2dir, concat_dir, include_file, sizesfile, seqfile):
     segway_concatenated_and_postprocess(concat_param_dict)
 
 if __name__=="__main__":
-    main(
-        'rep1', 'rep2', 'concatenated_files', 
-        'encodePilotRegions.hg19.bed', 'hg38.chrom.sizes', 
-        'hg38.chrom.sizes')
+    # main(
+    #     'rep1', 'rep2', 'concatenated_files', 
+    #     'encodePilotRegions.hg19.bed', 'hg38.chrom.sizes')
+
+    parse_posterior_results(
+        "seg_rep1", 'encodePilotRegions.hg19.bed'.replace('.', '_concat.'), 100, M=50)
+    parse_posterior_results(
+        "seg_rep2", 'encodePilotRegions.hg19.bed'.replace('.', '_concat.'), 100, M=50)   
