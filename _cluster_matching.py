@@ -71,7 +71,6 @@ def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, symmetric=Fa
         epsilon = 1e-3
         expected_overlap = np.zeros((num_labels, num_labels))
         
-        
         r1_label_bin_count = {}
         r2_label_bin_count = {}
         
@@ -79,21 +78,16 @@ def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, symmetric=Fa
         expected overlap of label x = fraction of genome with label x 
         in rep1 * fraction of genome with label x in rep2
         '''
+        for i in range(num_labels):
+            r1_label_bin_count["posterior{}".format(i)] = 0
+            r2_label_bin_count["posterior{}".format(i)] = 0
 
         for i in range(len(loci_1)):
-            if max_1posteri[i] in r1_label_bin_count.keys():
+            if str(max_1posteri[i]) == 'nan':
+                continue
+            else:
                 r1_label_bin_count[max_1posteri[i]] += 1
-
-            else:
-                r1_label_bin_count[max_1posteri[i]] = 1
-
-
-        for i in range(len(loci_2)):
-            if max_2posteri[i] in r2_label_bin_count.keys():
                 r2_label_bin_count[max_2posteri[i]] += 1
-
-            else:
-                r2_label_bin_count[max_2posteri[i]] = 1
 
         # calculate ratio of coverage for each label
 
@@ -103,12 +97,8 @@ def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, symmetric=Fa
         for k, v in r2_label_bin_count.items():
             r2_label_bin_count[k] = float(v) /  loci_2.shape[0]
 
-
         for i in range(num_labels):
             for j in range(num_labels):
-
-                # expected_overlap[i, j] = (r1_label_bin_count['posterior'+str(i)]/corrected_loci_1.shape[0])\
-                #      * (r2_label_bin_count['posterior'+str(j)]/corrected_loci_2.shape[0]) * corrected_loci_1.shape[0]
 
                 expected_overlap[i, j] = (r1_label_bin_count['posterior'+str(i)] * r2_label_bin_count['posterior'+str(j)]) * loci_1.shape[0]
 

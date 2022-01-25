@@ -1,7 +1,7 @@
 from genericpath import exists
 from math import cos, dist, exp
 from os import EX_OK, link
-from matplotlib.pyplot import plot
+from matplotlib.pyplot import figure
 from numpy import NaN
 import scipy.spatial as sp, scipy.cluster.hierarchy as hc
 import seaborn as sns
@@ -43,7 +43,7 @@ def plain_seg_matching(rep_dir_1, rep_dir_2, matching_strategy='conf_matrix'):
             '{}/parsed_posterior.csv'.format(rep_dir_1)).drop('Unnamed: 0', axis=1)
         parsed_posterior_2 = pd.read_csv(
             '{}/parsed_posterior.csv'.format(rep_dir_2)).drop('Unnamed: 0', axis=1)
-        
+
         conf_mat = confusion_matrix(parsed_posterior_1, parsed_posterior_2, parsed_posterior_1.shape[1]-3)
         assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
         match_eval = match_evaluation(conf_mat, assignment_pairs)
@@ -193,7 +193,7 @@ def update_matrix_pnemonics(matrix, pnemonics):
     return new_mat
 
 def order_based_clustering(
-    rep_dir_1, rep_dir_2, OE_transform=True, plot=True):
+    rep_dir_1, rep_dir_2, OE_transform=True, plot=True, branching_order_merge=False):
     '''
     read posterior
     create cooccurence matrix based on overlap (OE transformed ?)
@@ -205,6 +205,7 @@ def order_based_clustering(
     agglomerative clustering
     check different orders of clustering and record matching rate at different levels
     '''
+    
 
     parsed_posterior_1 = pd.read_csv(
             '{}/parsed_posterior.csv'.format(rep_dir_1)).drop('Unnamed: 0', axis=1)
@@ -239,6 +240,14 @@ def order_based_clustering(
     print('Match Rate:\n {}'.format(
             match_evaluation(coocurrence_matrix, 
             [(i, i) for i in range(num_labels)])))
+
+    if plot:
+        coocurence_matrix_heatmap(
+            update_matrix_pnemonics(confusion_matrix(
+            corrected_loci_1, corrected_loci_2, num_labels, 
+            OE_transform=True, symmetric=False)
+            , pnem), 'log(O/E) - matched')
+        exit()
 
     # new matched confusion matrix of overlaps
     conf_mat = confusion_matrix(
@@ -280,69 +289,110 @@ def order_based_clustering(
     if plot:
         plt.show()
 
-    # merge clusters recursively based on the order of branching 
-    orders_of_branching = np.unique(linkage[:,3])
-
-    # record all the intermediate steps and return for further analysis
     record = {
         'new_clust_address':[], 'linkage':linkage,
         'order_of_branching':[], 'num_subclusters':[],
         'loci_1_history':[], 'loci_2_history':[], 
         'overlap_history':[], 'match_rate':[]}
 
-    for o in orders_of_branching:
+    if branching_order_merge:
+        # merge clusters recursively based on the order of branching 
+        orders_of_branching = np.unique(linkage[:,3])
+        # record all the intermediate steps and return for further analysis
+        for o in orders_of_branching:
+            for m in range(len(linkage)):
+                if linkage[m, 3] == o:
+                    to_be_merged = [
+                        "posterior{}".format(int(linkage[m, 0])), 
+                        "posterior{}".format(int(linkage[m, 1]))]
+
+                    # print('posterior{}'.format(num_labels + m), to_be_merged, int(np.where(orders_of_branching == o)[0])+1 )
+
+                    corrected_loci_1['posterior{}'.format(num_labels + m)] = \
+                        corrected_loci_1[to_be_merged[0]] + corrected_loci_1[to_be_merged[1]]
+
+                    corrected_loci_1 = corrected_loci_1.drop(to_be_merged, axis=1)
+
+                    corrected_loci_2['posterior{}'.format(num_labels + m)] = \
+                        corrected_loci_2[to_be_merged[0]] + corrected_loci_2[to_be_merged[1]]
+
+                    corrected_loci_2 = corrected_loci_2.drop(to_be_merged, axis=1)
+
+                    max_1posteri = find_max_posteri(corrected_loci_1)
+                    max_2posteri = find_max_posteri(corrected_loci_2)
+
+                    observed_overlap = pd.DataFrame(
+                        np.zeros((int(corrected_loci_2.shape[1]-3), int(corrected_loci_2.shape[1]-3))),
+                        columns=list(corrected_loci_1.columns)[3:],
+                        index=list(corrected_loci_1.columns)[3:])
+
+                    for i in range(len(corrected_loci_1)):
+                        try:
+                            observed_overlap.loc[max_1posteri[i], max_2posteri[i]] += 1
+                        except:
+                            pass
+                    
+                    MR = match_evaluation(observed_overlap, [(i, i) for i in range(corrected_loci_1.shape[1]-3)])['all']
+
+                    record['new_clust_address'].append(['posterior{}'.format(num_labels + m), to_be_merged])
+                    record['order_of_branching'].append(int(np.where(orders_of_branching == o)[0])+1)
+                    record['num_subclusters'].append(o)
+                    record['loci_1_history'].append(corrected_loci_1)
+                    record['loci_2_history'].append(corrected_loci_2)
+                    record['overlap_history'].append(observed_overlap)
+                    record['match_rate'].append(MR)
+
+                    print('Match Rate:\n {}'.format(MR))
+                    if plot:
+                        plt.plot( 
+                            record['order_of_branching'],
+                            record['match_rate'], c='g')
+
+                        plt.xlabel('Order of Merging')
+                        plt.ylabel('Match Rate')
+                        plt.show()
+
+    else:
         for m in range(len(linkage)):
-            if linkage[m, 3] == o:
-                to_be_merged = [
-                    "posterior{}".format(int(linkage[m, 0])), 
-                    "posterior{}".format(int(linkage[m, 1]))]
+            to_be_merged = [
+                "posterior{}".format(int(linkage[m, 0])), 
+                "posterior{}".format(int(linkage[m, 1]))]
 
-                # print('posterior{}'.format(num_labels + m), to_be_merged, int(np.where(orders_of_branching == o)[0])+1 )
+            # print('posterior{}'.format(num_labels + m), to_be_merged, int(np.where(orders_of_branching == o)[0])+1 )
 
-                corrected_loci_1['posterior{}'.format(num_labels + m)] = \
-                    corrected_loci_1[to_be_merged[0]] + corrected_loci_1[to_be_merged[1]]
+            corrected_loci_1['posterior{}'.format(num_labels + m)] = \
+                corrected_loci_1[to_be_merged[0]] + corrected_loci_1[to_be_merged[1]]
 
-                corrected_loci_1 = corrected_loci_1.drop(to_be_merged, axis=1)
+            corrected_loci_1 = corrected_loci_1.drop(to_be_merged, axis=1)
 
-                corrected_loci_2['posterior{}'.format(num_labels + m)] = \
-                    corrected_loci_2[to_be_merged[0]] + corrected_loci_2[to_be_merged[1]]
+            corrected_loci_2['posterior{}'.format(num_labels + m)] = \
+                corrected_loci_2[to_be_merged[0]] + corrected_loci_2[to_be_merged[1]]
 
-                corrected_loci_2 = corrected_loci_2.drop(to_be_merged, axis=1)
+            corrected_loci_2 = corrected_loci_2.drop(to_be_merged, axis=1)
 
-                max_1posteri = find_max_posteri(corrected_loci_1)
-                max_2posteri = find_max_posteri(corrected_loci_2)
+            max_1posteri = find_max_posteri(corrected_loci_1)
+            max_2posteri = find_max_posteri(corrected_loci_2)
 
-                observed_overlap = pd.DataFrame(
-                    np.zeros((int(corrected_loci_2.shape[1]-3), int(corrected_loci_2.shape[1]-3))),
-                    columns=list(corrected_loci_1.columns)[3:],
-                    index=list(corrected_loci_1.columns)[3:])
+            observed_overlap = pd.DataFrame(
+                np.zeros((int(corrected_loci_2.shape[1]-3), int(corrected_loci_2.shape[1]-3))),
+                columns=list(corrected_loci_1.columns)[3:],
+                index=list(corrected_loci_1.columns)[3:])
 
-                for i in range(len(corrected_loci_1)):
-                    try:
-                        observed_overlap.loc[max_1posteri[i], max_2posteri[i]] += 1
-                    except:
-                        pass
-                
-                MR = match_evaluation(observed_overlap, [(i, i) for i in range(corrected_loci_1.shape[1]-3)])['all']
+            for i in range(len(corrected_loci_1)):
+                try:
+                    observed_overlap.loc[max_1posteri[i], max_2posteri[i]] += 1
+                except:
+                    pass
+            
+            MR = match_evaluation(observed_overlap, [(i, i) for i in range(corrected_loci_1.shape[1]-3)])['all']
 
-                record['new_clust_address'].append(['posterior{}'.format(num_labels + m), to_be_merged])
-                record['order_of_branching'].append(int(np.where(orders_of_branching == o)[0])+1)
-                record['num_subclusters'].append(o)
-                record['loci_1_history'].append(corrected_loci_1)
-                record['loci_2_history'].append(corrected_loci_2)
-                record['overlap_history'].append(observed_overlap)
-                record['match_rate'].append(MR)
+            record['new_clust_address'].append(['posterior{}'.format(num_labels + m), to_be_merged])
+            record['loci_1_history'].append(corrected_loci_1)
+            record['loci_2_history'].append(corrected_loci_2)
+            record['overlap_history'].append(observed_overlap)
+            record['match_rate'].append(MR)
 
-                print('Match Rate:\n {}'.format(MR))
-
-    if plot:
-        plt.plot( 
-            record['order_of_branching'],
-            record['match_rate'], c='g')
-
-        plt.xlabel('Order of Merging')
-        plt.ylabel('Match Rate')
-        plt.show()
+            print('Match Rate:\n {}'.format(MR))
 
     if plot:
         plt.bar( 

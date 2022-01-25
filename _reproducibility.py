@@ -37,10 +37,12 @@ class Agreement(object):
             else:
                 label_dict[self.max_posteri1[i]][1] += 1 
 
-
-        
         for k in label_dict.keys():
-            label_dict[k] = label_dict[k][0] / (label_dict[k][0]+label_dict[k][1])
+            if (label_dict[k][0]+label_dict[k][1]) != 0:
+                label_dict[k] = label_dict[k][0] / (label_dict[k][0]+label_dict[k][1])
+            else:
+                label_dict[k] = 0
+
 
         self.label_agreements = label_dict
         return self.label_agreements
