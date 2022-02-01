@@ -1,3 +1,4 @@
+from asyncore import write
 import os
 from _utils import *
 from _pipeline import *
@@ -44,7 +45,7 @@ def virtualize_chroms(bg_file1, bg_file2, out_bg):
             for l in inf2:
                 outf.write(l)
 
-def virtualize_include_file(in_incl_file, out_incl_file):
+def virtualize_include_file(in_incl_file, out_incl_file, write_separate=True):
     with open(in_incl_file, 'r') as inf:
         lines = inf.readlines()
 
@@ -58,6 +59,21 @@ def virtualize_include_file(in_incl_file, out_incl_file):
                 splitted_l = l.split('\t')
                 splitted_l[0] = splitted_l[0]+ "_2"
                 outf.write("\t".join(splitted_l))
+
+        if write_separate: 
+            #also writes separate include files for later annotation or posterior calculation
+            with open("VirtRep1_"+out_incl_file, 'w') as outf:
+                for l in lines:
+                    splitted_l = l.split('\t')
+                    splitted_l[0] = splitted_l[0]+ "_1"
+                    outf.write("\t".join(splitted_l))
+
+            with open("VirtRep2_"+out_incl_file, 'w') as outf:
+                for l in lines:
+                    splitted_l = l.split('\t')
+                    splitted_l[0] = splitted_l[0]+ "_2"
+                    outf.write("\t".join(splitted_l))
+
 
 def make_concat_genomedata(bedgraph_file_dict, seqfile, out_gd):
     tracklist = ''
@@ -75,8 +91,8 @@ def segway_concatenated_and_postprocess(concat_param_dict):
     ============== concat_param_dict EXAMPLE ==============
 
     {"name_sig_concat":None, "name_sig_rep1":None, "name_sig_rep2":None,
-    "random_seed":None, "include":None, "track_weight":None,
-    "stws":None, "ruler_scale":None, "prior_strength":None, "resolution":None,
+    "random_seed":None, "include_concat":None, "include_virtrep1":None, "include_virtrep2":None, 
+    "track_weight":None,"stws":None, "ruler_scale":None, "prior_strength":None, "resolution":None,
     "num_labels":None, "traindir":None, "mini_batch_fraction":None,
     "genomedata_file_concat":None,  "genomedata_file_rep1":None, "genomedata_file_rep2":None,
     "posteriordir_rep1":None, "posteriordir_rep2":None}
@@ -91,7 +107,7 @@ def segway_concatenated_and_postprocess(concat_param_dict):
          --num-instances=10 --track-weight={} --segtransition-weight-scale={}\
              --ruler-scale={} --prior-strength={} --resolution={}\
                   --minibatch-fraction={} --num-labels={} {} {}'.format(
-                      concat_param_dict["random_seed"], concat_param_dict["include"], concat_param_dict["track_weight"],
+                      concat_param_dict["random_seed"], concat_param_dict["include_concat"], concat_param_dict["track_weight"],
                       concat_param_dict["stws"], concat_param_dict["ruler_scale"], concat_param_dict["prior_strength"], 
                       concat_param_dict["resolution"], concat_param_dict["mini_batch_fraction"],
                       concat_param_dict["num_labels"], concat_param_dict["genomedata_file_concat"], 
@@ -102,7 +118,7 @@ def segway_concatenated_and_postprocess(concat_param_dict):
     os.system('mkdir {}'.format(concat_param_dict['posteriordir_rep1']))
     if os.path.isfile(concat_param_dict['traindir']+'/params/params.params'):
         os.system('segway posterior --include-coords={} {} {} {}'.format(
-            concat_param_dict["include"], concat_param_dict["genomedata_file_rep1"], 
+            concat_param_dict["include_virtrep1"], concat_param_dict["genomedata_file_rep1"], 
             concat_param_dict["traindir"], concat_param_dict["posteriordir_rep1"]
         ))
     
@@ -110,7 +126,7 @@ def segway_concatenated_and_postprocess(concat_param_dict):
     os.system('mkdir {}'.format(concat_param_dict['posteriordir_rep2']))
     if os.path.isfile(concat_param_dict['traindir']+'/params/params.params'):
         os.system('segway posterior --include-coords={} {} {} {}'.format(
-            concat_param_dict["include"], concat_param_dict["genomedata_file_rep2"], 
+            concat_param_dict["include_virtrep2"], concat_param_dict["genomedata_file_rep2"], 
             concat_param_dict["traindir"], concat_param_dict["posteriordir_rep2"]
         ))
 
@@ -220,25 +236,28 @@ def main(rep1dir, rep2dir, concat_dir, include_file, sizesfile):
 
     # update/virtualize include file and chromsizes file
     virtualize_include_file(
-        include_file, include_file.replace('.', '_concat.'))
+        include_file, include_file.replace('.', '_concat.'), write_separate=True)
     virtualize_include_file(
-        sizesfile, sizesfile.replace('.', '_concat.'))
+        sizesfile, sizesfile.replace('.', '_concat.'), write_separate=True)
     
 
     # make 3 genomedata files for 1)concat 2)rep1 3)rep2 (all using updated bgs)
     make_concat_genomedata(
         concat_tracks, sizesfile.replace('.', '_concat.'), concat_dir+'/concat.gd')
     make_concat_genomedata(
-        rep1_tracks, sizesfile.replace('.', '_concat.'), concat_dir+'/rep1.gd')
+        rep1_tracks, "VirtRep1_"+sizesfile.replace('.', '_concat.'), concat_dir+'/rep1.gd')
     make_concat_genomedata(
-        rep2_tracks, sizesfile.replace('.', '_concat.'), concat_dir+'/rep2.gd')
+        rep2_tracks, "VirtRep2_"+sizesfile.replace('.', '_concat.'), concat_dir+'/rep2.gd')
     
     # create concat_param_dict
     concat_param_dict = {
         "name_sig_concat":"seg_concat", "name_sig_rep1":"seg_rep1", "name_sig_rep2":"seg_rep2",
-        "random_seed":73, "include":include_file.replace('.', '_concat.'), 
-        "track_weight":0.01, "stws":10, "ruler_scale":100, "prior_strength":0, "resolution":100,
-        "num_labels":16, "traindir":"seg_concat_train", "mini_batch_fraction":0.2,
+        "random_seed":73, 
+        "include_concat":include_file.replace('.', '_concat.'), 
+        "include_virtrep1":"VirtRep1_"+include_file.replace('.', '_concat.'), 
+        "include_virtrep2":"VirtRep2_"+include_file.replace('.', '_concat.'), 
+        "track_weight":0.01, "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100,
+        "num_labels":16, "traindir":"seg_concat_train", "mini_batch_fraction":0.5,
         "genomedata_file_concat":concat_dir+'/concat.gd.genomedata',  
         "genomedata_file_rep1":concat_dir+'/rep1.gd.genomedata', 
         "genomedata_file_rep2":concat_dir+'/rep2.gd.genomedata',
@@ -248,9 +267,9 @@ def main(rep1dir, rep2dir, concat_dir, include_file, sizesfile):
     segway_concatenated_and_postprocess(concat_param_dict)
 
 if __name__=="__main__":
-    # main(
-    #     'rep1', 'rep2', 'concatenated_files', 
-    #     'encodePilotRegions.hg19.bed', 'hg38.chrom.sizes')
+    main(
+        'rep1', 'rep2', 'concatenated_files', 
+        'encodePilotRegions.hg19.bed', 'hg38.chrom.sizes')
 
     parse_posterior_results(
         "seg_rep1", 'encodePilotRegions.hg19.bed'.replace('.', '_concat.'), 100, M=50)
