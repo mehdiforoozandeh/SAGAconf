@@ -1,7 +1,8 @@
-from cgitb import reset
-from traceback import print_tb
+from importlib.metadata import requires
+from turtle import down
+from urllib import request
 import pandas as pd
-import requests, json, itertools, ast
+import requests, os, itertools, ast
 
 
 def search_encode(cell, download_dir, target_assembly="GRCh38"):
@@ -67,6 +68,13 @@ def search_encode(cell, download_dir, target_assembly="GRCh38"):
     tracks_navigation = tracks_navigation.reset_index(drop=True)
     print(tracks_navigation)
 
+    if not os.path.exists(download_dir):
+        os.mkdir(download_dir)
+        os.mkdir(download_dir + cell)
+    
+    if not os.path.exists(download_dir + cell):
+        os.mkdir(download_dir + cell)
+
     # for each experiment, get info for all files in that experiment
     for e in range(len(tracks_navigation)):
         exp_url = "https://www.encodeproject.org/experiments/{}".format(tracks_navigation['accession'][e])
@@ -95,6 +103,7 @@ def search_encode(cell, download_dir, target_assembly="GRCh38"):
 
                             e_files_navigation.append(
                                 [
+                                    tracks_navigation['assay'][e],
                                     efile_results['accession'], efile_results['file_format'], 
                                     efile_results['output_type'], efile_results['dataset'], 
                                     efile_results['biological_replicates'], e_file_biosample[2:-2],
@@ -107,7 +116,7 @@ def search_encode(cell, download_dir, target_assembly="GRCh38"):
                     pass
 
         e_files_navigation = pd.DataFrame(e_files_navigation, columns=[
-            'accession', 'file_format', 'output_type', 'experiment', 
+            'assay', 'accession', 'file_format', 'output_type', 'experiment', 
             'bio_replicate_number', 'biosample', 'file_size', 'assembly', 
             'download_url', 'date_created', 'status'])
         
@@ -167,21 +176,31 @@ def search_encode(cell, download_dir, target_assembly="GRCh38"):
                             to_download_list['rep2_spv'] = e_files_navigation.iloc[f, :]
 
                 
-        # - download all tracks with that pair as replicates
+        to_download_list = pd.DataFrame(to_download_list)
+        
+        # - Navigate all tracks with that pair as replicates
             # - rep1 -> bigwig -> signal p-value (chromhmm)
             # - rep1 -> bigwig -> fold change over control (segway)
             # - rep2 -> bigwig -> signal p-value (chromhmm)
             # - rep2 -> bigwig -> fold change over control (segway)
 
-        print(pd.DataFrame(to_download_list))
+        if not os.path.exists(download_dir + cell  +"/{}".format(tracks_navigation['assay'][e])):
+            os.mkdir(download_dir + cell +"/{}".format(tracks_navigation['assay'][e]))
 
-    
-
-    # << RECORD METADATA FOR DOWNLOADED FILES >> and save in a csv
+        # << RECORD METADATA FOR DOWNLOADED FILES >> and save in a csv
         # for each file, record:
             # biosample id , download_url, download_file_accession, 
             # signal p-value or fold change over control, genome assembly, date_added
-    # create trackname_assays.txt
+
+        to_download_list.to_csv(download_dir + cell + "/{}".format(tracks_navigation['assay'][e]+'/track_files_metadata.csv'))
+
+        # download navigated files
+        for c in to_download_list.columns:
+            save_dir_name = download_dir + cell +"/{}".format(tracks_navigation['assay'][e])+ '/' + to_download_list.loc['accession', c] + ".bigWig"
+
+            download_link = to_download_list.loc['download_url', c]
+            download_response = requests.get(download_link, allow_redirects=True)
+            open(save_dir_name, 'wb').write(download_response.content)
 
 if __name__ == "__main__":
     search_encode('GM12878', 'files/')
