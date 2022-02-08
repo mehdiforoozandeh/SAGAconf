@@ -119,8 +119,6 @@ def search_encode(cell, download_dir, target_assembly="GRCh38"):
             'assay', 'accession', 'file_format', 'output_type', 'experiment', 
             'bio_replicate_number', 'biosample', 'file_size', 'assembly', 
             'download_url', 'date_created', 'status'])
-        
-        # print(e_files_navigation)
 
         # define files to be downloaded
         
@@ -201,6 +199,8 @@ def search_encode(cell, download_dir, target_assembly="GRCh38"):
             download_link = to_download_list.loc['download_url', c]
             download_response = requests.get(download_link, allow_redirects=True)
             open(save_dir_name, 'wb').write(download_response.content)
+    
+    return tracks_navigation
 
 if __name__ == "__main__":
     search_encode('GM12878', 'files/')
