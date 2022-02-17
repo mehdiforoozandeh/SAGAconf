@@ -198,7 +198,7 @@ def segway_concatenated_and_postprocess(concat_param_dict):
         clean_up(concat_param_dict["traindir"], concat_param_dict['posteriordir_rep2'])
 
 
-def main(rep1dir, rep2dir, concat_dir, include_file, sizesfile):
+def __main(rep1dir, rep2dir, concat_dir, include_file, sizesfile):
     # search both replicate folders for bedgraph files to edit (make 2 dictionaries)
     rep1_tracks = navigate_bgs(rep1dir)
     rep2_tracks = navigate_bgs(rep2dir)
@@ -267,7 +267,7 @@ def main(rep1dir, rep2dir, concat_dir, include_file, sizesfile):
     segway_concatenated_and_postprocess(concat_param_dict)
 
 if __name__=="__main__":
-    main(
+    __main(
         'rep1', 'rep2', 'concatenated_files', 
         'encodePilotRegions.hg19.bed', 'hg38.chrom.sizes')
 

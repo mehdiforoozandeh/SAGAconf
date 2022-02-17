@@ -1,4 +1,5 @@
 from importlib.metadata import requires
+from traceback import print_tb
 from turtle import down
 from urllib import request
 import pandas as pd
@@ -54,7 +55,7 @@ def search_encode(cell, download_dir, target_assembly="GRCh38"):
     frequent_pair = ast.literal_eval(max(replicate_pairs, key=replicate_pairs.get))
     pair_num_tracks = max(list(replicate_pairs.values()))
 
-    print(frequent_pair, pair_num_tracks)
+    print('most frequent pair: {}, with {} tracks'.format(frequent_pair, pair_num_tracks))
 
     # here, we establist rep1 and rep2 based on the order by which they appear in list frequent_pair.
     replicate_glossary = {'rep1':frequent_pair[0], 'rep2':frequent_pair[1]}
@@ -75,8 +76,13 @@ def search_encode(cell, download_dir, target_assembly="GRCh38"):
     if not os.path.exists(download_dir + cell):
         os.mkdir(download_dir + cell)
 
+    with open(download_dir + cell + '/replicate_number.txt' ,'w') as rep_file:
+            rep_file.write("rep1:{}\nrep2:{}".format(
+                replicate_glossary['rep1'], replicate_glossary['rep2']))
+
     # for each experiment, get info for all files in that experiment
     for e in range(len(tracks_navigation)):
+        print('downloading celltype {} - assay {}'.format(cell, tracks_navigation['assay'][e]))
         exp_url = "https://www.encodeproject.org/experiments/{}".format(tracks_navigation['accession'][e])
         
         exp_respond = requests.get(exp_url, headers=headers)
@@ -121,9 +127,11 @@ def search_encode(cell, download_dir, target_assembly="GRCh38"):
             'download_url', 'date_created', 'status'])
 
         # define files to be downloaded
-        
         to_download_list = {} #{"rep1_spv":None, "rep2_spv":None, "rep1_fcoc":None, "rep2_fcoc":None}
 
+        if not os.path.exists(download_dir + cell  +"/{}".format(tracks_navigation['assay'][e])):
+            os.mkdir(download_dir + cell +"/{}".format(tracks_navigation['assay'][e]))
+        
         for f in range(len(e_files_navigation)):
             if e_files_navigation['assembly'][f] == target_assembly:
 
@@ -182,9 +190,6 @@ def search_encode(cell, download_dir, target_assembly="GRCh38"):
             # - rep2 -> bigwig -> signal p-value (chromhmm)
             # - rep2 -> bigwig -> fold change over control (segway)
 
-        if not os.path.exists(download_dir + cell  +"/{}".format(tracks_navigation['assay'][e])):
-            os.mkdir(download_dir + cell +"/{}".format(tracks_navigation['assay'][e]))
-
         # << RECORD METADATA FOR DOWNLOADED FILES >> and save in a csv
         # for each file, record:
             # biosample id , download_url, download_file_accession, 
@@ -196,9 +201,10 @@ def search_encode(cell, download_dir, target_assembly="GRCh38"):
         for c in to_download_list.columns:
             save_dir_name = download_dir + cell +"/{}".format(tracks_navigation['assay'][e])+ '/' + to_download_list.loc['accession', c] + ".bigWig"
 
-            download_link = to_download_list.loc['download_url', c]
+            download_link = "https://www.google.com/"#to_download_list.loc['download_url', c]
             download_response = requests.get(download_link, allow_redirects=True)
             open(save_dir_name, 'wb').write(download_response.content)
 
 if __name__ == "__main__":
     search_encode('GM12878', 'files/')
+    search_encode('H1', 'files/')

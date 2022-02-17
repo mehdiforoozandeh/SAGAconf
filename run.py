@@ -1,3 +1,5 @@
+from operator import truediv
+from types import CellType
 from unicodedata import name
 from _utils import *
 from _pipeline import *
@@ -34,14 +36,29 @@ ChromHMM:
 '''
 
 def download_encode_files(celltype_list, download_dir, target_assembly):
-    cell_track_nav = {}
-
     for celltype in celltype_list:
-        track_nav = search_encode(celltype, download_dir, target_assembly=target_assembly)
-        cell_track_nav[str(celltype)] = track_nav
+        search_encode(celltype, download_dir, target_assembly=target_assembly)
+
+def check_if_data_exists(celltype_list, download_dir):
+    exists_bool = []
+    for ct in celltype_list:
+        if os.path.isdir(download_dir+'/'+ct):
+            exists_bool.append(True)
+
+        else:
+            exists_bool.append(False)
+
+    return exists_bool
+
+def read_list_of_assays(celltype_dir):
+    ls = os.listdir(celltype_dir)
+    list_of_assays = []
+    for d in ls:
+        if os.path.isdir(celltype_dir + '/' + d):
+            list_of_assays.append(d)
     
-    return cell_track_nav
-        
+    return list_of_assays
+
 def gather_segway_replicates(celltype_dir, create_trackname_assay=True):
     if create_trackname_assay:
         pass
@@ -52,7 +69,7 @@ def create_genomedata(celltype_dir, sequence_file):
     create_genomedata_rep(celltype_dir + '/rep2', sequence_file)
     pass
 
-def segway_parameters(celltype, replicate_number, random_seed=73):
+def segway_parameters(celltype, replicate_number, random_seed=73, param_init_test=False):
     # replicate number should be in format "repN" -> i.e. rep1, rep2 
     '''
     For a cell type with M available datasets(tracks), we ask Segway to assign 10 + 2*sqrt(M) different states(labels).
@@ -60,7 +77,11 @@ def segway_parameters(celltype, replicate_number, random_seed=73):
     '''
 
     num_tracks = None ###TEMP###
-    name_sig = celltype+'_'+replicate_number
+
+    if param_init_test:
+        name_sig = celltype+'_'+replicate_number+'_'+"param_init_rs{}".format(random_seed)
+    else:
+        name_sig = celltype+'_'+replicate_number
 
     params_dict = {
         "random_seed":random_seed, "include":pilot_regions_file, "track_weight":0.01,
@@ -74,10 +95,44 @@ def segway_parameters(celltype, replicate_number, random_seed=73):
 
 def run_segway_parse_results(params_dict):
     run_segway_and_post_process(params_dict)
-    # parse_posterior_results 1
-    # parse_posterior_results 2
+
+    parse_posterior_results(
+        params_dict['name_sig'], params_dict['include'], params_dict['resolution'], M=100)
+
     pass
 
+def segway_param_inits(celltype, replicate_number, random_seed_list):
+    '''
+    train segway with different parameter initializations (random seeds) 
+    to compare how similar/reproducible results are with differet param inits
+    '''
+
+    for rs in random_seed_list:
+        params = segway_parameters(celltype, replicate_number, random_seed=int(rs))
+        run_segway_parse_results(params)
+
+def segway_concat(rep1dir, rep2dir, concat_seg_res, sizesfile):
+    '''
+    navigate fcoc files in rep1
+    navigate fcoc files in rep2
+
+    rename_chroms()
+    virtualize_chroms()
+
+    virtualize_sizes_file()
+
+    make genomedata_concat
+    make genomedata_rep1_renamed
+    make genomedata_rep2_renamed
+
+    define params_dict
+    run concat seg + post clean up
+
+    parse posterior1
+    parse posterior2
+    '''
+    pass
+    
 def get_biological_pnemonics(results_directory, segway=True):
     '''
     - run segtools signal-distribution in the segway's output directory and 
@@ -107,3 +162,26 @@ def reproducibility_analysis():
     pass
 
 
+
+"""when running the whole script from start to end to generate (and reproduce) results
+remember to put label interpretation in try blocks (skippable) to prevent any kind of
+dependency issue of segtools to cause issues in reproducibility of results"""
+
+
+if __name__=="__main__":
+    CellType_list = ["GM12878", "H1", "spleen", "K562"]
+    download_dir = 'files/'
+    existing_data = check_if_data_exists(CellType_list, download_dir)
+
+    for i in range(len(CellType_list)):
+        if existing_data[i] == True:
+            CellType_list.remove(CellType_list[i])
+
+    if len(CellType_list) != 0:
+        download_encode_files(CellType_list, download_dir, "GRCh38")
+
+    assays = {}
+    for ct in CellType_list:
+        assays[ct] = read_list_of_assays('files/'+ct)
+
+    
