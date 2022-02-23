@@ -7,7 +7,7 @@ import pandas as pd
 import requests, os, itertools, ast
 
 
-def search_encode(cell, download_dir, target_assembly="GRCh38"):
+def search_encode(cell, download_dir, target_assembly="GRCh38", check_availability=False):
     # Force return from the server in JSON format
     headers = {'accept': 'application/json'}
 
@@ -57,6 +57,9 @@ def search_encode(cell, download_dir, target_assembly="GRCh38"):
     pair_num_tracks = max(list(replicate_pairs.values()))
 
     print('most frequent pair: {}, with {} tracks'.format(frequent_pair, pair_num_tracks))
+
+    if check_availability:
+        return pair_num_tracks
 
     # here, we establist rep1 and rep2 based on the order by which they appear in list frequent_pair.
     replicate_glossary = {'rep1':frequent_pair[0], 'rep2':frequent_pair[1]}
@@ -202,7 +205,7 @@ def search_encode(cell, download_dir, target_assembly="GRCh38"):
         for c in to_download_list.columns:
             save_dir_name = download_dir + cell +"/{}".format(tracks_navigation['assay'][e])+ '/' + to_download_list.loc['accession', c] + ".bigWig"
 
-            download_link = "https://www.google.com/"#to_download_list.loc['download_url', c]
+            download_link = to_download_list.loc['download_url', c]
             download_response = requests.get(download_link, allow_redirects=True)
             open(save_dir_name, 'wb').write(download_response.content)
 
@@ -228,6 +231,20 @@ def create_trackname_assay_file(download_dir):
             tna.write('{}\t{}\n'.format(tracknames[i][1], tracknames[i][0]))
 
 if __name__ == "__main__":
-    # search_encode('GM12878', 'files/')
-    # search_encode('H1', 'files/')
-    create_trackname_assay_file('files/')
+    available_data_count = {}
+    list_of_ENCODE_celltypes = ['H1', 'IMR-90', 'H9', 'spleen', 'transverse colon', 'trophoblast cell', 'K562', 'MCF-7', 'SK-N-SH', 'motor neuron', 'HCT116', 'neuronal stem cell', 'endothelial cell of umbilical vein', 'keratinocyte', 'GM12878', 'HeLa-S3', 'HepG2', 'gastrocnemius medialis', 'mesendoderm', 'MM.1S', 'OCI-LY1', 'PC-9', 'mammary epithelial cell', 'DND-41', 'DOHH2', 'GM23248', 'Karpas-422', 'Loucy', 'PC-3', 'SU-DHL-6', 'hepatocyte', 'neural cell', 'neural progenitor cell', 'skeletal muscle myoblast', 'smooth muscle cell', 'CD14-positive monocyte', 'GM23338', 'NCI-H929', 'OCI-LY3', 'astrocyte', 'mesenchymal stem cell', 'myotube', 'KMS-11', 'OCI-LY7', 'adrenal gland', 'fibroblast of dermis', 'prostate gland', 'thyroid gland', 'A549', 'HUES64', 'Panc1', 'SK-N-MC', 'body of pancreas', 'cardiac muscle cell', 'endodermal cell', 'skeletal muscle satellite cell', 'A673', 'HAP-1', 'HUES48', 'HUES6', 'NT2/D1', 'RWPE2', 'SJCRH30', 'SJSA1', 'WERI-Rb-1', 'iPS DF 19.11', 'iPS-20b', 'left ventricle myocardium inferior', 'thoracic aorta', 'B cell', 'BE2C', 'Caco-2', 'HEK293', 'UCSF-4', 'iPS DF 6.9', 'ACC112', 'ES-I3', 'KOPT-K1', 'MG63', 'brain microvascular endothelial cell', 'ectodermal cell', 'esophagus muscularis mucosa', 'mesodermal cell', 'mid-neurogenesis radial glial cells', 'mononuclear cell', 'neuroepithelial stem cell', 'radial glial cell', 'BJ', 'GM06990', 'H7', 'HL-60', 'bronchial epithelial cell', 'foreskin fibroblast', 'gastroesophageal sphincter', 'kidney epithelial cell', 'tibial artery', 'AG04450', 'esophagus squamous epithelium', 'fibroblast of lung', 'large intestine', 'right atrium auricular region', 'right lobe of liver', 'uterus', 'vagina', '22Rv1', 'AG04449', 'AG09309', 'AG09319', 'AG10803', 'C4-2B', 'GM08714', 'GM12864', 'GM12865', 'HFF-Myc', 'Jurkat, Clone E6-1', 'LNCaP clone FGC', "Peyer's patch", 'RWPE1', 'VCaP', 'WI38', 'astrocyte of the cerebellum', 'astrocyte of the spinal cord', 'breast epithelium', 'cardiac fibroblast', 'choroid plexus epithelial cell', 'common myeloid progenitor, CD34-positive', 'coronary artery', 'epithelial cell of esophagus', 'epithelial cell of prostate', 'epithelial cell of proximal tubule', 'fibroblast of mammary gland', 'fibroblast of pulmonary artery', 'fibroblast of the aortic adventitia', 'fibroblast of villous mesenchyme', 'foreskin melanocyte', 'heart left ventricle', 'iPS-18c', 'lower leg skin', 'muscle of leg', 'neuron', 'osteoblast', 'pancreas', 'retinal pigment epithelial cell', 'skeletal muscle cell', 'stomach', 'substantia nigra']
+
+    for c in list_of_ENCODE_celltypes:
+        try:
+            available_data_count[c] = search_encode(c, 'files/', check_availability=True)
+        except:
+            pass
+
+    available_data_count = {k: v for k, v in sorted(available_data_count.items(), key=lambda item: item[1])}
+    print(available_data_count)
+
+    # SELECTED_CELLTYPES = ['K562', 'MCF-7', 'GM12878', 'HeLa-S3', 'HepG2', 'CD14-positive monocyte']
+
+    # selection filters
+    # 1- tier 1, 2, 2.5 (based on https://www.genome.gov/encode-project-common-cell-types)
+    # 2- available replicated tracks => 10
