@@ -24,7 +24,6 @@ def create_input_dir(exp_name):
     segwayOutput/exp_name/{genomedata_file}
     '''
     os.mkdir('label_interpretation/segwayOutput/exp_name/')
-    # os.mkdir('label_interpretation/segwayOutput/exp_name/plots/')
 
 def feature_aggreg(exp_name, segbed, gtf):
     '''

@@ -1,6 +1,7 @@
 from importlib.metadata import requires
 from traceback import print_tb
 from turtle import down
+from types import CellType
 from urllib import request
 import pandas as pd
 import requests, os, itertools, ast
@@ -205,6 +206,28 @@ def search_encode(cell, download_dir, target_assembly="GRCh38"):
             download_response = requests.get(download_link, allow_redirects=True)
             open(save_dir_name, 'wb').write(download_response.content)
 
+
+def create_trackname_assay_file(download_dir):
+    tracknames = []
+    CellType_list = [ct for ct in os.listdir(download_dir) if os.path.isdir(download_dir+ct)]
+
+    for ct in CellType_list:
+        tracks_list = [tr for tr in os.listdir(download_dir+ct) if os.path.isdir(download_dir+ct+'/'+tr)]
+        for tr in tracks_list:
+            tfmd = pd.read_csv(download_dir+ct+'/'+tr+'/track_files_metadata.csv')
+            tfmd.index = list(tfmd['Unnamed: 0'])
+            tfmd = tfmd.drop('Unnamed: 0', axis=1)
+            try:
+                for c in range(len(tfmd.columns)):
+                    tracknames.append([tr, tfmd.loc['accession', tfmd.columns[c]]])
+            except:
+                pass
+
+    with open(download_dir + '/trackname_assay.txt', 'w') as tna:
+        for i in range(len(tracknames)):
+            tna.write('{}\t{}\n'.format(tracknames[i][1], tracknames[i][0]))
+
 if __name__ == "__main__":
-    search_encode('GM12878', 'files/')
-    search_encode('H1', 'files/')
+    # search_encode('GM12878', 'files/')
+    # search_encode('H1', 'files/')
+    create_trackname_assay_file('files/')

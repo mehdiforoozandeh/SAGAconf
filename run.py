@@ -169,19 +169,24 @@ dependency issue of segtools to cause issues in reproducibility of results"""
 
 
 if __name__=="__main__":
-    CellType_list = ["GM12878", "H1", "spleen", "K562"]
+    CellType_list = np.array(["GM12878", "H1", "spleen", "K562"]) # to be finalized based on available data
     download_dir = 'files/'
-    existing_data = check_if_data_exists(CellType_list, download_dir)
 
-    for i in range(len(CellType_list)):
-        if existing_data[i] == True:
-            CellType_list.remove(CellType_list[i])
+    existing_data = np.array(check_if_data_exists(CellType_list, download_dir))
+    CellType_list = np.delete(CellType_list, np.where(CellType_list[existing_data==True]))
+    
+    print(existing_data)
+    print(CellType_list)
 
     if len(CellType_list) != 0:
         download_encode_files(CellType_list, download_dir, "GRCh38")
 
+    CellType_list = [ct for ct in os.listdir(download_dir) if os.path.isdir(download_dir+ct)]
+
     assays = {}
     for ct in CellType_list:
-        assays[ct] = read_list_of_assays('files/'+ct)
+        assays[ct] = read_list_of_assays(download_dir+ct)
+
+    print(assays)
 
     
