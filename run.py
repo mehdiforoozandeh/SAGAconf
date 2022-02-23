@@ -1,4 +1,5 @@
 from operator import truediv
+from os import lseek
 from types import CellType
 from unicodedata import name
 from _utils import *
@@ -58,6 +59,20 @@ def read_list_of_assays(celltype_dir):
             list_of_assays.append(d)
     
     return list_of_assays
+
+def Convert_all_BW2BG(celltype_dir):
+    '''
+    Creats BedGraph files from all BigWig files
+    found within a celltype directory
+    '''
+
+    ls = os.listdir(celltype_dir)
+    for f in ls:
+        if ".bigWig" in f:
+            if f.replace(".bigWig",".bedGraph") not in ls:
+                os.system(
+                    "./bigWigToBedGraph {}.bigWig {}.bedGraph".format(
+                        f.replace(".bigWig",""), f.replace(".bigWig","")))
 
 def gather_segway_replicates(celltype_dir, create_trackname_assay=True):
     if create_trackname_assay:
@@ -192,5 +207,12 @@ if __name__=="__main__":
         assays[ct] = read_list_of_assays(download_dir+ct)
 
     print(assays)
+
+    for k, v in assays.items():
+        for t in v:
+            Convert_all_BW2BG(download_dir+k+'/'+t)
+
+    # bigwig to bedgraph for segway
+
 
     
