@@ -72,11 +72,10 @@ def Convert_all_BW2BG(celltype_dir):
             if f.replace(".bigWig",".bedGraph") not in ls:
                 os.system(
                     "./bigWigToBedGraph {}.bigWig {}.bedGraph".format(
-                        f.replace(".bigWig",""), f.replace(".bigWig","")))
+                        celltype_dir+'/'+f.replace(".bigWig",""), 
+                        celltype_dir+'/'+f.replace(".bigWig","")))
 
-def gather_segway_replicates(celltype_dir, create_trackname_assay=True):
-    if create_trackname_assay:
-        pass
+def gather_segway_replicates(celltype_dir):
     pass
 
 def create_genomedata(celltype_dir, sequence_file):
@@ -208,11 +207,11 @@ if __name__=="__main__":
 
     print(assays)
 
+    # convert all bigwigs to bedgraphs (for segway)
     for k, v in assays.items():
         for t in v:
             Convert_all_BW2BG(download_dir+k+'/'+t)
 
-    # bigwig to bedgraph for segway
 
 
     
