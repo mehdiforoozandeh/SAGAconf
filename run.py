@@ -67,12 +67,11 @@ def Convert_all_BW2BG(celltype_dir):
     '''
 
     ls = os.listdir(celltype_dir)
+    if " " in celltype_dir:
+        celltype_dir = celltype_dir.replace(" ","\ ")
     for f in ls:
         if ".bigWig" in f:
             if f.replace(".bigWig",".bedGraph") not in ls:
-                if " " in f:
-                    f = f.replace(" ","\ ")
-                
                 print(
                     "./bigWigToBedGraph {}.bigWig {}.bedGraph".format(
                         celltype_dir+'/'+f.replace(".bigWig",""), 
