@@ -72,6 +72,7 @@ def Convert_all_BW2BG(celltype_dir):
             if f.replace(".bigWig",".bedGraph") not in ls:
                 if " " in f:
                     f = f.replace(" ","\ ")
+                
                 print(
                     "./bigWigToBedGraph {}.bigWig {}.bedGraph".format(
                         celltype_dir+'/'+f.replace(".bigWig",""), 
@@ -82,11 +83,33 @@ def Convert_all_BW2BG(celltype_dir):
                         celltype_dir+'/'+f.replace(".bigWig","")))
 
 def gather_segway_replicates(celltype_dir):
+    '''
+    for each celltype
+    create two files (one for each replicate)
+    each file contains the following
+
+    segway_rep1_{biosampleID}.txt:
+        {ASSAY 1}     {File 1}
+        {ASSAY 2}     {File 2}
+        ...
+
+    segway_rep2_{biosampleID}.txt:
+        {ASSAY 1}     {File 1}
+        {ASSAY 2}     {File 2}
+        ...
+    
+    SAME TWO FILES FOR CHROMHMM...
+    '''
     pass
 
 def create_genomedata(celltype_dir, sequence_file):
-    create_genomedata_rep(celltype_dir + '/rep1', sequence_file)
-    create_genomedata_rep(celltype_dir + '/rep2', sequence_file)
+    '''
+    read regway replicate files.
+    gather bedGraph file paths
+
+    create genomedata file_rep1 in celltype_dir
+    create genomedata file_rep2 in celltype_dir
+    '''
     pass
 
 def segway_parameters(celltype, replicate_number, random_seed=73, param_init_test=False):
@@ -130,6 +153,9 @@ def segway_param_inits(celltype, replicate_number, random_seed_list):
     for rs in random_seed_list:
         params = segway_parameters(celltype, replicate_number, random_seed=int(rs))
         run_segway_parse_results(params)
+
+def concat_genomedata():
+    pass
 
 def segway_concat(rep1dir, rep2dir, concat_seg_res, sizesfile):
     '''
