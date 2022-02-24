@@ -70,6 +70,10 @@ def Convert_all_BW2BG(celltype_dir):
     for f in ls:
         if ".bigWig" in f:
             if f.replace(".bigWig",".bedGraph") not in ls:
+                print(
+                    "./bigWigToBedGraph {}.bigWig {}.bedGraph".format(
+                        celltype_dir+'/'+f.replace(".bigWig",""), 
+                        celltype_dir+'/'+f.replace(".bigWig","")))
                 os.system(
                     "./bigWigToBedGraph {}.bigWig {}.bedGraph".format(
                         celltype_dir+'/'+f.replace(".bigWig",""), 
