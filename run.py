@@ -139,7 +139,7 @@ def gather_replicates(celltype_dir):
         assert str(tfmd.loc['biosample', 'rep2_fcoc']) == rep2_biosampleID
 
         nav_rep1_seg[tfmd.loc['assay', 'rep1_fcoc']] = '{}/{}/{}.bedGraph'.format(
-            celltype_dir, tfmd.loc['accession', 'rep1_fcoc'])
+            celltype_dir, tr, tfmd.loc['accession', 'rep1_fcoc'])
 
         nav_rep2_seg[tfmd.loc['assay', 'rep2_fcoc']] = '{}/{}/{}.bedGraph'.format(
             celltype_dir, tr, tfmd.loc['accession', 'rep2_fcoc'])
