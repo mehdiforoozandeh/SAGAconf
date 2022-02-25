@@ -243,7 +243,7 @@ if __name__ == "__main__":
     available_data_count = {k: v for k, v in sorted(available_data_count.items(), key=lambda item: item[1])}
     print(available_data_count)
 
-    # SELECTED_CELLTYPES = ['K562', 'MCF-7', 'GM12878', 'HeLa-S3', 'HepG2', 'CD14-positive monocyte']
+    # SELECTED_CELLTYPES = ['K562', 'MCF-7', 'GM12878', 'HeLa-S3', 'CD14-positive monocyte']
 
     # selection filters
     # 1- tier 1, 2, 2.5 (based on https://www.genome.gov/encode-project-common-cell-types)

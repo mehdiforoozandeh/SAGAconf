@@ -1,5 +1,7 @@
+from curses import meta
 from operator import truediv
-from os import lseek
+from os import listdir, lseek
+from re import L
 from types import CellType
 from unicodedata import name
 from _utils import *
@@ -10,6 +12,7 @@ from _visualize import *
 from get_data import *
 from matchlabels import *
 import pandas as pd
+import glob
 
 '''
 
@@ -43,6 +46,9 @@ def download_encode_files(celltype_list, download_dir, target_assembly):
 def check_if_data_exists(celltype_list, download_dir):
     exists_bool = []
     for ct in celltype_list:
+        if ' ' in ct:
+            ct = ct.replace(' ', '_')
+
         if os.path.isdir(download_dir+'/'+ct):
             exists_bool.append(True)
 
@@ -72,16 +78,27 @@ def Convert_all_BW2BG(celltype_dir):
     for f in ls:
         if ".bigWig" in f:
             if f.replace(".bigWig",".bedGraph") not in ls:
-                print(
-                    "./bigWigToBedGraph {}.bigWig {}.bedGraph".format(
-                        celltype_dir+'/'+f.replace(".bigWig",""), 
-                        celltype_dir+'/'+f.replace(".bigWig","")))
                 os.system(
                     "./bigWigToBedGraph {}.bigWig {}.bedGraph".format(
                         celltype_dir+'/'+f.replace(".bigWig",""), 
                         celltype_dir+'/'+f.replace(".bigWig","")))
 
-def gather_segway_replicates(celltype_dir):
+def read_metadata(donwload_dir):
+    metadata = {}
+    for ct in CellType_list:
+        tracks_list = [tr for tr in os.listdir(download_dir+ct) if os.path.isdir(download_dir+ct+'/'+tr)]
+        for tr in tracks_list:
+            tfmd = pd.read_csv(download_dir+ct+'/'+tr+'/track_files_metadata.csv')
+            tfmd.index = list(tfmd['Unnamed: 0'])
+            tfmd = tfmd.drop('Unnamed: 0', axis=1)
+            if ct in list(metadata.keys()):
+                metadata[ct].append(tfmd)
+            else:
+                metadata[ct] = [tfmd]
+
+    return metadata
+
+def gather_replicates(celltype_dir):
     '''
     for each celltype
     create two files (one for each replicate)
@@ -99,17 +116,94 @@ def gather_segway_replicates(celltype_dir):
     
     SAME TWO FILES FOR CHROMHMM...
     '''
-    pass
+
+    tracks_list = [tr for tr in os.listdir(celltype_dir) if os.path.isdir(celltype_dir+'/'+tr)]
+    with open(celltype_dir+'/replicate_number.txt', 'r') as repguide_file:
+        lines = repguide_file.readlines()
+        rep1_biosampleID = lines[0][5:-1]
+        rep2_biosampleID = lines[1][5:]
+
+    print("rep1_biosampleID:\t{}\nrep2_biosampleID:\t{}\n".format(rep1_biosampleID, rep2_biosampleID))
+    nav_rep1_seg = {}
+    nav_rep2_seg = {}
+
+    nav_rep1_chmm = {}
+    nav_rep2_chmm = {}
+
+    for tr in tracks_list:
+        tfmd = pd.read_csv(celltype_dir+'/'+tr+'/track_files_metadata.csv')
+        tfmd.index = list(tfmd['Unnamed: 0'])
+        tfmd = tfmd.drop('Unnamed: 0', axis=1)
+
+        assert str(tfmd.loc['biosample', 'rep1_fcoc']) == rep1_biosampleID
+        assert str(tfmd.loc['biosample', 'rep2_fcoc']) == rep2_biosampleID
+
+        nav_rep1_seg[tfmd.loc['assay', 'rep1_fcoc']] = '{}/{}.bedGraph'.format(
+            celltype_dir, tfmd.loc['accession', 'rep1_fcoc'])
+
+        nav_rep2_seg[tfmd.loc['assay', 'rep2_fcoc']] = '{}/{}.bedGraph'.format(
+            celltype_dir, tfmd.loc['accession', 'rep2_fcoc'])
+
+        nav_rep1_chmm[tfmd.loc['assay', 'rep1_spv']] = '{}/{}.bedGraph'.format(
+            celltype_dir, tfmd.loc['accession', 'rep1_spv'])
+
+        nav_rep2_chmm[tfmd.loc['assay', 'rep2_spv']] = '{}/{}.bedGraph'.format(
+            celltype_dir, tfmd.loc['accession', 'rep2_spv'])
+
+    with open(celltype_dir+"/seg_rep1_{}.txt".format(rep1_biosampleID), "w") as segrep1_file:
+        for k, v in nav_rep1_seg.items():
+            segrep1_file.write("{}\t{}\n".format(k, v))
+
+    with open(celltype_dir+"/seg_rep2_{}.txt".format(rep2_biosampleID), "w") as segrep2_file:
+        for k, v in nav_rep2_seg.items():
+            segrep2_file.write("{}\t{}\n".format(k, v))
+
+    with open(celltype_dir+"/chmm_rep1_{}.txt".format(rep1_biosampleID), "w") as chmmrep1_file:
+        for k, v in nav_rep1_chmm.items():
+            chmmrep1_file.write("{}\t{}\n".format(k, v))
+
+    with open(celltype_dir+"/chmm_rep2_{}.txt".format(rep2_biosampleID), "w") as chmmrep2_file:
+        for k, v in nav_rep2_chmm.items():
+            chmmrep2_file.write("{}\t{}\n".format(k, v))
 
 def create_genomedata(celltype_dir, sequence_file):
     '''
-    read regway replicate files.
+    read segway replicate files.
     gather bedGraph file paths
 
     create genomedata file_rep1 in celltype_dir
     create genomedata file_rep2 in celltype_dir
     '''
-    pass
+
+    tracks_bgs_rep1 = {}
+    with open(glob.glob(celltype_dir+'/seg_rep1_*')[0], 'r') as rep1_guidefile:
+        lines_1 = rep1_guidefile.readlines()
+        for l in lines_1:
+            tracks_bgs_rep1[l.split('\t')[0]] = l.split('\t')[1][:-1]
+    
+    tracklist_rep1 = ''
+    for k, v in tracks_bgs_rep1.items():
+        tracklist_rep1 = tracklist_rep1 + '-t {}={} '.format(k, v)
+    
+    os.system(
+        'genomedata-load -s {} --sizes {} --verbose {}.genomedata'.format(
+            sequence_file, tracklist_rep1, celltype_dir+'/rep1'))
+
+    tracks_bgs_rep2 = {}
+    with open(glob.glob(celltype_dir+'/seg_rep2_*')[0], 'r') as rep2_guidefile:
+        lines_2 = rep2_guidefile.readlines()
+        for l in lines_2:
+            tracks_bgs_rep2[l.split('\t')[0]] = l.split('\t')[1][:-1]
+    
+    tracklist_rep2 = ''
+    for k, v in tracks_bgs_rep2.items():
+        tracklist_rep2 = tracklist_rep2 + '-t {}={} '.format(k, v)
+    
+    os.system(
+        'genomedata-load -s {} --sizes {} --verbose {}.genomedata'.format(
+            sequence_file, tracklist_rep2, celltype_dir+'/rep1'))
+
+    
 
 def segway_parameters(celltype, replicate_number, random_seed=73, param_init_test=False):
     # replicate number should be in format "repN" -> i.e. rep1, rep2 
@@ -206,17 +300,15 @@ def matching_clustering(seg_results_directory_1, seg_results_directory_2, cluste
 def reproducibility_analysis():
     pass
 
-
-
 """when running the whole script from start to end to generate (and reproduce) results
 remember to put label interpretation in try blocks (skippable) to prevent any kind of
 dependency issue of segtools to cause issues in reproducibility of results"""
 
 
 if __name__=="__main__":
+
     CellType_list = np.array(
-        ['K562', 'MCF-7', 'GM12878', 'HeLa-S3', 'HepG2', 'CD14-positive monocyte']
-        )
+        ['K562', 'MCF-7', 'GM12878', 'HeLa-S3', 'CD14-positive monocyte'])
 
     download_dir = 'files/'
 
@@ -228,6 +320,15 @@ if __name__=="__main__":
         download_encode_files(CellType_list, download_dir, "GRCh38")
     else:
         print('No download required!')
+
+    CellType_list = [ct for ct in os.listdir(download_dir) if os.path.isdir(download_dir+ct)]
+
+    # clean up potential space characters in directory names to prevent later issues
+    for ct in CellType_list:
+        if " " in ct:
+            os.system("mv {} {}".format(
+                ct.replace(' ', '\ '), ct.replace(" ", "_")
+            ))
 
     CellType_list = [ct for ct in os.listdir(download_dir) if os.path.isdir(download_dir+ct)]
     create_trackname_assay_file(download_dir)
@@ -243,6 +344,24 @@ if __name__=="__main__":
         for t in v:
             Convert_all_BW2BG(download_dir+k+'/'+t)
 
-
+    # metadata = read_metadata(download_dir)
+    for c in CellType_list:
+        gather_replicates(celltype_dir=download_dir+c)
 
     
+    # download chromosome sizes file for hg38
+    if os.path.exists(download_dir+"hg38.chrom.sizes") == False:
+        sizes_url = 'https://hgdownload.cse.ucsc.edu/goldenpath/hg38/bigZips/hg38.chrom.sizes'
+        sizes_file_dl_response = requests.get(sizes_url, allow_redirects=True)
+        open(download_dir+"hg38.chrom.sizes", 'wb').write(sizes_file_dl_response.content)
+        print('downloaded the hg38.chrom.sizes file')
+    
+    for ct in CellType_list:
+        if os.path.exists(download_dir+ct+'/rep1.genomedata') == False and \
+            os.path.exists(download_dir+ct+'/rep2.genomedata') == False:
+
+            print('creating genomedata files for {}...'.format(ct))
+            create_genomedata(download_dir + ct, download_dir+"hg38.chrom.sizes") 
+    
+
+
