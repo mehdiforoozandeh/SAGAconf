@@ -170,7 +170,7 @@ def create_genomedata(celltype_dir, sequence_file):
     create genomedata file_rep1 in celltype_dir
     create genomedata file_rep2 in celltype_dir
     '''
-
+    print('creating genomedata files for {}...'.format(celltype_dir))
     tracks_bgs_rep1 = {}
     with open(glob.glob(celltype_dir+'/seg_rep1_*')[0], 'r') as rep1_guidefile:
         lines_1 = rep1_guidefile.readlines()
@@ -370,7 +370,5 @@ if __name__=="__main__":
             create_genomedata, sequence_file=download_dir+"hg38.chrom.sizes"), 
             [download_dir + ct for ct in gd_to_create])
 
-    # print('creating genomedata files for {}...'.format(ct))
-    # 
 
 
