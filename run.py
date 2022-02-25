@@ -1,9 +1,3 @@
-from curses import meta
-from operator import truediv
-from os import listdir, lseek
-from re import L
-from types import CellType
-from unicodedata import name
 from _utils import *
 from _pipeline import *
 from _reproducibility import *
@@ -12,7 +6,9 @@ from _visualize import *
 from get_data import *
 from matchlabels import *
 import pandas as pd
-import glob
+import glob, os 
+import multiprocessing as mp
+from functools import partial
 
 '''
 
@@ -201,7 +197,7 @@ def create_genomedata(celltype_dir, sequence_file):
     
     os.system(
         'genomedata-load -s {} --sizes {} --verbose {}.genomedata'.format(
-            sequence_file, tracklist_rep2, celltype_dir+'/rep1'))
+            sequence_file, tracklist_rep2, celltype_dir+'/rep2'))
 
     
 
@@ -314,7 +310,7 @@ if __name__=="__main__":
 
     print('list of target celltypes', CellType_list)
     existing_data = np.array(check_if_data_exists(CellType_list, download_dir))
-    CellType_list = np.delete(CellType_list, np.where(CellType_list[existing_data==True]))
+    CellType_list = [CellType_list[i] for i in range(len(CellType_list)) if existing_data[i]==False]
 
     if len(CellType_list) != 0:
         download_encode_files(CellType_list, download_dir, "GRCh38")
@@ -355,13 +351,26 @@ if __name__=="__main__":
         sizes_file_dl_response = requests.get(sizes_url, allow_redirects=True)
         open(download_dir+"hg38.chrom.sizes", 'wb').write(sizes_file_dl_response.content)
         print('downloaded the hg38.chrom.sizes file')
-    
-    for ct in CellType_list:
-        if os.path.exists(download_dir+ct+'/rep1.genomedata') == False and \
-            os.path.exists(download_dir+ct+'/rep2.genomedata') == False:
 
-            print('creating genomedata files for {}...'.format(ct))
-            create_genomedata(download_dir + ct, download_dir+"hg38.chrom.sizes") 
-    
+    # check for existence of genomedata files
+    gd_exists = []
+    for ct in CellType_list:
+        if os.path.exists(download_dir+ct+'/rep1.genomedata') == False or \
+            os.path.exists(download_dir+ct+'/rep2.genomedata') == False:
+            gd_exists.append(False)
+        
+        else:
+            gd_exists.append(True)
+
+    gd_to_create = [CellType_list[i] for i in range(len(CellType_list)) if gd_exists[i]==False]
+
+    if len(gd_to_create) != 0:
+        p_obj = mp.Pool(len(gd_to_create))
+        p_obj.map(partial(
+            create_genomedata, sequence_file=download_dir+"hg38.chrom.sizes"), 
+            [download_dir + ct for ct in gd_to_create])
+
+    # print('creating genomedata files for {}...'.format(ct))
+    # 
 
 
