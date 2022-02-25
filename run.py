@@ -138,17 +138,17 @@ def gather_replicates(celltype_dir):
         assert str(tfmd.loc['biosample', 'rep1_fcoc']) == rep1_biosampleID
         assert str(tfmd.loc['biosample', 'rep2_fcoc']) == rep2_biosampleID
 
-        nav_rep1_seg[tfmd.loc['assay', 'rep1_fcoc']] = '{}/{}.bedGraph'.format(
+        nav_rep1_seg[tfmd.loc['assay', 'rep1_fcoc']] = '{}/{}/{}.bedGraph'.format(
             celltype_dir, tfmd.loc['accession', 'rep1_fcoc'])
 
-        nav_rep2_seg[tfmd.loc['assay', 'rep2_fcoc']] = '{}/{}.bedGraph'.format(
-            celltype_dir, tfmd.loc['accession', 'rep2_fcoc'])
+        nav_rep2_seg[tfmd.loc['assay', 'rep2_fcoc']] = '{}/{}/{}.bedGraph'.format(
+            celltype_dir, tr, tfmd.loc['accession', 'rep2_fcoc'])
 
-        nav_rep1_chmm[tfmd.loc['assay', 'rep1_spv']] = '{}/{}.bedGraph'.format(
-            celltype_dir, tfmd.loc['accession', 'rep1_spv'])
+        nav_rep1_chmm[tfmd.loc['assay', 'rep1_spv']] = '{}/{}/{}.bedGraph'.format(
+            celltype_dir, tr, tfmd.loc['accession', 'rep1_spv'])
 
-        nav_rep2_chmm[tfmd.loc['assay', 'rep2_spv']] = '{}/{}.bedGraph'.format(
-            celltype_dir, tfmd.loc['accession', 'rep2_spv'])
+        nav_rep2_chmm[tfmd.loc['assay', 'rep2_spv']] = '{}/{}/{}.bedGraph'.format(
+            celltype_dir, tr, tfmd.loc['accession', 'rep2_spv'])
 
     with open(celltype_dir+"/seg_rep1_{}.txt".format(rep1_biosampleID), "w") as segrep1_file:
         for k, v in nav_rep1_seg.items():
