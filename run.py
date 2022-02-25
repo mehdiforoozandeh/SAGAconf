@@ -369,6 +369,3 @@ if __name__=="__main__":
         p_obj.map(partial(
             create_genomedata, sequence_file=download_dir+"hg38.chrom.sizes"), 
             [download_dir + ct for ct in gd_to_create])
-
-
-
