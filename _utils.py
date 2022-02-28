@@ -63,7 +63,7 @@ def run_segtools(name_sig):
     os.system("cd {} && segtools-gmtk-parameters params.params".format(name_sig))
 
 '''
-TERMINOLOGY NOTE: posterior_df_list IS THE SAME AS bg_dfs
+TERMINOLOGY_NOTE: posterior_df_list IS THE SAME AS bg_dfs
 '''
 
 def QC(posterior_df_list):
@@ -123,8 +123,16 @@ def read_include_file(file):
     
     return pd.DataFrame(include, columns=['chr', 'start', 'end'])
 
+def read_chrom_sizes_file(file):
+    sizes = {}
+    with open(file, 'r') as sizesfile:
+        lines = sizesfile.readlines()
+        for l in lines:
+            splitted_l = l.split('\t')
+            sizes[splitted_l[0]] = int(splitted_l[1][:-1])
+    return sizes
 
-def initialize_bins(coords, res): 
+def initialize_bins_includefile(coords, res): 
     '''initializes empty bins according to the genome positions specified in the pilotregions file'''
 
     supercontig_in_progress = []
@@ -138,6 +146,19 @@ def initialize_bins(coords, res):
 
             else: 
                 supercontig_in_progress.append([region_in_progress[0], int(j), int(j + res)])
+
+    return pd.DataFrame(supercontig_in_progress, columns=['chr', 'start', 'end'])
+
+def initialize_bins_sizesfile(coords, res): 
+    '''initializes empty bins according to the chromosome sizes specified in hg38.chrom.sizes file'''
+
+    supercontig_in_progress = []
+    for chr, size in coords.items():
+        for i in range(0, size, res):
+            if int(i + res) > int(size):
+                supercontig_in_progress.append([chr, int(i), int(size)])
+            else:
+                supercontig_in_progress.append([chr, int(i), int(i + res)])
 
     return pd.DataFrame(supercontig_in_progress, columns=['chr', 'start', 'end'])
 

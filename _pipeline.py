@@ -58,21 +58,21 @@ def run_segway_and_post_process(param_dict):
 
     ======== param_dict sample ======== #
 
-    {"name_sig":None, "random_seed":None, "include":None, "track_weight":None,
+    {"name_sig":None, "random_seed":None, "track_weight":None,
     "stws":None, "ruler_scale":None, "prior_strength":None, "resolution":None,
-    "mini_batch_fraction":None,
-    "num_labels":None, "genomedata_file":None, "traindir":None, "posteriordir":None}'''
+    "mini_batch_fraction":None, "num_labels":None, "genomedata_file":None, 
+    "traindir":None, "posteriordir":None}'''
 
     for k, v in param_dict.items():
         param_dict[k] = str(v) 
 
     os.system('mkdir {}'.format(param_dict['traindir']))
 
-    os.system('SEGWAY_RAND_SEED={} segway train --include-coords={}\
-         --num-instances=10 --track-weight={} --segtransition-weight-scale={}\
+    os.system('SEGWAY_RAND_SEED={} segway train --num-instances=10\
+          --track-weight={} --segtransition-weight-scale={}\
              --ruler-scale={} --prior-strength={} --resolution={}\
                   --minibatch-fraction={} --num-labels={} {} {}'.format(
-                      param_dict["random_seed"], param_dict["include"], param_dict["track_weight"],
+                      param_dict["random_seed"], param_dict["track_weight"],
                       param_dict["stws"], param_dict["ruler_scale"], param_dict["prior_strength"], 
                       param_dict["resolution"], param_dict["mini_batch_fraction"],
                       param_dict["num_labels"], param_dict["genomedata_file"], 
@@ -81,9 +81,9 @@ def run_segway_and_post_process(param_dict):
 
     os.system('mkdir {}'.format(param_dict['posteriordir']))
     if os.path.isfile(param_dict['traindir']+'/params/params.params'):
-        os.system('segway posterior --include-coords={} {} {} {}'.format(
-            param_dict["include"], param_dict["genomedata_file"], 
-            param_dict["traindir"], param_dict["posteriordir"]
+        os.system('segway posterior {} {} {}'.format(
+            param_dict["genomedata_file"], param_dict["traindir"], 
+            param_dict["posteriordir"]
         ))
 
     if os.path.isfile(param_dict['posteriordir']+'/segway.bed.gz'):
@@ -115,14 +115,14 @@ def run_segway_and_post_process(param_dict):
             
         write_qc.close()
 
-        print('wrote the results into {}/QC.txt'.format(param_dict['name_sig']))
+        print('wrote the posterior granularity QC results into {}/QC.txt'.format(param_dict['name_sig']))
 
     else:
         print("FAILED AT RUNNING SEGWAY!")
         clean_up(param_dict["traindir"], param_dict['posteriordir'])
 
 
-def parse_posterior_results(posterior_dir, include_file, resolution, M):
+def parse_posterior_results(posterior_dir, chrom_sizes_file, resolution, M):
     '''
     parse results into resolution sized bins
     '''
@@ -130,9 +130,8 @@ def parse_posterior_results(posterior_dir, include_file, resolution, M):
     posterior_df_list = read_posteriordir(posterior_dir)
     print(posterior_df_list.keys())
 
-
-    coords = read_include_file(include_file)
-    empty_bins = initialize_bins(coords, resolution)
+    coords = read_chrom_sizes_file(chrom_sizes_file)
+    empty_bins = initialize_bins_sizesfile(coords, resolution)
     parsed_df = mp_binning(posterior_df_list, empty_bins, M)
 
     parsed_df.to_csv(posterior_dir+'/parsed_posterior.csv')

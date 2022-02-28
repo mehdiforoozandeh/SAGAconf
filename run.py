@@ -199,7 +199,36 @@ def create_genomedata(celltype_dir, sequence_file):
         'genomedata-load -s {} --sizes {} --verbose {}.genomedata'.format(
             sequence_file, tracklist_rep2, celltype_dir+'/rep2'))
 
-    
+def RunParse_segway_replicates(celltype_dir, name_sig, output_dir, random_seed=73):
+    num_tracks = len(
+        [tr for tr in os.listdir(celltype_dir) if os.path.isdir(celltype_dir+tr)])
+
+    params_dict_1 = {
+        "random_seed":random_seed, "track_weight":0.01,
+        "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
+        "mini_batch_fraction":0.1, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "name_sig":output_dir+name_sig+'rep1', "genomedata_file":celltype_dir+'/rep1.genomedata', 
+        "traindir":output_dir+name_sig+'rep1'+'_train', 
+        "posteriordir":output_dir+name_sig+'rep1'+'_posterior'
+    }
+    print('Running Segway celltype {} Rep1'.format(celltype_dir))
+    run_segway_and_post_process(params_dict_1)
+
+    params_dict_2 = {
+        "random_seed":random_seed, "track_weight":0.01,
+        "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
+        "mini_batch_fraction":0.1, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "name_sig":output_dir+name_sig+'rep2', "genomedata_file":celltype_dir+'/rep2.genomedata', 
+        "traindir":output_dir+name_sig+'rep2'+'_train', "posteriordir":output_dir+name_sig+'rep2'+'_posterior'
+    }
+    print('Running Segway celltype {} Rep2'.format(celltype_dir))
+    run_segway_and_post_process(params_dict_2)
+
+def RunParse_segway_param_init():
+    pass
+
+def RunParse_segway_concat():
+    pass
 
 def segway_parameters(celltype, replicate_number, random_seed=73, param_init_test=False):
     # replicate number should be in format "repN" -> i.e. rep1, rep2 
@@ -307,6 +336,7 @@ if __name__=="__main__":
         ['K562', 'MCF-7', 'GM12878', 'HeLa-S3', 'CD14-positive monocyte'])
 
     download_dir = 'files/'
+    segway_dir = 'segway_runs/'
 
     print('list of target celltypes', CellType_list)
     existing_data = np.array(check_if_data_exists(CellType_list, download_dir))
