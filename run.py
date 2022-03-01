@@ -206,7 +206,7 @@ def RunParse_segway_replicates(celltype_dir, name_sig, output_dir, sizes_file, r
     params_dict_1 = {
         "random_seed":random_seed, "track_weight":0.01,
         "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
-        "mini_batch_fraction":0.001, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "mini_batch_fraction":0.0001, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
         "name_sig":output_dir+name_sig+'rep1', 
         "genomedata_file":celltype_dir+'/rep1.genomedata', 
         "traindir":output_dir+name_sig+'rep1'+'_train', 
@@ -214,7 +214,7 @@ def RunParse_segway_replicates(celltype_dir, name_sig, output_dir, sizes_file, r
     }
     print('Running Segway celltype {} Rep1'.format(celltype_dir))
     run_segway_and_post_process(params_dict_1)
-    parse_posterior_results(params_dict_1['posteriordir'], sizes_file, params_dict_1['resolution'], M=50)
+    parse_posterior_results(params_dict_1['name_sig'], sizes_file, params_dict_1['resolution'], M=50)
 
     params_dict_2 = {
         "random_seed":random_seed, "track_weight":0.01,
@@ -227,7 +227,7 @@ def RunParse_segway_replicates(celltype_dir, name_sig, output_dir, sizes_file, r
     }
     print('Running Segway celltype {} Rep2'.format(celltype_dir))
     run_segway_and_post_process(params_dict_2)
-    parse_posterior_results(params_dict_2['posteriordir'], sizes_file, params_dict_2['resolution'], M=50)
+    parse_posterior_results(params_dict_2['name_sig'], sizes_file, params_dict_2['resolution'], M=50)
 
 def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, name_sig, output_dir, sizes_file):
     # replicate number should be in format "repN" -> i.e. rep1, rep2
@@ -258,12 +258,12 @@ def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, nam
     print('Running Segway parameter initialization test on celltype {}, {}, with random seed {}'.format(
         celltype_dir, replicate_number, random_seeds[0]))
     run_segway_and_post_process(params_dict_1)
-    parse_posterior_results(params_dict_1['posteriordir'], sizes_file, params_dict_1['resolution'], M=50)
+    parse_posterior_results(params_dict_1['name_sig'], sizes_file, params_dict_1['resolution'], M=50)
 
     print('Running Segway parameter initialization test on celltype {}, {}, with random seed {}'.format(
         celltype_dir, replicate_number, random_seeds[1]))
     run_segway_and_post_process(params_dict_2)
-    parse_posterior_results(params_dict_2['posteriordir'], sizes_file, params_dict_2['resolution'], M=50)
+    parse_posterior_results(params_dict_2['name_sig'], sizes_file, params_dict_2['resolution'], M=50)
 
 def concat_genomedata():
     pass
