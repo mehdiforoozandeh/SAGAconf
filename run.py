@@ -214,7 +214,7 @@ def RunParse_segway_replicates(celltype_dir, name_sig, output_dir, sizes_file, r
     }
     print('Running Segway celltype {} Rep1'.format(celltype_dir))
     run_segway_and_post_process(params_dict_1)
-    parse_posterior_results(params_dict_1['posteriordir'], sizes_file, params_dict_1['resolution'], M=100)
+    parse_posterior_results(params_dict_1['posteriordir'], sizes_file, params_dict_1['resolution'], M=50)
 
     params_dict_2 = {
         "random_seed":random_seed, "track_weight":0.01,
@@ -227,7 +227,7 @@ def RunParse_segway_replicates(celltype_dir, name_sig, output_dir, sizes_file, r
     }
     print('Running Segway celltype {} Rep2'.format(celltype_dir))
     run_segway_and_post_process(params_dict_2)
-    parse_posterior_results(params_dict_2['posteriordir'], sizes_file, params_dict_2['resolution'], M=100)
+    parse_posterior_results(params_dict_2['posteriordir'], sizes_file, params_dict_2['resolution'], M=50)
 
 def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, name_sig, output_dir, sizes_file):
     # replicate number should be in format "repN" -> i.e. rep1, rep2
@@ -258,12 +258,12 @@ def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, nam
     print('Running Segway parameter initialization test on celltype {}, {}, with random seed {}'.format(
         celltype_dir, replicate_number, random_seeds[0]))
     run_segway_and_post_process(params_dict_1)
-    parse_posterior_results(params_dict_1['posteriordir'], sizes_file, params_dict_1['resolution'], M=100)
+    parse_posterior_results(params_dict_1['posteriordir'], sizes_file, params_dict_1['resolution'], M=50)
 
     print('Running Segway parameter initialization test on celltype {}, {}, with random seed {}'.format(
         celltype_dir, replicate_number, random_seeds[1]))
     run_segway_and_post_process(params_dict_2)
-    parse_posterior_results(params_dict_2['posteriordir'], sizes_file, params_dict_2['resolution'], M=100)
+    parse_posterior_results(params_dict_2['posteriordir'], sizes_file, params_dict_2['resolution'], M=50)
 
 def concat_genomedata():
     pass
@@ -398,4 +398,16 @@ if __name__=="__main__":
     if os.path.exists(segway_dir) == False:
         os.mkdir(segway_dir)
     
-    RunParse_segway_replicates(download_dir+'GM12878', 'GM12878', segway_dir, random_seed=73)
+    # Run segway replicates 
+    for ct in CellType_list:
+        RunParse_segway_replicates(
+            download_dir+ct, ct, segway_dir, sizes_file=download_dir+"hg38.chrom.sizes",  random_seed=73)
+
+    exit()
+    # Run segway param-init test  
+    for ct in CellType_list:
+        RunParse_segway_param_init(
+            download_dir+ct, 'rep1', [7, 5], ct, segway_dir, sizes_file=download_dir+"hg38.chrom.sizes")
+        RunParse_segway_param_init(
+            download_dir+ct, 'rep2', [7, 5], ct, segway_dir, sizes_file=download_dir+"hg38.chrom.sizes")
+        
