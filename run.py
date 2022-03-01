@@ -206,8 +206,9 @@ def RunParse_segway_replicates(celltype_dir, name_sig, output_dir, random_seed=7
     params_dict_1 = {
         "random_seed":random_seed, "track_weight":0.01,
         "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
-        "mini_batch_fraction":0.1, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
-        "name_sig":output_dir+name_sig+'rep1', "genomedata_file":celltype_dir+'/rep1.genomedata', 
+        "mini_batch_fraction":0.001, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "name_sig":output_dir+name_sig+'rep1', 
+        "genomedata_file":celltype_dir+'/rep1.genomedata', 
         "traindir":output_dir+name_sig+'rep1'+'_train', 
         "posteriordir":output_dir+name_sig+'rep1'+'_posterior'
     }
@@ -217,62 +218,53 @@ def RunParse_segway_replicates(celltype_dir, name_sig, output_dir, random_seed=7
     params_dict_2 = {
         "random_seed":random_seed, "track_weight":0.01,
         "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
-        "mini_batch_fraction":0.1, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
-        "name_sig":output_dir+name_sig+'rep2', "genomedata_file":celltype_dir+'/rep2.genomedata', 
-        "traindir":output_dir+name_sig+'rep2'+'_train', "posteriordir":output_dir+name_sig+'rep2'+'_posterior'
+        "mini_batch_fraction":0.001, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "name_sig":output_dir+name_sig+'rep2', 
+        "genomedata_file":celltype_dir+'/rep2.genomedata', 
+        "traindir":output_dir+name_sig+'rep2'+'_train', 
+        "posteriordir":output_dir+name_sig+'rep2'+'_posterior'
     }
     print('Running Segway celltype {} Rep2'.format(celltype_dir))
     run_segway_and_post_process(params_dict_2)
 
-def RunParse_segway_param_init():
+def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, name_sig, output_dir):
+    # replicate number should be in format "repN" -> i.e. rep1, rep2
+
+    num_tracks = len(
+        [tr for tr in os.listdir(celltype_dir) if os.path.isdir(celltype_dir+tr)])
+
+    params_dict_1 = {
+        "random_seed":random_seeds[0], "track_weight":0.01,
+        "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
+        "mini_batch_fraction":0.001, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "name_sig":output_dir+name_sig+'{}_rs{}'.format(replicate_number, random_seeds[0]), 
+        "genomedata_file":celltype_dir+'/{}.genomedata'.format(replicate_number), 
+        "traindir":output_dir+name_sig+'{}_rs{}'.format(replicate_number, random_seeds[0])+'_train', 
+        "posteriordir":output_dir+name_sig+'{}_rs{}'.format(replicate_number, random_seeds[0])+'_posterior'
+    }
+
+    params_dict_2 = {
+        "random_seed":random_seeds[1], "track_weight":0.01,
+        "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
+        "mini_batch_fraction":0.001, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "name_sig":output_dir+name_sig+'{}_rs{}'.format(replicate_number,random_seeds[1]),
+        "genomedata_file":celltype_dir+'/{}.genomedata'.format(replicate_number), 
+        "traindir":output_dir+name_sig+'{}_rs{}'.format(replicate_number, random_seeds[0])+'_train', 
+        "posteriordir":output_dir+name_sig+'{}_rs{}'.format(replicate_number, random_seeds[0])+'_posterior'
+    }
+
+    print('Running Segway parameter initialization test on celltype {}, {}, with random seed {}'.format(
+        celltype_dir, replicate_number, random_seeds[0]))
+    run_segway_and_post_process(params_dict_1)
+
+    print('Running Segway parameter initialization test on celltype {}, {}, with random seed {}'.format(
+        celltype_dir, replicate_number, random_seeds[1]))
+    run_segway_and_post_process(params_dict_2)
+
+def concat_genomedata():
     pass
 
 def RunParse_segway_concat():
-    pass
-
-def segway_parameters(celltype, replicate_number, random_seed=73, param_init_test=False):
-    # replicate number should be in format "repN" -> i.e. rep1, rep2 
-    '''
-    For a cell type with M available datasets(tracks), we ask Segway to assign 10 + 2*sqrt(M) different states(labels).
-    REF: https://link.springer.com/content/pdf/10.1186/s13059-019-1784-2.pdf
-    '''
-
-    num_tracks = None ###TEMP###
-
-    if param_init_test:
-        name_sig = celltype+'_'+replicate_number+'_'+"param_init_rs{}".format(random_seed)
-    else:
-        name_sig = celltype+'_'+replicate_number
-
-    params_dict = {
-        "random_seed":random_seed, "include":pilot_regions_file, "track_weight":0.01,
-        "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, "mini_batch_fraction":0.5,
-        "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
-        "name_sig":name_sig, "genomedata_file":celltype+'/'+replicate_number, 
-        "traindir":name_sig+'_train', "posteriordir":name_sig+'_posterior'
-    }
-
-    return params_dict
-
-def run_segway_parse_results(params_dict):
-    run_segway_and_post_process(params_dict)
-
-    parse_posterior_results(
-        params_dict['name_sig'], params_dict['include'], params_dict['resolution'], M=100)
-
-    pass
-
-def segway_param_inits(celltype, replicate_number, random_seed_list):
-    '''
-    train segway with different parameter initializations (random seeds) 
-    to compare how similar/reproducible results are with differet param inits
-    '''
-
-    for rs in random_seed_list:
-        params = segway_parameters(celltype, replicate_number, random_seed=int(rs))
-        run_segway_parse_results(params)
-
-def concat_genomedata():
     pass
 
 def segway_concat(rep1dir, rep2dir, concat_seg_res, sizesfile):
@@ -318,7 +310,6 @@ def matching_clustering(seg_results_directory_1, seg_results_directory_2, cluste
     if concatenated:
         no matching
         just clustering
-    
     '''
     pass
 
@@ -399,3 +390,6 @@ if __name__=="__main__":
         p_obj.map(partial(
             create_genomedata, sequence_file=download_dir+"hg38.chrom.sizes"), 
             [download_dir + ct for ct in gd_to_create])
+    
+    if os.path.exists(segway_dir) == False:
+        os.mkdir(segway_dir)
