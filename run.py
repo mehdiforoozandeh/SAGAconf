@@ -199,7 +199,7 @@ def create_genomedata(celltype_dir, sequence_file):
         'genomedata-load -s {} --sizes {} --verbose {}.genomedata'.format(
             sequence_file, tracklist_rep2, celltype_dir+'/rep2'))
 
-def RunParse_segway_replicates(celltype_dir, name_sig, output_dir, random_seed=73):
+def RunParse_segway_replicates(celltype_dir, name_sig, output_dir, sizes_file, random_seed=73):
     num_tracks = len(
         [tr for tr in os.listdir(celltype_dir) if os.path.isdir(celltype_dir+tr)])
 
@@ -214,6 +214,7 @@ def RunParse_segway_replicates(celltype_dir, name_sig, output_dir, random_seed=7
     }
     print('Running Segway celltype {} Rep1'.format(celltype_dir))
     run_segway_and_post_process(params_dict_1)
+    parse_posterior_results(params_dict_1['posteriordir'], sizes_file, params_dict_1['resolution'], M=100)
 
     params_dict_2 = {
         "random_seed":random_seed, "track_weight":0.01,
@@ -226,8 +227,9 @@ def RunParse_segway_replicates(celltype_dir, name_sig, output_dir, random_seed=7
     }
     print('Running Segway celltype {} Rep2'.format(celltype_dir))
     run_segway_and_post_process(params_dict_2)
+    parse_posterior_results(params_dict_2['posteriordir'], sizes_file, params_dict_2['resolution'], M=100)
 
-def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, name_sig, output_dir):
+def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, name_sig, output_dir, sizes_file):
     # replicate number should be in format "repN" -> i.e. rep1, rep2
 
     num_tracks = len(
@@ -256,10 +258,12 @@ def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, nam
     print('Running Segway parameter initialization test on celltype {}, {}, with random seed {}'.format(
         celltype_dir, replicate_number, random_seeds[0]))
     run_segway_and_post_process(params_dict_1)
+    parse_posterior_results(params_dict_1['posteriordir'], sizes_file, params_dict_1['resolution'], M=100)
 
     print('Running Segway parameter initialization test on celltype {}, {}, with random seed {}'.format(
         celltype_dir, replicate_number, random_seeds[1]))
     run_segway_and_post_process(params_dict_2)
+    parse_posterior_results(params_dict_2['posteriordir'], sizes_file, params_dict_2['resolution'], M=100)
 
 def concat_genomedata():
     pass
