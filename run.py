@@ -393,3 +393,5 @@ if __name__=="__main__":
     
     if os.path.exists(segway_dir) == False:
         os.mkdir(segway_dir)
+    
+    RunParse_segway_replicates(download_dir+'GM12878', 'GM12878', segway_dir, random_seed=73)
