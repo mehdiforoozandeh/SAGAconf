@@ -206,7 +206,7 @@ def RunParse_segway_replicates(celltype_dir, name_sig, output_dir, sizes_file, r
     params_dict_1 = {
         "random_seed":random_seed, "track_weight":0.01,
         "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
-        "mini_batch_fraction":0.0001, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "mini_batch_fraction":0.1, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
         "name_sig":output_dir+name_sig+'rep1', 
         "genomedata_file":celltype_dir+'/rep1.genomedata', 
         "traindir":output_dir+name_sig+'rep1'+'_train', 
@@ -219,7 +219,7 @@ def RunParse_segway_replicates(celltype_dir, name_sig, output_dir, sizes_file, r
     params_dict_2 = {
         "random_seed":random_seed, "track_weight":0.01,
         "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
-        "mini_batch_fraction":0.001, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "mini_batch_fraction":0.1, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
         "name_sig":output_dir+name_sig+'rep2', 
         "genomedata_file":celltype_dir+'/rep2.genomedata', 
         "traindir":output_dir+name_sig+'rep2'+'_train', 
@@ -238,7 +238,7 @@ def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, nam
     params_dict_1 = {
         "random_seed":random_seeds[0], "track_weight":0.01,
         "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
-        "mini_batch_fraction":0.001, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "mini_batch_fraction":0.1, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
         "name_sig":output_dir+name_sig+'{}_rs{}'.format(replicate_number, random_seeds[0]), 
         "genomedata_file":celltype_dir+'/{}.genomedata'.format(replicate_number), 
         "traindir":output_dir+name_sig+'{}_rs{}'.format(replicate_number, random_seeds[0])+'_train', 
@@ -248,7 +248,7 @@ def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, nam
     params_dict_2 = {
         "random_seed":random_seeds[1], "track_weight":0.01,
         "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
-        "mini_batch_fraction":0.001, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "mini_batch_fraction":0.1, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
         "name_sig":output_dir+name_sig+'{}_rs{}'.format(replicate_number,random_seeds[1]),
         "genomedata_file":celltype_dir+'/{}.genomedata'.format(replicate_number), 
         "traindir":output_dir+name_sig+'{}_rs{}'.format(replicate_number, random_seeds[0])+'_train', 
