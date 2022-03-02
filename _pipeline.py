@@ -68,7 +68,7 @@ def run_segway_and_post_process(param_dict):
 
     os.system('mkdir {}'.format(param_dict['traindir']))
 
-    os.system('SEGWAY_RAND_SEED={} segway train --num-instances=10\
+    os.system('SEGWAY_RAND_SEED={} segway train --max-train-rounds=50 --num-instances=5\
           --track-weight={} --segtransition-weight-scale={}\
              --ruler-scale={} --prior-strength={} --resolution={}\
                   --minibatch-fraction={} --num-labels={} {} {}'.format(

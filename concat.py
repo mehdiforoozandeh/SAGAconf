@@ -103,11 +103,11 @@ def segway_concatenated_and_postprocess(concat_param_dict):
 
     os.system('mkdir {}'.format(concat_param_dict['traindir']))
 
-    os.system('SEGWAY_RAND_SEED={} segway train --include-coords={}\
+    os.system('SEGWAY_RAND_SEED={} segway train --max-train-rounds=50 --num-instances=5\
          --num-instances=10 --track-weight={} --segtransition-weight-scale={}\
              --ruler-scale={} --prior-strength={} --resolution={}\
                   --minibatch-fraction={} --num-labels={} {} {}'.format(
-                      concat_param_dict["random_seed"], concat_param_dict["include_concat"], concat_param_dict["track_weight"],
+                      concat_param_dict["random_seed"], concat_param_dict["track_weight"],
                       concat_param_dict["stws"], concat_param_dict["ruler_scale"], concat_param_dict["prior_strength"], 
                       concat_param_dict["resolution"], concat_param_dict["mini_batch_fraction"],
                       concat_param_dict["num_labels"], concat_param_dict["genomedata_file_concat"], 
