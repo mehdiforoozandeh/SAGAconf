@@ -199,7 +199,8 @@ def create_genomedata(celltype_dir, sequence_file):
         'genomedata-load -s {} --sizes {} --verbose {}.genomedata'.format(
             sequence_file, tracklist_rep2, celltype_dir+'/rep2'))
 
-def RunParse_segway_replicates(celltype_dir, name_sig, output_dir, sizes_file, random_seed=73):
+def RunParse_segway_replicates(celltype_dir, output_dir, sizes_file, random_seed=73):
+    name_sig = celltype_dir.split('/')[-1]
     num_tracks = len(
         [tr for tr in os.listdir(celltype_dir) if os.path.isdir(celltype_dir+tr)])
 
@@ -207,7 +208,7 @@ def RunParse_segway_replicates(celltype_dir, name_sig, output_dir, sizes_file, r
         "random_seed":random_seed, "track_weight":0.01,
         "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
         "mini_batch_fraction":0.1, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
-        "name_sig":output_dir+name_sig+'rep1', 
+        "name_sig":output_dir+name_sig+'_rep1', 
         "genomedata_file":celltype_dir+'/rep1.genomedata', 
         "traindir":output_dir+name_sig+'rep1'+'_train', 
         "posteriordir":output_dir+name_sig+'rep1'+'_posterior'
@@ -220,7 +221,7 @@ def RunParse_segway_replicates(celltype_dir, name_sig, output_dir, sizes_file, r
         "random_seed":random_seed, "track_weight":0.01,
         "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
         "mini_batch_fraction":0.1, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
-        "name_sig":output_dir+name_sig+'rep2', 
+        "name_sig":output_dir+name_sig+'_rep2', 
         "genomedata_file":celltype_dir+'/rep2.genomedata', 
         "traindir":output_dir+name_sig+'rep2'+'_train', 
         "posteriordir":output_dir+name_sig+'rep2'+'_posterior'
@@ -229,9 +230,9 @@ def RunParse_segway_replicates(celltype_dir, name_sig, output_dir, sizes_file, r
     run_segway_and_post_process(params_dict_2)
     parse_posterior_results(params_dict_2['name_sig'], sizes_file, params_dict_2['resolution'], M=50)
 
-def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, name_sig, output_dir, sizes_file):
+def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, output_dir, sizes_file):
     # replicate number should be in format "repN" -> i.e. rep1, rep2
-
+    name_sig = celltype_dir.split('/')[-1]
     num_tracks = len(
         [tr for tr in os.listdir(celltype_dir) if os.path.isdir(celltype_dir+tr)])
 
@@ -239,20 +240,20 @@ def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, nam
         "random_seed":random_seeds[0], "track_weight":0.01,
         "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
         "mini_batch_fraction":0.1, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
-        "name_sig":output_dir+name_sig+'{}_rs{}'.format(replicate_number, random_seeds[0]), 
+        "name_sig":output_dir+name_sig+'_{}_rs{}'.format(replicate_number, random_seeds[0]), 
         "genomedata_file":celltype_dir+'/{}.genomedata'.format(replicate_number), 
-        "traindir":output_dir+name_sig+'{}_rs{}'.format(replicate_number, random_seeds[0])+'_train', 
-        "posteriordir":output_dir+name_sig+'{}_rs{}'.format(replicate_number, random_seeds[0])+'_posterior'
+        "traindir":output_dir+name_sig+'_{}_rs{}'.format(replicate_number, random_seeds[0])+'_train', 
+        "posteriordir":output_dir+name_sig+'_{}_rs{}'.format(replicate_number, random_seeds[0])+'_posterior'
     }
 
     params_dict_2 = {
         "random_seed":random_seeds[1], "track_weight":0.01,
         "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
         "mini_batch_fraction":0.1, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
-        "name_sig":output_dir+name_sig+'{}_rs{}'.format(replicate_number,random_seeds[1]),
+        "name_sig":output_dir+name_sig+'_{}_rs{}'.format(replicate_number,random_seeds[1]),
         "genomedata_file":celltype_dir+'/{}.genomedata'.format(replicate_number), 
-        "traindir":output_dir+name_sig+'{}_rs{}'.format(replicate_number, random_seeds[0])+'_train', 
-        "posteriordir":output_dir+name_sig+'{}_rs{}'.format(replicate_number, random_seeds[0])+'_posterior'
+        "traindir":output_dir+name_sig+'_{}_rs{}'.format(replicate_number, random_seeds[0])+'_train', 
+        "posteriordir":output_dir+name_sig+'_{}_rs{}'.format(replicate_number, random_seeds[0])+'_posterior'
     }
 
     print('Running Segway parameter initialization test on celltype {}, {}, with random seed {}'.format(
@@ -397,17 +398,24 @@ if __name__=="__main__":
     
     if os.path.exists(segway_dir) == False:
         os.mkdir(segway_dir)
-    
-    # Run segway replicates 
-    for ct in CellType_list:
-        RunParse_segway_replicates(
-            download_dir+ct, ct, segway_dir, sizes_file=download_dir+"hg38.chrom.sizes",  random_seed=73)
 
-    exit()
-    # Run segway param-init test  
-    for ct in CellType_list:
-        RunParse_segway_param_init(
-            download_dir+ct, 'rep1', [7, 5], ct, segway_dir, sizes_file=download_dir+"hg38.chrom.sizes")
-        RunParse_segway_param_init(
-            download_dir+ct, 'rep2', [7, 5], ct, segway_dir, sizes_file=download_dir+"hg38.chrom.sizes")
+    # Run segway replicates     MP
+    partial_runs_i = partial(
+        RunParse_segway_replicates, output_dir=segway_dir, sizes_file=download_dir+"hg38.chrom.sizes", random_seed=73)
+    p_obj = mp.Pool(len(CellType_list))
+    p_obj.map(partial_runs_i, [download_dir+ct for ct in CellType_list])
+
+    # Run segway param-init test     MP
+    partial_runs_ii = partial(
+        RunParse_segway_param_init, replicate_number = 'rep1', output_dir=segway_dir, 
+        sizes_file=download_dir+"hg38.chrom.sizes", random_seeds=[7, 5])
+
+    p_obj = mp.Pool(len(CellType_list))
+    p_obj.map(partial_runs_ii, [download_dir+ct for ct in CellType_list])
+
+    partial_runs_iii = partial(
+        RunParse_segway_param_init, replicate_number = 'rep2', output_dir=segway_dir, 
+        sizes_file=download_dir+"hg38.chrom.sizes", random_seeds=[7, 5])
         
+    p_obj = mp.Pool(len(CellType_list))
+    p_obj.map(partial_runs_iii, [download_dir+ct for ct in CellType_list])
