@@ -2,9 +2,12 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.ndimage.filters import gaussian_filter1d
+from _cluster_matching import *
+import plotly.graph_objects as go
+import plotly.express as px
 
 class Agreement(object):
-    def __init__(self, loci_1, loci_2, filter_nan=True):
+    def __init__(self, loci_1, loci_2, savedir, filter_nan=True):
         if filter_nan:
             loci_1 = loci_1.dropna()
             loci_1 = loci_1.reset_index(drop=True)
@@ -14,6 +17,7 @@ class Agreement(object):
 
         self.loci_1 = loci_1
         self.loci_2 = loci_2
+        self.savedir = savedir
         self.num_labels = len(self.loci_1.columns)-3
 
         self.max_posteri1 = self.loci_1.loc[\
@@ -104,7 +108,9 @@ class Agreement(object):
         plt.yticks(np.arange(0, 1.1, step=0.1))
         plt.xlabel('Label')
         plt.ylabel('Agreement')
-        plt.show()
+        plt.savefig('{}/agreement.pdf'.format(self.savedir), format='pdf')
+        plt.savefig('{}/agreement.svg'.format(self.savedir), format='svg')
+        plt.clf()
 
     def plot_OE(self):
         self.per_label_OE_ratio()
@@ -122,7 +128,9 @@ class Agreement(object):
         plt.xlabel('Label')
         plt.title('Observed Agreement/Expected Agreement plot')
         plt.ylabel('log(O/E)')
-        plt.show()
+        plt.savefig('{}/oe_agreement.pdf'.format(self.savedir), format='pdf')
+        plt.savefig('{}/oe_agreement.svg'.format(self.savedir), format='svg')
+        plt.clf()
 
     def plot_CK(self):
         self.per_label_cohens_kappa()
@@ -141,11 +149,13 @@ class Agreement(object):
         plt.xlabel('Label')
         plt.title("Cohen's Kappa")
         plt.ylabel("Cohen's Kappa Score")
-        plt.show()
+        plt.savefig('{}/cohenskappa.pdf'.format(self.savedir), format='pdf')
+        plt.savefig('{}/cohenskappa.svg'.format(self.savedir), format='svg')
+        plt.clf()
 
 
 class Reprodroducibility_vs_posterior(object):
-    def __init__(self, loci_1, loci_2, log_transform=True, ignore_overconf=True, filter_nan=True):
+    def __init__(self, loci_1, loci_2, savedir, log_transform=True, ignore_overconf=True, filter_nan=True):
         if filter_nan:
             loci_1 = loci_1.dropna()
             loci_1 = loci_1.reset_index(drop=True)
@@ -154,6 +164,7 @@ class Reprodroducibility_vs_posterior(object):
 
         self.loci_1 = loci_1
         self.loci_2 = loci_2
+        self.savedir = savedir
         self.num_labels = len(self.loci_1.columns)-3
         self.log_transform = log_transform
 
@@ -228,7 +239,9 @@ class Reprodroducibility_vs_posterior(object):
                     plt.xlabel("Posterior in Replicate 1")
                 
                 plt.tick_params(axis='x', which='both', bottom=False,top=False,labelbottom=False)
-                plt.show()
+                plt.savefig('{}/caliberation_label{}.pdf'.format(self.savedir, k), format='pdf')
+                plt.savefig('{}/caliberation_label{}.svg'.format(self.savedir, k), format='svg')
+                plt.clf()
 
             except:
                 print('could not process label {}'.format(k))
@@ -274,7 +287,9 @@ class Reprodroducibility_vs_posterior(object):
             plt.xlabel("Posterior in Replicate 1")
         
         plt.tick_params(axis='x', which='both', bottom=False,top=False,labelbottom=False)
-        plt.show()
+        plt.savefig('{}/caliberation_general.pdf'.format(self.savedir), format='pdf')
+        plt.savefig('{}/caliberation_general.svg'.format(self.savedir), format='svg')
+        plt.clf()
         
         # except:
         #     print('could not process label {}'.format(k))
@@ -284,7 +299,7 @@ class correspondence_curve(object):
     implementation of the method described at
     https://arxiv.org/pdf/1110.4705.pdf
     '''
-    def __init__(self, loci_1, loci_2, filter_nan=True):
+    def __init__(self, loci_1, loci_2, savedir, filter_nan=True):
         if filter_nan:
             loci_1 = loci_1.dropna()
             loci_1 = loci_1.reset_index(drop=True)
@@ -293,6 +308,7 @@ class correspondence_curve(object):
 
         self.loci_1 = loci_1
         self.loci_2 = loci_2
+        self.savedir = savedir
         self.num_labels = len(self.loci_1.columns)-3
 
         MAPestimate1 = self.loci_1.loc[\
@@ -398,7 +414,9 @@ class correspondence_curve(object):
             plt.xlabel('t')
             plt.ylabel("PSI")
             plt.legend()
-            plt.show()
+            plt.savefig('{}/cc_merged.pdf'.format(self.savedir), format='pdf')
+            plt.savefig('{}/cc_merged.svg'.format(self.savedir), format='svg')
+            plt.clf()
 
         else:
             for p in self.psi_over_t.keys():
@@ -416,5 +434,51 @@ class correspondence_curve(object):
                 plt.xlabel('t')
                 plt.ylabel("PSI")
                 plt.legend()
-                plt.show()
+                plt.savefig('{}/cc_{}.pdf'.format(self.savedir, str(p)), format='pdf')
+                plt.savefig('{}/cc_{}.svg'.format(self.savedir, str(p)), format='svg')
+                plt.clf()
 
+class sankey(object):
+    def __init__(self, loci_1, corrected_loci_2, savedir):
+        self.loci_1 = loci_1
+        self.loci_2 = corrected_loci_2
+        self.num_labels = len(self.loci_1.columns)-3
+        self.savedir = savedir
+
+    def sankey_diag(self):
+        confmat = confusion_matrix(self.loci_1, self.loci_2, self.num_labels)
+        label_1 = [i.replace('posterior','replicate1_label') for i in confmat.columns]
+        label_2 = [i.replace('posterior','replicate2_label') for i in confmat.columns]
+        label = label_1 + label_2
+
+        source = []
+        target = []
+        value = []  
+        for i in range(confmat.shape[0]):
+            for j in range(confmat.shape[1]):
+                source.append(i)
+                target.append(confmat.shape[0] + j)
+                value.append(confmat.iloc[i,j])
+
+        color_list = []
+        opacity = 0.7
+        for i in range(len(confmat.columns)):
+            clist = px.colors.qualitative.Prism
+            color_list.append(clist[i%len(clist)].replace("rgb","rgba").replace(")", ", {})".format(opacity)))
+
+        color_link = []
+        for i in range(len(confmat.columns)):
+             color_link = color_link + color_list
+
+        # print(color_link)
+        link = dict(source = source, target=target, value=value, color=color_link)
+        node = dict(label = label, pad = 10, thickness = 20)
+        data = go.Sankey(link=link, node=node)
+
+        fig = go.Figure(data)
+        fig.update_layout(
+            hovermode = 'y', title = "Agreement Sankey", 
+            font=dict(size = 10))
+        fig.write_image("{}/sankey.pdf".format(self.savedir))
+        fig.write_image("{}/sankey.svg".format(self.savedir))
+        fig.write_html("{}/sankey.html".format(self.savedir))

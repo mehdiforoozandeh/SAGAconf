@@ -270,10 +270,7 @@ def concat_genomedata():
     pass
 
 def RunParse_segway_concat():
-    pass
-
-def segway_concat(rep1dir, rep2dir, concat_seg_res, sizesfile):
-    '''
+        '''
     navigate fcoc files in rep1
     navigate fcoc files in rep2
 
@@ -292,9 +289,8 @@ def segway_concat(rep1dir, rep2dir, concat_seg_res, sizesfile):
     parse posterior1
     parse posterior2
     '''
-    pass
-    
-def get_biological_pnemonics(results_directory, segway=True):
+
+def get_biological_mnemonics(results_directory, segway=True):
     '''
     - run segtools signal-distribution in the segway's output directory and 
         move the results to label_interpretation/segwayOutput/*.
@@ -303,6 +299,48 @@ def get_biological_pnemonics(results_directory, segway=True):
     - run apply_samples.py
     - get pnemonics and move bach to segway's output directory'''
     pass
+
+def report_reproducibility(loci_1, loci_2, pltsavedir, general=True, num_bins=20, merge_cc_curves=False):
+    '''
+    TODO:
+    1- instead of showing the plot, savefig (vector)
+    2- save the visualized data for each plot in text,csv format to enable 
+    easy reproduction of better visualize with other visualization tools
+    '''
+    if os.path.exists(pltsavedir)==False:
+        os.mkdir(pltsavedir)
+        
+    if os.path.exists(pltsavedir+"/agreement")==False:
+        os.mkdir(pltsavedir+"/agreement")
+
+    if os.path.exists(pltsavedir+"/cc")==False:
+        os.mkdir(pltsavedir+"/cc")
+
+    if os.path.exists(pltsavedir+"/calib")==False:
+        os.mkdir(pltsavedir+"/calib")
+
+    if os.path.exists(pltsavedir+"/sankey")==False:
+        os.mkdir(pltsavedir+"/sankey")
+
+    agr = Agreement(loci_1, loci_2, pltsavedir+"/agreement")
+    cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
+    repr = Reprodroducibility_vs_posterior(loci_1,loci_2, pltsavedir+"/calib",log_transform=False)
+    vis = sankey(loci_1, loci_2, pltsavedir+"/sankey")
+
+    print('general agreement:    ', agr.general_agreement())
+    print('general o/e ratio:    ', agr.general_OE_ratio(log_transform=False))
+    print('general CK:    ', agr.general_cohens_kappa())
+
+    agr.plot_agreement()
+    agr.plot_CK()
+    agr.plot_OE()
+    cc.plot_curve(plot_general=general, merge_plots=merge_cc_curves)
+    vis.sankey_diag()
+    repr.per_label_count_independent(num_bins=num_bins)
+
+    if general:
+        repr.general_count_independent(num_bins=num_bins)
+
 
 def matching_clustering(seg_results_directory_1, seg_results_directory_2, cluster=True, concat=False):
     '''
@@ -318,8 +356,7 @@ def matching_clustering(seg_results_directory_1, seg_results_directory_2, cluste
     '''
     pass
 
-def reproducibility_analysis():
-    pass
+
 
 """when running the whole script from start to end to generate (and reproduce) results
 remember to put label interpretation in try blocks (skippable) to prevent any kind of

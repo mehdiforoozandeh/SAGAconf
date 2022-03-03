@@ -34,42 +34,6 @@ class visualize(object):
         plt.ylabel("Replicate 2 Labels")
         plt.show()
 
-    def sankey_diag(self):
-        confmat = confusion_matrix(self.loci_1, self.loci_2, self.num_labels)
-        label_1 = [i.replace('posterior','replicate1_label') for i in confmat.columns]
-        label_2 = [i.replace('posterior','replicate2_label') for i in confmat.columns]
-        label = label_1 + label_2
-
-        source = []
-        target = []
-        value = []  
-        for i in range(confmat.shape[0]):
-            for j in range(confmat.shape[1]):
-                source.append(i)
-                target.append(confmat.shape[0] + j)
-                value.append(confmat.iloc[i,j])
-
-        color_list = []
-        opacity = 0.7
-        for i in range(len(confmat.columns)):
-            clist = px.colors.qualitative.Prism
-            color_list.append(clist[i%len(clist)].replace("rgb","rgba").replace(")", ", {})".format(opacity)))
-
-        color_link = []
-        for i in range(len(confmat.columns)):
-             color_link = color_link + color_list
-
-        # print(color_link)
-        link = dict(source = source, target=target, value=value, color=color_link)
-        node = dict(label = label, pad = 10, thickness = 20)
-        data = go.Sankey(link=link, node=node)
-
-        fig = go.Figure(data)
-        fig.update_layout(
-            hovermode = 'y', title = "Agreement Sankey", 
-            font=dict(size = 10))
-        fig.show()
-
     def filter_overconf(self):
         # corrected_loci1 = self.loci_1.loc[:, ['posterior'+str(x) for x in range(self.num_labels)]]
         # corrected_loci2 = self.loci_2.loc[:, ['posterior'+str(x) for x in range(self.num_labels)]]
