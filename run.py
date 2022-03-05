@@ -202,8 +202,8 @@ def create_genomedata(celltype_dir, sequence_file):
 def RunParse_segway_replicates(celltype_dir, output_dir, sizes_file, random_seed=73):
     name_sig = celltype_dir.split('/')[-1]
     num_tracks = len(
-        [tr for tr in os.listdir(celltype_dir) if os.path.isdir(celltype_dir+tr)])
-
+        [tr for tr in os.listdir(celltype_dir) if os.path.isdir(celltype_dir+'/'+tr)])
+        
     params_dict_1 = {
         "random_seed":random_seed, "track_weight":0.01,
         "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
@@ -213,9 +213,15 @@ def RunParse_segway_replicates(celltype_dir, output_dir, sizes_file, random_seed
         "traindir":output_dir+name_sig+'rep1'+'_train', 
         "posteriordir":output_dir+name_sig+'rep1'+'_posterior'
     }
-    print('Running Segway celltype {} Rep1'.format(celltype_dir))
-    run_segway_and_post_process(params_dict_1)
-    parse_posterior_results(params_dict_1['name_sig'], sizes_file, params_dict_1['resolution'], M=50)
+    
+    if os.path.exists(params_dict_1['name_sig']) == False:
+        print('Running Segway celltype {} Rep1'.format(celltype_dir))
+        run_segway_and_post_process(params_dict_1)
+
+        if os.path.exists(params_dict_1['name_sig']+'/parsed_posterior.csv') == False:
+            parse_posterior_results(params_dict_1['name_sig'], sizes_file, params_dict_1['resolution'], M=50)
+    else:
+        print(params_dict_1['name_sig'], "already exists")
 
     params_dict_2 = {
         "random_seed":random_seed, "track_weight":0.01,
@@ -226,15 +232,21 @@ def RunParse_segway_replicates(celltype_dir, output_dir, sizes_file, random_seed
         "traindir":output_dir+name_sig+'rep2'+'_train', 
         "posteriordir":output_dir+name_sig+'rep2'+'_posterior'
     }
-    print('Running Segway celltype {} Rep2'.format(celltype_dir))
-    run_segway_and_post_process(params_dict_2)
-    parse_posterior_results(params_dict_2['name_sig'], sizes_file, params_dict_2['resolution'], M=50)
+    
+    if os.path.exists(params_dict_2['name_sig']) == False:
+        print('Running Segway celltype {} Rep2'.format(celltype_dir))
+        run_segway_and_post_process(params_dict_2)
+
+        if os.path.exists(params_dict_2['name_sig']+'/parsed_posterior.csv') == False:
+            parse_posterior_results(params_dict_2['name_sig'], sizes_file, params_dict_2['resolution'], M=50)
+    else:
+        print(params_dict_2['name_sig'], "already exists")
 
 def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, output_dir, sizes_file):
     # replicate number should be in format "repN" -> i.e. rep1, rep2
     name_sig = celltype_dir.split('/')[-1]
     num_tracks = len(
-        [tr for tr in os.listdir(celltype_dir) if os.path.isdir(celltype_dir+tr)])
+        [tr for tr in os.listdir(celltype_dir) if os.path.isdir(celltype_dir+'/'+tr)])
 
     params_dict_1 = {
         "random_seed":random_seeds[0], "track_weight":0.01,
@@ -256,15 +268,25 @@ def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, out
         "posteriordir":output_dir+name_sig+'_{}_rs{}'.format(replicate_number, random_seeds[0])+'_posterior'
     }
 
-    print('Running Segway parameter initialization test on celltype {}, {}, with random seed {}'.format(
-        celltype_dir, replicate_number, random_seeds[0]))
-    run_segway_and_post_process(params_dict_1)
-    parse_posterior_results(params_dict_1['name_sig'], sizes_file, params_dict_1['resolution'], M=50)
+    if os.path.exists(params_dict_1['name_sig']) == False:
+        print('Running Segway parameter initialization test on celltype {}, {}, with random seed {}'.format(
+            celltype_dir, replicate_number, random_seeds[0]))
+        run_segway_and_post_process(params_dict_1)
 
-    print('Running Segway parameter initialization test on celltype {}, {}, with random seed {}'.format(
-        celltype_dir, replicate_number, random_seeds[1]))
-    run_segway_and_post_process(params_dict_2)
-    parse_posterior_results(params_dict_2['name_sig'], sizes_file, params_dict_2['resolution'], M=50)
+        if os.path.exists(params_dict_1['name_sig']+'/parsed_posterior.csv') == False:
+            parse_posterior_results(params_dict_1['name_sig'], sizes_file, params_dict_1['resolution'], M=50)
+    else:
+        print(params_dict_1['name_sig'], "already exists")
+
+    if os.path.exists(params_dict_2['name_sig']) == False:
+        print('Running Segway parameter initialization test on celltype {}, {}, with random seed {}'.format(
+            celltype_dir, replicate_number, random_seeds[1]))
+        run_segway_and_post_process(params_dict_2)
+
+        if os.path.exists(params_dict_2['name_sig']+'/parsed_posterior.csv') == False:
+            parse_posterior_results(params_dict_2['name_sig'], sizes_file, params_dict_2['resolution'], M=50)
+    else:
+        print(params_dict_2['name_sig'], "already exists")
 
 def concat_genomedata():
     pass
@@ -309,7 +331,7 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, general=True, num_bins=20
     '''
     if os.path.exists(pltsavedir)==False:
         os.mkdir(pltsavedir)
-        
+
     if os.path.exists(pltsavedir+"/agreement")==False:
         os.mkdir(pltsavedir+"/agreement")
 
@@ -355,8 +377,6 @@ def matching_clustering(seg_results_directory_1, seg_results_directory_2, cluste
         just clustering
     '''
     pass
-
-
 
 """when running the whole script from start to end to generate (and reproduce) results
 remember to put label interpretation in try blocks (skippable) to prevent any kind of
@@ -438,7 +458,8 @@ if __name__=="__main__":
 
     # Run segway replicates     MP
     partial_runs_i = partial(
-        RunParse_segway_replicates, output_dir=segway_dir, sizes_file=download_dir+"hg38.chrom.sizes", random_seed=73)
+        RunParse_segway_replicates, output_dir=segway_dir, 
+        sizes_file=download_dir+"hg38.chrom.sizes", random_seed=73)
     p_obj = mp.Pool(len(CellType_list))
     p_obj.map(partial_runs_i, [download_dir+ct for ct in CellType_list])
 

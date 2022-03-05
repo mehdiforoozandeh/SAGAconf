@@ -154,11 +154,11 @@ def initialize_bins_sizesfile(coords, res):
 
     supercontig_in_progress = []
     for chr, size in coords.items():
-        for i in range(0, size, res):
-            if int(i + res) > int(size):
+        for i in range(0, int(size), int(res)):
+            if i + int(res) > int(size):
                 supercontig_in_progress.append([chr, int(i), int(size)])
             else:
-                supercontig_in_progress.append([chr, int(i), int(i + res)])
+                supercontig_in_progress.append([chr, int(i), int(i) + int(res)])
 
     return pd.DataFrame(supercontig_in_progress, columns=['chr', 'start', 'end'])
 
