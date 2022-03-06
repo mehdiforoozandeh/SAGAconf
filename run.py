@@ -218,8 +218,6 @@ def RunParse_segway_replicates(celltype_dir, output_dir, sizes_file, random_seed
         print('Running Segway celltype {} Rep1'.format(celltype_dir))
         run_segway_and_post_process(params_dict_1)
 
-        if os.path.exists(params_dict_1['name_sig']+'/parsed_posterior.csv') == False:
-            parse_posterior_results(params_dict_1['name_sig'], sizes_file, params_dict_1['resolution'], M=50)
     else:
         print(params_dict_1['name_sig'], "already exists")
 
@@ -237,8 +235,6 @@ def RunParse_segway_replicates(celltype_dir, output_dir, sizes_file, random_seed
         print('Running Segway celltype {} Rep2'.format(celltype_dir))
         run_segway_and_post_process(params_dict_2)
 
-        if os.path.exists(params_dict_2['name_sig']+'/parsed_posterior.csv') == False:
-            parse_posterior_results(params_dict_2['name_sig'], sizes_file, params_dict_2['resolution'], M=50)
     else:
         print(params_dict_2['name_sig'], "already exists")
 
@@ -273,8 +269,7 @@ def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, out
             celltype_dir, replicate_number, random_seeds[0]))
         run_segway_and_post_process(params_dict_1)
 
-        if os.path.exists(params_dict_1['name_sig']+'/parsed_posterior.csv') == False:
-            parse_posterior_results(params_dict_1['name_sig'], sizes_file, params_dict_1['resolution'], M=50)
+
     else:
         print(params_dict_1['name_sig'], "already exists")
 
@@ -283,8 +278,6 @@ def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, out
             celltype_dir, replicate_number, random_seeds[1]))
         run_segway_and_post_process(params_dict_2)
 
-        if os.path.exists(params_dict_2['name_sig']+'/parsed_posterior.csv') == False:
-            parse_posterior_results(params_dict_2['name_sig'], sizes_file, params_dict_2['resolution'], M=50)
     else:
         print(params_dict_2['name_sig'], "already exists")
 
@@ -463,6 +456,14 @@ if __name__=="__main__":
     p_obj = mp.Pool(len(CellType_list))
     p_obj.map(partial_runs_i, [download_dir+ct for ct in CellType_list])
 
+    # parse_posteriors 
+    print('Checking for unparsed posteriors...')
+    list_of_seg_runs = [d for d in os.listdir(segway_dir) if os.path.isdir(d)]
+    for d in list_of_seg_runs:
+        if os.path.exists(segway_dir+'/'+d+'/parsed_posterior.csv') == False:
+            parse_posterior_results(segway_dir+'/'+d, download_dir+"hg38.chrom.sizes", 100, M=50)
+    print('All parsed!')
+
     # Run segway param-init test     MP
     partial_runs_ii = partial(
         RunParse_segway_param_init, replicate_number = 'rep1', output_dir=segway_dir, 
@@ -477,3 +478,11 @@ if __name__=="__main__":
         
     p_obj = mp.Pool(len(CellType_list))
     p_obj.map(partial_runs_iii, [download_dir+ct for ct in CellType_list])
+
+    # parse_posteriors 
+    print('Checking for unparsed posteriors...')
+    list_of_seg_runs = [d for d in os.listdir(segway_dir) if os.path.isdir(d)]
+    for d in list_of_seg_runs:
+        if os.path.exists(segway_dir+'/'+d+'/parsed_posterior.csv') == False:
+            parse_posterior_results(segway_dir+'/'+d, download_dir+"hg38.chrom.sizes", 100, M=50)
+    print('All parsed!')
