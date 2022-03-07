@@ -456,10 +456,12 @@ if __name__=="__main__":
 
     # parse_posteriors 
     print('Checking for unparsed posteriors...')
-    list_of_seg_runs = [d for d in os.listdir(segway_dir) if os.path.isdir(d)]
+    list_of_seg_runs = [
+        d for d in os.listdir(segway_dir) if os.path.isdir(segway_dir+'/'+d)]
+    print(list_of_seg_runs)
     for d in list_of_seg_runs:
         print('     -Checking for {}  ...'.format(segway_dir+'/'+d+'/parsed_posterior.csv'))
-        
+
         if os.path.exists(segway_dir+'/'+d+'/parsed_posterior.csv') == False:
             parse_posterior_results(segway_dir+'/'+d, download_dir+"hg38.chrom.sizes", 100, M=50)
 
