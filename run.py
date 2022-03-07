@@ -199,7 +199,7 @@ def create_genomedata(celltype_dir, sequence_file):
         'genomedata-load -s {} --sizes {} --verbose {}.genomedata'.format(
             sequence_file, tracklist_rep2, celltype_dir+'/rep2'))
 
-def RunParse_segway_replicates(celltype_dir, output_dir, sizes_file, random_seed=73):
+def RunParse_segway_replicates(celltype_dir, output_dir, random_seed=73):
     name_sig = celltype_dir.split('/')[-1]
     num_tracks = len(
         [tr for tr in os.listdir(celltype_dir) if os.path.isdir(celltype_dir+'/'+tr)])
@@ -238,7 +238,7 @@ def RunParse_segway_replicates(celltype_dir, output_dir, sizes_file, random_seed
     else:
         print(params_dict_2['name_sig'], "already exists")
 
-def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, output_dir, sizes_file):
+def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, output_dir):
     # replicate number should be in format "repN" -> i.e. rep1, rep2
     name_sig = celltype_dir.split('/')[-1]
     num_tracks = len(
@@ -268,7 +268,6 @@ def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, out
         print('Running Segway parameter initialization test on celltype {}, {}, with random seed {}'.format(
             celltype_dir, replicate_number, random_seeds[0]))
         run_segway_and_post_process(params_dict_1)
-
 
     else:
         print(params_dict_1['name_sig'], "already exists")
@@ -451,8 +450,7 @@ if __name__=="__main__":
 
     # Run segway replicates     MP
     partial_runs_i = partial(
-        RunParse_segway_replicates, output_dir=segway_dir, 
-        sizes_file=download_dir+"hg38.chrom.sizes", random_seed=73)
+        RunParse_segway_replicates, output_dir=segway_dir, random_seed=73)
     p_obj = mp.Pool(len(CellType_list))
     p_obj.map(partial_runs_i, [download_dir+ct for ct in CellType_list])
 
@@ -460,14 +458,21 @@ if __name__=="__main__":
     print('Checking for unparsed posteriors...')
     list_of_seg_runs = [d for d in os.listdir(segway_dir) if os.path.isdir(d)]
     for d in list_of_seg_runs:
+        print('     -Checking for {}  ...'.format(segway_dir+'/'+d+'/parsed_posterior.csv'))
+        
         if os.path.exists(segway_dir+'/'+d+'/parsed_posterior.csv') == False:
             parse_posterior_results(segway_dir+'/'+d, download_dir+"hg38.chrom.sizes", 100, M=50)
+
+        else:
+            print('     -Exists!')
+
     print('All parsed!')
 
+    exit()
     # Run segway param-init test     MP
     partial_runs_ii = partial(
-        RunParse_segway_param_init, replicate_number = 'rep1', output_dir=segway_dir, 
-        sizes_file=download_dir+"hg38.chrom.sizes", random_seeds=[7, 5])
+        RunParse_segway_param_init, 
+        replicate_number = 'rep1', output_dir=segway_dir, random_seeds=[7, 5])
 
     p_obj = mp.Pool(len(CellType_list))
     p_obj.map(partial_runs_ii, [download_dir+ct for ct in CellType_list])
