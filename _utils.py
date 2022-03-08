@@ -266,7 +266,7 @@ def inplace_binning(posterior_file, resolution):
             posterior_list.append(ll)
 
     new_posterior_list = []
-    for i in range(int(len(posterior_list)/10000)):
+    for i in range(len(posterior_list)):
         if int(posterior_list[i][2]) - int(posterior_list[i][1]) > resolution:
             inner_list = []
 
@@ -281,6 +281,9 @@ def inplace_binning(posterior_file, resolution):
         else:
             new_posterior_list.append(posterior_list[i])
 
+        if i % int(len(posterior_list)/100) == 0:
+            print(len(new_posterior_list))
+            
     new_posterior_list = pd.DataFrame(new_posterior_list, columns=['chr', 'start', 'end', posterior_ID])
     return new_posterior_list
 
