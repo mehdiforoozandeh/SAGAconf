@@ -281,13 +281,13 @@ def inplace_binning(posterior_file, resolution):
         else:
             new_posterior_list.append(posterior_list[i])
 
-        if i % int(len(posterior_list)/100) == 0:
+        if i % int(len(posterior_list)/5000) == 0:
             print(len(new_posterior_list))
 
     new_posterior_list = pd.DataFrame(new_posterior_list, columns=['chr', 'start', 'end', posterior_ID])
     return new_posterior_list
 
-def mp_inplace_binning(posterior_dir, resolution, assert_coord_match=False):
+def mp_inplace_binning(posterior_dir, resolution, assert_coord_match=False, mp=True):
     ls_dir = os.listdir(posterior_dir)
     posterior_file_list = []
 
@@ -296,12 +296,16 @@ def mp_inplace_binning(posterior_dir, resolution, assert_coord_match=False):
             posterior_file_list.append(f)
 
     posterior_file_list = ["{}/posterior{}.bedGraph".format(posterior_dir, i) for i in range(len(posterior_file_list))]
-    posterior_file_list.sort
 
     print("starting the parsing")
-    p_obj = mp.Pool(len(posterior_file_list))
-    parsed_list = p_obj.map(
-        functools.partial(inplace_binning, resolution=resolution), posterior_file_list)
+    if mp:
+        p_obj = mp.Pool(len(posterior_file_list))
+        parsed_list = p_obj.map(
+            functools.partial(inplace_binning, resolution=resolution), posterior_file_list)
+    else:
+        parsed_list = []
+        for pfile in posterior_file_list:
+            parsed_list.append(inplace_binning(pfile, resolution))
 
     print("parsed all individual files")
     match_statement = True

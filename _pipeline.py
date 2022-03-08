@@ -134,12 +134,13 @@ def parse_posterior_results_old(posterior_dir, chrom_sizes_file, resolution, M):
     parsed_df.to_csv(posterior_dir+'/parsed_posterior.csv')
     return parsed_df
 
-def parse_posterior_results(posterior_dir, resolution):
+def parse_posterior_results(posterior_dir, resolution, mp=True):
     '''
     parse results into resolution sized bins
     '''
     print('Parsing posterior results for {}'.format(posterior_dir))
-    parsed_df = mp_inplace_binning(posterior_dir, resolution, assert_coord_match=True)
+    parsed_df = mp_inplace_binning(
+        posterior_dir, resolution, assert_coord_match=True, mp=mp)
 
     print('saving results to parsed_posterior.csv file')
     parsed_df.to_csv(posterior_dir+'/parsed_posterior.csv')

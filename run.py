@@ -463,7 +463,7 @@ if __name__=="__main__":
         print('     -Checking for {}  ...'.format(segway_dir+'/'+d+'/parsed_posterior.csv'))
 
         if os.path.exists(segway_dir+'/'+d+'/parsed_posterior.csv') == False:
-            parse_posterior_results(segway_dir+'/'+d, 100)
+            parse_posterior_results(segway_dir+'/'+d, 100, mp=False)
 
         else:
             print('     -Exists!')
@@ -494,8 +494,8 @@ if __name__=="__main__":
         print('     -Checking for {}  ...'.format(segway_dir+'/'+d+'/parsed_posterior.csv'))
 
         if os.path.exists(segway_dir+'/'+d+'/parsed_posterior.csv') == False:
-            parse_posterior_results(segway_dir+'/'+d, 100)
-            
+            parse_posterior_results(segway_dir+'/'+d, 100, mp=False)
+
         else:
             print('     -Exists!')
 
