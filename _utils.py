@@ -283,7 +283,7 @@ def inplace_binning(posterior_file, resolution):
 
         if i % int(len(posterior_list)/100) == 0:
             print(len(new_posterior_list))
-            
+
     new_posterior_list = pd.DataFrame(new_posterior_list, columns=['chr', 'start', 'end', posterior_ID])
     return new_posterior_list
 
@@ -298,17 +298,21 @@ def mp_inplace_binning(posterior_dir, resolution, assert_coord_match=False):
     posterior_file_list = ["{}/posterior{}.bedGraph".format(posterior_dir, i) for i in range(len(posterior_file_list))]
     posterior_file_list.sort
 
+    print("starting the parsing")
     p_obj = mp.Pool(len(posterior_file_list))
     parsed_list = p_obj.map(
         functools.partial(inplace_binning, resolution=resolution), posterior_file_list)
 
+    print("parsed all individual files")
     match_statement = True
     if assert_coord_match:
+        print("asserting coordinate match between different posteriorIDs")
         for comb in itertools.combinations(range(len(parsed_list)), 2):
             if check_coord_match(parsed_list[comb[0]], parsed_list[comb[1]]) == False:
                 match_statement = False
 
     if match_statement:
+        print("concatenating results")
         parsed_posterior = [parsed_list[0]['chr'], parsed_list[0]['start'], parsed_list[0]['end']]
         for d in parsed_list:
             parsed_posterior.append(d.iloc[:, -1])

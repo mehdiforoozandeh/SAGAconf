@@ -140,6 +140,8 @@ def parse_posterior_results(posterior_dir, resolution):
     '''
     print('Parsing posterior results for {}'.format(posterior_dir))
     parsed_df = mp_inplace_binning(posterior_dir, resolution, assert_coord_match=True)
+
+    print('saving results to parsed_posterior.csv file')
     parsed_df.to_csv(posterior_dir+'/parsed_posterior.csv')
     return parsed_df
 
