@@ -139,7 +139,7 @@ def parse_posterior_results(posterior_dir, resolution):
     parse results into resolution sized bins
     '''
     print('Parsing posterior results for {}'.format(posterior_dir))
-    parsed_df = mp_inplace_binning(posterior_dir, resolution)
+    parsed_df = mp_inplace_binning(posterior_dir, resolution, assert_coord_match=True)
     parsed_df.to_csv(posterior_dir+'/parsed_posterior.csv')
     return parsed_df
 
