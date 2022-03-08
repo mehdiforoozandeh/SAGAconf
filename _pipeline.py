@@ -122,7 +122,7 @@ def run_segway_and_post_process(param_dict):
         clean_up(param_dict["traindir"], param_dict['posteriordir'])
 
 
-def parse_posterior_results(posterior_dir, chrom_sizes_file, resolution, M):
+def parse_posterior_results_old(posterior_dir, chrom_sizes_file, resolution, M):
     '''
     parse results into resolution sized bins
     '''
@@ -134,6 +134,12 @@ def parse_posterior_results(posterior_dir, chrom_sizes_file, resolution, M):
     empty_bins = initialize_bins_sizesfile(coords, resolution)
     parsed_df = mp_binning(posterior_df_list, empty_bins, M)
 
+    parsed_df.to_csv(posterior_dir+'/parsed_posterior.csv')
+    return parsed_df
+
+def parse_posterior_results(posterior_dir, resolution):
+    print('Parsing posterior results for {}'.format(posterior_dir))
+    parsed_df = mp_inplace_binning(posterior_dir, resolution)
     parsed_df.to_csv(posterior_dir+'/parsed_posterior.csv')
     return parsed_df
 
