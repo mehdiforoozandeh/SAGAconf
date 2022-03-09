@@ -390,8 +390,6 @@ def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
     conf_mat = confusion_matrix(
         loci_1, loci_2, num_labels, 
         OE_transform=True, symmetric=False)
-    
-    print('generated confmat 1')
 
     assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
 
@@ -409,8 +407,6 @@ def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
         corrected_loci_1, corrected_loci_2, num_labels, 
         OE_transform=OE_transform, symmetric=True)  
 
-    print('generated confmat 1')
-
     mat_max = conf_mat.max(axis=1).max(axis=0)
     mat_min = conf_mat.min(axis=1).min(axis=0)
 
@@ -421,12 +417,10 @@ def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
     if os.path.exists(pltsavedir)==False:
         os.mkdir(pltsavedir)
 
-    if os.path.exists(pltsavedir+'/post_clustering/')==False:
-        os.mkdir(pltsavedir+'/post_clustering/')
-
     # initial reproducibility without cluster merging
     if os.path.exists(pltsavedir+"/{}_labels".format(num_labels)) == False:
             os.mkdir(pltsavedir+"/{}_labels".format(num_labels))
+            
     report_reproducibility(
             corrected_loci_1, corrected_loci_2, pltsavedir+"/{}_labels".format(num_labels), 
             general=False, num_bins=20, merge_cc_curves=False)
@@ -457,6 +451,9 @@ def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
     c_grid = sns.clustermap(
         distance_matrix, row_linkage=linkage, 
         col_linkage=linkage, annot=True)
+
+    if os.path.exists(pltsavedir+'/post_clustering/')==False:
+        os.mkdir(pltsavedir+'/post_clustering/')
 
     plt.savefig('{}/post_clustering/clustermap.pdf'.format(pltsavedir), format='pdf')
     plt.savefig('{}/post_clustering/clustermap.svg'.format(pltsavedir), format='svg')
