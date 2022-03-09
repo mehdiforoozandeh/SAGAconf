@@ -426,17 +426,17 @@ def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
             corrected_loci_1, corrected_loci_2, pltsavedir+"/{}_labels".format(num_labels), 
             general=False, num_bins=20, merge_cc_curves=False)
 
-    c_grid = sns.clustermap(
-        distance_matrix, row_linkage=linkage, 
-        col_linkage=linkage, annot=True)
+    # c_grid = sns.clustermap(
+    #     distance_matrix, row_linkage=linkage, 
+    #     col_linkage=linkage, annot=True)
 
-    if os.path.exists(pltsavedir+'/post_clustering/')==False:
-        os.mkdir(pltsavedir+'/post_clustering/')
+    # if os.path.exists(pltsavedir+'/post_clustering/')==False:
+    #     os.mkdir(pltsavedir+'/post_clustering/')
 
-    plt.savefig('{}/post_clustering/clustermap.pdf'.format(pltsavedir), format='pdf')
-    plt.savefig('{}/post_clustering/clustermap.svg'.format(pltsavedir), format='svg')
-    plt.clf()
-    
+    # plt.savefig('{}/post_clustering/clustermap.pdf'.format(pltsavedir), format='pdf')
+    # plt.savefig('{}/post_clustering/clustermap.svg'.format(pltsavedir), format='svg')
+    # plt.clf()
+
     return
 
     for m in range(len(linkage)):
