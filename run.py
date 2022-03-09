@@ -353,38 +353,34 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, general=True, num_bins=20
     if os.path.exists(pltsavedir+"/sankey")==False:
         os.mkdir(pltsavedir+"/sankey")
 
-    try:
-        agr = Agreement(loci_1, loci_2, pltsavedir+"/agreement")
-        vis = sankey(loci_1, loci_2, pltsavedir+"/sankey")
+    agr = Agreement(loci_1, loci_2, pltsavedir+"/agreement")
+    vis = sankey(loci_1, loci_2, pltsavedir+"/sankey")
 
-        print('general agreement:    ', agr.general_agreement())
-        print('general o/e ratio:    ', agr.general_OE_ratio(log_transform=False))
-        print('general CK:    ', agr.general_cohens_kappa())
+    print('general agreement:    ', agr.general_agreement())
+    print('general o/e ratio:    ', agr.general_OE_ratio(log_transform=False))
+    print('general CK:    ', agr.general_cohens_kappa())
 
-        agr.plot_agreement()
-        agr.plot_CK()
-        agr.plot_OE()
-        vis.sankey_diag()
+    agr.plot_agreement()
+    agr.plot_CK()
+    agr.plot_OE()
+    vis.sankey_diag()
 
-        if full_report:
-            if os.path.exists(pltsavedir+"/cc")==False:
-                os.mkdir(pltsavedir+"/cc")
+    if full_report:
+        if os.path.exists(pltsavedir+"/cc")==False:
+            os.mkdir(pltsavedir+"/cc")
 
-            if os.path.exists(pltsavedir+"/calib")==False:
-                os.mkdir(pltsavedir+"/calib")
+        if os.path.exists(pltsavedir+"/calib")==False:
+            os.mkdir(pltsavedir+"/calib")
 
-            cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
-            repr = Reprodroducibility_vs_posterior(loci_1,loci_2, pltsavedir+"/calib",log_transform=False)
+        cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
+        repr = Reprodroducibility_vs_posterior(loci_1,loci_2, pltsavedir+"/calib",log_transform=False)
 
-            cc.plot_curve(plot_general=general, merge_plots=merge_cc_curves)
-            repr.per_label_count_independent(num_bins=num_bins)
+        cc.plot_curve(plot_general=general, merge_plots=merge_cc_curves)
+        repr.per_label_count_independent(num_bins=num_bins)
 
-            if general:
-                repr.general_count_independent(num_bins=num_bins)
+        if general:
+            repr.general_count_independent(num_bins=num_bins)
         
-    except:
-        print('skipped eval')
-
 
 def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
     num_labels = loci_1.shape[1]-3
@@ -470,7 +466,6 @@ def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
 """when running the whole script from start to end to generate (and reproduce) results
 remember to put label interpretation in try blocks (skippable) to prevent any kind of
 dependency issue of segtools to cause issues in reproducibility of results"""
-
 
 if __name__=="__main__":
 
@@ -576,8 +571,9 @@ if __name__=="__main__":
             segway_dir+ct+"_rep1/parsed_posterior.csv",
             segway_dir+ct+"_rep2/parsed_posterior.csv")
 
-        loci_1 = loci_1.iloc[500000:1000000, :].reset_index(drop=True)
-        loci_2 = loci_2.iloc[500000:1000000, :].reset_index(drop=True)
+        loci_1 = loci_1.iloc[list(range(0, len(loci_1), 500)), :].reset_index(drop=True)
+        loci_2 = loci_2.iloc[list(range(0, len(loci_2), 500)), :].reset_index(drop=True)
+
         print('loaded and intersected parsed posteriors for {}'.format(ct))
         print('starting reproducibility evaluation for {}'.format(ct))
         """EVALUATE REPRODUCIBILITY"""

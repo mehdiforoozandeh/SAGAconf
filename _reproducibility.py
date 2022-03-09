@@ -61,18 +61,18 @@ class Agreement(object):
         self.label_OE = {}
         for k in self.label_agreements.keys():
             if log_transform:
-                self.label_OE[k] = np.log(self.label_agreements[k] / (self.expected_agreement+ self.epsilon))
+                self.label_OE[k] = np.log(self.label_agreements[k] / self.expected_agreement)
             else:
-                self.label_OE[k] = self.label_agreements[k] / (self.expected_agreement+ self.epsilon)
+                self.label_OE[k] = self.label_agreements[k] / self.expected_agreement
 
         return self.label_OE
 
     def general_OE_ratio(self, log_transform=True):
         if log_transform:
-            self.overall_OE = np.log(self.overall_agreement/(self.expected_agreement+ self.epsilon))
+            self.overall_OE = np.log(self.overall_agreement/ self.expected_agreement)
             return 
         else:
-            self.overall_OE =  self.overall_agreement/(self.expected_agreement+ self.epsilon)
+            self.overall_OE =  self.overall_agreement/ self.expected_agreement
 
         return self.overall_OE  
 
@@ -81,13 +81,13 @@ class Agreement(object):
 
         for k in self.label_agreements.keys():
             self.label_CK[k] = \
-                (self.label_agreements[k] - self.expected_agreement) / (1 - (self.expected_agreement+ self.epsilon))
+                (self.label_agreements[k] - self.expected_agreement) / (1 - self.expected_agreement)
         
         return self.label_CK
 
     def general_cohens_kappa(self):
         self.overall_CK = \
-            (self.overall_agreement - self.expected_agreement) / (1 - (self.expected_agreement+ self.epsilon))
+            (self.overall_agreement - self.expected_agreement) / (1 - self.expected_agreement)
         return self.overall_CK
     
     def plot_agreement(self):
