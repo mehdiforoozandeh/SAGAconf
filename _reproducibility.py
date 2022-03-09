@@ -447,6 +447,7 @@ class sankey(object):
         self.savedir = savedir
 
     def sankey_diag(self):
+        print('creating sankey diag')
         confmat = confusion_matrix(self.loci_1, self.loci_2, self.num_labels, OE_transform=False)
         label_1 = [i.replace('posterior','replicate1_label') for i in confmat.columns]
         label_2 = [i.replace('posterior','replicate2_label') for i in confmat.columns]

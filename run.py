@@ -352,35 +352,36 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, general=True, num_bins=20
 
     if os.path.exists(pltsavedir+"/sankey")==False:
         os.mkdir(pltsavedir+"/sankey")
+    try:   
+        agr = Agreement(loci_1, loci_2, pltsavedir+"/agreement")
+        vis = sankey(loci_1, loci_2, pltsavedir+"/sankey")
 
-    agr = Agreement(loci_1, loci_2, pltsavedir+"/agreement")
-    vis = sankey(loci_1, loci_2, pltsavedir+"/sankey")
+        print('general agreement:    ', agr.general_agreement())
+        print('general o/e ratio:    ', agr.general_OE_ratio(log_transform=False))
+        print('general CK:    ', agr.general_cohens_kappa())
 
-    print('general agreement:    ', agr.general_agreement())
-    print('general o/e ratio:    ', agr.general_OE_ratio(log_transform=False))
-    print('general CK:    ', agr.general_cohens_kappa())
+        agr.plot_agreement()
+        agr.plot_CK()
+        agr.plot_OE()
+        vis.sankey_diag()
 
-    agr.plot_agreement()
-    agr.plot_CK()
-    agr.plot_OE()
-    vis.sankey_diag()
+        if full_report:
+            if os.path.exists(pltsavedir+"/cc")==False:
+                os.mkdir(pltsavedir+"/cc")
 
-    if full_report:
-        if os.path.exists(pltsavedir+"/cc")==False:
-            os.mkdir(pltsavedir+"/cc")
+            if os.path.exists(pltsavedir+"/calib")==False:
+                os.mkdir(pltsavedir+"/calib")
 
-        if os.path.exists(pltsavedir+"/calib")==False:
-            os.mkdir(pltsavedir+"/calib")
+            cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
+            repr = Reprodroducibility_vs_posterior(loci_1,loci_2, pltsavedir+"/calib",log_transform=False)
 
-        cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
-        repr = Reprodroducibility_vs_posterior(loci_1,loci_2, pltsavedir+"/calib",log_transform=False)
+            cc.plot_curve(plot_general=general, merge_plots=merge_cc_curves)
+            repr.per_label_count_independent(num_bins=num_bins)
 
-        cc.plot_curve(plot_general=general, merge_plots=merge_cc_curves)
-        repr.per_label_count_independent(num_bins=num_bins)
-
-        if general:
-            repr.general_count_independent(num_bins=num_bins)
-        
+            if general:
+                repr.general_count_independent(num_bins=num_bins)
+    except:
+        pass
 
 def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
     num_labels = loci_1.shape[1]-3
@@ -420,10 +421,23 @@ def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
     # initial reproducibility without cluster merging
     if os.path.exists(pltsavedir+"/{}_labels".format(num_labels)) == False:
             os.mkdir(pltsavedir+"/{}_labels".format(num_labels))
-            
+
     report_reproducibility(
             corrected_loci_1, corrected_loci_2, pltsavedir+"/{}_labels".format(num_labels), 
             general=False, num_bins=20, merge_cc_curves=False)
+
+    c_grid = sns.clustermap(
+        distance_matrix, row_linkage=linkage, 
+        col_linkage=linkage, annot=True)
+
+    if os.path.exists(pltsavedir+'/post_clustering/')==False:
+        os.mkdir(pltsavedir+'/post_clustering/')
+
+    plt.savefig('{}/post_clustering/clustermap.pdf'.format(pltsavedir), format='pdf')
+    plt.savefig('{}/post_clustering/clustermap.svg'.format(pltsavedir), format='svg')
+    plt.clf()
+    
+    return
 
     for m in range(len(linkage)):
         # merging clusters one at a time
@@ -448,16 +462,7 @@ def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
             corrected_loci_1, corrected_loci_2, pltsavedir+"/"+str(num_labels-(m+1))+'_labels', 
             general=False, num_bins=20, merge_cc_curves=False, full_report=False)
     
-    c_grid = sns.clustermap(
-        distance_matrix, row_linkage=linkage, 
-        col_linkage=linkage, annot=True)
-
-    if os.path.exists(pltsavedir+'/post_clustering/')==False:
-        os.mkdir(pltsavedir+'/post_clustering/')
-
-    plt.savefig('{}/post_clustering/clustermap.pdf'.format(pltsavedir), format='pdf')
-    plt.savefig('{}/post_clustering/clustermap.svg'.format(pltsavedir), format='svg')
-    plt.clf()
+    
 
 
 """when running the whole script from start to end to generate (and reproduce) results
