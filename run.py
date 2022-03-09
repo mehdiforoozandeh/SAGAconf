@@ -119,7 +119,7 @@ def gather_replicates(celltype_dir):
         rep1_biosampleID = lines[0][5:-1]
         rep2_biosampleID = lines[1][5:]
 
-    print("rep1_biosampleID:\t{}\nrep2_biosampleID:\t{}\n".format(rep1_biosampleID, rep2_biosampleID))
+    # print("rep1_biosampleID:\t{}\nrep2_biosampleID:\t{}\n".format(rep1_biosampleID, rep2_biosampleID))
     nav_rep1_seg = {}
     nav_rep2_seg = {}
 
@@ -545,6 +545,8 @@ if __name__=="__main__":
             segway_dir+ct+"_rep1/parsed_posterior.csv",
             segway_dir+ct+"_rep2/parsed_posterior.csv")
 
+        print('loaded and intersected parsed posteriors for {}'.format(ct))
+        print('starting reproducibility evaluation for {}'.format(ct))
         """EVALUATE REPRODUCIBILITY"""
         post_clustering(loci_1, loci_2, res_dir+ct, OE_transform=True)
 
