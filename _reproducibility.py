@@ -14,24 +14,23 @@ class Agreement(object):
             loci_2 = loci_2.dropna()
             loci_2 = loci_2.reset_index(drop=True)
 
-
+        self.epsilon = 1e-3
         self.loci_1 = loci_1
         self.loci_2 = loci_2
         self.savedir = savedir
         self.num_labels = len(self.loci_1.columns)-3
 
-        self.max_posteri1 = self.loci_1.loc[\
-            :, ['posterior'+str(x) for x in range(self.num_labels)]].idxmax(axis=1)
-        self.max_posteri2 = self.loci_2.loc[\
-            :, ['posterior'+str(x) for x in range(self.num_labels)]].idxmax(axis=1)
+        self.max_posteri1 = self.loci_1.iloc[:, 3:].idxmax(axis=1)
+        self.max_posteri2 = self.loci_2.iloc[:, 3:].idxmax(axis=1)
+
         
         self.expected_agreement = 1 / float(self.num_labels)
 
     def per_label_agreement(self):
         label_dict = {}
 
-        for c in range(self.num_labels):
-            label_dict['posterior'+str(c)] = [0, 0] # [agreement_count, disagreement_count]
+        for c in self.loci_1.columns:
+            label_dict[c] = [0, 0] # [agreement_count, disagreement_count]
 
         for i in range(self.loci_1.shape[0]):
 
@@ -62,18 +61,18 @@ class Agreement(object):
         self.label_OE = {}
         for k in self.label_agreements.keys():
             if log_transform:
-                self.label_OE[k] = np.log(self.label_agreements[k] / self.expected_agreement)
+                self.label_OE[k] = np.log(self.label_agreements[k] / (self.expected_agreement+ self.epsilon))
             else:
-                self.label_OE[k] = self.label_agreements[k] / self.expected_agreement
+                self.label_OE[k] = self.label_agreements[k] / (self.expected_agreement+ self.epsilon)
 
         return self.label_OE
 
     def general_OE_ratio(self, log_transform=True):
         if log_transform:
-            self.overall_OE = np.log(self.overall_agreement/self.expected_agreement)
+            self.overall_OE = np.log(self.overall_agreement/(self.expected_agreement+ self.epsilon))
             return 
         else:
-            self.overall_OE =  self.overall_agreement/self.expected_agreement
+            self.overall_OE =  self.overall_agreement/(self.expected_agreement+ self.epsilon)
 
         return self.overall_OE  
 
@@ -82,13 +81,13 @@ class Agreement(object):
 
         for k in self.label_agreements.keys():
             self.label_CK[k] = \
-                (self.label_agreements[k] - self.expected_agreement) / (1 - self.expected_agreement)
+                (self.label_agreements[k] - self.expected_agreement) / (1 - (self.expected_agreement+ self.epsilon))
         
         return self.label_CK
 
     def general_cohens_kappa(self):
         self.overall_CK = \
-            (self.overall_agreement - self.expected_agreement) / (1 - self.expected_agreement)
+            (self.overall_agreement - self.expected_agreement) / (1 - (self.expected_agreement+ self.epsilon))
         return self.overall_CK
     
     def plot_agreement(self):
@@ -168,8 +167,8 @@ class Reprodroducibility_vs_posterior(object):
         self.num_labels = len(self.loci_1.columns)-3
         self.log_transform = log_transform
 
-        self.post_mat_1 = self.loci_1.loc[:, ['posterior'+str(x) for x in range(self.num_labels)]]
-        self.post_mat_2 = self.loci_2.loc[:, ['posterior'+str(x) for x in range(self.num_labels)]]
+        self.post_mat_1 = self.loci_1.iloc[:, 3:]
+        self.post_mat_2 = self.loci_2.iloc[:, 3:]
 
         if ignore_overconf:
             max_posteri1 = self.post_mat_1.max(axis=1)
@@ -215,7 +214,7 @@ class Reprodroducibility_vs_posterior(object):
                         if bins[b][0] <= posterior_vector_1[i] <= bins[b][1]:
                             bins[b][2] += 1
 
-                            if 'posterior'+str(k) == self.MAPestimate2[i]:
+                            if self.post_mat_1.columns[k] == self.MAPestimate2[i]:
                                 bins[b][3] += 1
                             else:
                                 bins[b][4] += 1
@@ -263,7 +262,7 @@ class Reprodroducibility_vs_posterior(object):
                     if bins[b][0] <= self.post_mat_1.iloc[i, k] <= bins[b][1]:
                         bins[b][2] += 1
 
-                        if 'posterior'+str(k) == self.MAPestimate2[i]:
+                        if self.post_mat_1.columns[k] == self.MAPestimate2[i]:
                             bins[b][3] += 1
                         else:
                             bins[b][4] += 1
@@ -311,15 +310,15 @@ class correspondence_curve(object):
         self.savedir = savedir
         self.num_labels = len(self.loci_1.columns)-3
 
-        MAPestimate1 = self.loci_1.loc[\
-            :, ['posterior'+str(x) for x in range(self.num_labels)]].idxmax(axis=1)
-        MAPestimate2 = self.loci_2.loc[\
-            :, ['posterior'+str(x) for x in range(self.num_labels)]].idxmax(axis=1)
+        MAPestimate1 = self.loci_1.iloc[\
+            :, 3:].idxmax(axis=1)
+        MAPestimate2 = self.loci_2.iloc[\
+            :, 3:].idxmax(axis=1)
 
-        max_poster1 = self.loci_1.loc[\
-            :, ['posterior'+str(x) for x in range(self.num_labels)]].max(axis=1)
-        max_poster2 = self.loci_2.loc[\
-            :, ['posterior'+str(x) for x in range(self.num_labels)]].max(axis=1)
+        max_poster1 = self.loci_1.iloc[\
+            :, 3:].max(axis=1)
+        max_poster2 = self.loci_2.iloc[\
+            :, 3:].max(axis=1)
 
         self.annot_1 = []
         for i in range(loci_1.shape[0]):
@@ -348,9 +347,10 @@ class correspondence_curve(object):
     def psi(self, t, per_label=True):
         if per_label:
             perlabel_psi = {}
-            for k in range(self.num_labels):
-                k_sorted_loci_1 = self.loci_1.sort_values(by=['posterior'+str(k)], axis=0, ascending=False).reset_index()
-                k_sorted_loci_2 = self.loci_2.sort_values(by=['posterior'+str(k)], axis=0, ascending=False).reset_index()
+            post_cols = list(self.loci_1.columns)[3:]
+            for k in post_cols:
+                k_sorted_loci_1 = self.loci_1.sort_values(by=[k], axis=0, ascending=False).reset_index()
+                k_sorted_loci_2 = self.loci_2.sort_values(by=[k], axis=0, ascending=False).reset_index()
 
                 sigma = 0
                 upper_tn_1 = set(k_sorted_loci_1.loc[:int(t*len(self.loci_1)), 'index'])
@@ -360,7 +360,7 @@ class correspondence_curve(object):
                     if i in upper_tn_2:
                         sigma +=1
                 
-                perlabel_psi['posterior'+str(k)] = float(sigma) / len(self.loci_1)
+                perlabel_psi[k] = float(sigma) / len(self.loci_1)
             return perlabel_psi
 
         else:
@@ -381,8 +381,9 @@ class correspondence_curve(object):
     def plot_curve(self, num_t_steps=100, plot_labels=True, plot_general=True, merge_plots=False):
         self.psi_over_t = {}
         if plot_labels:
-            for k in range(self.num_labels):
-                self.psi_over_t['posterior'+str(k)] = []
+            post_cols = list(self.loci_1.columns)[3:]
+            for k in post_cols:
+                self.psi_over_t[k] = []
 
             for t in range(0, num_t_steps + 1):
                 t = float(t)/num_t_steps
@@ -446,7 +447,7 @@ class sankey(object):
         self.savedir = savedir
 
     def sankey_diag(self):
-        confmat = confusion_matrix(self.loci_1, self.loci_2, self.num_labels)
+        confmat = confusion_matrix(self.loci_1, self.loci_2, self.num_labels, OE_transform=False)
         label_1 = [i.replace('posterior','replicate1_label') for i in confmat.columns]
         label_2 = [i.replace('posterior','replicate2_label') for i in confmat.columns]
         label = label_1 + label_2

@@ -15,11 +15,10 @@ from scipy.spatial.distance import pdist
 
 
 def find_max_posteri(loci):
-    loci_posteri =  loci.iloc[:, 3:]
-    for lpc in loci_posteri.columns:
-        loci_posteri[lpc] = loci_posteri[lpc].astype('float')
+    # loci_posteri =  loci.iloc[:, 3:]
+    loci.iloc[:, 3:] = loci.iloc[:, 3:].astype('float')
 
-    max_posteri = loci_posteri.idxmax(axis=1)
+    max_posteri =  loci.iloc[:, 3:].idxmax(axis=1)
     return max_posteri
 
 def make_symmetric_matrix(matrix0):
@@ -51,46 +50,42 @@ def make_symmetric_matrix(matrix0):
 
 
 def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, symmetric=False):
+    print('finding MAPs')
     num_labels = int(num_labels)
     max_1posteri = find_max_posteri(loci_1)
     max_2posteri = find_max_posteri(loci_2)
 
-    observed_overlap = pd.DataFrame(
-        np.zeros((int(num_labels), int(num_labels))),
-        columns=['posterior{}'.format(i) for i in range(num_labels)],
-        index=['posterior{}'.format(i) for i in range(num_labels)]
-    )
+    observed_overlap = np.zeros((num_labels, num_labels))
+    expected_overlap = np.zeros((num_labels, num_labels))
 
+    r1_label_bin_count = {}
+    r2_label_bin_count = {}
+    
+    '''
+    expected overlap of label x = fraction of genome with label x 
+    in rep1 * fraction of genome with label x in rep2
+    '''
+    for i in range(num_labels):
+        r1_label_bin_count["posterior{}".format(i)] = 0
+        r2_label_bin_count["posterior{}".format(i)] = 0
+
+    print('creating observed and expected matrix')
     for i in range(len(loci_1)):
         try:
-            observed_overlap.loc[max_1posteri[i], max_2posteri[i]] += 1
+            r1_label_bin_count[max_1posteri[i]] += 1
+            r2_label_bin_count[max_2posteri[i]] += 1
+            observed_overlap[int(max_1posteri[i].replace("posterior","")), int(max_2posteri[i].replace("posterior",""))] += 1
         except:
             pass
     
+    observed_overlap = pd.DataFrame(observed_overlap,
+        columns=['posterior{}'.format(i) for i in range(num_labels)],
+        index=['posterior{}'.format(i) for i in range(num_labels)])
+
     if OE_transform:
         epsilon = 1e-3
-        expected_overlap = np.zeros((num_labels, num_labels))
         
-        r1_label_bin_count = {}
-        r2_label_bin_count = {}
-        
-        '''
-        expected overlap of label x = fraction of genome with label x 
-        in rep1 * fraction of genome with label x in rep2
-        '''
-        for i in range(num_labels):
-            r1_label_bin_count["posterior{}".format(i)] = 0
-            r2_label_bin_count["posterior{}".format(i)] = 0
-
-        for i in range(len(loci_1)):
-            if str(max_1posteri[i]) == 'nan':
-                continue
-            else:
-                r1_label_bin_count[max_1posteri[i]] += 1
-                r2_label_bin_count[max_2posteri[i]] += 1
-
         # calculate ratio of coverage for each label
-
         for k, v in r1_label_bin_count.items():
             r1_label_bin_count[k] = float(v) /  loci_1.shape[0]
 
@@ -108,6 +103,7 @@ def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, symmetric=Fa
             index=['posterior'+str(i)for i in range(num_labels)])
 
         if symmetric:
+            print('creating symmetric matrix')
             # print('OO_0\n', observed_overlap)
             observed_overlap = make_symmetric_matrix(observed_overlap)
             # print('OO_1\n', observed_overlap)

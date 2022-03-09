@@ -337,7 +337,7 @@ def get_biological_mnemonics(results_directory, segway=True):
     - get mnemonics and move back to segway's output directory'''
     pass
 
-def report_reproducibility(loci_1, loci_2, pltsavedir, general=True, num_bins=20, merge_cc_curves=False):
+def report_reproducibility(loci_1, loci_2, pltsavedir, general=True, num_bins=20, merge_cc_curves=False, full_report=True):
     '''
     TODO:
     1- instead of showing the plot, savefig (vector)
@@ -350,52 +350,71 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, general=True, num_bins=20
     if os.path.exists(pltsavedir+"/agreement")==False:
         os.mkdir(pltsavedir+"/agreement")
 
-    if os.path.exists(pltsavedir+"/cc")==False:
-        os.mkdir(pltsavedir+"/cc")
-
-    if os.path.exists(pltsavedir+"/calib")==False:
-        os.mkdir(pltsavedir+"/calib")
-
     if os.path.exists(pltsavedir+"/sankey")==False:
         os.mkdir(pltsavedir+"/sankey")
 
-    agr = Agreement(loci_1, loci_2, pltsavedir+"/agreement")
-    cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
-    repr = Reprodroducibility_vs_posterior(loci_1,loci_2, pltsavedir+"/calib",log_transform=False)
-    vis = sankey(loci_1, loci_2, pltsavedir+"/sankey")
+    try:
+        agr = Agreement(loci_1, loci_2, pltsavedir+"/agreement")
+        vis = sankey(loci_1, loci_2, pltsavedir+"/sankey")
 
-    print('general agreement:    ', agr.general_agreement())
-    print('general o/e ratio:    ', agr.general_OE_ratio(log_transform=False))
-    print('general CK:    ', agr.general_cohens_kappa())
+        print('general agreement:    ', agr.general_agreement())
+        print('general o/e ratio:    ', agr.general_OE_ratio(log_transform=False))
+        print('general CK:    ', agr.general_cohens_kappa())
 
-    agr.plot_agreement()
-    agr.plot_CK()
-    agr.plot_OE()
-    cc.plot_curve(plot_general=general, merge_plots=merge_cc_curves)
-    vis.sankey_diag()
-    repr.per_label_count_independent(num_bins=num_bins)
+        agr.plot_agreement()
+        agr.plot_CK()
+        agr.plot_OE()
+        vis.sankey_diag()
 
-    if general:
-        repr.general_count_independent(num_bins=num_bins)
+        if full_report:
+            if os.path.exists(pltsavedir+"/cc")==False:
+                os.mkdir(pltsavedir+"/cc")
+
+            if os.path.exists(pltsavedir+"/calib")==False:
+                os.mkdir(pltsavedir+"/calib")
+
+            cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
+            repr = Reprodroducibility_vs_posterior(loci_1,loci_2, pltsavedir+"/calib",log_transform=False)
+
+            cc.plot_curve(plot_general=general, merge_plots=merge_cc_curves)
+            repr.per_label_count_independent(num_bins=num_bins)
+
+            if general:
+                repr.general_count_independent(num_bins=num_bins)
+        
+    except:
+        print('skipped eval')
 
 
 def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
     num_labels = loci_1.shape[1]-3
 
+    print('generating confmat 1')
+    
     conf_mat = confusion_matrix(
         loci_1, loci_2, num_labels, 
         OE_transform=True, symmetric=False)
+    
+    print('generated confmat 1')
 
     assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
 
+    print('connecting barpartite')
+
     corrected_loci_1, corrected_loci_2 = \
         connect_bipartite(loci_1, loci_2, assignment_pairs)
+    
+    print('connected barpartite')
 
     del loci_1, loci_2
+
+    print('generating confmat 2')
     conf_mat = confusion_matrix(
         corrected_loci_1, corrected_loci_2, num_labels, 
         OE_transform=OE_transform, symmetric=True)  
-    
+
+    print('generated confmat 1')
+
     mat_max = conf_mat.max(axis=1).max(axis=0)
     mat_min = conf_mat.min(axis=1).min(axis=0)
 
@@ -403,21 +422,21 @@ def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
     distance_matrix = 1 - conf_mat
     linkage = hc.linkage(distance_matrix, method='average')
 
-    c_grid = sns.clustermap(
-        distance_matrix, row_linkage=linkage, 
-        col_linkage=linkage, annot=True)
-
     if os.path.exists(pltsavedir)==False:
         os.mkdir(pltsavedir)
 
     if os.path.exists(pltsavedir+'/post_clustering/')==False:
         os.mkdir(pltsavedir+'/post_clustering/')
 
-    plt.savefig('{}/post_clustering/clustermap.pdf'.format(pltsavedir), format='pdf')
-    plt.savefig('{}/post_clustering/clustermap.svg'.format(pltsavedir), format='svg')
-    plt.clf()
+    # initial reproducibility without cluster merging
+    if os.path.exists(pltsavedir+"/{}_labels".format(num_labels)) == False:
+            os.mkdir(pltsavedir+"/{}_labels".format(num_labels))
+    report_reproducibility(
+            corrected_loci_1, corrected_loci_2, pltsavedir+"/{}_labels".format(num_labels), 
+            general=False, num_bins=20, merge_cc_curves=False)
 
     for m in range(len(linkage)):
+        # merging clusters one at a time
         to_be_merged = [
             "posterior{}".format(int(linkage[m, 0])), 
             "posterior{}".format(int(linkage[m, 1]))]
@@ -432,9 +451,20 @@ def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
 
         corrected_loci_2 = corrected_loci_2.drop(to_be_merged, axis=1)
 
+        if os.path.exists(pltsavedir+"/"+str(num_labels-(m+1))+'_labels') == False:
+            os.mkdir(pltsavedir+"/"+str(num_labels-(m+1))+'_labels')
+
         report_reproducibility(
-            corrected_loci_1, corrected_loci_2, pltsavedir, 
-            general=True, num_bins=20, merge_cc_curves=False)
+            corrected_loci_1, corrected_loci_2, pltsavedir+"/"+str(num_labels-(m+1))+'_labels', 
+            general=False, num_bins=20, merge_cc_curves=False, full_report=False)
+    
+    c_grid = sns.clustermap(
+        distance_matrix, row_linkage=linkage, 
+        col_linkage=linkage, annot=True)
+
+    plt.savefig('{}/post_clustering/clustermap.pdf'.format(pltsavedir), format='pdf')
+    plt.savefig('{}/post_clustering/clustermap.svg'.format(pltsavedir), format='svg')
+    plt.clf()
 
 
 """when running the whole script from start to end to generate (and reproduce) results
@@ -546,11 +576,12 @@ if __name__=="__main__":
             segway_dir+ct+"_rep1/parsed_posterior.csv",
             segway_dir+ct+"_rep2/parsed_posterior.csv")
 
+        loci_1 = loci_1.iloc[500000:1000000, :].reset_index(drop=True)
+        loci_2 = loci_2.iloc[500000:1000000, :].reset_index(drop=True)
         print('loaded and intersected parsed posteriors for {}'.format(ct))
         print('starting reproducibility evaluation for {}'.format(ct))
         """EVALUATE REPRODUCIBILITY"""
         post_clustering(loci_1, loci_2, res_dir+ct, OE_transform=True)
-
 
     # Run segway param-init test     MP
 
