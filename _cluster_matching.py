@@ -108,12 +108,12 @@ def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, symmetric=Fa
             index=['posterior'+str(i)for i in range(num_labels)])
 
         if symmetric:
-            print('OO_0\n', observed_overlap)
+            # print('OO_0\n', observed_overlap)
             observed_overlap = make_symmetric_matrix(observed_overlap)
-            print('OO_1\n', observed_overlap)
-            print('EO_0\n', expected_overlap)
+            # print('OO_1\n', observed_overlap)
+            # print('EO_0\n', expected_overlap)
             expected_overlap = make_symmetric_matrix(expected_overlap)
-            print('EO_1\n', expected_overlap)
+            # print('EO_1\n', expected_overlap)
             
         oe_overlap = (observed_overlap + epsilon) / (expected_overlap + epsilon)
         oe_overlap = np.log(oe_overlap)

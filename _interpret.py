@@ -1,7 +1,6 @@
 import requests, os
 
 def gtf_file(gtf_filename = 'label_interpretation/gencode.v29.primary_assembly.annotation_UCSC_names.gtf'): 
-
     if not os.path.isfile(gtf_filename):
         url='https://www.encodeproject.org/files/\
         gencode.v29.primary_assembly.annotation_UCSC_names/\

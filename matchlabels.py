@@ -183,17 +183,17 @@ def cluster_matching(rep_dir_1, rep_dir_2, n_clust, matching_strategy='distance_
 
     return corrected_loci_1, corrected_loci_2
 
-def update_matrix_pnemonics(matrix, pnemonics):
+def update_matrix_mnemonics(matrix, mnemonics):
     '''
-    matrix should be nxn. and len(pnemonics) = n
+    matrix should be nxn. and len(mnemonics) = n
     '''
     new_mat = matrix
-    new_mat.columns = pnemonics
-    new_mat.index = pnemonics
+    new_mat.columns = mnemonics
+    new_mat.index = mnemonics
     return new_mat
 
 def order_based_clustering(
-    rep_dir_1, rep_dir_2, OE_transform=True, plot=True, branching_order_merge=False):
+    rep_dir_1, rep_dir_2, OE_transform=True, plot=False, branching_order_merge=False):
     '''
     read posterior
     create cooccurence matrix based on overlap (OE transformed ?)
@@ -243,11 +243,10 @@ def order_based_clustering(
 
     if plot:
         coocurence_matrix_heatmap(
-            update_matrix_pnemonics(confusion_matrix(
+            update_matrix_mnemonics(confusion_matrix(
             corrected_loci_1, corrected_loci_2, num_labels, 
             OE_transform=True, symmetric=False)
             , pnem), 'log(O/E) - matched')
-        exit()
 
     # new matched confusion matrix of overlaps
     conf_mat = confusion_matrix(
@@ -257,7 +256,7 @@ def order_based_clustering(
     print(conf_mat)
     if plot:
         coocurence_matrix_heatmap(
-            update_matrix_pnemonics(conf_mat, pnem), 'log(O/E) - matched - symmetric')
+            update_matrix_mnemonics(conf_mat, pnem), 'log(O/E) - matched - symmetric')
     
     mat_max = conf_mat.max(axis=1).max(axis=0)
     mat_min = conf_mat.min(axis=1).min(axis=0)
@@ -267,13 +266,13 @@ def order_based_clustering(
     
     if plot:
         coocurence_matrix_heatmap(
-            update_matrix_pnemonics(conf_mat, pnem), 'log(O/E) - matched - scaled- symmetric')
+            update_matrix_mnemonics(conf_mat, pnem), 'log(O/E) - matched - scaled- symmetric')
 
     distance_matrix = 1 - conf_mat
 
     if plot:
         coocurence_matrix_heatmap(
-            update_matrix_pnemonics(distance_matrix, pnem), 'distance_matrix - symmetric')
+            update_matrix_mnemonics(distance_matrix, pnem), 'distance_matrix - symmetric')
 
     # generate linkage matrix to be used for clustering and creating dendograms
     linkage = hc.linkage(distance_matrix, method='average')
@@ -282,12 +281,11 @@ def order_based_clustering(
     # update distance matrix pnemonics for visualization
 
     c_grid = sns.clustermap(
-        update_matrix_pnemonics(distance_matrix, pnem), 
+        update_matrix_mnemonics(distance_matrix, pnem), 
         row_linkage=linkage, col_linkage=linkage, annot=True)
-
+    
     print(linkage)
-    if plot:
-        plt.show()
+    plt.show()
 
     record = {
         'new_clust_address':[], 'linkage':linkage,
@@ -402,7 +400,7 @@ def order_based_clustering(
         plt.ylabel('Match Rate')
         plt.show()
 
-    return record    
+    return record
 
 if __name__=="__main__":
     order_based_clustering('tests/rep1', 'tests/rep2')

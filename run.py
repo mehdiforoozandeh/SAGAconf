@@ -304,6 +304,29 @@ def RunParse_segway_concat():
     parse posterior2
     '''
 
+def intersect_parsed_posteriors(parsed_df_dir_1, parsed_df_dir_2):
+    intersect = pd.merge(
+        pd.read_csv(parsed_df_dir_1).drop("Unnamed: 0", axis=1), 
+        pd.read_csv(parsed_df_dir_2).drop("Unnamed: 0", axis=1), 
+        how='inner', on=['chr', 'start', 'end'])
+
+    df1 = [intersect.chr, intersect.start, intersect.end]
+    df2 = [intersect.chr, intersect.start, intersect.end]
+
+    for c in intersect.columns:
+        if c[-1] == 'x':
+            df1.append(intersect[c])
+        elif c[-1] == 'y':
+            df2.append(intersect[c])
+
+    df1 = pd.concat(df1, axis=1)
+    df1.columns = [c.replace("_x", "") for c in df1.columns]
+    
+    df2 = pd.concat(df2, axis=1)
+    df2.columns = [c.replace("_y", "") for c in df2.columns]
+
+    return df1, df2
+
 def get_biological_mnemonics(results_directory, segway=True):
     '''
     - run segtools signal-distribution in the segway's output directory and 
@@ -311,7 +334,7 @@ def get_biological_mnemonics(results_directory, segway=True):
     - run segtools feature-aggregation in label_interpretation/segwayOutput/*
     - move the corresponding trackname_assays.txt
     - run apply_samples.py
-    - get pnemonics and move bach to segway's output directory'''
+    - get mnemonics and move back to segway's output directory'''
     pass
 
 def report_reproducibility(loci_1, loci_2, pltsavedir, general=True, num_bins=20, merge_cc_curves=False):
@@ -356,19 +379,62 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, general=True, num_bins=20
         repr.general_count_independent(num_bins=num_bins)
 
 
-def matching_clustering(seg_results_directory_1, seg_results_directory_2, cluster=True, concat=False):
-    '''
-    provides options to simply match labels (without clustering)
+def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
+    num_labels = loci_1.shape[1]-3
 
-    OR
+    conf_mat = confusion_matrix(
+        loci_1, loci_2, num_labels, 
+        OE_transform=True, symmetric=False)
 
-    order-based hierarchical cluster matching.
+    assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
 
-    if concatenated:
-        no matching
-        just clustering
-    '''
-    pass
+    corrected_loci_1, corrected_loci_2 = \
+        connect_bipartite(loci_1, loci_2, assignment_pairs)
+
+    conf_mat = confusion_matrix(
+        corrected_loci_1, corrected_loci_2, num_labels, 
+        OE_transform=OE_transform, symmetric=True)  
+    
+    mat_max = conf_mat.max(axis=1).max(axis=0)
+    mat_min = conf_mat.min(axis=1).min(axis=0)
+
+    conf_mat = (conf_mat - mat_min) / (mat_max - mat_min)
+    distance_matrix = 1 - conf_mat
+    linkage = hc.linkage(distance_matrix, method='average')
+
+    c_grid = sns.clustermap(
+        distance_matrix, row_linkage=linkage, 
+        col_linkage=linkage, annot=True)
+
+    if os.path.exists(pltsavedir)==False:
+        os.mkdir(pltsavedir)
+
+    if os.path.exists(pltsavedir+'/post_clustering/')==False:
+        os.mkdir(pltsavedir+'/post_clustering/')
+
+    plt.savefig('{}/post_clustering/clustermap.pdf'.format(pltsavedir), format='pdf')
+    plt.savefig('{}/post_clustering/clustermap.svg'.format(pltsavedir), format='svg')
+    plt.clf()
+
+    for m in range(len(linkage)):
+        to_be_merged = [
+            "posterior{}".format(int(linkage[m, 0])), 
+            "posterior{}".format(int(linkage[m, 1]))]
+
+        corrected_loci_1['posterior{}'.format(num_labels + m)] = \
+            corrected_loci_1[to_be_merged[0]] + corrected_loci_1[to_be_merged[1]]
+
+        corrected_loci_1 = corrected_loci_1.drop(to_be_merged, axis=1)
+
+        corrected_loci_2['posterior{}'.format(num_labels + m)] = \
+            corrected_loci_2[to_be_merged[0]] + corrected_loci_2[to_be_merged[1]]
+
+        corrected_loci_2 = corrected_loci_2.drop(to_be_merged, axis=1)
+
+        report_reproducibility(
+            corrected_loci_1, corrected_loci_2, pltsavedir, 
+            general=True, num_bins=20, merge_cc_curves=False)
+
 
 """when running the whole script from start to end to generate (and reproduce) results
 remember to put label interpretation in try blocks (skippable) to prevent any kind of
@@ -382,6 +448,10 @@ if __name__=="__main__":
 
     download_dir = 'files/'
     segway_dir = 'segway_runs/'
+    res_dir = 'reprod_results/'
+
+    if os.path.exists(res_dir) == False:
+        os.mkdir(res_dir)
 
     print('list of target celltypes', CellType_list)
     existing_data = np.array(check_if_data_exists(CellType_list, download_dir))
@@ -460,43 +530,53 @@ if __name__=="__main__":
         d for d in os.listdir(segway_dir) if os.path.isdir(segway_dir+'/'+d)]
     print(list_of_seg_runs)
     for d in list_of_seg_runs:
-        print('     -Checking for {}  ...'.format(segway_dir+'/'+d+'/parsed_posterior.csv'))
+        print('-Checking for {}  ...'.format(segway_dir+'/'+d+'/parsed_posterior.csv'))
 
         if os.path.exists(segway_dir+'/'+d+'/parsed_posterior.csv') == False:
             parse_posterior_results(segway_dir+'/'+d, 100, mp=False)
 
         else:
-            print('     -Exists!')
+            print('-Exists!')
 
     print('All parsed!')
+
+    for ct in CellType_list:
+        loci_1, loci_2 = intersect_parsed_posteriors(
+            segway_dir+ct+"_rep1/parsed_posterior.csv",
+            segway_dir+ct+"_rep2/parsed_posterior.csv")
+
+        """EVALUATE REPRODUCIBILITY"""
+        post_clustering(loci_1, loci_2, res_dir+ct, OE_transform=True)
+
 
     # Run segway param-init test     MP
-    partial_runs_ii = partial(
-        RunParse_segway_param_init, 
-        replicate_number = 'rep1', output_dir=segway_dir, random_seeds=[7, 5])
 
-    p_obj = mp.Pool(len(CellType_list))
-    p_obj.map(partial_runs_ii, [download_dir+ct for ct in CellType_list])
+    # partial_runs_ii = partial(
+    #     RunParse_segway_param_init, 
+    #     replicate_number = 'rep1', output_dir=segway_dir, random_seeds=[7, 5])
 
-    partial_runs_iii = partial(
-        RunParse_segway_param_init, replicate_number = 'rep2', output_dir=segway_dir, 
-        sizes_file=download_dir+"hg38.chrom.sizes", random_seeds=[7, 5])
+    # p_obj = mp.Pool(len(CellType_list))
+    # p_obj.map(partial_runs_ii, [download_dir+ct for ct in CellType_list])
+
+    # partial_runs_iii = partial(
+    #     RunParse_segway_param_init, replicate_number = 'rep2', output_dir=segway_dir, 
+    #     sizes_file=download_dir+"hg38.chrom.sizes", random_seeds=[7, 5])
         
-    p_obj = mp.Pool(len(CellType_list))
-    p_obj.map(partial_runs_iii, [download_dir+ct for ct in CellType_list])
+    # p_obj = mp.Pool(len(CellType_list))
+    # p_obj.map(partial_runs_iii, [download_dir+ct for ct in CellType_list])
 
-    # parse_posteriors 
-    print('Checking for unparsed posteriors...')
-    list_of_seg_runs = [
-        d for d in os.listdir(segway_dir) if os.path.isdir(segway_dir+'/'+d)]
-    print(list_of_seg_runs)
-    for d in list_of_seg_runs:
-        print('     -Checking for {}  ...'.format(segway_dir+'/'+d+'/parsed_posterior.csv'))
+    # # parse_posteriors 
+    # print('Checking for unparsed posteriors...')
+    # list_of_seg_runs = [
+    #     d for d in os.listdir(segway_dir) if os.path.isdir(segway_dir+'/'+d)]
+    # print(list_of_seg_runs)
+    # for d in list_of_seg_runs:
+    #     print('-Checking for {}  ...'.format(segway_dir+'/'+d+'/parsed_posterior.csv'))
 
-        if os.path.exists(segway_dir+'/'+d+'/parsed_posterior.csv') == False:
-            parse_posterior_results(segway_dir+'/'+d, 100, mp=False)
+    #     if os.path.exists(segway_dir+'/'+d+'/parsed_posterior.csv') == False:
+    #         parse_posterior_results(segway_dir+'/'+d, 100, mp=False)
 
-        else:
-            print('     -Exists!')
+    #     else:
+    #         print('-Exists!')
 
-    print('All parsed!')
+    # print('All parsed!')
