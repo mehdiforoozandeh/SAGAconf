@@ -391,6 +391,7 @@ def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
     corrected_loci_1, corrected_loci_2 = \
         connect_bipartite(loci_1, loci_2, assignment_pairs)
 
+    del loci_1, loci_2
     conf_mat = confusion_matrix(
         corrected_loci_1, corrected_loci_2, num_labels, 
         OE_transform=OE_transform, symmetric=True)  
