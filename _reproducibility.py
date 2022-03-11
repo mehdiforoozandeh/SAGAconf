@@ -98,14 +98,12 @@ class Agreement(object):
         return self.overall_CK
     
     def plot_agreement(self):
-        self.per_label_agreement()
         x = []
         height = []
         for k, v in self.label_agreements.items():
             x.append(k.replace('posterior', 'label'))
             height.append(v)
         
-        self.general_agreement()
         x.append('Overall')
         height.append(self.overall_agreement)
         plt.bar(x, height, width=0.4, color='black', alpha=0.5)
@@ -213,7 +211,9 @@ class Reprodroducibility_vs_posterior(object):
                 bin_length = (float(np.max(posterior_vector_1)) - float(np.min(posterior_vector_1))) / num_bins
                 for j in range(int(np.min(posterior_vector_1)*1000), int(np.max(posterior_vector_1)*1000), int(bin_length*1000)):
                     bins.append([float(j/1000), float(j/1000) + int(bin_length*1000)/1000, 0, 0, 0, 0, 0])
-                    # [bin_start, bin_end, num_values_in_bin, num_agreement_in_bin, num_mislabeled, ratio_correctly_labeled, ratio_mislabeled]
+                    
+                    # [bin_start, bin_end, num_values_in_bin, num_agreement_in_bin, num_mislabeled, 
+                    # ratio_correctly_labeled, ratio_mislabeled]
                 
                 for b in range(len(bins)):
                     

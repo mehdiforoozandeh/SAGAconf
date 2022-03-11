@@ -359,9 +359,9 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, general=True, num_bins=20
     to_report = [
         agr.general_agreement(), agr.general_OE_ratio(log_transform=False), agr.general_cohens_kappa()]
 
-    print('general agreement:    ', agr.general_agreement())
-    print('general o/e ratio:    ', agr.general_OE_ratio(log_transform=False))
-    print('general CK:    ', agr.general_cohens_kappa())
+    print('general agreement:    ', to_report[0])
+    print('general o/e ratio:    ', to_report[1])
+    print('general CK:    ', to_report[2])
 
     agr.plot_agreement()
     agr.plot_CK()
@@ -618,8 +618,8 @@ if __name__=="__main__":
             segway_dir+ct+"_rep1/parsed_posterior.csv",
             segway_dir+ct+"_rep2/parsed_posterior.csv")
 
-        loci_1 = loci_1.iloc[list(range(0, len(loci_1), 5000)), :].reset_index(drop=True)
-        loci_2 = loci_2.iloc[list(range(0, len(loci_2), 5000)), :].reset_index(drop=True)
+        loci_1 = loci_1.iloc[list(range(0, len(loci_1), 500)), :].reset_index(drop=True)
+        loci_2 = loci_2.iloc[list(range(0, len(loci_2), 500)), :].reset_index(drop=True)
 
         print('loaded and intersected parsed posteriors for {}'.format(ct))
         print('starting reproducibility evaluation for {}'.format(ct))
