@@ -1,3 +1,4 @@
+from cmath import exp
 from math import log
 from traceback import print_tb
 from matplotlib import pyplot as plt
@@ -58,6 +59,7 @@ def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, symmetric=Fa
     observed_overlap = np.zeros((num_labels, num_labels))
     expected_overlap = np.zeros((num_labels, num_labels))
 
+    columnnames = list(loci_1.columns)[3:]
     r1_label_bin_count = {}
     r2_label_bin_count = {}
     
@@ -65,22 +67,22 @@ def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, symmetric=Fa
     expected overlap of label x = fraction of genome with label x 
     in rep1 * fraction of genome with label x in rep2
     '''
-    for i in range(num_labels):
-        r1_label_bin_count["posterior{}".format(i)] = 0
-        r2_label_bin_count["posterior{}".format(i)] = 0
+    for i in columnnames:
+        r1_label_bin_count[i] = 0
+        r2_label_bin_count[i] = 0
 
     print('creating observed and expected matrix')
     for i in range(len(loci_1)):
         try:
             r1_label_bin_count[max_1posteri[i]] += 1
             r2_label_bin_count[max_2posteri[i]] += 1
-            observed_overlap[int(max_1posteri[i].replace("posterior","")), int(max_2posteri[i].replace("posterior",""))] += 1
+            observed_overlap[columnnames.index(max_1posteri[i]), columnnames.index(max_2posteri[i])] += 1
         except:
             pass
     
     observed_overlap = pd.DataFrame(observed_overlap,
-        columns=['posterior{}'.format(i) for i in range(num_labels)],
-        index=['posterior{}'.format(i) for i in range(num_labels)])
+        columns=columnnames,
+        index=columnnames)
 
     if OE_transform:
         epsilon = 1e-3
@@ -92,15 +94,15 @@ def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, symmetric=Fa
         for k, v in r2_label_bin_count.items():
             r2_label_bin_count[k] = float(v) /  loci_2.shape[0]
 
-        for i in range(num_labels):
-            for j in range(num_labels):
+        for i in range(len(columnnames)):
+            for j in range(len(columnnames)):
 
-                expected_overlap[i, j] = (r1_label_bin_count['posterior'+str(i)] * r2_label_bin_count['posterior'+str(j)]) * loci_1.shape[0]
+                expected_overlap[i, j] = (r1_label_bin_count[columnnames[i]] * r2_label_bin_count[columnnames[j]]) * loci_1.shape[0]
 
         expected_overlap = pd.DataFrame(
             expected_overlap, 
-            columns=['posterior'+str(i)for i in range(num_labels)], 
-            index=['posterior'+str(i)for i in range(num_labels)])
+            columns=columnnames, 
+            index=columnnames)
 
         if symmetric:
             print('creating symmetric matrix')
@@ -113,7 +115,7 @@ def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, symmetric=Fa
             
         oe_overlap = (observed_overlap + epsilon) / (expected_overlap + epsilon)
         oe_overlap = np.log(oe_overlap)
-
+        
         return oe_overlap
 
     else:

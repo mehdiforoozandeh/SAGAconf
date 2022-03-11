@@ -352,42 +352,42 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, general=True, num_bins=20
 
     if os.path.exists(pltsavedir+"/sankey")==False:
         os.mkdir(pltsavedir+"/sankey")
-    try:   
-        agr = Agreement(loci_1, loci_2, pltsavedir+"/agreement")
-        vis = sankey(loci_1, loci_2, pltsavedir+"/sankey")
+    # try:   
+    agr = Agreement(loci_1, loci_2, pltsavedir+"/agreement")
+    vis = sankey(loci_1, loci_2, pltsavedir+"/sankey")
 
-        to_report = [
-            agr.general_agreement(), agr.general_OE_ratio(log_transform=False), agr.general_cohens_kappa()]
+    to_report = [
+        agr.general_agreement(), agr.general_OE_ratio(log_transform=False), agr.general_cohens_kappa()]
 
-        print('general agreement:    ', agr.general_agreement())
-        print('general o/e ratio:    ', agr.general_OE_ratio(log_transform=False))
-        print('general CK:    ', agr.general_cohens_kappa())
+    print('general agreement:    ', agr.general_agreement())
+    print('general o/e ratio:    ', agr.general_OE_ratio(log_transform=False))
+    print('general CK:    ', agr.general_cohens_kappa())
 
-        agr.plot_agreement()
-        agr.plot_CK()
-        agr.plot_OE()
-        vis.sankey_diag()
+    agr.plot_agreement()
+    agr.plot_CK()
+    agr.plot_OE()
+    vis.sankey_diag()
 
-        if full_report:
-            if os.path.exists(pltsavedir+"/cc")==False:
-                os.mkdir(pltsavedir+"/cc")
+    if full_report:
+        if os.path.exists(pltsavedir+"/cc")==False:
+            os.mkdir(pltsavedir+"/cc")
 
-            if os.path.exists(pltsavedir+"/calib")==False:
-                os.mkdir(pltsavedir+"/calib")
+        if os.path.exists(pltsavedir+"/calib")==False:
+            os.mkdir(pltsavedir+"/calib")
 
-            cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
-            repr = Reprodroducibility_vs_posterior(loci_1,loci_2, pltsavedir+"/calib",log_transform=False)
+        cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
+        repr = Reprodroducibility_vs_posterior(loci_1,loci_2, pltsavedir+"/calib",log_transform=False)
 
-            cc.plot_curve(plot_general=general, merge_plots=merge_cc_curves)
-            repr.per_label_count_independent(num_bins=num_bins)
+        cc.plot_curve(plot_general=general, merge_plots=merge_cc_curves)
+        repr.per_label_count_independent(num_bins=num_bins)
 
-            if general:
-                repr.general_count_independent(num_bins=num_bins)
+        if general:
+            repr.general_count_independent(num_bins=num_bins)
         
         return to_report
 
-    except:
-        return [0,0,0]
+    # except:
+    #     return [0,0,0]
 
 
 def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
@@ -452,6 +452,7 @@ def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
             "posterior{}".format(int(linkage[m, 0])), 
             "posterior{}".format(int(linkage[m, 1]))]
 
+        print("to be merged", to_be_merged)
         corrected_loci_1['posterior{}'.format(num_labels + m)] = \
             corrected_loci_1[to_be_merged[0]] + corrected_loci_1[to_be_merged[1]]
 
@@ -461,6 +462,8 @@ def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
             corrected_loci_2[to_be_merged[0]] + corrected_loci_2[to_be_merged[1]]
 
         corrected_loci_2 = corrected_loci_2.drop(to_be_merged, axis=1)
+
+        # print("merged loci_1", corrected_loci_1, "\nmerged loci_2", corrected_loci_2)
 
         if os.path.exists(pltsavedir+"/"+str(num_labels-(m+1))+'_labels') == False:
             os.mkdir(pltsavedir+"/"+str(num_labels-(m+1))+'_labels')
@@ -479,6 +482,30 @@ def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
     plt.ylabel('General Agreement')
     plt.savefig('{}/postclustering_agreement.svg'.format(pltsavedir), format='svg')
     plt.savefig('{}/postclustering_agreement.pdf'.format(pltsavedir), format='pdf')
+    plt.clf()
+    
+    xaxis, yaxis = [], []
+    for k, v in stepwise_report.items():
+        xaxis.append(k)
+        yaxis.append(v[1])
+
+    plt.bar(xaxis, yaxis)
+    plt.xlabel('Number of Labels')
+    plt.ylabel('O/E Agreement')
+    plt.savefig('{}/postclustering_oe_agreement.svg'.format(pltsavedir), format='svg')
+    plt.savefig('{}/postclustering_oe_agreement.pdf'.format(pltsavedir), format='pdf')
+    plt.clf()
+
+    xaxis, yaxis = [], []
+    for k, v in stepwise_report.items():
+        xaxis.append(k)
+        yaxis.append(v[2])
+
+    plt.bar(xaxis, yaxis)
+    plt.xlabel('Number of Labels')
+    plt.ylabel("Cohen's Kappa")
+    plt.savefig('{}/postclustering_ck.svg'.format(pltsavedir), format='svg')
+    plt.savefig('{}/postclustering_ck.pdf'.format(pltsavedir), format='pdf')
     plt.clf()
     return stepwise_report
 

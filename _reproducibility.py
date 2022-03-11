@@ -27,9 +27,11 @@ class Agreement(object):
 
     def per_label_agreement(self):
         label_dict = {}
+        label_coverage = {}
 
         for c in self.loci_1.columns[3:]:
             label_dict[c] = [0, 0] # [agreement_count, disagreement_count]
+            label_coverage[c] = 0
 
         for i in range(self.loci_1.shape[0]):
 
@@ -40,38 +42,44 @@ class Agreement(object):
                 label_dict[self.max_posteri1[i]][1] += 1 
 
         for k in label_dict.keys():
+            label_coverage[k] = float(label_dict[k][0]+label_dict[k][1]) / self.loci_1.shape[0]
+
             if (label_dict[k][0]+label_dict[k][1]) != 0:
                 label_dict[k] = label_dict[k][0] / (label_dict[k][0]+label_dict[k][1])
             else:
                 label_dict[k] = 0
 
-
         self.label_agreements = label_dict
+        self.label_coverage = label_coverage
         return self.label_agreements
 
     def general_agreement(self):
         self.per_label_agreement()
-        l = list(self.label_agreements.values())
+        # l = list(self.label_agreements.values())
 
-        self.overall_agreement = sum(l) / float(len(l))
+        self.overall_agreement = 0
+
+        for l in self.label_agreements.keys():
+            self.overall_agreement += self.label_agreements[l] * self.label_coverage[l]
+
         return self.overall_agreement
 
     def per_label_OE_ratio(self, log_transform=True):
         self.label_OE = {}
         for k in self.label_agreements.keys():
             if log_transform:
-                self.label_OE[k] = np.log(self.label_agreements[k] / self.expected_agreement)
+                self.label_OE[k] = np.log(self.label_agreements[k] / (self.expected_agreement + self.epsilon))
             else:
-                self.label_OE[k] = self.label_agreements[k] / self.expected_agreement
+                self.label_OE[k] = self.label_agreements[k] / (self.expected_agreement + self.epsilon)
 
         return self.label_OE
 
     def general_OE_ratio(self, log_transform=True):
         if log_transform:
-            self.overall_OE = np.log(self.overall_agreement/ self.expected_agreement)
+            self.overall_OE = np.log(self.overall_agreement/ (self.expected_agreement + self.epsilon))
             return 
         else:
-            self.overall_OE =  self.overall_agreement/ self.expected_agreement
+            self.overall_OE =  self.overall_agreement/ (self.expected_agreement + self.epsilon)
 
         return self.overall_OE  
 
@@ -80,13 +88,13 @@ class Agreement(object):
 
         for k in self.label_agreements.keys():
             self.label_CK[k] = \
-                (self.label_agreements[k] - self.expected_agreement) / (1 - self.expected_agreement)
+                (self.label_agreements[k] - (self.expected_agreement + self.epsilon)) / (1 - (self.expected_agreement + self.epsilon))
         
         return self.label_CK
 
     def general_cohens_kappa(self):
         self.overall_CK = \
-            (self.overall_agreement - self.expected_agreement) / (1 - self.expected_agreement)
+            (self.overall_agreement - (self.expected_agreement + self.epsilon)) / (1 - (self.expected_agreement + self.epsilon))
         return self.overall_CK
     
     def plot_agreement(self):
