@@ -9,7 +9,7 @@ import pandas as pd
 import glob, os 
 import multiprocessing as mp
 from functools import partial
-
+import matplotlib
 '''
 
 In this file, the step-by-step execution of analysis-funcitons will be managed.
@@ -356,6 +356,9 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, general=True, num_bins=20
         agr = Agreement(loci_1, loci_2, pltsavedir+"/agreement")
         vis = sankey(loci_1, loci_2, pltsavedir+"/sankey")
 
+        to_report = [
+            agr.general_agreement(), agr.general_OE_ratio(log_transform=False), agr.general_cohens_kappa()]
+
         print('general agreement:    ', agr.general_agreement())
         print('general o/e ratio:    ', agr.general_OE_ratio(log_transform=False))
         print('general CK:    ', agr.general_cohens_kappa())
@@ -380,8 +383,12 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, general=True, num_bins=20
 
             if general:
                 repr.general_count_independent(num_bins=num_bins)
+        
+        return to_report
+
     except:
-        pass
+        return [0,0,0]
+
 
 def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
     num_labels = loci_1.shape[1]-3
@@ -422,22 +429,22 @@ def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
     if os.path.exists(pltsavedir+"/{}_labels".format(num_labels)) == False:
             os.mkdir(pltsavedir+"/{}_labels".format(num_labels))
 
-    # report_reproducibility(
-    #         corrected_loci_1, corrected_loci_2, pltsavedir+"/{}_labels".format(num_labels), 
-    #         general=False, num_bins=20, merge_cc_curves=False)
+    stepwise_report = {}
+    
+    stepwise_report[num_labels] = report_reproducibility(
+            corrected_loci_1, corrected_loci_2, pltsavedir+"/{}_labels".format(num_labels), 
+            general=False, num_bins=20, merge_cc_curves=False)
 
-    c_grid = sns.clustermap(
-        distance_matrix, row_linkage=linkage, 
-        col_linkage=linkage, annot=True)
+    # sns.clustermap(
+    #     distance_matrix, row_linkage=linkage, 
+    #     col_linkage=linkage, annot=True)
 
-    if os.path.exists(pltsavedir+'/post_clustering/')==False:
-        os.mkdir(pltsavedir+'/post_clustering/')
+    # if os.path.exists(pltsavedir+'/post_clustering/')==False:
+    #     os.mkdir(pltsavedir+'/post_clustering/')
 
-    plt.savefig('{}/post_clustering/clustermap.pdf'.format(pltsavedir), format='pdf')
-    plt.savefig('{}/post_clustering/clustermap.svg'.format(pltsavedir), format='svg')
-    plt.clf()
-
-    return
+    # plt.savefig('{}/post_clustering/clustermap.pdf'.format(pltsavedir), format='pdf')
+    # plt.savefig('{}/post_clustering/clustermap.svg'.format(pltsavedir), format='svg')
+    # plt.clf()
 
     for m in range(len(linkage)):
         # merging clusters one at a time
@@ -458,11 +465,22 @@ def post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
         if os.path.exists(pltsavedir+"/"+str(num_labels-(m+1))+'_labels') == False:
             os.mkdir(pltsavedir+"/"+str(num_labels-(m+1))+'_labels')
 
-        report_reproducibility(
+        stepwise_report[int(num_labels-(m+1))] = report_reproducibility(
             corrected_loci_1, corrected_loci_2, pltsavedir+"/"+str(num_labels-(m+1))+'_labels', 
-            general=False, num_bins=20, merge_cc_curves=False, full_report=False)
-    
-    
+            general=False, num_bins=20, merge_cc_curves=False, full_report=True)
+
+    xaxis, yaxis = [], []
+    for k, v in stepwise_report.items():
+        xaxis.append(k)
+        yaxis.append(v[0])
+
+    plt.bar(xaxis, yaxis)
+    plt.xlabel('Number of Labels')
+    plt.ylabel('General Agreement')
+    plt.savefig('{}/postclustering_agreement.svg'.format(pltsavedir), format='svg')
+    plt.savefig('{}/postclustering_agreement.pdf'.format(pltsavedir), format='pdf')
+    plt.clf()
+    return stepwise_report
 
 
 """when running the whole script from start to end to generate (and reproduce) results
@@ -573,8 +591,8 @@ if __name__=="__main__":
             segway_dir+ct+"_rep1/parsed_posterior.csv",
             segway_dir+ct+"_rep2/parsed_posterior.csv")
 
-        loci_1 = loci_1.iloc[list(range(0, len(loci_1), 500)), :].reset_index(drop=True)
-        loci_2 = loci_2.iloc[list(range(0, len(loci_2), 500)), :].reset_index(drop=True)
+        loci_1 = loci_1.iloc[list(range(0, len(loci_1), 5000)), :].reset_index(drop=True)
+        loci_2 = loci_2.iloc[list(range(0, len(loci_2), 5000)), :].reset_index(drop=True)
 
         print('loaded and intersected parsed posteriors for {}'.format(ct))
         print('starting reproducibility evaluation for {}'.format(ct))
@@ -612,3 +630,6 @@ if __name__=="__main__":
     #         print('-Exists!')
 
     # print('All parsed!')
+
+
+

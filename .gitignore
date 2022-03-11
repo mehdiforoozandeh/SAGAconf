@@ -5,4 +5,5 @@ batch_runs/
 test_repr.py
 segway_runs/
 files/
-
+reprod_results/
+K562/

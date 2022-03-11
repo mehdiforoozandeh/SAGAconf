@@ -23,13 +23,12 @@ class Agreement(object):
         self.max_posteri1 = self.loci_1.iloc[:, 3:].idxmax(axis=1)
         self.max_posteri2 = self.loci_2.iloc[:, 3:].idxmax(axis=1)
 
-        
         self.expected_agreement = 1 / float(self.num_labels)
 
     def per_label_agreement(self):
         label_dict = {}
 
-        for c in self.loci_1.columns:
+        for c in self.loci_1.columns[3:]:
             label_dict[c] = [0, 0] # [agreement_count, disagreement_count]
 
         for i in range(self.loci_1.shape[0]):
