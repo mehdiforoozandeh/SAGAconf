@@ -207,7 +207,7 @@ def RunParse_segway_replicates(celltype_dir, output_dir, random_seed=73):
     params_dict_1 = {
         "random_seed":random_seed, "track_weight":0.01,
         "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
-        "mini_batch_fraction":0.01, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "mini_batch_fraction":0.03, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
         "name_sig":output_dir+name_sig+'_rep1', 
         "genomedata_file":celltype_dir+'/rep1.genomedata', 
         "traindir":output_dir+name_sig+'rep1'+'_train', 
@@ -224,7 +224,7 @@ def RunParse_segway_replicates(celltype_dir, output_dir, random_seed=73):
     params_dict_2 = {
         "random_seed":random_seed, "track_weight":0.01,
         "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
-        "mini_batch_fraction":0.01, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "mini_batch_fraction":0.03, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
         "name_sig":output_dir+name_sig+'_rep2', 
         "genomedata_file":celltype_dir+'/rep2.genomedata', 
         "traindir":output_dir+name_sig+'rep2'+'_train', 
@@ -247,7 +247,7 @@ def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, out
     params_dict_1 = {
         "random_seed":random_seeds[0], "track_weight":0.01,
         "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
-        "mini_batch_fraction":0.01, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "mini_batch_fraction":0.03, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
         "name_sig":output_dir+name_sig+'_{}_rs{}'.format(replicate_number, random_seeds[0]), 
         "genomedata_file":celltype_dir+'/{}.genomedata'.format(replicate_number), 
         "traindir":output_dir+name_sig+'_{}_rs{}'.format(replicate_number, random_seeds[0])+'_train', 
@@ -257,7 +257,7 @@ def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, out
     params_dict_2 = {
         "random_seed":random_seeds[1], "track_weight":0.01,
         "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
-        "mini_batch_fraction":0.01, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "mini_batch_fraction":0.03, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
         "name_sig":output_dir+name_sig+'_{}_rs{}'.format(replicate_number,random_seeds[1]),
         "genomedata_file":celltype_dir+'/{}.genomedata'.format(replicate_number), 
         "traindir":output_dir+name_sig+'_{}_rs{}'.format(replicate_number, random_seeds[0])+'_train', 
@@ -613,50 +613,50 @@ if __name__=="__main__":
 
     print('All parsed!')
 
-    for ct in CellType_list:
-        loci_1, loci_2 = intersect_parsed_posteriors(
-            segway_dir+ct+"_rep1/parsed_posterior.csv",
-            segway_dir+ct+"_rep2/parsed_posterior.csv")
-
-        loci_1 = loci_1.iloc[list(range(0, len(loci_1), 500)), :].reset_index(drop=True)
-        loci_2 = loci_2.iloc[list(range(0, len(loci_2), 500)), :].reset_index(drop=True)
-
-        print('loaded and intersected parsed posteriors for {}'.format(ct))
-        print('starting reproducibility evaluation for {}'.format(ct))
-        """EVALUATE REPRODUCIBILITY"""
-        post_clustering(loci_1, loci_2, res_dir+ct, OE_transform=True)
-
     # Run segway param-init test     MP
 
-    # partial_runs_ii = partial(
-    #     RunParse_segway_param_init, 
-    #     replicate_number = 'rep1', output_dir=segway_dir, random_seeds=[7, 5])
+    partial_runs_ii = partial(
+        RunParse_segway_param_init, 
+        replicate_number = 'rep1', output_dir=segway_dir, random_seeds=[7, 5])
 
-    # p_obj = mp.Pool(len(CellType_list))
-    # p_obj.map(partial_runs_ii, [download_dir+ct for ct in CellType_list])
+    p_obj = mp.Pool(len(CellType_list))
+    p_obj.map(partial_runs_ii, [download_dir+ct for ct in CellType_list])
 
-    # partial_runs_iii = partial(
-    #     RunParse_segway_param_init, replicate_number = 'rep2', output_dir=segway_dir, 
-    #     sizes_file=download_dir+"hg38.chrom.sizes", random_seeds=[7, 5])
+    partial_runs_iii = partial(
+        RunParse_segway_param_init, replicate_number = 'rep2', output_dir=segway_dir, 
+        random_seeds=[7, 5])
         
-    # p_obj = mp.Pool(len(CellType_list))
-    # p_obj.map(partial_runs_iii, [download_dir+ct for ct in CellType_list])
+    p_obj = mp.Pool(len(CellType_list))
+    p_obj.map(partial_runs_iii, [download_dir+ct for ct in CellType_list])
 
-    # # parse_posteriors 
-    # print('Checking for unparsed posteriors...')
-    # list_of_seg_runs = [
-    #     d for d in os.listdir(segway_dir) if os.path.isdir(segway_dir+'/'+d)]
-    # print(list_of_seg_runs)
-    # for d in list_of_seg_runs:
-    #     print('-Checking for {}  ...'.format(segway_dir+'/'+d+'/parsed_posterior.csv'))
+    print('Checking for unparsed posteriors...')
+    list_of_seg_runs = [
+        d for d in os.listdir(segway_dir) if os.path.isdir(segway_dir+'/'+d)]
+    print(list_of_seg_runs)
 
-    #     if os.path.exists(segway_dir+'/'+d+'/parsed_posterior.csv') == False:
-    #         parse_posterior_results(segway_dir+'/'+d, 100, mp=False)
+    for d in list_of_seg_runs:
+        print('-Checking for {}  ...'.format(segway_dir+'/'+d+'/parsed_posterior.csv'))
 
-    #     else:
-    #         print('-Exists!')
+        if os.path.exists(segway_dir+'/'+d+'/parsed_posterior.csv') == False:
+            parse_posterior_results(segway_dir+'/'+d, 100, mp=False)
 
-    # print('All parsed!')
+        else:
+            print('-Exists!')
+
+    print('All parsed!')
+
+    # for ct in CellType_list:
+    #     loci_1, loci_2 = intersect_parsed_posteriors(
+    #         segway_dir+ct+"_rep1/parsed_posterior.csv",
+    #         segway_dir+ct+"_rep2/parsed_posterior.csv")
+
+    #     loci_1 = loci_1.iloc[list(range(0, len(loci_1), 500)), :].reset_index(drop=True)
+    #     loci_2 = loci_2.iloc[list(range(0, len(loci_2), 500)), :].reset_index(drop=True)
+
+    #     print('loaded and intersected parsed posteriors for {}'.format(ct))
+    #     print('starting reproducibility evaluation for {}'.format(ct))
+    #     """EVALUATE REPRODUCIBILITY"""
+    #     post_clustering(loci_1, loci_2, res_dir+ct, OE_transform=True)
 
 
 
