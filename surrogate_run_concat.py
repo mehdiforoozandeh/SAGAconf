@@ -61,3 +61,19 @@ partial_runs_i = partial(
     concat_RunParse_segway, output_dir=segway_dir, random_seed=73)
 p_obj = mp.Pool(len(CellType_list))
 p_obj.map(partial_runs_i, [download_dir+ct for ct in CellType_list])
+
+print('Checking for unparsed posteriors...')
+list_of_seg_runs = [
+    d for d in os.listdir(segway_dir) if os.path.isdir(segway_dir+'/'+d)]
+print(list_of_seg_runs)
+
+for d in list_of_seg_runs:
+    print('-Checking for {}  ...'.format(segway_dir+'/'+d+'/parsed_posterior.csv'))
+
+    if os.path.exists(segway_dir+'/'+d+'/parsed_posterior.csv') == False:
+        parse_posterior_results(segway_dir+'/'+d, 100, mp=False)
+
+    else:
+        print('-Exists!')
+
+print('All parsed!')
