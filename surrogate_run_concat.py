@@ -51,10 +51,10 @@ if os.path.exists(download_dir+"hg38.chrom.sizes") == False:
     print('downloaded the hg38.chrom.sizes file')
 
 # create concatenated genomedata
-p_obj = mp.Pool(len(gd_to_create))
+p_obj = mp.Pool(len(CellType_list))
 p_obj.map(partial(
     concat_create_genomedata, sequence_file=download_dir+"hg38.chrom.sizes"), 
-    [download_dir + ct for ct in gd_to_create])
+    [download_dir + ct for ct in CellType_list])
 
 # run segway-concat
 partial_runs_i = partial(
