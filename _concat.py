@@ -1,31 +1,7 @@
-from asyncore import write
 import os
 from _utils import *
-from _pipeline import *
 
-def navigate_bgs(repath): 
-    '''
-    finds original bgs inside replicate path/directory'''
-    lsr = os.listdir(repath)
-    tracks_bgs = {}
-
-    for i in lsr:
-        track_ls = os.listdir(repath + '/' + i)
-        if len(track_ls) > 1:
-            for j in range(len(track_ls)):
-                if 'concat' in track_ls[j]:
-                    tracks_bgs[i] = repath + '/' + i + '/' + track_ls[j]
-
-                elif 'bedGraph' in track_ls[j]:
-                    tracks_bgs[i] = repath + '/' + i + '/' + track_ls[j]
-    
-    tracklist = {}
-    for k, v in tracks_bgs.items():
-        tracklist[k] = v
-
-    return tracklist
-
-def rename_chroms(in_bg_file, out_bg_file, chr_suffix): 
+def concat_rename_chroms(in_bg_file, out_bg_file, chr_suffix): 
     # chr_suffix should be either 1 or 2
     with open(in_bg_file, 'r') as inf:
         with open(out_bg_file, 'w') as outf:
@@ -34,7 +10,7 @@ def rename_chroms(in_bg_file, out_bg_file, chr_suffix):
                 splitted_l[0] = splitted_l[0]+ "_"+ str(chr_suffix)
                 outf.write("\t".join(splitted_l))
 
-def virtualize_chroms(bg_file1, bg_file2, out_bg):
+def concat_virtualize_chroms(bg_file1, bg_file2, out_bg):
     with open(out_bg, 'w') as outf:
 
         with open(bg_file1, 'r') as inf1:
@@ -45,7 +21,8 @@ def virtualize_chroms(bg_file1, bg_file2, out_bg):
             for l in inf2:
                 outf.write(l)
 
-def virtualize_include_file(in_incl_file, out_incl_file, write_separate=True):
+def concat_virtualize_include_file(in_incl_file, out_incl_file, write_separate=True):
+    #can be either include-coords file or chromsizes file
     with open(in_incl_file, 'r') as inf:
         lines = inf.readlines()
 
@@ -62,27 +39,19 @@ def virtualize_include_file(in_incl_file, out_incl_file, write_separate=True):
 
         if write_separate: 
             #also writes separate include files for later annotation or posterior calculation
-            with open("VirtRep1_"+out_incl_file, 'w') as outf:
+            with open(out_incl_file.replace("_concatenated.sizes", "_VirtRep1_concatenated.sizes"), 'w') as outf:
                 for l in lines:
                     splitted_l = l.split('\t')
                     splitted_l[0] = splitted_l[0]+ "_1"
                     outf.write("\t".join(splitted_l))
 
-            with open("VirtRep2_"+out_incl_file, 'w') as outf:
+            with open(out_incl_file.replace("_concatenated.sizes", "_VirtRep2_concatenated.sizes"), 'w') as outf:
                 for l in lines:
                     splitted_l = l.split('\t')
                     splitted_l[0] = splitted_l[0]+ "_2"
                     outf.write("\t".join(splitted_l))
 
-
-def make_concat_genomedata(bedgraph_file_dict, seqfile, out_gd):
-    tracklist = ''
-    for k, v in bedgraph_file_dict.items():
-        tracklist = tracklist + '-t {}={} '.format(k, v)  
-
-    os.system('genomedata-load -s {} --sizes {} --verbose {}.genomedata'.format(seqfile, tracklist, out_gd))
-
-def segway_concatenated_and_postprocess(concat_param_dict):
+def concat_segwayrun_and_postprocess(concat_param_dict):
     '''
     use concatenation of both replicates to train the segway model with 
     and then use that single model to annotate/get-posterior of both replicates 
@@ -91,13 +60,14 @@ def segway_concatenated_and_postprocess(concat_param_dict):
     ============== concat_param_dict EXAMPLE ==============
 
     {"name_sig_concat":None, "name_sig_rep1":None, "name_sig_rep2":None,
-    "random_seed":None, "include_concat":None, "include_virtrep1":None, "include_virtrep2":None, 
-    "track_weight":None,"stws":None, "ruler_scale":None, "prior_strength":None, "resolution":None,
+    "random_seed":None, "track_weight":None,"stws":None, "ruler_scale":None, 
+    "prior_strength":None, "resolution":None,
     "num_labels":None, "traindir":None, "mini_batch_fraction":None,
     "genomedata_file_concat":None,  "genomedata_file_rep1":None, "genomedata_file_rep2":None,
     "posteriordir_rep1":None, "posteriordir_rep2":None}
     =======================================================
     '''
+
     for k, v in concat_param_dict.items():
         concat_param_dict[k] = str(v) 
 
@@ -117,16 +87,16 @@ def segway_concatenated_and_postprocess(concat_param_dict):
     # run posterior rep1
     os.system('mkdir {}'.format(concat_param_dict['posteriordir_rep1']))
     if os.path.isfile(concat_param_dict['traindir']+'/params/params.params'):
-        os.system('segway posterior --include-coords={} {} {} {}'.format(
-            concat_param_dict["include_virtrep1"], concat_param_dict["genomedata_file_rep1"], 
+        os.system('segway posterior {} {} {}'.format(
+            concat_param_dict["genomedata_file_rep1"], 
             concat_param_dict["traindir"], concat_param_dict["posteriordir_rep1"]
         ))
     
     # run posterior rep2
     os.system('mkdir {}'.format(concat_param_dict['posteriordir_rep2']))
     if os.path.isfile(concat_param_dict['traindir']+'/params/params.params'):
-        os.system('segway posterior --include-coords={} {} {} {}'.format(
-            concat_param_dict["include_virtrep2"], concat_param_dict["genomedata_file_rep2"], 
+        os.system('segway posterior {} {} {}'.format(
+            concat_param_dict["genomedata_file_rep2"], 
             concat_param_dict["traindir"], concat_param_dict["posteriordir_rep2"]
         ))
 
@@ -197,81 +167,3 @@ def segway_concatenated_and_postprocess(concat_param_dict):
         clean_up(concat_param_dict["traindir"], concat_param_dict['posteriordir_rep1'])
         clean_up(concat_param_dict["traindir"], concat_param_dict['posteriordir_rep2'])
 
-
-def __main(rep1dir, rep2dir, concat_dir, include_file, sizesfile):
-    # search both replicate folders for bedgraph files to edit (make 2 dictionaries)
-    rep1_tracks = navigate_bgs(rep1dir)
-    rep2_tracks = navigate_bgs(rep2dir)
-
-    # update all intended bedgraphs using rename_chroms()
-    for k, v in rep1_tracks.items():
-        if 'concat' not in v:
-            rename_chroms(v, v.replace('.bedGraph', '_concat.bedGraph'), "1")
-            rep1_tracks[k] = v.replace('.bedGraph', '_concat.bedGraph')
-
-    for k, v in rep2_tracks.items():
-        if 'concat' not in v:
-            rename_chroms(v, v.replace('.bedGraph', '_concat.bedGraph'), "2")
-            rep2_tracks[k] = v.replace('.bedGraph', '_concat.bedGraph')
-
-    # virtualize bedgraphs into concatenated tracks    
-    # (this means that we will have 1 bg for each track instead of initial 2)
-
-    assert list(rep1_tracks.keys()) == list(rep2_tracks.keys())
-
-    concat_tracks = {}
-    for k in rep1_tracks.keys():
-        #create concat_dir and subdirs
-        if not os.path.exists(concat_dir):
-            os.mkdir(concat_dir)
-        
-        if not os.path.exists(concat_dir+'/'+str(k)):
-            os.mkdir(concat_dir+'/'+str(k))
-            
-        virtualize_chroms(
-            rep1_tracks[k], rep2_tracks[k], concat_dir+'/'+str(k)+'/'+str(k)+'_concatenated.bedGraph')
-
-        concat_tracks[k] = concat_dir+'/'+str(k)+'/'+str(k)+'_concatenated.bedGraph'
-        
-
-    # update/virtualize include file and chromsizes file
-    virtualize_include_file(
-        include_file, include_file.replace('.', '_concat.'), write_separate=True)
-    virtualize_include_file(
-        sizesfile, sizesfile.replace('.', '_concat.'), write_separate=True)
-    
-
-    # make 3 genomedata files for 1)concat 2)rep1 3)rep2 (all using updated bgs)
-    make_concat_genomedata(
-        concat_tracks, sizesfile.replace('.', '_concat.'), concat_dir+'/concat.gd')
-    make_concat_genomedata(
-        rep1_tracks, "VirtRep1_"+sizesfile.replace('.', '_concat.'), concat_dir+'/rep1.gd')
-    make_concat_genomedata(
-        rep2_tracks, "VirtRep2_"+sizesfile.replace('.', '_concat.'), concat_dir+'/rep2.gd')
-    
-    # create concat_param_dict
-    concat_param_dict = {
-        "name_sig_concat":"seg_concat", "name_sig_rep1":"seg_rep1", "name_sig_rep2":"seg_rep2",
-        "random_seed":73, 
-        "include_concat":include_file.replace('.', '_concat.'), 
-        "include_virtrep1":"VirtRep1_"+include_file.replace('.', '_concat.'), 
-        "include_virtrep2":"VirtRep2_"+include_file.replace('.', '_concat.'), 
-        "track_weight":0.01, "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100,
-        "num_labels":16, "traindir":"seg_concat_train", "mini_batch_fraction":0.5,
-        "genomedata_file_concat":concat_dir+'/concat.gd.genomedata',  
-        "genomedata_file_rep1":concat_dir+'/rep1.gd.genomedata', 
-        "genomedata_file_rep2":concat_dir+'/rep2.gd.genomedata',
-        "posteriordir_rep1":'seg_rep1_posterior', "posteriordir_rep2":'seg_rep2_posterior'
-        }
-
-    segway_concatenated_and_postprocess(concat_param_dict)
-
-if __name__=="__main__":
-    __main(
-        'rep1', 'rep2', 'concatenated_files', 
-        'encodePilotRegions.hg19.bed', 'hg38.chrom.sizes')
-
-    parse_posterior_results(
-        "seg_rep1", 'encodePilotRegions.hg19.bed'.replace('.', '_concat.'), 100, M=50)
-    parse_posterior_results(
-        "seg_rep2", 'encodePilotRegions.hg19.bed'.replace('.', '_concat.'), 100, M=50)   

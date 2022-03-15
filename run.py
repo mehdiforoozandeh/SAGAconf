@@ -3,6 +3,7 @@ from _pipeline import *
 from _reproducibility import *
 from _interpret import *
 from _visualize import *
+from _concat import *
 from get_data import *
 from matchlabels import *
 import pandas as pd
@@ -199,6 +200,100 @@ def create_genomedata(celltype_dir, sequence_file):
         'genomedata-load -s {} --sizes {} --verbose {}.genomedata'.format(
             sequence_file, tracklist_rep2, celltype_dir+'/rep2'))
 
+def concat_create_genomedata(celltype_dir, sequence_file):
+    tracks_bgs_rep1 = {}
+    with open(glob.glob(celltype_dir+'/seg_rep1_*')[0], 'r') as rep1_guidefile:
+        lines_1 = rep1_guidefile.readlines()
+        for l in lines_1:
+            tracks_bgs_rep1[l.split('\t')[0]] = l.split('\t')[1][:-1]
+
+    tracks_bgs_rep2 = {}
+    with open(glob.glob(celltype_dir+'/seg_rep2_*')[0], 'r') as rep2_guidefile:
+        lines_2 = rep2_guidefile.readlines()
+        for l in lines_2:
+            tracks_bgs_rep2[l.split('\t')[0]] = l.split('\t')[1][:-1]
+    
+    # rename chromosomes for bgs in dictionaries
+    for k,v in tracks_bgs_rep1.items():
+        if os.path.exists(v.replace("bedGraph","_concat.bedGraph")) == False:
+            concat_rename_chroms(v, v.replace("bedGraph","_concat.bedGraph"), 1)
+
+    for k,v in tracks_bgs_rep2.items():
+        if os.path.exists(v.replace("bedGraph","_concat.bedGraph")) == False:
+            concat_rename_chroms(v, v.replace("bedGraph","_concat.bedGraph"), 2)
+
+    virtualized_tracks = {}
+    # virtualize bedgraphs into concatenated tracks    
+    for k in tracks_bgs_rep1.keys():
+        if os.path.exists(celltype_dir+ "/" + k + "/{}_concatenated.bedGraph".format(k)) == False:
+            concat_virtualize_chroms(
+                tracks_bgs_rep1[k].replace("bedGraph","_concat.bedGraph"),
+                tracks_bgs_rep2[k].replace("bedGraph","_concat.bedGraph"),
+                celltype_dir+ "/" + k + "/{}_concatenated.bedGraph".format(k))
+
+        virtualized_tracks[k] = celltype_dir+ "/" + k + "/{}_concatenated.bedGraph".format(k)
+
+    if os.path.exists(sequence_file.replace(".sizes", "_concatenated.sizes")) == False:
+        concat_virtualize_include_file(
+            sequence_file, sequence_file.replace(".sizes", "_concatenated.sizes"), 
+            write_separate=True)
+
+    if os.path.exists(celltype_dir + "/" + "concatenated.genomedata") == False:
+        tracklist = ''
+        for k, v in virtualized_tracks.items():
+            tracklist = tracklist + '-t {}={} '.format(k, v)  
+
+        os.system('genomedata-load -s {} --sizes {} --verbose {}'.format(
+            sequence_file.replace(".sizes", "_concatenated.sizes"), 
+            tracklist, celltype_dir + "/" + "concatenated.genomedata"))
+
+    if os.path.exists(celltype_dir + "/" + "concat_rep1.genomedata") == False:
+        tracklist = ''
+        for k, v in tracks_bgs_rep1.items():
+            tracklist = tracklist + '-t {}={} '.format(k, v.replace("bedGraph","_concat.bedGraph"))  
+
+        os.system('genomedata-load -s {} --sizes {} --verbose {}'.format(
+            sequence_file.replace(".sizes", "_VirtRep1_concatenated.sizes"), 
+            tracklist, celltype_dir + "/" + "concat_rep1.genomedata"))
+
+    if os.path.exists(celltype_dir + "/" + "concat_rep2.genomedata") == False:
+        tracklist = ''
+        for k, v in tracks_bgs_rep1.items():
+            tracklist = tracklist + '-t {}={} '.format(k, v.replace("bedGraph","_concat.bedGraph"))  
+
+        os.system('genomedata-load -s {} --sizes {} --verbose {}'.format(
+            sequence_file.replace(".sizes", "_VirtRep2_concatenated.sizes"), 
+            tracklist, celltype_dir + "/" + "concat_rep2.genomedata"))
+
+
+def concat_RunParse_segway(celltype_dir, output_dir, random_seed=73):
+    '''
+    define params_dict
+    run concat seg + post clean up
+    '''
+    name_sig = celltype_dir.split('/')[-1]
+    num_tracks = len(
+        [tr for tr in os.listdir(celltype_dir) if os.path.isdir(celltype_dir+'/'+tr)])
+
+    concat_param_dict = {
+        "random_seed":random_seed, "track_weight":0.01,"stws":1, "ruler_scale":100, 
+        "prior_strength":1, "resolution":100, "mini_batch_fraction":0.03,
+        "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "name_sig_concat":output_dir+name_sig+'_concat', 
+        "name_sig_rep1":output_dir+name_sig+'_concat_rep1', 
+        "name_sig_rep2":output_dir+name_sig+'_concat_rep2',
+        "genomedata_file_concat":celltype_dir+'/concatenated.genomedata',  
+        "genomedata_file_rep1":celltype_dir+'/concat_rep1.genomedata', 
+        "genomedata_file_rep2":celltype_dir+'/concat_rep2.genomedata',
+        "traindir":output_dir+name_sig+'_concat_train', 
+        "posteriordir_rep1":output_dir+name_sig+'_concat_posterior_1',
+        "posteriordir_rep2":output_dir+name_sig+'_concat_posterior_2'}
+
+    if os.path.exists(concat_param_dict['name_sig_rep1']) == False or \
+         os.path.exists(concat_param_dict['name_sig_rep2']) == False:
+        print('Running Segway concatenated celltype {}...'.format(celltype_dir))
+        concat_segwayrun_and_postprocess(concat_param_dict)
+
 def RunParse_segway_replicates(celltype_dir, output_dir, random_seed=73):
     name_sig = celltype_dir.split('/')[-1]
     num_tracks = len(
@@ -279,30 +374,6 @@ def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, out
 
     else:
         print(params_dict_2['name_sig'], "already exists")
-
-def concat_genomedata():
-    pass
-
-def RunParse_segway_concat():
-        '''
-    navigate fcoc files in rep1
-    navigate fcoc files in rep2
-
-    rename_chroms()
-    virtualize_chroms()
-
-    virtualize_sizes_file()
-
-    make genomedata_concat
-    make genomedata_rep1_renamed
-    make genomedata_rep2_renamed
-
-    define params_dict
-    run concat seg + post clean up
-
-    parse posterior1
-    parse posterior2
-    '''
 
 def intersect_parsed_posteriors(parsed_df_dir_1, parsed_df_dir_2):
     intersect = pd.merge(
