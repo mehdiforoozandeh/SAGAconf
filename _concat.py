@@ -73,7 +73,7 @@ def concat_segwayrun_and_postprocess(concat_param_dict):
 
     os.system('mkdir {}'.format(concat_param_dict['traindir']))
 
-    os.system('SEGWAY_RAND_SEED={} segway train --max-train-rounds=50 --num-instances=5\
+    os.system('SEGWAY_RAND_SEED={} segway train --max-train-rounds=100 --num-instances=10\
          --num-instances=10 --track-weight={} --segtransition-weight-scale={}\
              --ruler-scale={} --prior-strength={} --resolution={}\
                   --minibatch-fraction={} --num-labels={} {} {}'.format(
