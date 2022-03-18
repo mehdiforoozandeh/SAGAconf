@@ -76,7 +76,7 @@ def concat_segwayrun_and_postprocess(concat_param_dict):
     os.system('SEGWAY_RAND_SEED={} segway train --max-train-rounds=100 --num-instances=10\
          --num-instances=10 --track-weight={} --segtransition-weight-scale={}\
              --ruler-scale={} --prior-strength={} --resolution={}\
-                  --minibatch-fraction={} --num-labels={} {} {}'.format(
+                  --minibatch-fraction={} --num-labels={} {} {12}'.format(
                       concat_param_dict["random_seed"], concat_param_dict["track_weight"],
                       concat_param_dict["stws"], concat_param_dict["ruler_scale"], concat_param_dict["prior_strength"], 
                       concat_param_dict["resolution"], concat_param_dict["mini_batch_fraction"],

@@ -99,7 +99,7 @@ def search_encode(cell, download_dir, target_assembly="GRCh38", check_availabili
             efile_respond = requests.get("https://www.encodeproject.org{}".format(ef), headers=headers)
             efile_results = efile_respond.json()
 
-            if efile_results['file_format'] == 'bigWig':
+            if efile_results['file_format'] == 'bigWig' or efile_results['file_format'] == 'bam':
                 try: #ignore files without sufficient info or metadata
 
                     if ',' not in str(efile_results['origin_batches']):
@@ -131,7 +131,7 @@ def search_encode(cell, download_dir, target_assembly="GRCh38", check_availabili
             'download_url', 'date_created', 'status'])
 
         # define files to be downloaded
-        to_download_list = {} #{"rep1_spv":None, "rep2_spv":None, "rep1_fcoc":None, "rep2_fcoc":None}
+        to_download_list = {} #{"rep1_alig":None, "rep2_alig":None, "rep1_fcoc":None, "rep2_fcoc":None}
 
         if not os.path.exists(download_dir + cell  +"/{}".format(tracks_navigation['assay'][e])):
             os.mkdir(download_dir + cell +"/{}".format(tracks_navigation['assay'][e]))
@@ -162,36 +162,36 @@ def search_encode(cell, download_dir, target_assembly="GRCh38", check_availabili
                             # substitute by a more recent version
                             to_download_list['rep2_fcoc'] = e_files_navigation.iloc[f, :]
 
-                elif e_files_navigation['output_type'][f] == "signal p-value":
+                elif e_files_navigation['output_type'][f] == "alignments":
                     if e_files_navigation['biosample'][f] == replicate_glossary['rep1']:
                         
-                        if 'rep1_spv' not in to_download_list.keys():
-                            to_download_list['rep1_spv'] = e_files_navigation.iloc[f, :]
+                        if 'rep1_alig' not in to_download_list.keys():
+                            to_download_list['rep1_alig'] = e_files_navigation.iloc[f, :]
 
                         elif int(str(
                             e_files_navigation['date_created'][f])[:7].replace('-', '')) > int(str(
-                                to_download_list['rep1_spv']['date_created'])[:7].replace('-', '')):
+                                to_download_list['rep1_alig']['date_created'])[:7].replace('-', '')):
                             # substitute by a more recent version
-                            to_download_list['rep1_spv'] = e_files_navigation.iloc[f, :]
+                            to_download_list['rep1_alig'] = e_files_navigation.iloc[f, :]
                     
                     elif e_files_navigation['biosample'][f] == replicate_glossary['rep2']:
                         
-                        if 'rep2_spv' not in to_download_list.keys():
-                            to_download_list['rep2_spv'] = e_files_navigation.iloc[f, :]
+                        if 'rep2_alig' not in to_download_list.keys():
+                            to_download_list['rep2_alig'] = e_files_navigation.iloc[f, :]
 
                         elif int(str(
                             e_files_navigation['date_created'][f])[:7].replace('-', '')) > int(str(
-                                to_download_list['rep2_spv']['date_created'])[:7].replace('-', '')):
+                                to_download_list['rep2_alig']['date_created'])[:7].replace('-', '')):
                             # substitute by a more recent version
-                            to_download_list['rep2_spv'] = e_files_navigation.iloc[f, :]
+                            to_download_list['rep2_alig'] = e_files_navigation.iloc[f, :]
 
                 
         to_download_list = pd.DataFrame(to_download_list)
         
         # - Navigate all tracks with that pair as replicates
-            # - rep1 -> bigwig -> signal p-value (chromhmm)
+            # - rep1 -> bigwig -> alignments (chromhmm)
             # - rep1 -> bigwig -> fold change over control (segway)
-            # - rep2 -> bigwig -> signal p-value (chromhmm)
+            # - rep2 -> bigwig -> alignments (chromhmm)
             # - rep2 -> bigwig -> fold change over control (segway)
 
         # << RECORD METADATA FOR DOWNLOADED FILES >> and save in a csv
@@ -203,9 +203,12 @@ def search_encode(cell, download_dir, target_assembly="GRCh38", check_availabili
 
         # download navigated files
         for c in to_download_list.columns:
-            save_dir_name = download_dir + cell +"/{}".format(tracks_navigation['assay'][e])+ '/' + to_download_list.loc['accession', c] + ".bigWig"
-
-            download_link = to_download_list.loc['download_url', c]
+            if "fcoc" in c:
+                save_dir_name = download_dir + cell +"/{}".format(tracks_navigation['assay'][e])+ '/' + to_download_list.loc['accession', c] + ".bigWig"
+            elif "alig" in c:
+                save_dir_name = download_dir + cell +"/{}".format(tracks_navigation['assay'][e])+ '/' + to_download_list.loc['accession', c] + ".bam"
+            
+            download_link = "https://www.encodeproject.org/experiments/ENCSR668LDD/"#to_download_list.loc['download_url', c]
             download_response = requests.get(download_link, allow_redirects=True)
             open(save_dir_name, 'wb').write(download_response.content)
 
@@ -231,6 +234,10 @@ def create_trackname_assay_file(download_dir):
             tna.write('{}\t{}\n'.format(tracknames[i][1], tracknames[i][0]))
 
 if __name__ == "__main__":
+    search_encode("K562", "test_files/", target_assembly="GRCh38", check_availability=False)
+    exit()
+
+
     available_data_count = {}
     list_of_ENCODE_celltypes = ['H1', 'IMR-90', 'H9', 'spleen', 'transverse colon', 'trophoblast cell', 'K562', 'MCF-7', 'SK-N-SH', 'motor neuron', 'HCT116', 'neuronal stem cell', 'endothelial cell of umbilical vein', 'keratinocyte', 'GM12878', 'HeLa-S3', 'HepG2', 'gastrocnemius medialis', 'mesendoderm', 'MM.1S', 'OCI-LY1', 'PC-9', 'mammary epithelial cell', 'DND-41', 'DOHH2', 'GM23248', 'Karpas-422', 'Loucy', 'PC-3', 'SU-DHL-6', 'hepatocyte', 'neural cell', 'neural progenitor cell', 'skeletal muscle myoblast', 'smooth muscle cell', 'CD14-positive monocyte', 'GM23338', 'NCI-H929', 'OCI-LY3', 'astrocyte', 'mesenchymal stem cell', 'myotube', 'KMS-11', 'OCI-LY7', 'adrenal gland', 'fibroblast of dermis', 'prostate gland', 'thyroid gland', 'A549', 'HUES64', 'Panc1', 'SK-N-MC', 'body of pancreas', 'cardiac muscle cell', 'endodermal cell', 'skeletal muscle satellite cell', 'A673', 'HAP-1', 'HUES48', 'HUES6', 'NT2/D1', 'RWPE2', 'SJCRH30', 'SJSA1', 'WERI-Rb-1', 'iPS DF 19.11', 'iPS-20b', 'left ventricle myocardium inferior', 'thoracic aorta', 'B cell', 'BE2C', 'Caco-2', 'HEK293', 'UCSF-4', 'iPS DF 6.9', 'ACC112', 'ES-I3', 'KOPT-K1', 'MG63', 'brain microvascular endothelial cell', 'ectodermal cell', 'esophagus muscularis mucosa', 'mesodermal cell', 'mid-neurogenesis radial glial cells', 'mononuclear cell', 'neuroepithelial stem cell', 'radial glial cell', 'BJ', 'GM06990', 'H7', 'HL-60', 'bronchial epithelial cell', 'foreskin fibroblast', 'gastroesophageal sphincter', 'kidney epithelial cell', 'tibial artery', 'AG04450', 'esophagus squamous epithelium', 'fibroblast of lung', 'large intestine', 'right atrium auricular region', 'right lobe of liver', 'uterus', 'vagina', '22Rv1', 'AG04449', 'AG09309', 'AG09319', 'AG10803', 'C4-2B', 'GM08714', 'GM12864', 'GM12865', 'HFF-Myc', 'Jurkat, Clone E6-1', 'LNCaP clone FGC', "Peyer's patch", 'RWPE1', 'VCaP', 'WI38', 'astrocyte of the cerebellum', 'astrocyte of the spinal cord', 'breast epithelium', 'cardiac fibroblast', 'choroid plexus epithelial cell', 'common myeloid progenitor, CD34-positive', 'coronary artery', 'epithelial cell of esophagus', 'epithelial cell of prostate', 'epithelial cell of proximal tubule', 'fibroblast of mammary gland', 'fibroblast of pulmonary artery', 'fibroblast of the aortic adventitia', 'fibroblast of villous mesenchyme', 'foreskin melanocyte', 'heart left ventricle', 'iPS-18c', 'lower leg skin', 'muscle of leg', 'neuron', 'osteoblast', 'pancreas', 'retinal pigment epithelial cell', 'skeletal muscle cell', 'stomach', 'substantia nigra']
 
