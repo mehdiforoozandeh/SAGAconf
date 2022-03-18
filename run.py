@@ -586,7 +586,6 @@ remember to put label interpretation in try blocks (skippable) to prevent any ki
 dependency issue of segtools to cause issues in reproducibility of results"""
 
 if __name__=="__main__":
-
     CellType_list = np.array(
         ['K562', 'MCF-7', 'GM12878', 'HeLa-S3', 'CD14-positive monocyte'])
 

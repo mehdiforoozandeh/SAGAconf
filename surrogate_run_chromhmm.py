@@ -57,7 +57,7 @@ if os.path.exists("ChromHMM/") == False:
     open("ChromHMM.zip", 'wb').write(chmm_dl_response.content)
     os.system("unzip ChromHMM.zip")
 
-# create binarized data fils
+# create binarized data files from bam files
 
 # learn model
 
