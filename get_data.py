@@ -1,8 +1,3 @@
-from importlib.metadata import requires
-from traceback import print_tb
-from turtle import down
-from types import CellType
-from urllib import request
 import pandas as pd
 import requests, os, itertools, ast
 
@@ -234,7 +229,18 @@ def create_trackname_assay_file(download_dir):
             tna.write('{}\t{}\n'.format(tracknames[i][1], tracknames[i][0]))
 
 if __name__ == "__main__":
-    search_encode("K562", "test_files/", target_assembly="GRCh38", check_availability=False)
+    CellType_list = np.array(
+        ['K562', 'MCF-7', 'GM12878', 'HeLa-S3', 'CD14-positive monocyte'])
+    for ct in CellType_list:
+        search_encode(ct, "files/", target_assembly="GRCh38", check_availability=False)
+
+    # clean up potential space characters in directory names to prevent later issues
+    for ct in CellType_list:
+        if " " in ct:
+            os.system("mv {} {}".format(
+                ct.replace(' ', '\ '), ct.replace(" ", "_")
+            ))
+ 
     exit()
 
 
