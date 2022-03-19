@@ -208,7 +208,7 @@ def search_encode(cell, download_dir, target_assembly="GRCh38", check_availabili
             elif "alig" in c:
                 save_dir_name = download_dir + cell +"/{}".format(tracks_navigation['assay'][e])+ '/' + to_download_list.loc['accession', c] + ".bam"
             
-            download_link = "https://www.encodeproject.org/experiments/ENCSR668LDD/"#to_download_list.loc['download_url', c]
+            download_link = to_download_list.loc['download_url', c]
             download_response = requests.get(download_link, allow_redirects=True)
             open(save_dir_name, 'wb').write(download_response.content)
 
