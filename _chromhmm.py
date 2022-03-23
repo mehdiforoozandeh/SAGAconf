@@ -1,13 +1,7 @@
+from ast import parse
 import os, sys
 import pandas as pd
-
-def intersect_bed(original_bed, include_bed, output_bed):
-    cmdline = """bedtools intersect -a {} -b {} > {}"""
-    os.system(
-        cmdline.format(
-           original_bed, include_bed, output_bed 
-        )
-    )
+import numpy as np
 
 def create_cellmarkfiletable(celltype_dir, out_filename, suffix_to_look_for="bedGraph"):
     '''tab delimited file each row contains the 
@@ -24,70 +18,85 @@ def create_cellmarkfiletable(celltype_dir, out_filename, suffix_to_look_for="bed
                     ))
 
 def binarize_data(inputbeddir, cellmarkfiletable, outputdir, resolution=100, chromlength='CHROMSIZES/hg19.txt'):
-    cmdline = "java -Xmx10g -jar ChromHMM.jar BinarizeBed -center -b {} {} {} {} {}".format(
+    cmdline = "java -Xmx10g -jar ChromHMM.jar BinarizeBam -b {} {} {} {} {}".format(
         resolution, chromlength, inputbeddir, cellmarkfiletable, outputdir
     )
     os.system(cmdline)
 
-def learnModel(binary_input_dir, output_dir, num_labels='16', assembly='hg19', n_threads='0'):
-    learnmodel_cmdline = "java -Xmx10g -jar ChromHMM.jar LearnModel -init random -printposterior -p {} {} {} {} {}".format(
-        n_threads, binary_input_dir, output_dir, num_labels, assembly
+def learnModel(binary_input_dir, output_dir, num_labels='16', assembly='hg19', n_threads='0', random_seed=73):
+    learnmodel_cmdline = "java -Xmx10g -jar ChromHMM.jar LearnModel -init random -s {} -printposterior -p {} {} {} {} {}".format(
+        random_seed, n_threads, binary_input_dir, output_dir, num_labels, assembly
     )
     os.system(learnmodel_cmdline)
 
+def chrhmm_initialize_bin(chrom, numbins, res):
+    empty_bins = []
+    next_start = 0
+    for _ in range(numbins):
+        empty_bins.append(
+            [chrom, next_start, int(next_start+res)])
+        next_start = int(next_start+res)
+    empty_bins = pd.DataFrame(empty_bins, columns=['chr', 'start', 'end'])
+    empty_bins['start'] = empty_bins['start'].astype("int32")
+    empty_bins['end'] = empty_bins['end'].astype("int32")
+    return empty_bins
 
-def run_chromhmm(
-    celltype_dir,
-    include_bed='encodePilotRegions.hg19.bed', resolution=100, chromlength='CHROMSIZES/hg19.txt', 
-    num_labels='16', assembly='hg19', n_threads='0'):
-    '''run the whole chromhmm pipeline for a celltype'''
+def read_posterior_file(filepath):
+    with open(filepath,'r') as posteriorfile:
+        lines = posteriorfile.readlines()
+    vals = []
+    for il in range(len(lines)):
+        ilth_vals = lines[il].split('\t')
+        ilth_vals[-1] = ilth_vals[-1].replace("\n","")
+        vals.append(ilth_vals)
+    vals = pd.DataFrame(vals[2:], columns=["posterior{}".format(i.replace("E","")) for i in vals[1]])
+    vals = vals.astype("float32")
+    return vals
 
-    cellmarkfiletable_filename =  celltype_dir + '/cmft.txt'
-    binarized_files_directory = celltype_dir + '/binarized_data'
-    final_output_directory = celltype_dir + '/chromhmm_output'
-
-    if include_bed != None:
-        walk_obj = os.walk(celltype_dir)
-        dirs_and_subdirs = [x for x in walk_obj]
-        for i in range(1, len(dirs_and_subdirs)):
-            for j in dirs_and_subdirs[i][2]:
-                if "bedGraph" in j:
-                    original_bed = dirs_and_subdirs[i][0]+'/'+j
-                    output_bed = original_bed.replace(".bedGraph", "_trimmed.BED")
-                    # intersect_bed(original_bed, include_bed, output_bed)
-                
-    # create cmft
-    if include_bed != None:
-        create_cellmarkfiletable(celltype_dir, cellmarkfiletable_filename, suffix_to_look_for="_trimmed.BED")
-    else:
-        create_cellmarkfiletable(celltype_dir, cellmarkfiletable_filename, suffix_to_look_for="bedGraph")
-
-    # binarize data
-    binarize_data(
-        celltype_dir, cellmarkfiletable_filename, binarized_files_directory, 
-        resolution=resolution, chromlength=chromlength)
-
-    # run learn model
-    learnModel(
-        binarized_files_directory, final_output_directory, 
-        num_labels=num_labels, assembly=assembly, n_threads=n_threads)
-
-
-def read_emissions():
+def ChrHMM_read_posteriordir(posteriordir, rep, resolution=100):
     '''
+    for each file in posteriordir
+    Initialize emptybins based on chromsizes
+    fill in the posterior values for each slot
     return DF
     '''
+    ls = os.listdir(posteriordir)
+    to_parse = []
+    for f in ls:
+        if rep in f:
+            to_parse.append(f)
+    parsed_posteriors = {}
+    for f in to_parse:
+        fileinfo = f.split("_")
+        posteriors = read_posterior_file(posteriordir + '/' + f)
+        bins = chrhmm_initialize_bin(fileinfo[3], len(posteriors), resolution)
+        posteriors = pd.concat([bins, posteriors], axis=1)
+        parsed_posteriors[fileinfo[3]] = posteriors 
+        # print(fileinfo[3], posteriors.shape, end=" | ")
+    parsed_posteriors = pd.concat([parsed_posteriors[c] for c in sorted(list(parsed_posteriors.keys()))], axis=0)
+    # parsed_posteriors = parsed_posteriors.sort_values(by=["chr"])
+    parsed_posteriors = parsed_posteriors.reset_index(drop=True)
+    return parsed_posteriors
+
+"""
+1. relocate (mv/cp) .bam files of each cell type to a new directory called "chmmfiles"
+2. create 3 cmft files at each chmmfiles dir :
+    a. concat
+    b. rep1
+    c. rep2
+3. run three instances of learnModel for each celltype
+    a. concat
+    b. rep1
+    c. rep2
+"""
+def relocate_bamfiles(CellType_dir):
     pass
 
-def read_posteriors():
-    '''
-    return DF
-    '''
+def ChromHMM_rep():
     pass
 
+def ChromHMM_param_init():
+    pass
 
-def read_segmentation():
-    '''
-    return DF
-    '''
+def ChromHMM_concat():
     pass
