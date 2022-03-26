@@ -134,7 +134,7 @@ def ChromHMM_replicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0'):
     if os.path.exists(chmm_celltype_dir+"/binarized_rep1") == False:
         binarize_data(
             chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep1.txt", chmm_celltype_dir+"/binarized_rep1", 
-            resolution=100, chromlength='CHROMSIZES/hg19.txt')
+            resolution=100)
 
     if os.path.exists(chmm_output_dir+"/"+namesig+"_rep1") == False:
         learnModel(
@@ -151,7 +151,7 @@ def ChromHMM_replicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0'):
     if os.path.exists(chmm_celltype_dir+"/binarized_rep2") == False:
         binarize_data(
             chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep2.txt", chmm_celltype_dir+"/binarized_rep2", 
-            resolution=100, chromlength='CHROMSIZES/hg19.txt')
+            resolution=100)
 
     if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2") == False:
         learnModel(
@@ -174,7 +174,7 @@ def ChromHMM_paraminit_runs(chmm_celltype_dir, chmm_output_dir, random_seeds,  n
         if os.path.exists(chmm_celltype_dir+"/binarized_rep1") == False:
             binarize_data(
                 chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep1.txt", chmm_celltype_dir+"/binarized_rep1", 
-                resolution=100, chromlength='CHROMSIZES/hg19.txt')
+                resolution=100)
         
         if os.path.exists(chmm_output_dir+"/"+namesig+"_rep1_rs{}".format(rs)) == False:
             learnModel(
@@ -191,7 +191,7 @@ def ChromHMM_paraminit_runs(chmm_celltype_dir, chmm_output_dir, random_seeds,  n
         if os.path.exists(chmm_celltype_dir+"/binarized_rep2") == False:
             binarize_data(
                 chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep2.txt", chmm_celltype_dir+"/binarized_rep2", 
-                resolution=100, chromlength='CHROMSIZES/hg19.txt')
+                resolution=100)
         
         if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2_rs{}".format(rs)) == False:
             learnModel(
@@ -211,7 +211,7 @@ def ChromHMM_concat_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0'):
     if os.path.exists(chmm_celltype_dir+"/binarized_concat") == False:
         binarize_data(
             chmm_celltype_dir, chmm_celltype_dir+"/cmft_concat.txt", chmm_celltype_dir+"/binarized_concat", 
-            resolution=100, chromlength='CHROMSIZES/hg19.txt')
+            resolution=100)
 
     if os.path.exists(chmm_output_dir+"/"+namesig+"_concat") == False:
         learnModel(
