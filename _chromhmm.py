@@ -114,7 +114,7 @@ def prepare_chmm_inputdata(CellType_dir, assertion=False):
         cmft_concat = open("chmmfiles/{}/cmft_concat.txt".format(celltype_name), "w")
         cmft_rep1 = open("chmmfiles/{}/cmft_rep1.txt".format(celltype_name), "w")
         cmft_rep2 = open("chmmfiles/{}/cmft_rep2.txt".format(celltype_name), "w")
-
+        
         for ins in navigate:
             os.system("cp {} {}".format(
                 CellType_dir + "/" + ins[0] + "/" + ins[2], "chmmfiles/{}/".format(celltype_name)))    
@@ -132,7 +132,7 @@ def ChromHMM_replicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0'):
     namesig = chmm_celltype_dir.split("/")[-1]
     if "/" in namesig:
         namesig.replace("/", "")
-
+    
     if os.path.exists(chmm_celltype_dir+"/binarized_rep1") == False:
         binarize_data(
             chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep1.txt", chmm_celltype_dir+"/binarized_rep1", 

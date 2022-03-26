@@ -69,6 +69,10 @@ def Convert_all_BW2BG(celltype_dir):
     Creats BedGraph files from all BigWig files
     found within a celltype directory
     '''
+    if os.path.exists("bigWigToBedGraph") ==False:
+        url = 'http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64.v385/bigWigToBedGraph'
+        file_dl_response = requests.get(url, allow_redirects=True)
+        open(download_dir+"bigWigToBedGraph", 'wb').write(file_dl_response.content)
 
     ls = os.listdir(celltype_dir)
     if " " in celltype_dir:

@@ -37,10 +37,6 @@ for ct in CellType_list:
 
 print(assays)
 
-# convert all bigwigs to bedgraphs (for segway)
-for k, v in assays.items():
-    for t in v:
-        Convert_all_BW2BG(download_dir+k+'/'+t)
 for c in CellType_list:
     gather_replicates(celltype_dir=download_dir+c)
 
@@ -53,12 +49,18 @@ if os.path.exists(download_dir+"hg38.chrom.sizes") == False:
 # download chromhmm
 chromhmm_url = "http://compbio.mit.edu/ChromHMM/ChromHMM.zip"
 if os.path.exists("ChromHMM/") == False:
+    print("downloading ChromHMM Software")
     chmm_dl_response = requests.get(chromhmm_url, allow_redirects=True)
     open("ChromHMM.zip", 'wb').write(chmm_dl_response.content)
     os.system("unzip ChromHMM.zip")
     
 chmm_output_dir = "chromhmm_runs/"
+chmm_input_dir = "chmmfiles/"
+print("Preparing ChromHMM inputfiles")
 prepare_chmm_inputdata("files/K562/", assertion=False)
+print("running chmm rep")
 ChromHMM_replicate_runs("chmmfiles/K562/", chmm_output_dir, n_thread='0')
+print("running chmm concat")
 ChromHMM_concat_runs("chmmfiles/K562/", chmm_output_dir, n_thread='0')
+print("running chmm param-init")
 ChromHMM_paraminit_runs("chmmfiles/K562/", chmm_output_dir, [5, 7],  n_thread='0')
