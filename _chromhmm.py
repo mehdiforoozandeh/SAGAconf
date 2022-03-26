@@ -109,6 +109,8 @@ def prepare_chmm_inputdata(CellType_dir, assertion=False):
             navigate.append(
                 [tfmd.loc['assay', 'rep2_alig'], "rep2", str(tfmd.loc['accession', 'rep2_alig'])+".bam"])
 
+        if os.path.exists("chmmfiles/{}".format(celltype_name)) == False:
+            os.mkdir("chmmfiles/{}".format(celltype_name))
         cmft_concat = open("chmmfiles/{}/cmft_concat.txt".format(celltype_name), "w")
         cmft_rep1 = open("chmmfiles/{}/cmft_rep1.txt".format(celltype_name), "w")
         cmft_rep2 = open("chmmfiles/{}/cmft_rep2.txt".format(celltype_name), "w")
