@@ -1,1 +1,0 @@
-{'name_sig': '1_rep1', 'traindir': 'train_1', 'posteriordir': 'posterior_1', 'num_labels': '16', 'prior_strength': '1', 'resolution': '1000', 'ruler_scale': '1000', 'stws': '0.01', 'track_weight': '0.0008333333333333333', 'random_seed': '73', 'include': 'encodePilotRegions.hg19.bed', 'genomedata_file': 'rep1.genomedata'}
