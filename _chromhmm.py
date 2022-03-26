@@ -128,8 +128,6 @@ def prepare_chmm_inputdata(CellType_dir, assertion=False):
 
 def ChromHMM_replicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0'):
     namesig = chmm_celltype_dir.split("/")[-1]
-    if "/" in namesig:
-        namesig.replace("/", "")
 
     if os.path.exists(chmm_celltype_dir+"/binarized_rep1") == False:
         binarize_data(
