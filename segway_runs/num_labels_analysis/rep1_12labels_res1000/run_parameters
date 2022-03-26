@@ -1,1 +1,0 @@
-{'random_seed': '73', 'include': 'encodePilotRegions.hg19.bed', 'track_weight': '0.0008333333333333334', 'stws': '0.01', 'ruler_scale': '1000', 'prior_strength': '1', 'resolution': '1000', 'genomedata_file': 'rep1.genomedata', 'name_sig': 'rep1_12labels_res1000', 'num_labels': '12', 'traindir': 'train_rep1_12labels_res1000', 'posteriordir': 'posterior_rep1_12labels_res1000'}
