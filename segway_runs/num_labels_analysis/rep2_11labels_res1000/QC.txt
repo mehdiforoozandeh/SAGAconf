@@ -1,2 +1,0 @@
-posterior_QC(length dependent): 0.7942397038563861
-number_of_segments: 6547
