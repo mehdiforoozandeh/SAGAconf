@@ -4,6 +4,7 @@ from _reproducibility import *
 from _interpret import *
 from _visualize import *
 from _concat import *
+from _chromhmm import *
 from get_data import *
 from matchlabels import *
 import pandas as pd

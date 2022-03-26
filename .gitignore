@@ -1,10 +1,11 @@
 .DS_Store
+bigWigToBedGraph
 __pycache__/
 data/
 batch_runs/
 test_repr.py
 segway_runs/
+ChromHMM/
 files/
 reprod_results/
-K562/
 test_files/
