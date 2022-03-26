@@ -80,8 +80,6 @@ def ChrHMM_read_posteriordir(posteriordir, rep, resolution=100):
 """
 
 def prepare_chmm_inputdata(CellType_dir, assertion=False):
-    if CellType_dir[-1] == "/":
-        CellType_dir = CellType_dir[:-1]
     celltype_name = CellType_dir.split("/")[-1]
 
     if "chmmfiles" not in os.listdir():

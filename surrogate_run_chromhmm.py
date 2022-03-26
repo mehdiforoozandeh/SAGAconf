@@ -57,7 +57,7 @@ if os.path.exists("ChromHMM/") == False:
 chmm_output_dir = "chromhmm_runs/"
 chmm_input_dir = "chmmfiles/"
 print("Preparing ChromHMM inputfiles")
-prepare_chmm_inputdata("files/K562/", assertion=False)
+prepare_chmm_inputdata("files/K562", assertion=False)
 print("running chmm rep")
 ChromHMM_replicate_runs("chmmfiles/K562/", chmm_output_dir, n_thread='0')
 print("running chmm concat")
