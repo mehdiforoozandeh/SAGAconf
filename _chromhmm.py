@@ -80,9 +80,9 @@ def ChrHMM_read_posteriordir(posteriordir, rep, resolution=100):
 """
 
 def prepare_chmm_inputdata(CellType_dir, assertion=False):
+    if CellType_dir[-1] == "/":
+        CellType_dir = CellType_dir[:-1]
     celltype_name = CellType_dir.split("/")[-1]
-    if "/" in celltype_name:
-        celltype_name.replace("/", "")
 
     if "chmmfiles" not in os.listdir():
         os.mkdir("chmmfiles/")
@@ -132,7 +132,7 @@ def ChromHMM_replicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0'):
     namesig = chmm_celltype_dir.split("/")[-1]
     if "/" in namesig:
         namesig.replace("/", "")
-    
+
     if os.path.exists(chmm_celltype_dir+"/binarized_rep1") == False:
         binarize_data(
             chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep1.txt", chmm_celltype_dir+"/binarized_rep1", 
