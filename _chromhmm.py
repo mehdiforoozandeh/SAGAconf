@@ -10,10 +10,10 @@ def binarize_data(inputbeddir, cellmarkfiletable, outputdir, resolution=100, chr
 
 def learnModel(binary_input_dir, output_dir, num_labels='16', assembly='hg19', n_threads='0', random_seed=None):
     if random_seed != None:
-        learnmodel_cmdline = "java -Xmx10g -jar ChromHMM/ChromHMM.jar LearnModel -r 20 -init random -s {} -printposterior -p {} {} {} {} {}".format(
+        learnmodel_cmdline = "java -Xmx10g -jar ChromHMM/ChromHMM.jar LearnModel -init random -s {} -printposterior -p {} {} {} {} {}".format(
             random_seed, n_threads, binary_input_dir, output_dir, num_labels, assembly)
     else:
-        learnmodel_cmdline = "java -Xmx10g -jar ChromHMM/ChromHMM.jar LearnModel -r 20  -init information -printposterior -p {} {} {} {} {}".format(
+        learnmodel_cmdline = "java -Xmx10g -jar ChromHMM/ChromHMM.jar LearnModel -init information -printposterior -p {} {} {} {} {}".format(
             n_threads, binary_input_dir, output_dir, num_labels, assembly)
     os.system(learnmodel_cmdline)
 
@@ -57,9 +57,9 @@ def ChrHMM_read_posteriordir(posteriordir, rep, resolution=100):
     for f in to_parse:
         fileinfo = f.split("_")
         posteriors = read_posterior_file(posteriordir + '/' + f)
-        bins = chrhmm_initialize_bin(fileinfo[3], len(posteriors), resolution)
+        bins = chrhmm_initialize_bin(fileinfo[-2], len(posteriors), resolution)
         posteriors = pd.concat([bins, posteriors], axis=1)
-        parsed_posteriors[fileinfo[3]] = posteriors 
+        parsed_posteriors[fileinfo[-2]] = posteriors 
         
     parsed_posteriors = pd.concat([parsed_posteriors[c] for c in sorted(list(parsed_posteriors.keys()))], axis=0)
     parsed_posteriors = parsed_posteriors.reset_index(drop=True)
@@ -82,49 +82,52 @@ def prepare_chmm_inputdata(CellType_dir, assertion=False):
 
     if "chmmfiles" not in os.listdir():
         os.mkdir("chmmfiles/")
-        with open(CellType_dir+'/replicate_number.txt', 'r') as repguide_file:
-            lines = repguide_file.readlines()
-            rep1_biosampleID = lines[0][5:-1]
-            rep2_biosampleID = lines[1][5:]
-            if "\n" in rep2_biosampleID:
-                rep2_biosampleID.replace("\n","")
 
-        assaylist = [tr for tr in os.listdir(CellType_dir) if os.path.isdir(CellType_dir+'/'+tr)]
-        navigate = []
-        for tr in assaylist:
-            tfmd = pd.read_csv(CellType_dir+'/'+tr+'/track_files_metadata.csv')
-            tfmd.index = list(tfmd['Unnamed: 0'])
-            tfmd = tfmd.drop('Unnamed: 0', axis=1) 
+    if os.path.exists("chmmfiles/{}".format(celltype_name)) == False:
+        os.mkdir("chmmfiles/{}".format(celltype_name))
 
-            if assertion:
-                assert str(tfmd.loc['biosample', 'rep1_alig']) == rep1_biosampleID
-                assert str(tfmd.loc['biosample', 'rep2_alig']) == rep2_biosampleID
-                assert tfmd.loc['assay', 'rep1_alig'] == tr
-                assert tfmd.loc['assay', 'rep2_alig'] == tr
+    with open(CellType_dir+'/replicate_number.txt', 'r') as repguide_file:
+        lines = repguide_file.readlines()
+        rep1_biosampleID = lines[0][5:-1]
+        rep2_biosampleID = lines[1][5:]
+        if "\n" in rep2_biosampleID:
+            rep2_biosampleID.replace("\n","")
 
-            navigate.append(
-                [tfmd.loc['assay', 'rep1_alig'], "rep1", str(tfmd.loc['accession', 'rep1_alig'])+".bam"])  
-            navigate.append(
-                [tfmd.loc['assay', 'rep2_alig'], "rep2", str(tfmd.loc['accession', 'rep2_alig'])+".bam"])
+    assaylist = [tr for tr in os.listdir(CellType_dir) if os.path.isdir(CellType_dir+'/'+tr)]
+    navigate = []
+    for tr in assaylist:
+        tfmd = pd.read_csv(CellType_dir+'/'+tr+'/track_files_metadata.csv')
+        tfmd.index = list(tfmd['Unnamed: 0'])
+        tfmd = tfmd.drop('Unnamed: 0', axis=1) 
 
-        if os.path.exists("chmmfiles/{}".format(celltype_name)) == False:
-            os.mkdir("chmmfiles/{}".format(celltype_name))
-        cmft_concat = open("chmmfiles/{}/cmft_concat.txt".format(celltype_name), "w")
-        cmft_rep1 = open("chmmfiles/{}/cmft_rep1.txt".format(celltype_name), "w")
-        cmft_rep2 = open("chmmfiles/{}/cmft_rep2.txt".format(celltype_name), "w")
-        
-        for ins in navigate:
-            os.system("cp {} {}".format(
-                CellType_dir + "/" + ins[0] + "/" + ins[2], "chmmfiles/{}/".format(celltype_name)))    
-            cmft_concat.write("{}_{}\t{}\t{}\n".format(
+        if assertion:
+            assert str(tfmd.loc['biosample', 'rep1_alig']) == rep1_biosampleID
+            assert str(tfmd.loc['biosample', 'rep2_alig']) == rep2_biosampleID
+            assert tfmd.loc['assay', 'rep1_alig'] == tr
+            assert tfmd.loc['assay', 'rep2_alig'] == tr
+
+        navigate.append(
+            [tfmd.loc['assay', 'rep1_alig'], "rep1", str(tfmd.loc['accession', 'rep1_alig'])+".bam"])  
+        navigate.append(
+            [tfmd.loc['assay', 'rep2_alig'], "rep2", str(tfmd.loc['accession', 'rep2_alig'])+".bam"])
+
+    
+    cmft_concat = open("chmmfiles/{}/cmft_concat.txt".format(celltype_name), "w")
+    cmft_rep1 = open("chmmfiles/{}/cmft_rep1.txt".format(celltype_name), "w")
+    cmft_rep2 = open("chmmfiles/{}/cmft_rep2.txt".format(celltype_name), "w")
+    
+    for ins in navigate:
+        os.system("cp {} {}".format(
+            CellType_dir + "/" + ins[0] + "/" + ins[2], "chmmfiles/{}/".format(celltype_name)))    
+        cmft_concat.write("{}_{}\t{}\t{}\n".format(
+            celltype_name, ins[1], ins[0], ins[2]))
+
+        if ins[1] == "rep1":
+            cmft_rep1.write("{}_{}\t{}\t{}\n".format(
                 celltype_name, ins[1], ins[0], ins[2]))
-
-            if ins[1] == "rep1":
-                cmft_rep1.write("{}_{}\t{}\t{}\n".format(
-                    celltype_name, ins[1], ins[0], ins[2]))
-            elif ins[1] == "rep2":
-                cmft_rep2.write("{}_{}\t{}\t{}\n".format(
-                    celltype_name, ins[1], ins[0], ins[2]))
+        elif ins[1] == "rep2":
+            cmft_rep2.write("{}_{}\t{}\t{}\n".format(
+                celltype_name, ins[1], ins[0], ins[2]))
 
 def ChromHMM_replicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0'):
     namesig = chmm_celltype_dir.split("/")[-1]
