@@ -56,11 +56,16 @@ if os.path.exists("ChromHMM/") == False:
     
 chmm_output_dir = "chromhmm_runs/"
 chmm_input_dir = "chmmfiles/"
-print("Preparing ChromHMM inputfiles")
-prepare_chmm_inputdata("files/K562", assertion=False)
-print("running chmm rep")
-ChromHMM_replicate_runs("chmmfiles/K562", chmm_output_dir, n_thread='0')
-print("running chmm concat")
-ChromHMM_concat_runs("chmmfiles/K562", chmm_output_dir, n_thread='0')
-print("running chmm param-init")
-ChromHMM_paraminit_runs("chmmfiles/K562", chmm_output_dir, [5, 7],  n_thread='0')
+
+for ct in CellType_list:
+    print("Preparing ChromHMM inputfiles")
+    prepare_chmm_inputdata("files/"+ct, assertion=False)
+
+    print("running chmm rep")
+    ChromHMM_replicate_runs("chmmfiles/"+ct, chmm_output_dir, n_thread='0')
+
+    print("running chmm concat")
+    ChromHMM_concat_runs("chmmfiles/"+ct, chmm_output_dir, n_thread='0')
+
+    print("running chmm param-init")
+    ChromHMM_paraminit_runs("chmmfiles/"+ct, chmm_output_dir, [5, 7],  n_thread='0')
