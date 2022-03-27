@@ -59,7 +59,7 @@ p_obj.map(partial(
 # run segway-concat
 partial_runs_i = partial(
     concat_RunParse_segway, output_dir=segway_dir, random_seed=73)
-p_obj = mp.Pool(len(CellType_list))
+p_obj = mp.Pool(int(len(CellType_list)/3))
 p_obj.map(partial_runs_i, [download_dir+ct for ct in CellType_list])
 
 print('Checking for unparsed posteriors...')

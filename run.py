@@ -669,7 +669,7 @@ if __name__=="__main__":
     # Run segway replicates     MP
     partial_runs_i = partial(
         RunParse_segway_replicates, output_dir=segway_dir, random_seed=73)
-    p_obj = mp.Pool(len(CellType_list))
+    p_obj = mp.Pool(int(len(CellType_list)/2))
     p_obj.map(partial_runs_i, [download_dir+ct for ct in CellType_list])
 
     # parse_posteriors 
@@ -688,50 +688,6 @@ if __name__=="__main__":
 
     print('All parsed!')
 
-    # Run segway param-init test     MP
-
-    partial_runs_ii = partial(
-        RunParse_segway_param_init, 
-        replicate_number = 'rep1', output_dir=segway_dir, random_seeds=[7, 5])
-
-    p_obj = mp.Pool(len(CellType_list))
-    p_obj.map(partial_runs_ii, [download_dir+ct for ct in CellType_list])
-
-    partial_runs_iii = partial(
-        RunParse_segway_param_init, replicate_number = 'rep2', output_dir=segway_dir, 
-        random_seeds=[7, 5])
-        
-    p_obj = mp.Pool(len(CellType_list))
-    p_obj.map(partial_runs_iii, [download_dir+ct for ct in CellType_list])
-
-    print('Checking for unparsed posteriors...')
-    list_of_seg_runs = [
-        d for d in os.listdir(segway_dir) if os.path.isdir(segway_dir+'/'+d)]
-    print(list_of_seg_runs)
-
-    for d in list_of_seg_runs:
-        print('-Checking for {}  ...'.format(segway_dir+'/'+d+'/parsed_posterior.csv'))
-
-        if os.path.exists(segway_dir+'/'+d+'/parsed_posterior.csv') == False:
-            parse_posterior_results(segway_dir+'/'+d, 100, mp=False)
-
-        else:
-            print('-Exists!')
-
-    print('All parsed!')
-
-    # for ct in CellType_list:
-    #     loci_1, loci_2 = intersect_parsed_posteriors(
-    #         segway_dir+ct+"_rep1/parsed_posterior.csv",
-    #         segway_dir+ct+"_rep2/parsed_posterior.csv")
-
-    #     loci_1 = loci_1.iloc[list(range(0, len(loci_1), 500)), :].reset_index(drop=True)
-    #     loci_2 = loci_2.iloc[list(range(0, len(loci_2), 500)), :].reset_index(drop=True)
-
-    #     print('loaded and intersected parsed posteriors for {}'.format(ct))
-    #     print('starting reproducibility evaluation for {}'.format(ct))
-    #     """EVALUATE REPRODUCIBILITY"""
-    #     post_clustering(loci_1, loci_2, res_dir+ct, OE_transform=True)
 
 
 
