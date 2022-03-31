@@ -5,6 +5,10 @@ from scipy.ndimage.filters import gaussian_filter1d
 from _cluster_matching import *
 import plotly.graph_objects as go
 import plotly.express as px
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.pipeline import make_pipeline
+from sklearn.metrics import r2_score
+from sklearn.linear_model import LinearRegression
 
 class Agreement(object):
     def __init__(self, loci_1, loci_2, savedir, filter_nan=True):
@@ -158,7 +162,7 @@ class Agreement(object):
         plt.clf()
 
 
-class Reprodroducibility_vs_posterior(object):
+class Reprodroducibility_vs_posterior(object): 
     def __init__(self, loci_1, loci_2, savedir, log_transform=True, ignore_overconf=True, filter_nan=True):
         if filter_nan:
             loci_1 = loci_1.dropna()
@@ -300,6 +304,124 @@ class Reprodroducibility_vs_posterior(object):
         # except:
         #     print('could not process label {}'.format(k))
 
+class posterior_calibration(object):
+    def __init__(self, loci_1, loci_2, log_transform=True, ignore_overconf=True, filter_nan=True):
+        self.filter_nan = filter_nan
+        if filter_nan:
+            loci_1 = loci_1.dropna()
+            loci_1 = loci_1.reset_index(drop=True)
+            loci_2 = loci_2.dropna()
+            loci_2 = loci_2.reset_index(drop=True)
+
+        self.loci_1 = loci_1
+        self.loci_2 = loci_2
+        self.num_labels = len(self.loci_1.columns)-3
+        self.log_transform = log_transform
+
+        self.post_mat_1 = self.loci_1.iloc[:, 3:]
+        self.post_mat_2 = self.loci_2.iloc[:, 3:]
+
+        if ignore_overconf:
+            max_posteri1 = self.post_mat_1.max(axis=1)
+            max_posteri2 = self.post_mat_2.max(axis=1)
+            to_drop = []
+            for i in range(len(max_posteri1)):
+                if max_posteri1[i] == 1 or max_posteri2[i] == 1:
+                    to_drop.append(i)
+
+            print("filtered results for overconfident bins: ignored {}/{}".format(len(to_drop), len(self.post_mat_1)))
+            self.post_mat_1 = self.post_mat_1.drop(to_drop, axis=0)
+            self.post_mat_1 = self.post_mat_1.reset_index(drop=True)
+
+            self.post_mat_2 = self.post_mat_2.drop(to_drop, axis=0)
+            self.post_mat_2 = self.post_mat_2.reset_index(drop=True)
+        
+        self.MAPestimate1 = self.post_mat_1.idxmax(axis=1)
+        self.MAPestimate2 = self.post_mat_2.idxmax(axis=1)
+
+        if log_transform:
+            self.post_mat_1 = -1 * pd.DataFrame(
+                np.log(1 - self.post_mat_1) , 
+                columns=self.post_mat_1.columns
+            )
+            self.post_mat_2 = -1 * pd.DataFrame(
+                np.log(1 - self.post_mat_2) , 
+                columns=self.post_mat_2.columns
+            )
+
+    def perlabel_calibration_function(self, degree=3, num_bins=100, return_caliberated_matrix=True):
+        perlabel_function = {}
+        for k in range(self.post_mat_1.shape[1]):
+            try:
+                bins = []
+                posterior_vector_1 = np.array(self.post_mat_1[self.post_mat_1.columns[k]])
+                bin_length = (float(np.max(posterior_vector_1)) - float(np.min(posterior_vector_1))) / num_bins
+                for j in range(int(np.min(posterior_vector_1)*1000), int(np.max(posterior_vector_1)*1000), int(bin_length*1000)):
+                    bins.append([float(j/1000), float(j/1000) + int(bin_length*1000)/1000, 0, 0, 0, 0, 0])
+                    
+                    # [bin_start, bin_end, num_values_in_bin, num_agreement_in_bin, num_mislabeled, 
+                    # ratio_correctly_labeled, ratio_mislabeled]
+                
+                for b in range(len(bins)):
+                    
+                    for i in range(len(posterior_vector_1)):
+                        if bins[b][0] <= posterior_vector_1[i] <= bins[b][1]:
+                            bins[b][2] += 1
+
+                            if self.post_mat_1.columns[k] == self.MAPestimate2[i]:
+                                bins[b][3] += 1
+                            else:
+                                bins[b][4] += 1
+
+                for b in bins:
+                    if b[2] != 0:
+                        b[5] = b[3] / b[2]
+                        b[6] = b[4] / b[2]
+
+                    else:
+                        bins.remove(b)
+
+                bins = np.array(bins)
+
+                polyreg = make_pipeline(PolynomialFeatures(degree), LinearRegression())
+                polyreg.fit(
+                    np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), #x_train is the mean of each bin
+                    bins[:, 5]) # y_train is ratio_correctly_labeled at each bin
+
+                r2 = r2_score(
+                    bins[:, 5], 
+                    polyreg.predict(
+                        np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))))
+                
+                print(k, r2)
+                perlabel_function[k] = [polyreg, r2]
+
+            except:
+                print("no calibration: y=x")
+                # returns identity regression functions : y=x
+
+                polyreg = make_pipeline(PolynomialFeatures(1), LinearRegression())
+                xy = np.reshape(np.array([float(i)/100 for i in range(100)]), (-1,1))
+                polyreg.fit(xy,xy)
+
+                perlabel_function[k] = [polyreg, "no calibration: y=x"]
+
+        if return_caliberated_matrix:
+            new_matrix = [self.loci_1.iloc[:,:3]]
+            for k in range(self.post_mat_1.shape[1]):
+                regmodel = perlabel_function[k][0]
+                x = np.array(self.post_mat_1[self.post_mat_1.columns[k]])
+                calibrated_array = regmodel.predict(np.reshape(np.array(self.post_mat_1[self.post_mat_1.columns[k]]), (-1,1)))
+                print(calibrated_array[list(range(0,len(calibrated_array), 100))])
+                
+                new_matrix.append(pd.DataFrame(calibrated_array, columns=["posterior{}".format(k)]))
+            return pd.concat(new_matrix, axis=1)
+
+        else:
+            self.perlabel_function = perlabel_function
+            return self.perlabel_function
+    
+    
 class correspondence_curve(object):
     '''
     implementation of the method described at
@@ -491,3 +613,29 @@ class sankey(object):
         fig.write_image("{}/sankey.pdf".format(self.savedir))
         fig.write_image("{}/sankey.svg".format(self.savedir))
         fig.write_html("{}/sankey.html".format(self.savedir))
+
+class validate_EXT():
+    def __init__(self):
+        """
+        1. read segtools feature aggregation tab file
+        2. read enrichment of each label +- X bp s upstream and downstream of “initial exon start site”
+        3. open a df containing these columns
+            1. the label
+            2. the enrichment
+            3. label's reproducibility (agreement)
+            4. label's calibrated posterior
+        """
+        pass
+
+    def caliberate(self):
+        pass
+
+    def TSS_vs_agreement_plot(self):
+        pass
+
+    def TSS_vs_calibrated_plot(self):
+        pass
+
+
+
+

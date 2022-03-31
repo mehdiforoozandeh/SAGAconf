@@ -263,7 +263,7 @@ def concat_create_genomedata(celltype_dir, sequence_file):
 
     if os.path.exists(celltype_dir + "/" + "concat_rep2.genomedata") == False:
         tracklist = ''
-        for k, v in tracks_bgs_rep1.items():
+        for k, v in tracks_bgs_rep2.items():
             tracklist = tracklist + '-t {}={} '.format(k, v.replace("bedGraph","_concat.bedGraph"))  
 
         os.system('genomedata-load -s {} --sizes {} --verbose {}'.format(
