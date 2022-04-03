@@ -452,7 +452,7 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, general=True, num_bins=20
             os.mkdir(pltsavedir+"/calib")
 
         cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
-        repr = Reprodroducibility_vs_posterior(loci_1,loci_2, pltsavedir+"/calib",log_transform=False)
+        # repr = Reprodroducibility_vs_posterior(loci_1,loci_2, pltsavedir+"/calib",log_transform=False)
 
         cc.plot_curve(plot_general=general, merge_plots=merge_cc_curves)
         repr.per_label_count_independent(num_bins=num_bins)

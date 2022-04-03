@@ -1,19 +1,18 @@
 import os
 import pandas as pd
 
-
-def binarize_data(inputbeddir, cellmarkfiletable, outputdir, resolution=100, chromlength='ChromHMM/CHROMSIZES/hg19.txt'):
+def binarize_data(inputbeddir, cellmarkfiletable, outputdir, resolution=100, chromlength='ChromHMM/CHROMSIZES/hg38.txt'):
     cmdline = "java -Xmx10g -jar ChromHMM/ChromHMM.jar BinarizeBam -b {} {} {} {} {}".format(
         resolution, chromlength, inputbeddir, cellmarkfiletable, outputdir
     )
     os.system(cmdline)
 
-def learnModel(binary_input_dir, output_dir, num_labels='16', assembly='hg19', n_threads='0', random_seed=None):
+def learnModel(binary_input_dir, output_dir, num_labels='16', assembly='hg38', n_threads='0', random_seed=None):
     if random_seed != None:
-        learnmodel_cmdline = "java -Xmx10g -jar ChromHMM/ChromHMM.jar LearnModel -init random -r 400 -s {} -printposterior -p {} {} {} {} {}".format(
+        learnmodel_cmdline = "java -Xmx10g -jar ChromHMM/ChromHMM.jar LearnModel -init random -r 600 -s {} -printposterior -p {} {} {} {} {}".format(
             random_seed, n_threads, binary_input_dir, output_dir, num_labels, assembly)
     else:
-        learnmodel_cmdline = "java -Xmx10g -jar ChromHMM/ChromHMM.jar LearnModel -init information -r 400 -printposterior -p {} {} {} {} {}".format(
+        learnmodel_cmdline = "java -Xmx10g -jar ChromHMM/ChromHMM.jar LearnModel -init information -r 600 -printposterior -p {} {} {} {} {}".format(
             n_threads, binary_input_dir, output_dir, num_labels, assembly)
     os.system(learnmodel_cmdline)
 

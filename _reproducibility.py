@@ -1,3 +1,7 @@
+from cProfile import label
+from csv import excel
+from mimetypes import init
+from statistics import mean
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -161,9 +165,8 @@ class Agreement(object):
         plt.savefig('{}/cohenskappa.svg'.format(self.savedir), format='svg')
         plt.clf()
 
-
-class Reprodroducibility_vs_posterior(object): 
-    def __init__(self, loci_1, loci_2, savedir, log_transform=True, ignore_overconf=True, filter_nan=True):
+class posterior_calibration(object):
+    def __init__(self, loci_1, loci_2, savedir, log_transform=True, ignore_overconf=True, filter_nan=True, oe_transform=True):
         if filter_nan:
             loci_1 = loci_1.dropna()
             loci_1 = loci_1.reset_index(drop=True)
@@ -172,255 +175,160 @@ class Reprodroducibility_vs_posterior(object):
 
         self.loci_1 = loci_1
         self.loci_2 = loci_2
-        self.savedir = savedir
         self.num_labels = len(self.loci_1.columns)-3
-        self.log_transform = log_transform
 
-        self.post_mat_1 = self.loci_1.iloc[:, 3:]
-        self.post_mat_2 = self.loci_2.iloc[:, 3:]
+        self.savedir = savedir
+        del loci_1
+        del loci_2
+        
+        self.log_transform = log_transform
+        self.oe_transform = oe_transform
 
         if ignore_overconf:
-            max_posteri1 = self.post_mat_1.max(axis=1)
-            max_posteri2 = self.post_mat_2.max(axis=1)
+            max_posteri1 = self.loci_1.iloc[:,3:].max(axis=1)
+            max_posteri2 = self.loci_2.iloc[:,3:].max(axis=1)
             to_drop = []
             for i in range(len(max_posteri1)):
                 if max_posteri1[i] == 1 or max_posteri2[i] == 1:
                     to_drop.append(i)
 
-            print("filtered results for overconfident bins: ignored {}/{}".format(len(to_drop), len(self.post_mat_1)))
-            self.post_mat_1 = self.post_mat_1.drop(to_drop, axis=0)
-            self.post_mat_1 = self.post_mat_1.reset_index(drop=True)
+            print("filtered results for overconfident bins: ignored {}/{}".format(len(to_drop), len(self.loci_1)))
+            self.loci_1 = self.loci_1.drop(to_drop, axis=0)
+            self.loci_1 = self.loci_1.reset_index(drop=True)
 
-            self.post_mat_2 = self.post_mat_2.drop(to_drop, axis=0)
-            self.post_mat_2 = self.post_mat_2.reset_index(drop=True)
-        
-        self.MAPestimate1 = self.post_mat_1.idxmax(axis=1)
-        self.MAPestimate2 = self.post_mat_2.idxmax(axis=1)
+            self.loci_2 = self.loci_2.drop(to_drop, axis=0)
+            self.loci_2 = self.loci_2.reset_index(drop=True)
+
+        self.MAPestimate1 = self.loci_1.iloc[:,3:].idxmax(axis=1)
+        self.MAPestimate2 = self.loci_2.iloc[:,3:].idxmax(axis=1)
 
         if log_transform:
-            self.post_mat_1 = -1 * pd.DataFrame(
-                np.log(1 - self.post_mat_1) , 
-                columns=self.post_mat_1.columns
+            self.loci_1.iloc[:,3:] = -1 * pd.DataFrame(
+                np.log(1 - self.loci_1.iloc[:,3:]) , 
+                columns=self.loci_1.iloc[:,3:].columns
             )
-            self.post_mat_2 = -1 * pd.DataFrame(
-                np.log(1 - self.post_mat_2) , 
-                columns=self.post_mat_2.columns
+            self.loci_2.iloc[:,3:] = -1 * pd.DataFrame(
+                np.log(1 - self.loci_2.iloc[:,3:]) , 
+                columns=self.loci_2.iloc[:,3:].columns
             )
 
-    def per_label_count_independent(self, num_bins=100):
-        for k in range(self.post_mat_1.shape[1]):
-            try:
-                bins = []
-                posterior_vector_1 = np.array(self.post_mat_1[self.post_mat_1.columns[k]])
-                bin_length = (float(np.max(posterior_vector_1)) - float(np.min(posterior_vector_1))) / num_bins
-                for j in range(int(np.min(posterior_vector_1)*1000), int(np.max(posterior_vector_1)*1000), int(bin_length*1000)):
-                    bins.append([float(j/1000), float(j/1000) + int(bin_length*1000)/1000, 0, 0, 0, 0, 0])
-                    
-                    # [bin_start, bin_end, num_values_in_bin, num_agreement_in_bin, num_mislabeled, 
-                    # ratio_correctly_labeled, ratio_mislabeled]
-                
-                for b in range(len(bins)):
-                    
-                    for i in range(len(posterior_vector_1)):
-                        if bins[b][0] <= posterior_vector_1[i] <= bins[b][1]:
-                            bins[b][2] += 1
-
-                            if self.post_mat_1.columns[k] == self.MAPestimate2[i]:
-                                bins[b][3] += 1
-                            else:
-                                bins[b][4] += 1
-
-                for b in range(len(bins)):
-                    if bins[b][2] != 0:
-                        bins[b][5] = bins[b][3] / bins[b][2]
-                        bins[b][6] = (bins[b][4]) / bins[b][2]
-
-                bins = np.array(bins)
-                plt.scatter(x=bins[:,0], y=bins[:,5], c='black', s=100)
-                ysmoothed = gaussian_filter1d(bins[:,5], sigma=3)
-                plt.plot(bins[:,0], ysmoothed, c='r')
-                plt.title("Reproduciblity Plot label {}".format(k))
-                plt.ylabel("Ratio of Similarly Labeled Bins in replicate 2")
-
-                if self.log_transform:
-                    plt.xlabel("- log(1-posterior) in Replicate 1")
-
-                else:
-                    plt.xlabel("Posterior in Replicate 1")
-                
-                plt.tick_params(axis='x', which='both', bottom=False,top=False,labelbottom=False)
-                plt.savefig('{}/caliberation_label{}.pdf'.format(self.savedir, k), format='pdf')
-                plt.savefig('{}/caliberation_label{}.svg'.format(self.savedir, k), format='svg')
-                plt.clf()
-
-            except:
-                print('could not process label {}'.format(k))
-
-    def general_count_independent(self, num_bins=100):
-        # try:
-        bins = []
-        max_post, min_post = self.post_mat_1.max(axis=1).max(axis=0), self.post_mat_1.min(axis=1).min(axis=0)
-        bin_length = (float(max_post) - float(min_post)) / num_bins
-
-        for j in range(int(min_post*1000), int(max_post*1000), int(bin_length*1000)):
-            bins.append([float(j/1000), float(j/1000) + int(bin_length*1000)/1000, 0, 0, 0, 0, 0])
-            # [bin_start, bin_end, num_values_in_bin, num_agreement_in_bin, num_mislabeled, ratio_correctly_labeled, ratio_mislabeled]
+    def perlabel_visualize_calibration(self, bins, label_name, scatter=False):
+        if scatter:
+            plt.scatter(x=bins[:,0], y=bins[:,5], c='black', s=1000/len(bins))
+            ysmoothed = gaussian_filter1d(bins[:,5], sigma=3)
+            plt.plot(bins[:,0], ysmoothed, c='r')
         
-        for b in range(len(bins)):
-            for k in range(self.post_mat_1.shape[1]):
-                for i in range(self.post_mat_1.shape[0]):
+        else:
+            plt.plot([(bins[i,0]+bins[i,1])/2 for i in range(len(bins))], bins[:,5], label=label_name)
 
-                    if bins[b][0] <= self.post_mat_1.iloc[i, k] <= bins[b][1]:
+        plt.title("Reproduciblity Plot {}".format(label_name))
+        if self.oe_transform:
+            plt.ylabel("O/E of Similarly Labeled Bins in replicate 2")
+        else:
+            plt.ylabel("Ratio of Similarly Labeled Bins in replicate 2")
+
+        if self.log_transform:
+            plt.xlabel("- log(1-posterior) in Replicate 1")
+            plt.tick_params(axis='x', which='both', bottom=False,top=False,labelbottom=False)
+
+        else:
+            plt.xlabel("Posterior in Replicate 1")
+       
+        plt.savefig('{}/caliberation_{}.pdf'.format(self.savedir, label_name), format='pdf')
+        plt.savefig('{}/caliberation_{}.svg'.format(self.savedir, label_name), format='svg')
+        plt.clf()
+
+    def general_visualize_calibration(self, bins_dict):
+        for label_name, bins in bins_dict.items():
+            plt.plot([(bins[i,0]+bins[i,1])/2 for i in range(len(bins))], bins[:, 5], label=label_name)
+
+        plt.legend()
+        if self.oe_transform:
+            plt.ylabel("o/e reproducibility")
+        else:
+            plt.ylabel("reproducibility")
+
+        if self.log_transform:
+            plt.xlabel("-log(1-p)")
+        else:
+            plt.xlabel("p")
+
+        plt.savefig('{}/caliberation_{}.pdf'.format(self.savedir, "general"), format='pdf')
+        plt.savefig('{}/caliberation_{}.svg'.format(self.savedir, "general"), format='svg')
+        plt.clf()
+            
+
+    def perlabel_calibration_function(self, degree=3, num_bins=10, return_caliberated_matrix=True):
+        perlabel_function = {}
+        bins_dict = {}
+        new_matrix = [self.loci_1.iloc[:,:3]]
+        for k in range(self.num_labels):
+            # try:
+            kth_label = self.loci_1.iloc[:,3:].columns[k]
+            bins = []
+            posterior_vector_1 = np.array(self.loci_1.iloc[:,3:][kth_label])
+
+            bin_length = (float(np.max(posterior_vector_1)) - float(np.min(posterior_vector_1))) / num_bins
+            for j in range(int(np.min(posterior_vector_1)*1000), int(np.max(posterior_vector_1)*1000), int(bin_length*1000)):
+                bins.append([float(j/1000), float(j/1000) + int(bin_length*1000)/1000, 0, 0, 0, 0])
+                
+                # [bin_start, bin_end, num_values_in_bin, num_agreement_in_bin, num_mislabeled, 
+                # ratio_correctly_labeled]
+            
+            for b in range(len(bins)):
+                
+                for i in range(len(posterior_vector_1)):
+                    if bins[b][0] <= posterior_vector_1[i] <= bins[b][1]:
                         bins[b][2] += 1
 
-                        if self.post_mat_1.columns[k] == self.MAPestimate2[i]:
+                        if kth_label == self.MAPestimate2[i]:
                             bins[b][3] += 1
                         else:
                             bins[b][4] += 1
 
-        for b in range(len(bins)):
-            if bins[b][2] != 0:
-                bins[b][5] = bins[b][3] / bins[b][2]
-                bins[b][6] = (bins[b][4]) / bins[b][2]
+            for b in bins:
+                # if b[2] != 0:
+                if self.oe_transform:
+                    #enrichment (o/e) correctly labeled
+                    expected = ((1/self.num_labels) * b[2]) #(num in bins * 1/numlabels) 
+                    b[5] = (b[3] + 1) / (expected + 1)
 
-        bins = np.array(bins)
-        plt.scatter(x=bins[:,0], y=bins[:,5], c='black', s=100)
-        ysmoothed = gaussian_filter1d(bins[:,5], sigma=3)
-        plt.plot(bins[:,0], ysmoothed, c='r')
-        plt.title("Reproduciblity Plot All Labels")
-        plt.ylabel("Ratio of Similarly Labeled Bins in replicate 2")
+                else:
+                    b[5] = b[3] / b[2] # raw correctly labeled
 
-        if self.log_transform:
-            plt.xlabel("- log(1-posterior) in Replicate 1")
+            bins = np.array(bins)
+            bins_dict[kth_label] = bins
+            self.perlabel_visualize_calibration(bins, kth_label, scatter=True)
 
-        else:
-            plt.xlabel("Posterior in Replicate 1")
-        
-        plt.tick_params(axis='x', which='both', bottom=False,top=False,labelbottom=False)
-        plt.savefig('{}/caliberation_general.pdf'.format(self.savedir), format='pdf')
-        plt.savefig('{}/caliberation_general.svg'.format(self.savedir), format='svg')
-        plt.clf()
-        
-        # except:
-        #     print('could not process label {}'.format(k))
-
-class posterior_calibration(object):
-    def __init__(self, loci_1, loci_2, log_transform=True, ignore_overconf=True, filter_nan=True):
-        self.filter_nan = filter_nan
-        if filter_nan:
-            loci_1 = loci_1.dropna()
-            loci_1 = loci_1.reset_index(drop=True)
-            loci_2 = loci_2.dropna()
-            loci_2 = loci_2.reset_index(drop=True)
-
-        self.loci_1 = loci_1
-        self.loci_2 = loci_2
-        self.num_labels = len(self.loci_1.columns)-3
-        self.log_transform = log_transform
-
-        self.post_mat_1 = self.loci_1.iloc[:, 3:]
-        self.post_mat_2 = self.loci_2.iloc[:, 3:]
-
-        if ignore_overconf:
-            max_posteri1 = self.post_mat_1.max(axis=1)
-            max_posteri2 = self.post_mat_2.max(axis=1)
-            to_drop = []
-            for i in range(len(max_posteri1)):
-                if max_posteri1[i] == 1 or max_posteri2[i] == 1:
-                    to_drop.append(i)
-
-            print("filtered results for overconfident bins: ignored {}/{}".format(len(to_drop), len(self.post_mat_1)))
-            self.post_mat_1 = self.post_mat_1.drop(to_drop, axis=0)
-            self.post_mat_1 = self.post_mat_1.reset_index(drop=True)
-
-            self.post_mat_2 = self.post_mat_2.drop(to_drop, axis=0)
-            self.post_mat_2 = self.post_mat_2.reset_index(drop=True)
-        
-        self.MAPestimate1 = self.post_mat_1.idxmax(axis=1)
-        self.MAPestimate2 = self.post_mat_2.idxmax(axis=1)
-
-        if log_transform:
-            self.post_mat_1 = -1 * pd.DataFrame(
-                np.log(1 - self.post_mat_1) , 
-                columns=self.post_mat_1.columns
-            )
-            self.post_mat_2 = -1 * pd.DataFrame(
-                np.log(1 - self.post_mat_2) , 
-                columns=self.post_mat_2.columns
-            )
-
-    def perlabel_calibration_function(self, degree=3, num_bins=100, return_caliberated_matrix=True):
-        perlabel_function = {}
-        for k in range(self.post_mat_1.shape[1]):
-            try:
-                bins = []
-                posterior_vector_1 = np.array(self.post_mat_1[self.post_mat_1.columns[k]])
-                bin_length = (float(np.max(posterior_vector_1)) - float(np.min(posterior_vector_1))) / num_bins
-                for j in range(int(np.min(posterior_vector_1)*1000), int(np.max(posterior_vector_1)*1000), int(bin_length*1000)):
-                    bins.append([float(j/1000), float(j/1000) + int(bin_length*1000)/1000, 0, 0, 0, 0, 0])
-                    
-                    # [bin_start, bin_end, num_values_in_bin, num_agreement_in_bin, num_mislabeled, 
-                    # ratio_correctly_labeled, ratio_mislabeled]
+            polyreg = make_pipeline(PolynomialFeatures(degree), LinearRegression())
+            polyreg.fit(
+                np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), #x_train is the mean of each bin
+                bins[:, 5]) # y_train is oe/ratio_correctly_labeled at each bin
+            
+            r2 = r2_score(
+                bins[:, 5], 
+                polyreg.predict(
+                    np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))))
+                     
+            
+            if return_caliberated_matrix:
+                x = np.array(self.loci_1.iloc[:,3:][kth_label])
+                calibrated_array = polyreg.predict(
+                    np.reshape(np.array(x), (-1,1)))
+                new_matrix.append(pd.DataFrame(calibrated_array, columns=[kth_label]))
                 
-                for b in range(len(bins)):
-                    
-                    for i in range(len(posterior_vector_1)):
-                        if bins[b][0] <= posterior_vector_1[i] <= bins[b][1]:
-                            bins[b][2] += 1
-
-                            if self.post_mat_1.columns[k] == self.MAPestimate2[i]:
-                                bins[b][3] += 1
-                            else:
-                                bins[b][4] += 1
-
-                for b in bins:
-                    if b[2] != 0:
-                        b[5] = b[3] / b[2]
-                        b[6] = b[4] / b[2]
-
-                    else:
-                        bins.remove(b)
-
-                bins = np.array(bins)
-
-                polyreg = make_pipeline(PolynomialFeatures(degree), LinearRegression())
-                polyreg.fit(
-                    np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), #x_train is the mean of each bin
-                    bins[:, 5]) # y_train is ratio_correctly_labeled at each bin
-
-                r2 = r2_score(
-                    bins[:, 5], 
-                    polyreg.predict(
-                        np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))))
-                
-                print(k, r2)
+            else:
                 perlabel_function[k] = [polyreg, r2]
 
-            except:
-                print("no calibration: y=x")
-                # returns identity regression functions : y=x
-
-                polyreg = make_pipeline(PolynomialFeatures(1), LinearRegression())
-                xy = np.reshape(np.array([float(i)/100 for i in range(100)]), (-1,1))
-                polyreg.fit(xy,xy)
-
-                perlabel_function[k] = [polyreg, "no calibration: y=x"]
+        self.general_visualize_calibration(bins_dict)
 
         if return_caliberated_matrix:
-            new_matrix = [self.loci_1.iloc[:,:3]]
-            for k in range(self.post_mat_1.shape[1]):
-                regmodel = perlabel_function[k][0]
-                x = np.array(self.post_mat_1[self.post_mat_1.columns[k]])
-                calibrated_array = regmodel.predict(np.reshape(np.array(self.post_mat_1[self.post_mat_1.columns[k]]), (-1,1)))
-                print(calibrated_array[list(range(0,len(calibrated_array), 100))])
-                
-                new_matrix.append(pd.DataFrame(calibrated_array, columns=["posterior{}".format(k)]))
             return pd.concat(new_matrix, axis=1)
 
         else:
             self.perlabel_function = perlabel_function
             return self.perlabel_function
-    
+
     
 class correspondence_curve(object):
     '''
@@ -615,7 +523,7 @@ class sankey(object):
         fig.write_html("{}/sankey.html".format(self.savedir))
 
 class validate_EXT():
-    def __init__(self):
+    def __init__(self, agg_tab_file, label_agreement_dict, TSS_offset=2):
         """
         1. read segtools feature aggregation tab file
         2. read enrichment of each label +- X bp s upstream and downstream of “initial exon start site”
@@ -625,13 +533,55 @@ class validate_EXT():
             3. label's reproducibility (agreement)
             4. label's calibrated posterior
         """
-        pass
 
-    def caliberate(self):
-        pass
+
+        aggr_df = []
+        with open(agg_tab_file,'r') as aggfile:
+            lines = aggfile.readlines()
+            for i in range(1, len(lines)):
+                sp = lines[i].split('\t')
+                sp[-1] = sp[-1].replace("\n", "")
+                aggr_df.append(sp)
+
+                if "initial exon" in sp[1] and sp[2]=="0":
+                    initial_exon_idx = i-2
+
+        if "E1" in aggr_df[0]:
+            aggr_df[0][3:] = [str(i) for i in range(len(aggr_df[0])-3)]
+
+        self.aggr_df = pd.DataFrame(
+            aggr_df[1:], columns=aggr_df[0])
+        
+        TSS = (self.aggr_df.iloc[
+            int(initial_exon_idx-(TSS_offset/2)):int(initial_exon_idx+(TSS_offset/2))
+            , :])
+
+        print(TSS)
+        enrich_df = []
+        for k, v in label_agreement_dict.items():
+            if "posterior" in k:
+                k = k.replace("posterior", "")
+            
+            enrich_df.append([k, v, mean(list(TSS.loc[:, k].astype('int')))])
+
+        self.enrich_df = pd.DataFrame(enrich_df, columns=["label", "agreement", "enrichment"])
 
     def TSS_vs_agreement_plot(self):
-        pass
+        plt.scatter(
+            x=self.enrich_df["agreement"],
+            y=self.enrich_df["enrichment"]
+        )
+        for i in range(self.enrich_df.shape[0]):
+            plt.annotate(
+                self.enrich_df['label'][i],
+                (
+                    self.enrich_df["agreement"][i],
+                    self.enrich_df["enrichment"][i]
+                )
+            )
+        plt.xlabel("Agreement")
+        plt.xlabel("Label enrichment around TSS")
+        plt.show()
 
     def TSS_vs_calibrated_plot(self):
         pass
