@@ -1,7 +1,10 @@
 from cProfile import label
 from csv import excel
 from mimetypes import init
+from operator import gt
+from re import M
 from statistics import mean
+from textwrap import fill
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -10,7 +13,9 @@ from _cluster_matching import *
 import plotly.graph_objects as go
 import plotly.express as px
 from sklearn.preprocessing import PolynomialFeatures
+from sklearn.isotonic import IsotonicRegression
 from sklearn.pipeline import make_pipeline
+from scipy.interpolate import interp1d, UnivariateSpline, splrep
 from sklearn.metrics import r2_score
 from sklearn.linear_model import LinearRegression
 
@@ -258,7 +263,7 @@ class posterior_calibration(object):
         plt.clf()
             
 
-    def perlabel_calibration_function(self, degree=3, num_bins=10, return_caliberated_matrix=True):
+    def perlabel_calibration_function(self, method="isoton_reg", degree=3, num_bins=10, return_caliberated_matrix=True):
         perlabel_function = {}
         bins_dict = {}
         new_matrix = [self.loci_1.iloc[:,:3]]
@@ -300,25 +305,55 @@ class posterior_calibration(object):
             bins_dict[kth_label] = bins
             self.perlabel_visualize_calibration(bins, kth_label, scatter=True)
 
-            polyreg = make_pipeline(PolynomialFeatures(degree), LinearRegression())
-            polyreg.fit(
+            if method=="spline":
+                f = UnivariateSpline(
+                    x= np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]),
+                    y=bins[:, 5], ext=3)
+
+                r2 = r2_score(
+                    bins[:, 5], 
+                    f(
+                        np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))
+                    ))
+                
+                print("R2 score for {}: {}".format(kth_label, r2))
+
+            else:
+                if method=="isoton_reg":
+                    polyreg = IsotonicRegression(
+                    y_min=float(np.array(bins[:, 5]).min()), y_max=float(np.array(bins[:, 5]).max()), 
+                    out_of_bounds="clip")
+
+                if method == "poly_reg":
+                    make_pipeline(PolynomialFeatures(degree), LinearRegression())
+                
+                polyreg.fit(
                 np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), #x_train is the mean of each bin
                 bins[:, 5]) # y_train is oe/ratio_correctly_labeled at each bin
-            
-            r2 = r2_score(
-                bins[:, 5], 
-                polyreg.predict(
-                    np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))))
-                     
+
+                r2 = r2_score(
+                    bins[:, 5], 
+                    polyreg.predict(
+                        np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))))
+                
+                print("R2 score for {}: {}".format(kth_label, r2))
             
             if return_caliberated_matrix:
                 x = np.array(self.loci_1.iloc[:,3:][kth_label])
-                calibrated_array = polyreg.predict(
-                    np.reshape(np.array(x), (-1,1)))
+                if method == "spline":
+                    calibrated_array = f(np.array(x))
+                else:
+                    calibrated_array = polyreg.predict(
+                        np.reshape(np.array(x), (-1,1)))
+
                 new_matrix.append(pd.DataFrame(calibrated_array, columns=[kth_label]))
                 
             else:
-                perlabel_function[k] = [polyreg, r2]
+                if method == "spline":
+                    perlabel_function[k] = [f, r2]
+
+                else:
+                    perlabel_function[k] = [polyreg, r2]
 
         self.general_visualize_calibration(bins_dict)
 
@@ -523,7 +558,7 @@ class sankey(object):
         fig.write_html("{}/sankey.html".format(self.savedir))
 
 class validate_EXT():
-    def __init__(self, agg_tab_file, label_agreement_dict, TSS_offset=2):
+    def __init__(self):
         """
         1. read segtools feature aggregation tab file
         2. read enrichment of each label +- X bp s upstream and downstream of “initial exon start site”
@@ -534,7 +569,7 @@ class validate_EXT():
             4. label's calibrated posterior
         """
 
-
+    def read_feat_agg_enrichment(self, agg_tab_file, label_agreement_dict, TSS_offset=2):
         aggr_df = []
         with open(agg_tab_file,'r') as aggfile:
             lines = aggfile.readlines()
@@ -583,8 +618,114 @@ class validate_EXT():
         plt.xlabel("Label enrichment around TSS")
         plt.show()
 
-    def TSS_vs_calibrated_plot(self):
-        pass
+    def TSS_from_gtf(self, gtf_file):
+        with open(gtf_file, 'r') as gtff:
+            lines = gtff.readlines()
+            self.TSS_coords = []
+            for l in lines:
+                if l[0] != "#":
+                    cols = l.split(";")
+                    cols[0] = cols[0].split("\t")
+                    cols = cols[0] + cols[1:]
+                    # assure TSS
+                    if cols[2] == "gene":
+                        if cols[6] == "+":
+                            #for + strands TSS=Startsite
+                            tss_i = cols[3]
+                        elif cols[6] == '-':
+                            #for - strands TSS=endsite
+                            tss_i = cols[4]
+                        self.TSS_coords.append(
+                            [cols[0], int(tss_i), cols[10].replace("gene_name ","")[2:-1]])
+        self.TSS_coords =  pd.DataFrame(self.TSS_coords, columns=["chr", "TSS", "gene_name"])   
+        return self.TSS_coords
+
+    def TSS_vs_calibrated_plot(self, loci_1, num_bins=10):
+        """
+        read locis (caliberated confidence)
+        open new DF of occurence at TSS [num_labels , 1]
+        for each cell:
+            if posterior in that cell is MAP AND coords overlap with TSS:
+                    1
+            else:
+                    0
+        
+        BIN X-AXIS BASED ON CALIBRATED CONF
+        COUNT THE NUMBER OF POSITIONS AT EACH BIN WITH 1 IN DF2
+        PLOT FOR ALL LABELS (COLOR-CODED)
+        """
+
+        coverage = {}
+        MAP = loci_1.iloc[:, 3:].idxmax(axis=1)
+        for est in MAP:
+            if str(est) in coverage.keys():
+                coverage[str(est)] +=1
+            else:
+                coverage[str(est)] = 1
+
+        tss_occurence = []
+
+        chrs = np.unique(self.TSS_coords[['chr']].values)
+
+        for c in chrs:
+            chr_c_tss_coords = self.TSS_coords.loc[(self.TSS_coords['chr'] == c), :]
+            chr_c_tss_coords = chr_c_tss_coords.reset_index(drop=True)
+
+            chr_c_loci = loci_1.loc[(loci_1['chr'] == c), :]
+            chr_c_loci = chr_c_loci.reset_index(drop=True)
+
+            for tss in range(len(chr_c_tss_coords)):
+
+                occurence = chr_c_loci.loc[
+                    (chr_c_loci["start"] < int(chr_c_tss_coords["TSS"][tss])) &
+                    (int(chr_c_tss_coords["TSS"][tss]) < chr_c_loci["end"]), :]
+                
+                if len(occurence) != 0:
+                    tss_occurence.append(occurence)
+
+        tss_occurence = pd.concat(tss_occurence, axis=0).reset_index(drop=True)
+        print(tss_occurence)
+
+        labels_tss_enrich = {}
+        for k in loci_1.iloc[:,3:].columns:
+
+            bins = []
+            bin_length = float(loci_1.iloc[:,3:].max().max() - loci_1.iloc[:,3:].min().min()) / num_bins
+
+            for b in range(int(loci_1.iloc[:,3:].min().min()*10000), int(loci_1.iloc[:,3:].max().max()*10000), int(bin_length*10000)):
+                
+                if float(b/10000) <=  float(loci_1.loc[:,k].max()):
+                    bin = [float(b/10000), float(b/10000)+bin_length, 0]
+                    
+                    for tss in range(len(tss_occurence)):
+                        if bin[0] <= tss_occurence.loc[tss, k] <= bin[1]:
+                            if tss_occurence.iloc[tss, 3:].astype("float").idxmax() == k:
+                                bin[2] += 1
+
+                    bins.append(bin)
+
+            labels_tss_enrich[k] = bins
+        
+        # print(labels_tss_enrich)
+        for k, v in labels_tss_enrich.items():
+ 
+            plt.plot((np.array(v)[:, 0] + np.array(v)[:, 1])/2, np.array(v)[:, 2], label=k)
+        
+        plt.legend()
+        plt.xlabel("Calibrated Confidence Score")
+        plt.ylabel("Number of segment at TSS")
+        plt.show()
+
+            
+    """
+    for b in bins
+        for k in labels
+            for tss is tsslist
+
+                if  bins_start < posterior < bin_end
+                    count += 1 (might convert to o/e)
+
+    """
 
 
 
