@@ -2,7 +2,7 @@ from cProfile import label
 from csv import excel
 from mimetypes import init
 from operator import gt
-from re import M
+from re import L, M
 from statistics import mean
 from textwrap import fill
 import numpy as np
@@ -18,6 +18,8 @@ from sklearn.pipeline import make_pipeline
 from scipy.interpolate import interp1d, UnivariateSpline, splrep
 from sklearn.metrics import r2_score
 from sklearn.linear_model import LinearRegression
+from datetime import datetime
+
 
 class Agreement(object):
     def __init__(self, loci_1, loci_2, savedir, filter_nan=True):
@@ -640,93 +642,74 @@ class validate_EXT():
         self.TSS_coords =  pd.DataFrame(self.TSS_coords, columns=["chr", "TSS", "gene_name"])   
         return self.TSS_coords
 
-    def TSS_vs_calibrated_plot(self, loci_1, num_bins=10):
-        """
-        read locis (caliberated confidence)
-        open new DF of occurence at TSS [num_labels , 1]
-        for each cell:
-            if posterior in that cell is MAP AND coords overlap with TSS:
-                    1
-            else:
-                    0
-        
-        BIN X-AXIS BASED ON CALIBRATED CONF
-        COUNT THE NUMBER OF POSITIONS AT EACH BIN WITH 1 IN DF2
-        PLOT FOR ALL LABELS (COLOR-CODED)
-        """
+    def TSS_enrich_vs_reproducibility(self, loci_1, num_bins=10):
+        t0 = datetime.now()
+        label_enrich = {}
+        num_of_tss_occurence = 0
+        bin_length = float(loci_1.iloc[:,3:].max().max() - loci_1.iloc[:,3:].max().min()) / num_bins
 
-        coverage = {}
-        MAP = loci_1.iloc[:, 3:].idxmax(axis=1)
-        for est in MAP:
-            if str(est) in coverage.keys():
-                coverage[str(est)] +=1
-            else:
-                coverage[str(est)] = 1
-
-        tss_occurence = []
-
-        chrs = np.unique(self.TSS_coords[['chr']].values)
-
-        for c in chrs:
-            chr_c_tss_coords = self.TSS_coords.loc[(self.TSS_coords['chr'] == c), :]
-            chr_c_tss_coords = chr_c_tss_coords.reset_index(drop=True)
-
-            chr_c_loci = loci_1.loc[(loci_1['chr'] == c), :]
-            chr_c_loci = chr_c_loci.reset_index(drop=True)
-
-            for tss in range(len(chr_c_tss_coords)):
-
-                occurence = chr_c_loci.loc[
-                    (chr_c_loci["start"] < int(chr_c_tss_coords["TSS"][tss])) &
-                    (int(chr_c_tss_coords["TSS"][tss]) < chr_c_loci["end"]), :]
-                
-                if len(occurence) != 0:
-                    tss_occurence.append(occurence)
-
-        tss_occurence = pd.concat(tss_occurence, axis=0).reset_index(drop=True)
-        print(tss_occurence)
-
-        labels_tss_enrich = {}
         for k in loci_1.iloc[:,3:].columns:
+            k_MAP = loci_1.loc[
+                (loci_1.iloc[:,3:].idxmax(axis=1) == k), :
+            ] 
 
-            bins = []
-            bin_length = float(loci_1.iloc[:,3:].max().max() - loci_1.iloc[:,3:].min().min()) / num_bins
+            bins = {}
+            for b in range(int(loci_1.iloc[:,3:].max().min()*10000), int(loci_1.iloc[:,3:].max().max()*10000), int(bin_length*10000)):
+                bin_range = [float(b/10000), float(b/10000)+bin_length]
 
-            for b in range(int(loci_1.iloc[:,3:].min().min()*10000), int(loci_1.iloc[:,3:].max().max()*10000), int(bin_length*10000)):
+                within_bin = k_MAP.loc[
+                    (bin_range[0] <= k_MAP[k]) & (k_MAP[k] <= bin_range[1]), 
+                    :]
                 
-                if float(b/10000) <=  float(loci_1.loc[:,k].max()):
-                    bin = [float(b/10000), float(b/10000)+bin_length, 0]
+                chrs = np.unique(within_bin[['chr']].values)
+                tss_occurence = []
+
+                for c in chrs:
+
+                    chr_c_tss_coords = self.TSS_coords.loc[(self.TSS_coords['chr'] == c), :]
+                    chr_c_tss_coords = chr_c_tss_coords.reset_index(drop=True)
+
+                    chr_c_loci = within_bin.loc[(within_bin['chr'] == c), :]
+                    chr_c_loci = chr_c_loci.reset_index(drop=True)
                     
-                    for tss in range(len(tss_occurence)):
-                        if bin[0] <= tss_occurence.loc[tss, k] <= bin[1]:
-                            if tss_occurence.iloc[tss, 3:].astype("float").idxmax() == k:
-                                bin[2] += 1
+                    for i in range(len(chr_c_loci)):
 
-                    bins.append(bin)
+                        tss_occ = chr_c_tss_coords.loc[
+                            (chr_c_loci["start"][i] <= chr_c_tss_coords["TSS"]) & 
+                            (chr_c_tss_coords["TSS"] <= chr_c_loci["end"][i]),
+                            :
+                        ]
+                        
+                        if len(tss_occ) > 0:
+                            tss_occurence.append(np.array(chr_c_loci.iloc[i,:]))
 
-            labels_tss_enrich[k] = bins
+                if len(tss_occurence) > 0:
+                    tss_occurence = pd.DataFrame(tss_occurence, columns=chr_c_loci.columns)
+                    num_of_tss_occurence += len(tss_occurence)
+
+                    bins[tuple(bin_range)] = [len(within_bin), len(tss_occurence)]
+            
+            label_enrich[k] = bins
+
+        print(label_enrich)
+
+        for k, v in label_enrich.items():
+            for kk in v.keys():
+                expected_tss_occ = float(v[kk][0])/len(loci_1) * num_of_tss_occurence
+                v[kk] = v[kk][1] / expected_tss_occ
         
-        # print(labels_tss_enrich)
-        for k, v in labels_tss_enrich.items():
- 
-            plt.plot((np.array(v)[:, 0] + np.array(v)[:, 1])/2, np.array(v)[:, 2], label=k)
+        print(label_enrich)
         
+        for k, v in label_enrich.items():
+            plt.plot(
+                [(kk[0] + kk[1])/2 for kk in v.keys()],
+                [v[kk] for kk in v.keys()],
+                label=k
+            )
+
+        print(datetime.now() - t0)
         plt.legend()
         plt.xlabel("Calibrated Confidence Score")
-        plt.ylabel("Number of segment at TSS")
+        plt.ylabel("O/E # of segment at TSS")
         plt.show()
-
-            
-    """
-    for b in bins
-        for k in labels
-            for tss is tsslist
-
-                if  bins_start < posterior < bin_end
-                    count += 1 (might convert to o/e)
-
-    """
-
-
-
 
