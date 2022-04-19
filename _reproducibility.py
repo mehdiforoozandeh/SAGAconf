@@ -35,8 +35,8 @@ class Agreement(object):
         self.savedir = savedir
         self.num_labels = len(self.loci_1.columns)-3
 
-        self.max_posteri1 = self.loci_1.iloc[:, 3:].idxmax(axis=1)
-        self.max_posteri2 = self.loci_2.iloc[:, 3:].idxmax(axis=1)
+        self.max_posteri1 = list(self.loci_1.iloc[:, 3:].idxmax(axis=1))
+        self.max_posteri2 = list(self.loci_2.iloc[:, 3:].idxmax(axis=1))
 
         self.expected_agreement = 1 / float(self.num_labels)
 
@@ -92,7 +92,6 @@ class Agreement(object):
     def general_OE_ratio(self, log_transform=True):
         if log_transform:
             self.overall_OE = np.log(self.overall_agreement/ (self.expected_agreement + self.epsilon))
-            return 
         else:
             self.overall_OE =  self.overall_agreement/ (self.expected_agreement + self.epsilon)
 
@@ -221,10 +220,23 @@ class posterior_calibration(object):
 
     def perlabel_visualize_calibration(self, bins, label_name, scatter=False):
         if scatter:
-            plt.scatter(x=bins[:,0], y=bins[:,5], c='black', s=1000/len(bins))
-            ysmoothed = gaussian_filter1d(bins[:,5], sigma=3)
-            plt.plot(bins[:,0], ysmoothed, c='r')
-        
+            plt.scatter(
+                x=np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), 
+                y=bins[:,5], c='black', s=1000/len(bins))
+            
+            polyreg = IsotonicRegression(
+                    y_min=float(np.array(bins[:, 5]).min()), y_max=float(np.array(bins[:, 5]).max()), 
+                    out_of_bounds="clip")
+            
+            polyreg.fit(
+                np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), 
+                bins[:, 5])
+            
+            plt.plot(
+                np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), 
+                polyreg.predict(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))])), 
+                '--', c='r')
+
         else:
             plt.plot([(bins[i,0]+bins[i,1])/2 for i in range(len(bins))], bins[:,5], label=label_name)
 
@@ -381,28 +393,30 @@ class correspondence_curve(object):
 
         self.loci_1 = loci_1
         self.loci_2 = loci_2
+        del loci_1, loci_2
         self.savedir = savedir
         self.num_labels = len(self.loci_1.columns)-3
 
-        MAPestimate1 = self.loci_1.iloc[\
-            :, 3:].idxmax(axis=1)
-        MAPestimate2 = self.loci_2.iloc[\
-            :, 3:].idxmax(axis=1)
+        # self.MAPestimate1 = self.loci_1.iloc[\
+        #     :, 3:].idxmax(axis=1)
+        # self.MAPestimate2 = self.loci_2.iloc[\
+        #     :, 3:].idxmax(axis=1)
 
-        max_poster1 = self.loci_1.iloc[\
-            :, 3:].max(axis=1)
-        max_poster2 = self.loci_2.iloc[\
-            :, 3:].max(axis=1)
+        # self.max_poster1 = self.loci_1.iloc[\
+        #     :, 3:].max(axis=1)
+        # self.max_poster2 = self.loci_2.iloc[\
+        #     :, 3:].max(axis=1)
 
+    def rank_general(self):
         self.annot_1 = []
-        for i in range(loci_1.shape[0]):
+        for i in range(self.loci_1.shape[0]):
             self.annot_1.append([
-                loci_1['chr'][i], loci_1['start'][i], loci_1['end'][i], MAPestimate1[i], max_poster1[i]])
+                self.loci_1['chr'][i], self.loci_1['start'][i], self.loci_1['end'][i], self.MAPestimate1[i], self.max_poster1[i]])
 
         self.annot_2 = []
-        for i in range(loci_2.shape[0]):
+        for i in range(self.loci_2.shape[0]):
             self.annot_2.append([
-                loci_2['chr'][i], loci_2['start'][i], loci_2['end'][i], MAPestimate2[i], max_poster2[i]])
+                self.loci_2['chr'][i], self.loci_2['start'][i], self.loci_2['end'][i], self.MAPestimate2[i], self.max_poster2[i]])
 
 
         self.annot_1 = pd.DataFrame(self.annot_1, columns=['chr', 'start', 'end', 'MAP', 'posterior'])
@@ -410,7 +424,6 @@ class correspondence_curve(object):
 
         self.is_ranked = False
 
-    def rank_general(self):
         self.annot_1 = self.annot_1.sort_values(by=['posterior'], axis=0, ascending=False)
         self.annot_2 = self.annot_2.sort_values(by=['posterior'], axis=0, ascending=False)
 
@@ -425,7 +438,7 @@ class correspondence_curve(object):
             for k in post_cols:
                 k_sorted_loci_1 = self.loci_1.sort_values(by=[k], axis=0, ascending=False).reset_index()
                 k_sorted_loci_2 = self.loci_2.sort_values(by=[k], axis=0, ascending=False).reset_index()
-
+                
                 sigma = 0
                 upper_tn_1 = set(k_sorted_loci_1.loc[:int(t*len(self.loci_1)), 'index'])
                 upper_tn_2 = set(k_sorted_loci_2.loc[:int(t*len(self.loci_2)), 'index'])
@@ -433,7 +446,7 @@ class correspondence_curve(object):
                 for i in upper_tn_1:
                     if i in upper_tn_2:
                         sigma +=1
-                
+
                 perlabel_psi[k] = float(sigma) / len(self.loci_1)
             return perlabel_psi
 
@@ -460,8 +473,7 @@ class correspondence_curve(object):
                 self.psi_over_t[k] = []
 
             for t in range(0, num_t_steps + 1):
-                t = float(t)/num_t_steps
-                pl_psi = self.psi(t=t, per_label=True)
+                pl_psi = self.psi(t=float(t)/num_t_steps, per_label=True)
 
                 for k in pl_psi.keys():
                     self.psi_over_t[k].append(pl_psi[k])

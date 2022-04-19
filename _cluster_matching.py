@@ -53,8 +53,8 @@ def make_symmetric_matrix(matrix0):
 def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, symmetric=False):
     print('finding MAPs')
     num_labels = int(num_labels)
-    max_1posteri = find_max_posteri(loci_1)
-    max_2posteri = find_max_posteri(loci_2)
+    max_1posteri = list(find_max_posteri(loci_1))
+    max_2posteri = list(find_max_posteri(loci_2))
 
     observed_overlap = np.zeros((num_labels, num_labels))
     expected_overlap = np.zeros((num_labels, num_labels))

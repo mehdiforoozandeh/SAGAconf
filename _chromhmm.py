@@ -55,10 +55,11 @@ def ChrHMM_read_posteriordir(posteriordir, rep, resolution=100):
     parsed_posteriors = {}
     for f in to_parse:
         fileinfo = f.split("_")
-        posteriors = read_posterior_file(posteriordir + '/' + f)
-        bins = chrhmm_initialize_bin(fileinfo[-2], len(posteriors), resolution)
-        posteriors = pd.concat([bins, posteriors], axis=1)
-        parsed_posteriors[fileinfo[-2]] = posteriors 
+        if "chr" in fileinfo[-2]:
+            posteriors = read_posterior_file(posteriordir + '/' + f)
+            bins = chrhmm_initialize_bin(fileinfo[-2], len(posteriors), resolution)
+            posteriors = pd.concat([bins, posteriors], axis=1)
+            parsed_posteriors[fileinfo[-2]] = posteriors 
         
     parsed_posteriors = pd.concat([parsed_posteriors[c] for c in sorted(list(parsed_posteriors.keys()))], axis=0)
     parsed_posteriors = parsed_posteriors.reset_index(drop=True)
@@ -139,7 +140,7 @@ def ChromHMM_replicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0'):
     if os.path.exists(chmm_output_dir+"/"+namesig+"_rep1") == False:
         learnModel(
             chmm_celltype_dir+"/binarized_rep1", chmm_output_dir+"/"+namesig+"_rep1", 
-            num_labels=16, assembly='hg19', n_threads=n_thread, random_seed=None)
+            num_labels=16, assembly='hg38', n_threads=n_thread, random_seed=None)
 
     if os.path.exists(chmm_output_dir+"/"+namesig+"_rep1/parsed_posterior.csv") == False:
         parsed_posterior = ChrHMM_read_posteriordir(
@@ -156,7 +157,7 @@ def ChromHMM_replicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0'):
     if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2") == False:
         learnModel(
             chmm_celltype_dir+"/binarized_rep2", chmm_output_dir+"/"+namesig+"_rep2", 
-            num_labels=16, assembly='hg19', n_threads=n_thread, random_seed=None)
+            num_labels=16, assembly='hg38', n_threads=n_thread, random_seed=None)
 
     if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2/parsed_posterior.csv") == False:
         parsed_posterior = ChrHMM_read_posteriordir(
@@ -179,7 +180,7 @@ def ChromHMM_paraminit_runs(chmm_celltype_dir, chmm_output_dir, random_seeds,  n
         if os.path.exists(chmm_output_dir+"/"+namesig+"_rep1_rs{}".format(rs)) == False:
             learnModel(
                 chmm_celltype_dir+"/binarized_rep1", chmm_output_dir+"/"+namesig+"_rep1_rs{}".format(rs), 
-                num_labels=16, assembly='hg19', n_threads=n_thread, random_seed=int(rs))
+                num_labels=16, assembly='hg38', n_threads=n_thread, random_seed=int(rs))
 
         if os.path.exists(chmm_output_dir+"/"+namesig+"_rep1_rs{}/parsed_posterior.csv".format(rs)) == False:
             parsed_posterior = ChrHMM_read_posteriordir(
@@ -196,7 +197,7 @@ def ChromHMM_paraminit_runs(chmm_celltype_dir, chmm_output_dir, random_seeds,  n
         if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2_rs{}".format(rs)) == False:
             learnModel(
                 chmm_celltype_dir+"/binarized_rep2", chmm_output_dir+"/"+namesig+"_rep2_rs{}".format(rs), 
-                num_labels=16, assembly='hg19', n_threads=n_thread, random_seed=int(rs))
+                num_labels=16, assembly='hg38', n_threads=n_thread, random_seed=int(rs))
 
         if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2_rs{}/parsed_posterior.csv".format(rs)) == False:
             parsed_posterior = ChrHMM_read_posteriordir(
@@ -216,7 +217,7 @@ def ChromHMM_concat_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0'):
     if os.path.exists(chmm_output_dir+"/"+namesig+"_concat") == False:
         learnModel(
             chmm_celltype_dir+"/binarized_concat", chmm_output_dir+"/"+namesig+"_concat", 
-            num_labels=16, assembly='hg19', n_threads=n_thread, random_seed=None)
+            num_labels=16, assembly='hg38', n_threads=n_thread, random_seed=None)
 
     if os.path.exists(chmm_output_dir+"/"+namesig+"_concat/parsed_posterior_rep1.csv") == False:
         parsed_posterior = ChrHMM_read_posteriordir(
