@@ -2,7 +2,7 @@ import os
 import pandas as pd
 
 def binarize_data(inputbeddir, cellmarkfiletable, outputdir, resolution=100, chromlength='ChromHMM/CHROMSIZES/hg38.txt'):
-    cmdline = "java -Xmx10g -jar ChromHMM/ChromHMM.jar BinarizeBam -b {} {} {} {} {}".format(
+    cmdline = "java -Xmx10g -jar ChromHMM/ChromHMM.jar BinarizeBed -b {} {} {} {} {}".format(
         resolution, chromlength, inputbeddir, cellmarkfiletable, outputdir
     )
     os.system(cmdline)
@@ -107,9 +107,9 @@ def prepare_chmm_inputdata(CellType_dir, assertion=False):
             assert tfmd.loc['assay', 'rep2_alig'] == tr
 
         navigate.append(
-            [tfmd.loc['assay', 'rep1_alig'], "rep1", str(tfmd.loc['accession', 'rep1_alig'])+".bam"])  
+            [tfmd.loc['assay', 'rep1_alig'], "rep1", str(tfmd.loc['accession', 'rep1_alig'])+".bed"])  
         navigate.append(
-            [tfmd.loc['assay', 'rep2_alig'], "rep2", str(tfmd.loc['accession', 'rep2_alig'])+".bam"])
+            [tfmd.loc['assay', 'rep2_alig'], "rep2", str(tfmd.loc['accession', 'rep2_alig'])+".bed"])
 
     
     cmft_concat = open("chmmfiles/{}/cmft_concat.txt".format(celltype_name), "w")

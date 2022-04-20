@@ -168,6 +168,28 @@ def gather_replicates(celltype_dir):
         for k, v in nav_rep2_chmm.items():
             chmmrep2_file.write("{}\t{}\n".format(k, v))
 
+def bamtobed(download_dir):
+    if os.path.exists("bedtools")==False:
+        bt_url = "https://github.com/arq5x/bedtools2/releases/download/v2.30.0/bedtools.static.binary"
+        bt_file_dl_response = requests.get(bt_url, allow_redirects=True)
+        open("bedtools.static.binary", 'wb').write(bt_file_dl_response.content)
+        print('downloaded the bedtools')
+        os.system("mv bedtools.static.binary bedtools")
+        os.system("chmod a+x bedtools")
+    CellType_list = [download_dir+ct for ct in os.listdir(download_dir) if os.path.isdir(download_dir+"/"+ct)]
+    for ct in CellType_list:
+        assay_list = [assay for assay in os.listdir(ct) if os.path.isdir(ct+"/"+assay)]
+        for ass in assay_list:
+            bam_list = [bm for bm in os.listdir(ct+"/"+ass) if ".bam" in ct+"/"+ass+'/'+bm]
+            for bm in bam_list:
+                if os.path.exists(ct+"/"+ass+'/'+bm.replace(".bam", '.bed')) == False:
+                    os.system(
+                        "bedtools bamtobed -i {} > {}".format(
+                            ct+"/"+ass+'/'+bm, ct+"/"+ass+'/'+bm.replace(".bam", '.bed')
+                        )
+                    )
+                    print("converted ", ct+"/"+ass+'/'+bm, "->", ct+"/"+ass+'/'+bm.replace(".bam", '.bed'))
+
 def create_genomedata(celltype_dir, sequence_file):
     '''
     read segway replicate files.
