@@ -2,7 +2,7 @@ import os
 import pandas as pd
 
 def binarize_data(inputbeddir, cellmarkfiletable, outputdir, resolution=100, chromlength='ChromHMM/CHROMSIZES/hg38.txt'):
-    cmdline = "java -Xmx10g -jar ChromHMM/ChromHMM.jar BinarizeBed -b {} -t {} {} {} {} {}".format(
+    cmdline = "java -Xmx10g -jar ChromHMM/ChromHMM.jar BinarizeBam -b {} -t {} {} {} {} {}".format(
         resolution, outputdir+"/signals", chromlength, inputbeddir, cellmarkfiletable, outputdir
     )
     os.system(cmdline)
