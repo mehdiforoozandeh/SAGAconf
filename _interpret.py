@@ -40,16 +40,36 @@ def signal_dist(exp_name, segbed, gd):
 
     os.system('segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
 
-def run_apply():
-    '''
-    run apply_samples.py as follows:
-        python apply_samples.py output_folder
-    '''
-    os.system('python apply_samples.py model_outputs')
+# def run_apply():
+#     '''
+#     run apply_samples.py as follows:
+#         python apply_samples.py output_folder
+#     '''
+#     os.system('python apply_samples.py model_outputs')
 
-def gather_output(exp_name):
-    '''
-    clean up the results,
-    relocate important output files to an isolated location
-    '''
-    pass
+# def gather_output(exp_name):
+#     '''
+#     clean up the results,
+#     relocate important output files to an isolated location
+#     '''
+#     pass
+
+# def run_segtools():
+#     import os
+
+#     ls0 = os.listdir("files/")
+#     ls1 = os.listdir("segway_runs/")
+#     for i in ls0:
+#         for j in ls1:
+#             print(j)
+#             segbed = "segway_runs/"+j+'/segway.bed'
+#             if i in j:
+#                 if "concat" in j:
+#                     if "rep1" in j:
+#                         gd = "files/"+i+"/concat_rep1.genomedata"
+#                     elif "rep2" in j:
+#                         gd = "files/"+i+"/concat_rep2.genomedata"
+
+#                 os.system(
+#                     'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, "segway_runs/"+j+'/signal_dist')
+#             )
