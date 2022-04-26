@@ -226,6 +226,8 @@ def search_encode(cell, download_dir, target_assembly="GRCh38", check_availabili
                 save_dir_name = download_dir + cell +"/{}".format(tracks_navigation['assay'][e])+ '/' + to_download_list.loc['accession', c] + ".bigWig"
             elif "alig" in c:
                 save_dir_name = download_dir + cell +"/{}".format(tracks_navigation['assay'][e])+ '/' + to_download_list.loc['accession', c] + ".bam"
+            elif "spv" in c:
+                save_dir_name = download_dir + cell +"/{}".format(tracks_navigation['assay'][e])+ '/' + to_download_list.loc['accession', c] + ".bigWig"
             
             download_link = to_download_list.loc['download_url', c]
             download_response = requests.get(download_link, allow_redirects=True)
