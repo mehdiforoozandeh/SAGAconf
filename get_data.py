@@ -180,6 +180,29 @@ def search_encode(cell, download_dir, target_assembly="GRCh38", check_availabili
                                 to_download_list['rep2_alig']['date_created'])[:7].replace('-', '')):
                             # substitute by a more recent version
                             to_download_list['rep2_alig'] = e_files_navigation.iloc[f, :]
+                
+                elif e_files_navigation['output_type'][f] == "signal p-value":
+                    if e_files_navigation['biosample'][f] == replicate_glossary['rep1']:
+                        
+                        if 'rep1_spv' not in to_download_list.keys():
+                            to_download_list['rep1_spv'] = e_files_navigation.iloc[f, :]
+
+                        elif int(str(
+                            e_files_navigation['date_created'][f])[:7].replace('-', '')) > int(str(
+                                to_download_list['rep1_spv']['date_created'])[:7].replace('-', '')):
+                            # substitute by a more recent version
+                            to_download_list['rep1_spv'] = e_files_navigation.iloc[f, :]
+                    
+                    elif e_files_navigation['biosample'][f] == replicate_glossary['rep2']:
+                        
+                        if 'rep2_spv' not in to_download_list.keys():
+                            to_download_list['rep2_spv'] = e_files_navigation.iloc[f, :]
+
+                        elif int(str(
+                            e_files_navigation['date_created'][f])[:7].replace('-', '')) > int(str(
+                                to_download_list['rep2_spv']['date_created'])[:7].replace('-', '')):
+                            # substitute by a more recent version
+                            to_download_list['rep2_spv'] = e_files_navigation.iloc[f, :]
 
                 
         to_download_list = pd.DataFrame(to_download_list)
