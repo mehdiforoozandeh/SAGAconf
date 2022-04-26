@@ -83,7 +83,7 @@ def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, symmetric=Fa
     observed_overlap = pd.DataFrame(observed_overlap,
         columns=columnnames,
         index=columnnames)
-
+    
     if OE_transform:
         epsilon = 1e-3
         
@@ -148,10 +148,10 @@ def connect_bipartite(loci_1, loci_2, assignment_matching):
     corrected_loci_2 = loci_2.iloc[:, :3]
 
     for i in range(len(assignment_matching)):
-        corrected_loci_1[
-            'posterior'+str(assignment_matching[i][0])] = loci_1['posterior'+str(assignment_matching[i][0])]
-        corrected_loci_2[
-            'posterior'+str(assignment_matching[i][0])] = loci_2['posterior'+str(assignment_matching[i][1])]
+        new_name = assignment_matching[i][0] + "|" + assignment_matching[i][1]
+
+        corrected_loci_1[new_name] = loci_1['posterior'+str(assignment_matching[i][0].split('_')[0])]
+        corrected_loci_2[new_name] = loci_2['posterior'+str(assignment_matching[i][1].split('_')[0])]
     
     return corrected_loci_1, corrected_loci_2
             

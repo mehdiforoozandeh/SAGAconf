@@ -120,8 +120,9 @@ class Agreement(object):
         
         x.append('Overall')
         height.append(self.overall_agreement)
+        plt.figure(figsize=(11,9))
         plt.bar(x, height, width=0.4, color='black', alpha=0.5)
-        plt.xticks(rotation=45)
+        plt.xticks(rotation=45, fontsize=7)
         plt.title('Agreement between two replicates')
         plt.yticks(np.arange(0, 1.1, step=0.1))
         plt.xlabel('Label')
@@ -141,8 +142,9 @@ class Agreement(object):
         self.general_OE_ratio()
         x.append('Overall')
         height.append(self.overall_OE)
+        plt.figure(figsize=(11,9))
         plt.bar(x, height, width=0.4, color='black', alpha=0.5)
-        plt.xticks(rotation=45)
+        plt.xticks(rotation=45, fontsize=7)
         plt.xlabel('Label')
         plt.title('Observed Agreement/Expected Agreement plot')
         plt.ylabel('log(O/E)')
@@ -161,8 +163,9 @@ class Agreement(object):
         self.general_cohens_kappa()
         x.append('Overall')
         height.append(self.overall_CK)
+        plt.figure(figsize=(11,9))
         plt.bar(x, height, width=0.4, color='black', alpha=0.5)
-        plt.xticks(rotation=45)
+        plt.xticks(rotation=45, fontsize=7)
         plt.yticks(np.arange(0, 1.1, step=0.1))
         plt.xlabel('Label')
         plt.title("Cohen's Kappa")
@@ -570,6 +573,28 @@ class sankey(object):
         fig.write_image("{}/sankey.pdf".format(self.savedir))
         fig.write_image("{}/sankey.svg".format(self.savedir))
         fig.write_html("{}/sankey.html".format(self.savedir))
+    
+    def heatmap(self):
+        confmat = confusion_matrix(self.loci_1, self.loci_2, self.num_labels, OE_transform=False)
+        print(confmat)
+        p = sns.heatmap(
+            confmat.astype(int), annot=True, fmt="d",
+            linewidths=0.01,  cbar=False,
+            yticklabels=self.loci_1.columns[3:],
+            xticklabels=self.loci_2.columns[3:],
+            # vmin=confmat.min().min(),
+            # vmax=confmat.max().max()
+            )
+        sns.set(rc={'figure.figsize':(15,20)})
+        p.tick_params(axis='x', rotation=30, labelsize=7)
+        p.tick_params(axis='y', rotation=45, labelsize=7)
+
+        plt.title('Label Matching Heatmap')
+        plt.xlabel('Replicate 1 Labels')
+        plt.ylabel("Replicate 2 Labels")
+        plt.savefig('{}/heatmap.pdf'.format(self.savedir), format='pdf')
+        plt.savefig('{}/heatmap.svg'.format(self.savedir), format='svg')
+        plt.clf()
 
 class validate_EXT():
     def __init__(self):

@@ -435,6 +435,14 @@ def get_biological_mnemonics(results_directory, segway=True):
     - get mnemonics and move back to segway's output directory'''
     pass
 
+def read_mnemonics(mnemon_file):
+    df = pd.read_csv(mnemon_file, sep="\t")
+    mnemon = []
+    for i in range(len(df)):
+        mnemon.append(str(df["old"][i])+"_"+df["new"][i])
+
+    return mnemon
+
 def report_reproducibility(loci_1, loci_2, pltsavedir, general=True, num_bins=20, merge_cc_curves=False, full_report=True):
     '''
     TODO:
