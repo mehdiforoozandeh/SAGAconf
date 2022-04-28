@@ -107,9 +107,9 @@ def prepare_chmm_inputdata(CellType_dir, assertion=False):
             assert tfmd.loc['assay', 'rep2_spv'] == tr
 
         navigate.append(
-            [tfmd.loc['assay', 'rep1_spv'], "rep1", str(tfmd.loc['accession', 'rep1_spv'])+".bed"])  
+            [tfmd.loc['assay', 'rep1_spv'], "rep1", str(tfmd.loc['accession', 'rep1_spv'])+".bedGraph"])  
         navigate.append(
-            [tfmd.loc['assay', 'rep2_spv'], "rep2", str(tfmd.loc['accession', 'rep2_spv'])+".bed"])
+            [tfmd.loc['assay', 'rep2_spv'], "rep2", str(tfmd.loc['accession', 'rep2_spv'])+".bedGraph"])
 
         # if assertion:
         #     assert str(tfmd.loc['biosample', 'rep1_alig']) == rep1_biosampleID
