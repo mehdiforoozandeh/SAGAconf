@@ -139,6 +139,19 @@ def prepare_chmm_inputdata(CellType_dir, assertion=False):
         elif ins[1] == "rep2":
             cmft_rep2.write("{}_{}\t{}\t{}\n".format(
                 celltype_name, ins[1], ins[0], ins[2]))
+    
+    ls_bg = [ct for ct in os.listdir("chmmfiles/{}/".format(celltype_name)) if ".bedGraph" in ct]
+    for bg in ls_bg:
+        with open(bg, 'r') as bgr:
+            with open(bg, 'w') as bgw:
+                lines = bgr.readlines()
+                for l in lines():
+                    l = l.split('\t')
+                    l[-1] = l[-1].replace('\n', '')
+                    l.append("+")
+                    bgw.write("{}\t{}\t{}\t{}\t{}\n".format(
+                        l[0],l[1],l[2],l[3],l[4]
+                    ))
 
 def ChromHMM_replicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0'):
     namesig = chmm_celltype_dir.split("/")[-1]
