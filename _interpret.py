@@ -13,6 +13,20 @@ def gtf_file(gtf_filename = 'label_interpretation/gencode.v29.primary_assembly.a
 
         return gtf_filename
 
+def make_temp_bed_for_concat(segbed_file):
+    "for running segtools on concat runs, we need to convert the bed files to sth with normal chr names"
+    write_obj = open(segbed_file.replace(".bed", "_temp.bed"), 'w')
+    with open(segbed_file, 'r') as sfn:
+        lines = sfn.readlines()
+        for l in lines:
+            if l[:3] == "chr":
+                l = l.split('\t')
+                l[0] = l[0][:-2]
+                write_obj.write("\t".join(l))
+            else:
+                write_obj.write(l)
+    write_obj.close()
+
 def create_input_dir(exp_name):
     ''' MUST CONTAIN:
     segwayOutput/exp_name
