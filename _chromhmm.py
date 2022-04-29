@@ -149,7 +149,7 @@ def prepare_chmm_inputdata(CellType_dir, assertion=False):
         with open(bg, 'r') as bgr:
             with open(bg, 'w') as bgw:
                 lines = bgr.readlines()
-                for l in lines():
+                for l in lines:
                     l = l.split('\t')
                     l[-1] = l[-1].replace('\n', '')
                     l.append("+")
