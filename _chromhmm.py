@@ -145,10 +145,12 @@ def prepare_chmm_inputdata(CellType_dir, assertion=False):
     cmft_rep2.close()
     
     ls_bg = ["chmmfiles/{}/".format(celltype_name)+ct for ct in os.listdir("chmmfiles/{}/".format(celltype_name)) if ".bedGraph" in ct]
+    print(ls_bg)
     for bg in ls_bg:
         with open(bg, 'r') as bgr:
+            lines = bgr.readlines()
+            print(len(lines))
             with open(bg, 'w') as bgw:
-                lines = bgr.readlines()
                 for l in lines:
                     l = l.split('\t')
                     l[-1] = l[-1].replace('\n', '')
