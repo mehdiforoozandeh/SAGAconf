@@ -144,7 +144,7 @@ def prepare_chmm_inputdata(CellType_dir, assertion=False):
     cmft_rep1.close()
     cmft_rep2.close()
     
-    ls_bg = [ct for ct in os.listdir("chmmfiles/{}/".format(celltype_name)) if ".bedGraph" in ct]
+    ls_bg = ["chmmfiles/{}/".format(celltype_name)+ct for ct in os.listdir("chmmfiles/{}/".format(celltype_name)) if ".bedGraph" in ct]
     for bg in ls_bg:
         with open(bg, 'r') as bgr:
             with open(bg, 'w') as bgw:
