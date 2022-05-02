@@ -147,17 +147,16 @@ def prepare_chmm_inputdata(CellType_dir, assertion=False):
     ls_bg = ["chmmfiles/{}/".format(celltype_name)+ct for ct in os.listdir("chmmfiles/{}/".format(celltype_name)) if ".bedGraph" in ct]
     print(ls_bg)
     for bg in ls_bg:
-        with open(bg, 'r') as bgr:
-            lines = bgr.readlines()
-            print(len(lines))
-            with open(bg, 'w') as bgw:
-                for l in lines:
-                    l = l.split('\t')
-                    l[-1] = l[-1].replace('\n', '')
-                    l.append("+")
-                    bgw.write("{}\t{}\t{}\t{}\t{}\n".format(
-                        l[0],l[1],l[2],l[3],l[4]
-                    ))
+        bgr = open(bg, 'r')
+        lines = bgr.readlines()
+        bgr.close()
+        bgw = open(bg, 'w')
+        for l in lines:
+            l = l.split('\t')
+            l[-1] = l[-1].replace('\n', '')
+            l.append("+")
+            bgw.write("\t".join(l)+"\n")
+        bgw.close()
 
 def ChromHMM_replicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0'):
     namesig = chmm_celltype_dir.split("/")[-1]
