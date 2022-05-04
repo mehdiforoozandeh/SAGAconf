@@ -130,6 +130,18 @@ class Agreement(object):
         plt.savefig('{}/agreement.pdf'.format(self.savedir), format='pdf')
         plt.savefig('{}/agreement.svg'.format(self.savedir), format='svg')
         plt.clf()
+        with open("{}/agreement.txt".format(self.savedir), 'w') as pltxt:
+            """
+            title, xaxis, yaxis, x, y
+            """
+            pltxt.write(
+                "{}\n{}\n{}\n{}\n{}".format(
+                    'Agreement between two replicates',
+                    "Label", 
+                    "Agreement",
+                    x, height
+                )
+            )
 
     def plot_OE(self):
         self.per_label_OE_ratio()
@@ -151,6 +163,18 @@ class Agreement(object):
         plt.savefig('{}/oe_agreement.pdf'.format(self.savedir), format='pdf')
         plt.savefig('{}/oe_agreement.svg'.format(self.savedir), format='svg')
         plt.clf()
+        with open("{}/oe_agreement.txt".format(self.savedir), 'w') as pltxt:
+            """
+            title, xaxis, yaxis, x, y
+            """
+            pltxt.write(
+                "{}\n{}\n{}\n{}\n{}".format(
+                    'Observed Agreement/Expected Agreement plot',
+                    "Label", 
+                    "log(O/E)",
+                    x, height
+                )
+            )
 
     def plot_CK(self):
         self.per_label_cohens_kappa()
@@ -173,6 +197,19 @@ class Agreement(object):
         plt.savefig('{}/cohenskappa.pdf'.format(self.savedir), format='pdf')
         plt.savefig('{}/cohenskappa.svg'.format(self.savedir), format='svg')
         plt.clf()
+        with open("{}/cohenskappa.txt".format(self.savedir), 'w') as pltxt:
+            """
+            title, xaxis, yaxis, x, y
+            """
+            pltxt.write(
+                "{}\n{}\n{}\n{}\n{}".format(
+                    "Cohen's Kappa ",
+                    "Label", 
+                    "Cohen's Kappa Score",
+                    x, height
+                )
+            )
+        
 
 class posterior_calibration(object):
     def __init__(self, loci_1, loci_2, savedir, log_transform=True, ignore_overconf=True, filter_nan=True, oe_transform=True):
@@ -260,6 +297,31 @@ class posterior_calibration(object):
         plt.savefig('{}/caliberation_{}.svg'.format(self.savedir, label_name), format='svg')
         plt.clf()
 
+        with open("{}/caliberation_{}.txt".format(self.savedir, label_name), 'w') as pltxt:
+            """
+            title, xaxis, yaxis, x, y, polyreg
+            """
+            if self.oe_transform:
+                ylabel = "O/E of Similarly Labeled Bins in replicate 2"
+            else:
+                ylabel = "Ratio of Similarly Labeled Bins in replicate 2"
+
+            if self.log_transform:
+                xlabel = "- log(1-posterior) in Replicate 1"
+            else:
+                xlabel = "Posterior in Replicate 1"
+
+            pltxt.write(
+                "{}\n{}\n{}\n{}\n{}\n{}".format(
+                    "Reproduciblity Plot {}".format(label_name),
+                    xlabel, 
+                    ylabel,
+                    list(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))])), 
+                    list(bins[:,5]),
+                    list(polyreg.predict(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))])))
+                )
+            )
+
     def general_visualize_calibration(self, bins_dict):
         for label_name, bins in bins_dict.items():
             plt.plot([(bins[i,0]+bins[i,1])/2 for i in range(len(bins))], bins[:, 5], label=label_name)
@@ -278,6 +340,31 @@ class posterior_calibration(object):
         plt.savefig('{}/caliberation_{}.pdf'.format(self.savedir, "general"), format='pdf')
         plt.savefig('{}/caliberation_{}.svg'.format(self.savedir, "general"), format='svg')
         plt.clf()
+        
+        with open("{}/caliberation_{}.txt".format(self.savedir, "general"), 'w') as pltxt:
+            """
+            title, xaxis, yaxis, x, y(all labels)
+            """
+            if self.oe_transform:
+                ylabel = "O/E of Similarly Labeled Bins in replicate 2"
+            else:
+                ylabel = "Ratio of Similarly Labeled Bins in replicate 2"
+
+            if self.log_transform:
+                xlabel = "- log(1-posterior) in Replicate 1"
+            else:
+                xlabel = "Posterior in Replicate 1"
+
+            pltxt.write(
+                "{}\n{}\n{}\n{}".format(
+                    "Reproduciblity Plot {}".format(label_name),
+                    xlabel, 
+                    ylabel,
+                    list(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))])), 
+                )
+            )
+            for label_name, bins in bins_dict.items():
+                pltxt.write(label_name+ "\t" + str(list(bins[:, 5])) + '\n')
             
 
     def perlabel_calibration_function(self, method="isoton_reg", degree=3, num_bins=10, return_caliberated_matrix=True):
@@ -508,6 +595,23 @@ class correspondence_curve(object):
             plt.savefig('{}/cc_merged.svg'.format(self.savedir), format='svg')
             plt.clf()
 
+            with open("{}/cc_merged.txt".format(self.savedir), 'w') as pltxt:
+                """
+                title, xaxis, yaxis, x(t_list), y
+                """
+
+                pltxt.write(
+                    "{}\n{}\n{}\n{}\n{}".format(
+                        "Correspondence Curve",
+                        "t", 
+                        "PSI",
+                        t_list
+                    )
+                )
+                for p in self.psi_over_t.keys():
+                    URIs = self.psi_over_t[p]
+                    pltxt.write(str(p)+ "\t" + str(list(URIs)))
+
         else:
             for p in self.psi_over_t.keys():
                 plt.plot(t_list, t_list, '--', label='Perfect Reproducibility')
@@ -527,6 +631,21 @@ class correspondence_curve(object):
                 plt.savefig('{}/cc_{}.pdf'.format(self.savedir, str(p)), format='pdf')
                 plt.savefig('{}/cc_{}.svg'.format(self.savedir, str(p)), format='svg')
                 plt.clf()
+                with open("{}/cc_{}.txt".format(self.savedir, str(p)), 'w') as pltxt:
+                    """
+                    title, xaxis, yaxis, x(t_list), uriprime, uri
+                    """
+
+                    pltxt.write(
+                        "{}\n{}\n{}\n{}\n{}\t{}".format(
+                            "Correspondence Curve for " +str(p),
+                            "t", 
+                            "PSI",
+                            t_list,
+                            str(list(URIprime)),
+                            str(list(URIs))
+                        )
+                    )
 
 class sankey(object):
     def __init__(self, loci_1, corrected_loci_2, savedir):
@@ -595,6 +714,9 @@ class sankey(object):
         plt.savefig('{}/heatmap.pdf'.format(self.savedir), format='pdf')
         plt.savefig('{}/heatmap.svg'.format(self.savedir), format='svg')
         plt.clf()
+
+        confmat.to_csv("{}/heatmap.csv".format(self.savedir))
+
 
 class validate_EXT():
     def __init__(self):
