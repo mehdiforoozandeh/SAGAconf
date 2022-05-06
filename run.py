@@ -631,7 +631,34 @@ def report_reproducibility(loci_1, loci_2, pltsavedir):
 
     if os.path.exists(pltsavedir+"/clb") == False:
         os.mkdir(pltsavedir+"/clb")
-    pass
+    
+    to_report = {}
+
+    cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
+    cc.plot_curve(plot_general=False, merge_plots=False)
+    del cc
+
+    calb = posterior_calibration(
+        loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
+        oe_transform=True, savedir=pltsavedir+"/clb")
+    calibrated_loci_1 = calb.perlabel_calibration_function(degree=5, num_bins=25, return_caliberated_matrix=True)
+    
+    agr = Agreement(loci_1, loci_2, pltsavedir+"/agr")
+    to_report["per-label agreement"] = agr.per_label_agreement()
+    to_report["general agreement"] = agr.general_agreement()
+    to_report["general log(o/e) agreement"] = agr.general_OE_ratio()
+    to_report["general Cohens Kappa score"] = agr.general_cohens_kappa()
+    agr.plot_agreement()
+    agr.plot_CK()
+    agr.plot_OE()
+    del agr
+
+    vis = sankey(loci_1, loci_2, pltsavedir+"/snk")
+    vis.sankey_diag()
+    vis.heatmap()
+    del vis
+    plt.close('all')
+    return to_report
 
 def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
     """
@@ -640,8 +667,8 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
     post-clustering.
     """
     loci_1, loci_2 = intersect_parsed_posteriors(
-        replicate_1_dir+"/parsed_posterior.csv", 
-        replicate_2_dir+"/parsed_posterior.csv")
+        replicate_1_dir+"/parsed_posterior_short.csv", 
+        replicate_2_dir+"/parsed_posterior_short.csv")
 
     num_labels = loci_1.shape[1]-3
     loci_1.columns = ["chr", "start", "end"]+["posterior{}".format(i) for i in range(num_labels)]
@@ -660,11 +687,11 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
     
     mnemon1_dict = {}
     for i in loci_1_mnemon:
-        mnemon1_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:6]
+        mnemon1_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
 
     mnemon2_dict = {}
     for i in loci_2_mnemon:
-        mnemon2_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:6]
+        mnemon2_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
     
     for i in range(len(assignment_pairs)):
         assignment_pairs[i] = (mnemon1_dict[str(assignment_pairs[i][0])], mnemon2_dict[str(assignment_pairs[i][1])])
@@ -686,9 +713,27 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
     conf_mat = (conf_mat - mat_min) / (mat_max - mat_min)
     distance_matrix = 1 - conf_mat
     linkage = hc.linkage(distance_matrix, method='average')
-
+    
     if os.path.exists(pltsavedir)==False:
         os.mkdir(pltsavedir)
+    
+    sns.clustermap(
+        distance_matrix, row_linkage=linkage, 
+        col_linkage=linkage, annot=True)
+
+    if os.path.exists(pltsavedir+'/post_clustering/')==False:
+        os.mkdir(pltsavedir+'/post_clustering/')
+
+    plt.savefig('{}/post_clustering/clustermap.pdf'.format(pltsavedir), format='pdf')
+    plt.savefig('{}/post_clustering/clustermap.svg'.format(pltsavedir), format='svg')
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+     
+    reports = {}
+    reports[num_labels] = report_reproducibility(
+        loci_1, loci_2, 
+        pltsavedir=pltsavedir+"/{}_labels".format(num_labels))
 
     # merging clusters one at a time
     merged_label_ID = {}
@@ -701,7 +746,6 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
             merged_label_ID[int(linkage[m, 0])],
             merged_label_ID[int(linkage[m, 1])],
         ]
-        print(to_be_merged)
 
         merged_label_ID[num_labels + m] = str(
             merged_label_ID[int(linkage[m, 0])] + "+" + merged_label_ID[int(linkage[m, 1])]
@@ -715,6 +759,20 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
             loci_2[to_be_merged[0]] + loci_2[to_be_merged[1]]
         loci_2 = loci_2.drop(to_be_merged, axis=1)
 
+        reports[int((num_labels-1) - m)] = report_reproducibility(
+            loci_1, loci_2, 
+            pltsavedir=pltsavedir+"/{}_labels".format((num_labels-1) - m))
+
+    nl = list(reports.keys())
+    plt.bar(nl[:-1], [reports[k]["general agreement"] for k in nl][:-1])
+    plt.title("Post-clustering Progress")
+    plt.xlabel("Number of Labels")
+    plt.ylabel("General Agreement")
+    plt.savefig('{}/post_clustering/Progress.pdf'.format(pltsavedir), format='pdf')
+    plt.savefig('{}/post_clustering/Progress.svg'.format(pltsavedir), format='svg')
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
 
 """when running the whole script from start to end to generate (and reproduce) results
 remember to put label interpretation in try blocks (skippable) to prevent any kind of

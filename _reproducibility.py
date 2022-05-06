@@ -695,7 +695,6 @@ class sankey(object):
     
     def heatmap(self):
         confmat = confusion_matrix(self.loci_1, self.loci_2, self.num_labels, OE_transform=False)
-        print(confmat)
         p = sns.heatmap(
             confmat.astype(int), annot=True, fmt="d",
             linewidths=0.01,  cbar=False,
@@ -714,8 +713,11 @@ class sankey(object):
         plt.savefig('{}/heatmap.pdf'.format(self.savedir), format='pdf')
         plt.savefig('{}/heatmap.svg'.format(self.savedir), format='svg')
         plt.clf()
+        sns.reset_orig
+        plt.style.use('default')
 
         confmat.to_csv("{}/heatmap.csv".format(self.savedir))
+
 
 
 class validate_EXT():
