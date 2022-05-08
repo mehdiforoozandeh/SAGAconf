@@ -56,16 +56,17 @@ if os.path.exists("ChromHMM/") == False:
     
 chmm_output_dir = "chromhmm_runs/"
 chmm_input_dir = "chmmfiles/"
-
+n_ls = [15, 12, 10, 8]
 for ct in CellType_list:
-    print("Preparing ChromHMM inputfiles")
-    prepare_chmm_inputdata("files/"+ct, assertion=False)
+    for nl in n_ls:
+        print("Preparing ChromHMM inputfiles")
+        prepare_chmm_inputdata("files/"+ct, assertion=False)
 
-    print("running chmm rep")
-    ChromHMM_replicate_runs("chmmfiles/"+ct, chmm_output_dir, n_thread='0')
+        print("running chmm rep")
+        ChromHMM_replicate_runs("chmmfiles/"+ct, chmm_output_dir, n_thread='0', num_labels=nl)
 
-    print("running chmm concat")
-    ChromHMM_concat_runs("chmmfiles/"+ct, chmm_output_dir, n_thread='0')
+        print("running chmm concat")
+        ChromHMM_concat_runs("chmmfiles/"+ct, chmm_output_dir, n_thread='0', num_labels=nl)
 
-    print("running chmm param-init")
-    ChromHMM_paraminit_runs("chmmfiles/"+ct, chmm_output_dir, [5, 7],  n_thread='0')
+        print("running chmm param-init")
+        ChromHMM_paraminit_runs("chmmfiles/"+ct, chmm_output_dir, [5, 7],  n_thread='0', num_labels=nl)

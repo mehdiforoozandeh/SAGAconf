@@ -634,14 +634,18 @@ def report_reproducibility(loci_1, loci_2, pltsavedir):
     
     to_report = {}
 
-    cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
-    cc.plot_curve(plot_general=False, merge_plots=False)
-    del cc
+    # cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
+    # cc.plot_curve(plot_general=False, merge_plots=False)
+    # del cc
+    # plt.close("all")
+    # plt.style.use('default')
 
-    calb = posterior_calibration(
-        loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
-        oe_transform=True, savedir=pltsavedir+"/clb")
-    calibrated_loci_1 = calb.perlabel_calibration_function(degree=5, num_bins=25, return_caliberated_matrix=True)
+    # calb = posterior_calibration(
+    #     loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
+    #     oe_transform=True, savedir=pltsavedir+"/clb")
+    # calibrated_loci_1 = calb.perlabel_calibration_function(degree=5, num_bins=25, return_caliberated_matrix=True)
+    # plt.close("all")
+    # plt.style.use('default')
     
     agr = Agreement(loci_1, loci_2, pltsavedir+"/agr")
     to_report["per-label agreement"] = agr.per_label_agreement()
@@ -652,12 +656,15 @@ def report_reproducibility(loci_1, loci_2, pltsavedir):
     agr.plot_CK()
     agr.plot_OE()
     del agr
+    plt.close("all")
+    plt.style.use('default')
 
     vis = sankey(loci_1, loci_2, pltsavedir+"/snk")
     vis.sankey_diag()
     vis.heatmap()
     del vis
     plt.close('all')
+    plt.style.use('default')
     return to_report
 
 def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
@@ -731,7 +738,7 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
     plt.style.use('default')
      
     reports = {}
-    reports[num_labels] = report_reproducibility(
+    reports[str(num_labels)] = report_reproducibility(
         loci_1, loci_2, 
         pltsavedir=pltsavedir+"/{}_labels".format(num_labels))
 
@@ -759,12 +766,13 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
             loci_2[to_be_merged[0]] + loci_2[to_be_merged[1]]
         loci_2 = loci_2.drop(to_be_merged, axis=1)
 
-        reports[int((num_labels-1) - m)] = report_reproducibility(
+        reports[str((num_labels-1) - m)] = report_reproducibility(
             loci_1, loci_2, 
             pltsavedir=pltsavedir+"/{}_labels".format((num_labels-1) - m))
 
     nl = list(reports.keys())
-    plt.bar(nl[:-1], [reports[k]["general agreement"] for k in nl][:-1])
+    ys =[reports[k]["general agreement"] for k in nl]
+    plt.bar(list(nl), list(ys), color="grey")
     plt.title("Post-clustering Progress")
     plt.xlabel("Number of Labels")
     plt.ylabel("General Agreement")
