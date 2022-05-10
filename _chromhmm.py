@@ -2,17 +2,17 @@ import os
 import pandas as pd
 
 def binarize_data(inputbeddir, cellmarkfiletable, outputdir, resolution=100, chromlength='ChromHMM/CHROMSIZES/hg38.txt'):
-    cmdline = "java -Xmx10g -jar ChromHMM/ChromHMM.jar BinarizeBam -b {} -t {} {} {} {} {}".format(
+    cmdline = "java -Xmx30g -jar ChromHMM/ChromHMM.jar BinarizeBed -center -b {} -t {} {} {} {} {}".format(
         resolution, outputdir+"/signals", chromlength, inputbeddir, cellmarkfiletable, outputdir
     )
     os.system(cmdline)
 
 def learnModel(binary_input_dir, output_dir, num_labels='16', assembly='hg38', n_threads='0', random_seed=None):
     if random_seed != None:
-        learnmodel_cmdline = "java -Xmx10g -jar ChromHMM/ChromHMM.jar LearnModel -init random -s {} -printposterior -p {} {} {} {} {}".format(
+        learnmodel_cmdline = "java -Xmx30g -jar ChromHMM/ChromHMM.jar LearnModel -init random -s {} -printposterior -p {} {} {} {} {}".format(
             random_seed, n_threads, binary_input_dir, output_dir, num_labels, assembly)
     else:
-        learnmodel_cmdline = "java -Xmx10g -jar ChromHMM/ChromHMM.jar LearnModel -printposterior -p {} {} {} {} {}".format(
+        learnmodel_cmdline = "java -Xmx30g -jar ChromHMM/ChromHMM.jar LearnModel -printposterior -p {} {} {} {} {}".format(
             n_threads, binary_input_dir, output_dir, num_labels, assembly)
     os.system(learnmodel_cmdline)
 
@@ -100,27 +100,27 @@ def prepare_chmm_inputdata(CellType_dir, assertion=False):
         tfmd.index = list(tfmd['Unnamed: 0'])
         tfmd = tfmd.drop('Unnamed: 0', axis=1) 
 
-        # if assertion:
-        #     assert str(tfmd.loc['biosample', 'rep1_spv']) == rep1_biosampleID
-        #     assert str(tfmd.loc['biosample', 'rep2_spv']) == rep2_biosampleID
-        #     assert tfmd.loc['assay', 'rep1_spv'] == tr
-        #     assert tfmd.loc['assay', 'rep2_spv'] == tr
-
-        # navigate.append(
-        #     [tfmd.loc['assay', 'rep1_spv'], "rep1", str(tfmd.loc['accession', 'rep1_spv'])+".bedGraph"])  
-        # navigate.append(
-        #     [tfmd.loc['assay', 'rep2_spv'], "rep2", str(tfmd.loc['accession', 'rep2_spv'])+".bedGraph"])
-
         if assertion:
-            assert str(tfmd.loc['biosample', 'rep1_alig']) == rep1_biosampleID
-            assert str(tfmd.loc['biosample', 'rep2_alig']) == rep2_biosampleID
-            assert tfmd.loc['assay', 'rep1_alig'] == tr
-            assert tfmd.loc['assay', 'rep2_alig'] == tr
+            assert str(tfmd.loc['biosample', 'rep1_spv']) == rep1_biosampleID
+            assert str(tfmd.loc['biosample', 'rep2_spv']) == rep2_biosampleID
+            assert tfmd.loc['assay', 'rep1_spv'] == tr
+            assert tfmd.loc['assay', 'rep2_spv'] == tr
 
         navigate.append(
-            [tfmd.loc['assay', 'rep1_alig'], "rep1", str(tfmd.loc['accession', 'rep1_alig'])+".bam"])  
+            [tfmd.loc['assay', 'rep1_spv'], "rep1", str(tfmd.loc['accession', 'rep1_spv'])+".bedGraph"])  
         navigate.append(
-            [tfmd.loc['assay', 'rep2_alig'], "rep2", str(tfmd.loc['accession', 'rep2_alig'])+".bam"])
+            [tfmd.loc['assay', 'rep2_spv'], "rep2", str(tfmd.loc['accession', 'rep2_spv'])+".bedGraph"])
+
+        # if assertion:
+        #     assert str(tfmd.loc['biosample', 'rep1_alig']) == rep1_biosampleID
+        #     assert str(tfmd.loc['biosample', 'rep2_alig']) == rep2_biosampleID
+        #     assert tfmd.loc['assay', 'rep1_alig'] == tr
+        #     assert tfmd.loc['assay', 'rep2_alig'] == tr
+
+        # navigate.append(
+        #     [tfmd.loc['assay', 'rep1_alig'], "rep1", str(tfmd.loc['accession', 'rep1_alig'])+".bam"])  
+        # navigate.append(
+        #     [tfmd.loc['assay', 'rep2_alig'], "rep2", str(tfmd.loc['accession', 'rep2_alig'])+".bam"])
 
     
     cmft_concat = open("chmmfiles/{}/cmft_concat.txt".format(celltype_name), "w")

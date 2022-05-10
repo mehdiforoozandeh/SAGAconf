@@ -51,7 +51,7 @@ def make_symmetric_matrix(matrix0):
 
 
 def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, symmetric=False):
-    print('finding MAPs')
+    # print('finding MAPs')
     num_labels = int(num_labels)
     max_1posteri = list(find_max_posteri(loci_1))
     max_2posteri = list(find_max_posteri(loci_2))
@@ -71,7 +71,7 @@ def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, symmetric=Fa
         r1_label_bin_count[i] = 0
         r2_label_bin_count[i] = 0
 
-    print('creating observed and expected matrix')
+    # print('creating observed and expected matrix')
     for i in range(len(loci_1)):
         try:
             r1_label_bin_count[max_1posteri[i]] += 1
