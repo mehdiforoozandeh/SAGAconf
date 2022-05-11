@@ -243,7 +243,7 @@ if __name__=="__main__":
     # test_calibration(replicate_1_dir, replicate_2_dir)
     
     RUN_ALL_REPROD_ANALYSIS(
-        "segway_runs",  ['K562', 'MCF-7', 'GM12878', 'HeLa-S3', 'CD14-positive monocyte'], "testdir", mp=True, type="segway", n_processors=4)
+        "segway_runs",  ['K562', 'MCF-7', 'GM12878', 'HeLa-S3', 'CD14-positive monocyte'], "testdir", type="segway", n_processors=4)
     exit()
     
     replicate_1_dir = 'tests/segway_runs/GM12878_rep1/'
