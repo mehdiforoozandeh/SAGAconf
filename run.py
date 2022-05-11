@@ -833,7 +833,7 @@ def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, mp=True, type="
         run_instances[ct] = ct_runs
     
     list_of_runs = []
-    for k, v in run_instances.item():
+    for k, v in run_instances.items():
         for kk in v.keys():
             list_of_runs.append(
                 {"runtype": "{}_{}".format(k, kk),
