@@ -4,7 +4,6 @@ bigWigToBedGraph
 __pycache__/
 data/
 batch_runs/
-test_repr.py
 segway_runs/
 ChromHMM/
 files/

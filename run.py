@@ -1,3 +1,4 @@
+from signal import SIG_DFL
 from _utils import *
 from _pipeline import *
 from _reproducibility import *
@@ -634,18 +635,18 @@ def report_reproducibility(loci_1, loci_2, pltsavedir):
     
     to_report = {}
 
-    # cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
-    # cc.plot_curve(plot_general=False, merge_plots=False)
-    # del cc
-    # plt.close("all")
-    # plt.style.use('default')
+    cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
+    cc.plot_curve(plot_general=False, merge_plots=False)
+    del cc
+    plt.close("all")
+    plt.style.use('default')
 
-    # calb = posterior_calibration(
-    #     loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
-    #     oe_transform=True, savedir=pltsavedir+"/clb")
-    # calibrated_loci_1 = calb.perlabel_calibration_function(degree=5, num_bins=25, return_caliberated_matrix=True)
-    # plt.close("all")
-    # plt.style.use('default')
+    calb = posterior_calibration(
+        loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
+        oe_transform=True, savedir=pltsavedir+"/clb")
+    calibrated_loci_1 = calb.perlabel_calibration_function(degree=5, num_bins=25, return_caliberated_matrix=True)
+    plt.close("all")
+    plt.style.use('default')
     
     agr = Agreement(loci_1, loci_2, pltsavedir+"/agr")
     to_report["per-label agreement"] = agr.per_label_agreement()
@@ -723,10 +724,11 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
     
     if os.path.exists(pltsavedir)==False:
         os.mkdir(pltsavedir)
-    
+
+    cmap = sns.cm.rocket_r
     sns.clustermap(
         distance_matrix, row_linkage=linkage, 
-        col_linkage=linkage, annot=True)
+        col_linkage=linkage, annot=True, cmap=cmap)
 
     if os.path.exists(pltsavedir+'/post_clustering/')==False:
         os.mkdir(pltsavedir+'/post_clustering/')
@@ -781,6 +783,73 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
     plt.clf()
     sns.reset_orig
     plt.style.use('default')
+
+def run_single_reprod_analysis(input_dict):
+    print("running type: {}".format(input_dict["runtype"]))
+    print(input_dict)
+    # full_reproducibility_report(input_dict["rep1_dir"], input_dict["rep2_dir"], input_dict["output_dir"])
+
+def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, mp=True, type="segway", n_processors=8):
+    """Given a directory containing all segway or chromHMM runs, 
+    generates all orders of reproducibility analysis including 
+    replicates, concatenated, and param_init modes. Stores all results in 
+    output_dir"""
+    
+    
+    ls = os.listdir(runs_dir)
+    random_seeds = list(set(
+        [s.split("_")[-1] for s in ls if "rs" in s]
+        ))
+
+    run_instances = {}
+    
+    for ct in CellType_list:
+        ct_runs = {}
+        ct_runs["replicates"] = [
+            "{}/{}_rep1".format(runs_dir, ct), 
+            "{}/{}_rep2".format(runs_dir, ct), 
+            "{}/{}/rep1_vs_rep2/".format(output_dir, ct)]
+        
+        ct_runs["rep1_paraminit"] = [
+            "{}/{}_rep1_{}".format(runs_dir, ct, random_seeds[0]), 
+            "{}/{}_rep1_{}".format(runs_dir, ct, random_seeds[1]), 
+            "{}/{}/rep1_paraminit/".format(output_dir, ct)]
+
+        ct_runs["rep2_paraminit"] = [
+            "{}/{}_rep2_{}".format(runs_dir, ct, random_seeds[0]), 
+            "{}/{}_rep2_{}".format(runs_dir, ct, random_seeds[1]), 
+            "{}/{}/rep2_paraminit/".format(output_dir, ct)]
+
+        if type == "segway":
+            ct_runs["concat"] = [
+            "{}/{}_concat_rep1".format(runs_dir, ct), 
+            "{}/{}_concat_rep2".format(runs_dir, ct), 
+            "{}/{}/concatenated/".format(output_dir, ct)]
+
+        elif type == "chmm":
+            ### TO BE COMPLETED
+            ct_runs["concat"] = []
+
+        run_instances[ct] = ct_runs
+    
+    list_of_runs = []
+    for k, v in run_instances.item():
+        for kk in v.keys():
+            list_of_runs.append(
+                {"runtype": "{}_{}".format(k, kk),
+                "rep1_dir": v[kk][0],
+                "rep2_dir": v[kk][1],
+                "output_dir": v[kk][2]
+                }
+            )
+    
+    if mp:
+        p_obj = mp.Pool(n_processors)
+        p_obj.map(run_single_reprod_analysis, list_of_runs)
+
+    else:
+        for r in list_of_runs:
+            run_single_reprod_analysis(r)
 
 """when running the whole script from start to end to generate (and reproduce) results
 remember to put label interpretation in try blocks (skippable) to prevent any kind of
