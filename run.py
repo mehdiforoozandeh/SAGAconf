@@ -786,8 +786,7 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
 
 def run_single_reprod_analysis(input_dict):
     print("running type: {}".format(input_dict["runtype"]))
-    print(input_dict)
-    # full_reproducibility_report(input_dict["rep1_dir"], input_dict["rep2_dir"], input_dict["output_dir"])
+    full_reproducibility_report(input_dict["rep1_dir"], input_dict["rep2_dir"], input_dict["output_dir"])
 
 def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, multi_p=True, type="segway", n_processors=8):
     """Given a directory containing all segway or chromHMM runs, 
