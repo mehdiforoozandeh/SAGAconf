@@ -242,7 +242,7 @@ if __name__=="__main__":
     # replicate_2_dir = 'tests/segway_runs/gm12878_rep2/parsed_posterior_short.csv'
     # test_calibration(replicate_1_dir, replicate_2_dir)
     
-    RUN_ALL_REPROD_ANALYSIS("segway_runs", CellType_list, "", mp=True, type="segway", n_processors=4)
+    RUN_ALL_REPROD_ANALYSIS("segway_runs", CellType_list, "testdir", mp=True, type="segway", n_processors=4)
     exit()
     
     replicate_1_dir = 'tests/segway_runs/GM12878_rep1/'
