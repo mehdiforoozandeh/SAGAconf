@@ -789,7 +789,7 @@ def run_single_reprod_analysis(input_dict):
     print(input_dict)
     # full_reproducibility_report(input_dict["rep1_dir"], input_dict["rep2_dir"], input_dict["output_dir"])
 
-def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, mp=True, type="segway", n_processors=8):
+def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, multi_p=True, type="segway", n_processors=8):
     """Given a directory containing all segway or chromHMM runs, 
     generates all orders of reproducibility analysis including 
     replicates, concatenated, and param_init modes. Stores all results in 
@@ -843,7 +843,7 @@ def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, mp=True, type="
                 }
             )
     
-    if mp:
+    if multi_p:
         p_obj = mp.Pool(n_processors)
         p_obj.map(run_single_reprod_analysis, list_of_runs)
 
