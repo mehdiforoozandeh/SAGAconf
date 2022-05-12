@@ -675,8 +675,8 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
     post-clustering.
     """
     loci_1, loci_2 = intersect_parsed_posteriors(
-        replicate_1_dir+"/parsed_posterior_short.csv", 
-        replicate_2_dir+"/parsed_posterior_short.csv")
+        replicate_1_dir+"/parsed_posterior.csv", 
+        replicate_2_dir+"/parsed_posterior.csv")
 
     num_labels = loci_1.shape[1]-3
     loci_1.columns = ["chr", "start", "end"]+["posterior{}".format(i) for i in range(num_labels)]
