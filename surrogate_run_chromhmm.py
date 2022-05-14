@@ -66,5 +66,5 @@ for ct in CellType_list:
     print("running chmm concat")
     ChromHMM_concat_runs("chmmfiles/"+ct, chmm_output_dir, n_thread='0', num_labels=16)
 
-    print("running chmm param-init")
-    ChromHMM_paraminit_runs("chmmfiles/"+ct, chmm_output_dir, [5, 7],  n_thread='0', num_labels=16)
+    # print("running chmm param-init")
+    # ChromHMM_paraminit_runs("chmmfiles/"+ct, chmm_output_dir, [5, 7],  n_thread='0', num_labels=16)
