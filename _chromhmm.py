@@ -2,7 +2,7 @@ import os
 import pandas as pd
 
 def binarize_data(inputbeddir, cellmarkfiletable, outputdir, resolution=100, chromlength='ChromHMM/CHROMSIZES/hg38.txt'):
-    cmdline = "java -Xmx30g -jar ChromHMM/ChromHMM.jar BinarizeBam -b {} -t {} {} {} {} {}".format(
+    cmdline = "java -Xmx30g -jar ChromHMM/ChromHMM.jar BinarizeBam -b {} -p 0.001 -t {} {} {} {} {}".format(
         resolution, outputdir+"/signals", chromlength, inputbeddir, cellmarkfiletable, outputdir
     )
     os.system(cmdline)
@@ -245,4 +245,3 @@ def ChromHMM_concat_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0', num_l
             chmm_output_dir+"/"+namesig+"_concat/POSTERIOR", "rep2", resolution=100)
 
         parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_concat/parsed_posterior_rep2.csv")
-

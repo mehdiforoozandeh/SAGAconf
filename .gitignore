@@ -3,6 +3,7 @@ gencode.v29.primary_assembly.annotation_UCSC_names.gtf
 bigWigToBedGraph
 __pycache__/
 data/
+chmmisuue/
 batch_runs/
 segway_runs/
 ChromHMM/
