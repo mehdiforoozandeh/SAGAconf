@@ -12,7 +12,7 @@ def learnModel(binary_input_dir, output_dir, num_labels='16', assembly='hg38', n
         learnmodel_cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar LearnModel -pseudo 1 -init random -s {} -printposterior -p {} {} {} {} {}".format(
             random_seed, n_threads, binary_input_dir, output_dir, num_labels, assembly)
     else:
-        learnmodel_cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar LearnModel -pseudo 1 -printposterior -p {} {} {} {} {}".format(
+        learnmodel_cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar LearnModel -pseudo -printposterior -p {} {} {} {} {}".format(
             n_threads, binary_input_dir, output_dir, num_labels, assembly)
     os.system(learnmodel_cmdline)
 
