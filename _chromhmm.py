@@ -9,7 +9,7 @@ def binarize_data(inputbeddir, cellmarkfiletable, outputdir, resolution=100, chr
 
 def learnModel(binary_input_dir, output_dir, num_labels='16', assembly='hg38', n_threads='0', random_seed=None):
     if random_seed != None:
-        learnmodel_cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar LearnModel -pseudo 1 -init random -s {} -printposterior -p {} {} {} {} {}".format(
+        learnmodel_cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar LearnModel -pseudo -init random -s {} -printposterior -p {} {} {} {} {}".format(
             random_seed, n_threads, binary_input_dir, output_dir, num_labels, assembly)
     else:
         learnmodel_cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar LearnModel -pseudo -printposterior -p {} {} {} {} {}".format(
