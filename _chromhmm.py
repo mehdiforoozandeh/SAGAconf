@@ -159,11 +159,14 @@ def ChromHMM_replicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0', nu
             chmm_celltype_dir+"/binarized_rep1", chmm_output_dir+"/"+namesig+"_rep1", 
             num_labels=num_labels, assembly='hg38', n_threads=n_thread, random_seed=None)
 
-    if os.path.exists(chmm_output_dir+"/"+namesig+"_rep1/parsed_posterior.csv") == False:
-        parsed_posterior = ChrHMM_read_posteriordir(
-            chmm_output_dir+"/"+namesig+"_rep1/POSTERIOR", "rep1", resolution=100)
-        
-        parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep1/parsed_posterior.csv")
+    try:
+        if os.path.exists(chmm_output_dir+"/"+namesig+"_rep1/parsed_posterior.csv") == False:
+            parsed_posterior = ChrHMM_read_posteriordir(
+                chmm_output_dir+"/"+namesig+"_rep1/POSTERIOR", "rep1", resolution=100)
+            
+            parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep1/parsed_posterior.csv")
+    except:
+        pass
 
     ####=================================================================================================####
     if os.path.exists(chmm_celltype_dir+"/binarized_rep2") == False:
@@ -176,12 +179,14 @@ def ChromHMM_replicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0', nu
             chmm_celltype_dir+"/binarized_rep2", chmm_output_dir+"/"+namesig+"_rep2", 
             num_labels=num_labels, assembly='hg38', n_threads=n_thread, random_seed=None)
 
-    if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2/parsed_posterior.csv") == False:
-        parsed_posterior = ChrHMM_read_posteriordir(
-            chmm_output_dir+"/"+namesig+"_rep2/POSTERIOR", "rep2", resolution=100)
-        
-        parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep2/parsed_posterior.csv")
-
+    try:
+        if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2/parsed_posterior.csv") == False:
+            parsed_posterior = ChrHMM_read_posteriordir(
+                chmm_output_dir+"/"+namesig+"_rep2/POSTERIOR", "rep2", resolution=100)
+            
+            parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep2/parsed_posterior.csv")
+    except:
+        pass
 
 def ChromHMM_paraminit_runs(chmm_celltype_dir, chmm_output_dir, random_seeds,  n_thread='0', num_labels=16):
     namesig = chmm_celltype_dir.split("/")[-1]

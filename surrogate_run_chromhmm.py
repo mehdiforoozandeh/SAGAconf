@@ -61,10 +61,7 @@ for ct in CellType_list:
     prepare_chmm_inputdata("files/"+ct, assertion=False)
 
     print("running chmm rep")
-    try:
-        ChromHMM_replicate_runs("chmmfiles/"+ct, chmm_output_dir, n_thread='0', num_labels=2)
-    except:
-        pass
+    ChromHMM_replicate_runs("chmmfiles/"+ct, chmm_output_dir, n_thread='0', num_labels=2)
     # print("running chmm concat")
     # ChromHMM_concat_runs("chmmfiles/"+ct, chmm_output_dir, n_thread='0', num_labels=16)
 
