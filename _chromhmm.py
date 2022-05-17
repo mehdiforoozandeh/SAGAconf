@@ -2,17 +2,17 @@ import os
 import pandas as pd
 
 def binarize_data(inputbeddir, cellmarkfiletable, outputdir, resolution=100, chromlength='ChromHMM/CHROMSIZES/hg38.txt'):
-    cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar BinarizeBam -p 0.01 -b {} -t {} {} {} {} {}".format(
+    cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar BinarizeBam -b {} -t {} {} {} {} {}".format(
         resolution, outputdir+"/signals", chromlength, inputbeddir, cellmarkfiletable, outputdir
     )
     os.system(cmdline)
 
 def learnModel(binary_input_dir, output_dir, num_labels='16', assembly='hg38', n_threads='0', random_seed=None):
     if random_seed != None:
-        learnmodel_cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar LearnModel -pseudo -init random -s {} -printposterior -p {} {} {} {} {}".format(
+        learnmodel_cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar LearnModel -init random -s {} -printposterior -p {} {} {} {} {}".format(
             random_seed, n_threads, binary_input_dir, output_dir, num_labels, assembly)
     else:
-        learnmodel_cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar LearnModel -pseudo -printposterior -p {} {} {} {} {}".format(
+        learnmodel_cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar LearnModel -p {} {} {} {} {}".format(
             n_threads, binary_input_dir, output_dir, num_labels, assembly)
     os.system(learnmodel_cmdline)
 
@@ -79,6 +79,7 @@ def ChrHMM_read_posteriordir(posteriordir, rep, resolution=100):
 
 def prepare_chmm_inputdata(CellType_dir, assertion=False):
     # essential_tracks = ['H3K9me3', 'H3K27me3', 'H3K36me3', 'H3K4me3', 'H3K4me1', 'H3K27ac']
+    essential_tracks = ["H3K4me3"]
     celltype_name = CellType_dir.split("/")[-1]
 
     if "chmmfiles" not in os.listdir():
@@ -94,7 +95,7 @@ def prepare_chmm_inputdata(CellType_dir, assertion=False):
         if "\n" in rep2_biosampleID:
             rep2_biosampleID.replace("\n","")
 
-    assaylist = [tr for tr in os.listdir(CellType_dir) if os.path.isdir(CellType_dir+'/'+tr)]# and tr in essential_tracks]
+    assaylist = [tr for tr in os.listdir(CellType_dir) if os.path.isdir(CellType_dir+'/'+tr) and tr in essential_tracks]
     navigate = []
     for tr in assaylist:
         tfmd = pd.read_csv(CellType_dir+'/'+tr+'/track_files_metadata.csv')

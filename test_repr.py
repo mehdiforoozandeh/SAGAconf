@@ -251,5 +251,3 @@ if __name__=="__main__":
     # benchmark(replicate_1_dir, replicate_2_dir,  "tests/reprod_chmm")
 
     full_reproducibility_report(replicate_1_dir, replicate_2_dir, "TEST_REPR")
-    
-
