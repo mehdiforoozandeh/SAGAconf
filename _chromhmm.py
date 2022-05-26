@@ -40,7 +40,7 @@ def read_posterior_file(filepath):
     vals = vals.astype("float32")
     return vals
 
-def ChrHMM_read_posteriordir(posteriordir, rep, resolution=100):
+def ChrHMM_read_posteriordir(posteriordir, rep, resolution=200):
     '''
     for each file in posteriordir
     Initialize emptybins based on chromsizes
@@ -79,7 +79,7 @@ def ChrHMM_read_posteriordir(posteriordir, rep, resolution=100):
 
 def prepare_chmm_inputdata(CellType_dir, assertion=False):
     # essential_tracks = ['H3K9me3', 'H3K27me3', 'H3K36me3', 'H3K4me3', 'H3K4me1', 'H3K27ac']
-    essential_tracks = ["H3K4me3"]
+    # essential_tracks = ["H3K4me3"]
     celltype_name = CellType_dir.split("/")[-1]
 
     if "chmmfiles" not in os.listdir():
@@ -95,7 +95,7 @@ def prepare_chmm_inputdata(CellType_dir, assertion=False):
         if "\n" in rep2_biosampleID:
             rep2_biosampleID.replace("\n","")
 
-    assaylist = [tr for tr in os.listdir(CellType_dir) if os.path.isdir(CellType_dir+'/'+tr) and tr in essential_tracks]
+    assaylist = [tr for tr in os.listdir(CellType_dir) if os.path.isdir(CellType_dir+'/'+tr)]# and tr in essential_tracks]
     navigate = []
     for tr in assaylist:
         tfmd = pd.read_csv(CellType_dir+'/'+tr+'/track_files_metadata.csv')
@@ -206,7 +206,7 @@ def ChromHMM_paraminit_runs(chmm_celltype_dir, chmm_output_dir, random_seeds,  n
 
         if os.path.exists(chmm_output_dir+"/"+namesig+"_rep1_rs{}/parsed_posterior.csv".format(rs)) == False:
             parsed_posterior = ChrHMM_read_posteriordir(
-                chmm_output_dir+"/"+namesig+"_rep1_rs{}/POSTERIOR".format(rs), "rep1", resolution=100)
+                chmm_output_dir+"/"+namesig+"_rep1_rs{}/POSTERIOR".format(rs), "rep1", resolution=200)
             parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep1_rs{}/parsed_posterior.csv".format(rs))
         
         ####=================================================================================================####
@@ -223,7 +223,7 @@ def ChromHMM_paraminit_runs(chmm_celltype_dir, chmm_output_dir, random_seeds,  n
 
         if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2_rs{}/parsed_posterior.csv".format(rs)) == False:
             parsed_posterior = ChrHMM_read_posteriordir(
-                chmm_output_dir+"/"+namesig+"_rep2_rs{}/POSTERIOR".format(rs), "rep2", resolution=100)
+                chmm_output_dir+"/"+namesig+"_rep2_rs{}/POSTERIOR".format(rs), "rep2", resolution=200)
             parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep2_rs{}/parsed_posterior.csv".format(rs))
 
 def ChromHMM_concat_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0', num_labels=16):
@@ -243,12 +243,12 @@ def ChromHMM_concat_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0', num_l
 
     if os.path.exists(chmm_output_dir+"/"+namesig+"_concat/parsed_posterior_rep1.csv") == False:
         parsed_posterior = ChrHMM_read_posteriordir(
-            chmm_output_dir+"/"+namesig+"_concat/POSTERIOR", "rep1", resolution=100)
+            chmm_output_dir+"/"+namesig+"_concat/POSTERIOR", "rep1", resolution=200)
         
         parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_concat/parsed_posterior_rep1.csv")
     
     if os.path.exists(chmm_output_dir+"/"+namesig+"_concat/parsed_posterior_rep2.csv") == False:
         parsed_posterior = ChrHMM_read_posteriordir(
-            chmm_output_dir+"/"+namesig+"_concat/POSTERIOR", "rep2", resolution=100)
+            chmm_output_dir+"/"+namesig+"_concat/POSTERIOR", "rep2", resolution=200)
 
         parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_concat/parsed_posterior_rep2.csv")
