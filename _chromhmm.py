@@ -9,7 +9,7 @@ def binarize_data(inputbeddir, cellmarkfiletable, outputdir, resolution=100, chr
 
 def learnModel(binary_input_dir, output_dir, num_labels='16', assembly='hg38', n_threads='0', random_seed=None):
     if random_seed != None:
-        learnmodel_cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar LearnModel -init random -s {} -printposterior -p {} {} {} {} {}".format(
+        learnmodel_cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar LearnModel -init random -s {} -p {} {} {} {} {}".format(
             random_seed, n_threads, binary_input_dir, output_dir, num_labels, assembly)
     else:
         learnmodel_cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar LearnModel -p {} {} {} {} {}".format(
@@ -152,7 +152,7 @@ def ChromHMM_replicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0', nu
     if os.path.exists(chmm_celltype_dir+"/binarized_rep1") == False:
         binarize_data(
             chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep1.txt", chmm_celltype_dir+"/binarized_rep1", 
-            resolution=100)
+            resolution=200)
 
     if os.path.exists(chmm_output_dir+"/"+namesig+"_rep1") == False:
         learnModel(
@@ -162,7 +162,7 @@ def ChromHMM_replicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0', nu
     try:
         if os.path.exists(chmm_output_dir+"/"+namesig+"_rep1/parsed_posterior.csv") == False:
             parsed_posterior = ChrHMM_read_posteriordir(
-                chmm_output_dir+"/"+namesig+"_rep1/POSTERIOR", "rep1", resolution=100)
+                chmm_output_dir+"/"+namesig+"_rep1/POSTERIOR", "rep1", resolution=200)
             
             parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep1/parsed_posterior.csv")
     except:
@@ -172,7 +172,7 @@ def ChromHMM_replicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0', nu
     if os.path.exists(chmm_celltype_dir+"/binarized_rep2") == False:
         binarize_data(
             chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep2.txt", chmm_celltype_dir+"/binarized_rep2", 
-            resolution=100)
+            resolution=200)
 
     if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2") == False:
         learnModel(
@@ -182,7 +182,7 @@ def ChromHMM_replicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0', nu
     try:
         if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2/parsed_posterior.csv") == False:
             parsed_posterior = ChrHMM_read_posteriordir(
-                chmm_output_dir+"/"+namesig+"_rep2/POSTERIOR", "rep2", resolution=100)
+                chmm_output_dir+"/"+namesig+"_rep2/POSTERIOR", "rep2", resolution=200)
             
             parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep2/parsed_posterior.csv")
     except:
@@ -197,7 +197,7 @@ def ChromHMM_paraminit_runs(chmm_celltype_dir, chmm_output_dir, random_seeds,  n
         if os.path.exists(chmm_celltype_dir+"/binarized_rep1") == False:
             binarize_data(
                 chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep1.txt", chmm_celltype_dir+"/binarized_rep1", 
-                resolution=100)
+                resolution=200)
         
         if os.path.exists(chmm_output_dir+"/"+namesig+"_rep1_rs{}".format(rs)) == False:
             learnModel(
@@ -214,7 +214,7 @@ def ChromHMM_paraminit_runs(chmm_celltype_dir, chmm_output_dir, random_seeds,  n
         if os.path.exists(chmm_celltype_dir+"/binarized_rep2") == False:
             binarize_data(
                 chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep2.txt", chmm_celltype_dir+"/binarized_rep2", 
-                resolution=100)
+                resolution=200)
         
         if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2_rs{}".format(rs)) == False:
             learnModel(
@@ -234,7 +234,7 @@ def ChromHMM_concat_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0', num_l
     if os.path.exists(chmm_celltype_dir+"/binarized_concat") == False:
         binarize_data(
             chmm_celltype_dir, chmm_celltype_dir+"/cmft_concat.txt", chmm_celltype_dir+"/binarized_concat", 
-            resolution=100)
+            resolution=200)
 
     if os.path.exists(chmm_output_dir+"/"+namesig+"_concat") == False:
         learnModel(
