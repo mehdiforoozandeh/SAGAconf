@@ -411,6 +411,20 @@ def intersect_parsed_posteriors(parsed_df_dir_1, parsed_df_dir_2):
     df2.iloc[:, 3:] = df2.iloc[:, 3:].astype("float16")
     df2 = df2.iloc[:500000,:]
 
+    if "_1" in df1.iloc[i, 0] or "_2" in df1.iloc[i, 0]:
+        for i in range(len(df1)):
+            if "_1" in df1.iloc[i, 0]:
+                df1.iloc[i, 0] = df1.iloc[i, 0].replace("_1","")
+            elif "_2" in df1.iloc[i, 0]:
+                df1.iloc[i, 0] = df1.iloc[i, 0].replace("_2","")
+
+    if "_1" in df2.iloc[i, 0] or "_2" in df2.iloc[i, 0]:
+        for i in range(len(df2)):
+            if "_1" in df2.iloc[i, 0]:
+                df2.iloc[i, 0] = df2.iloc[i, 0].replace("_1","")
+            elif "_2" in df2.iloc[i, 0]:
+                df2.iloc[i, 0] = df2.iloc[i, 0].replace("_2","")
+
     intersect = pd.merge(
         df1, 
         df2, 
