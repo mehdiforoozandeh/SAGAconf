@@ -404,9 +404,14 @@ def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, out
         print(params_dict_2['name_sig'], "already exists")
 
 def intersect_parsed_posteriors(parsed_df_dir_1, parsed_df_dir_2):
+    df1 = pd.read_csv(parsed_df_dir_1).drop("Unnamed: 0", axis=1)
+    df1.iloc[:, 3:] = df1.iloc[:, 3:].astype("float16")
+    df2 = pd.read_csv(parsed_df_dir_2).drop("Unnamed: 0", axis=1)
+    df2.iloc[:, 3:] = df2.iloc[:, 3:].astype("float16")
+    
     intersect = pd.merge(
-        pd.read_csv(parsed_df_dir_1).drop("Unnamed: 0", axis=1), 
-        pd.read_csv(parsed_df_dir_2).drop("Unnamed: 0", axis=1), 
+        df1, 
+        df2, 
         how='inner', on=['chr', 'start', 'end'])
 
     df1 = [intersect.chr, intersect.start, intersect.end]
