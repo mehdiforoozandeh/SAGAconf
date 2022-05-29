@@ -34,4 +34,4 @@ if os.path.exists(res_dir+"segway/") == False:
     os.mkdir(res_dir+"segway/")
 
 RUN_ALL_REPROD_ANALYSIS(
-    segway_dir,  CellType_list, res_dir+"segway/", type="segway", n_processors=1)
+    segway_dir,  CellType_list, res_dir+"segway/", type="segway", multi_p=False, n_processors=1)

@@ -674,6 +674,8 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
     including stepwise merging of labels through 
     post-clustering.
     """
+
+    print("loading and intersecting")
     loci_1, loci_2 = intersect_parsed_posteriors(
         replicate_1_dir+"/parsed_posterior.csv", 
         replicate_2_dir+"/parsed_posterior.csv")
