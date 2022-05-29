@@ -832,13 +832,13 @@ def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, multi_p=True, t
             "{}/{}_rep1_{}".format(runs_dir, ct, random_seeds[1]), 
             "{}/{}/rep1_paraminit/".format(output_dir, ct)]
         
-        if os.path.exists("{}/{}/rep2_paraminit".format(output_dir, ct))==False:
-            os.mkdir("{}/{}/rep2_paraminit".format(output_dir, ct))
+        # if os.path.exists("{}/{}/rep2_paraminit".format(output_dir, ct))==False:
+        #     os.mkdir("{}/{}/rep2_paraminit".format(output_dir, ct))
 
-        ct_runs["rep2_paraminit"] = [
-            "{}/{}_rep2_{}".format(runs_dir, ct, random_seeds[0]), 
-            "{}/{}_rep2_{}".format(runs_dir, ct, random_seeds[1]), 
-            "{}/{}/rep2_paraminit/".format(output_dir, ct)]
+        # ct_runs["rep2_paraminit"] = [
+        #     "{}/{}_rep2_{}".format(runs_dir, ct, random_seeds[0]), 
+        #     "{}/{}_rep2_{}".format(runs_dir, ct, random_seeds[1]), 
+        #     "{}/{}/rep2_paraminit/".format(output_dir, ct)]
         
         if os.path.exists("{}/{}/concatenated/".format(output_dir, ct))==False:
             os.mkdir("{}/{}/concatenated/".format(output_dir, ct))
