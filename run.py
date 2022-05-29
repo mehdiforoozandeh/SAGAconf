@@ -635,18 +635,18 @@ def report_reproducibility(loci_1, loci_2, pltsavedir):
     
     to_report = {}
 
-    cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
-    cc.plot_curve(plot_general=False, merge_plots=False)
-    del cc
-    plt.close("all")
-    plt.style.use('default')
+    # cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
+    # cc.plot_curve(plot_general=False, merge_plots=False)
+    # del cc
+    # plt.close("all")
+    # plt.style.use('default')
 
-    calb = posterior_calibration(
-        loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
-        oe_transform=True, savedir=pltsavedir+"/clb")
-    calibrated_loci_1 = calb.perlabel_calibration_function(degree=5, num_bins=25, return_caliberated_matrix=True)
-    plt.close("all")
-    plt.style.use('default')
+    # calb = posterior_calibration(
+    #     loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
+    #     oe_transform=True, savedir=pltsavedir+"/clb")
+    # calibrated_loci_1 = calb.perlabel_calibration_function(degree=5, num_bins=25, return_caliberated_matrix=True)
+    # plt.close("all")
+    # plt.style.use('default')
     
     agr = Agreement(loci_1, loci_2, pltsavedir+"/agr")
     to_report["per-label agreement"] = agr.per_label_agreement()
@@ -793,7 +793,6 @@ def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, multi_p=True, t
     generates all orders of reproducibility analysis including 
     replicates, concatenated, and param_init modes. Stores all results in 
     output_dir"""
-    
     
     ls = os.listdir(runs_dir)
     random_seeds = list(set(
