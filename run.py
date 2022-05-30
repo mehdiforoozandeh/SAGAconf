@@ -424,10 +424,10 @@ def intersect_parsed_posteriors(parsed_df_dir_1, parsed_df_dir_2):
     if "_1" in df2.iloc[0, 0] or "_2" in df2.iloc[0, 0]:
         chrdf2 = list(df2.chr)
         for i in range(len(chrdf2)):
-            if "_1" in chrdf2[i]:
-                chrdf2[i] = chrdf2[i].replace("_1", "")
-            elif "_2" in chrdf2[i]:
+            if "_2" in chrdf2[i]:
                 chrdf2[i] = chrdf2[i].replace("_2", "")
+            elif "_1" in chrdf2[i]:
+                chrdf2[i] = chrdf2[i].replace("_1", "")
         df2.chr = np.array(chrdf2)
     
     # if "_1" in df1.iloc[0, 0] or "_2" in df1.iloc[0, 0]:
