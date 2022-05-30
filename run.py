@@ -406,11 +406,9 @@ def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, out
 def intersect_parsed_posteriors(parsed_df_dir_1, parsed_df_dir_2):
     df1 = pd.read_csv(parsed_df_dir_1).drop("Unnamed: 0", axis=1)
     df1.iloc[:, 3:] = df1.iloc[:, 3:].astype("float16")
-    df1 = df1.iloc[:500000,:]
     df2 = pd.read_csv(parsed_df_dir_2).drop("Unnamed: 0", axis=1)
     df2.iloc[:, 3:] = df2.iloc[:, 3:].astype("float16")
-    df2 = df2.iloc[:500000,:]
-
+    
     # to handle concat indexing
     if "_1" in df1.iloc[0, 0] or "_2" in df1.iloc[0, 0]:
         chrdf1 = list(df1.chr)
@@ -653,7 +651,7 @@ def _post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
     plt.clf()
     return stepwise_report
 
-def report_reproducibility(loci_1, loci_2, pltsavedir):
+def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
     """
     get basic reproducibility results for a pair of 
     experiments (two locis)
@@ -661,32 +659,32 @@ def report_reproducibility(loci_1, loci_2, pltsavedir):
     if os.path.exists(pltsavedir) == False:
         os.mkdir(pltsavedir)
 
-    if os.path.exists(pltsavedir+"/cc") == False:
-        os.mkdir(pltsavedir+"/cc")
-
     if os.path.exists(pltsavedir+"/agr") == False:
         os.mkdir(pltsavedir+"/agr")
     
     if os.path.exists(pltsavedir+"/snk") == False:
         os.mkdir(pltsavedir+"/snk")
-
-    if os.path.exists(pltsavedir+"/clb") == False:
-        os.mkdir(pltsavedir+"/clb")
     
     to_report = {}
 
-    # cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
-    # cc.plot_curve(plot_general=False, merge_plots=False)
-    # del cc
-    # plt.close("all")
-    # plt.style.use('default')
+    if cc_calb:
+        if os.path.exists(pltsavedir+"/cc") == False:
+            os.mkdir(pltsavedir+"/cc")
+        if os.path.exists(pltsavedir+"/clb") == False:
+            os.mkdir(pltsavedir+"/clb")
 
-    # calb = posterior_calibration(
-    #     loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
-    #     oe_transform=True, savedir=pltsavedir+"/clb")
-    # calibrated_loci_1 = calb.perlabel_calibration_function(degree=5, num_bins=25, return_caliberated_matrix=True)
-    # plt.close("all")
-    # plt.style.use('default')
+        cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
+        cc.plot_curve(plot_general=False, merge_plots=False)
+        del cc
+        plt.close("all")
+        plt.style.use('default')
+
+        calb = posterior_calibration(
+            loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
+            oe_transform=True, savedir=pltsavedir+"/clb")
+        calibrated_loci_1 = calb.perlabel_calibration_function(degree=5, num_bins=25, return_caliberated_matrix=True)
+        plt.close("all")
+        plt.style.use('default')
     
     agr = Agreement(loci_1, loci_2, pltsavedir+"/agr")
     to_report["per-label agreement"] = agr.per_label_agreement()
@@ -784,7 +782,7 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
     reports = {}
     reports[str(num_labels)] = report_reproducibility(
         loci_1, loci_2, 
-        pltsavedir=pltsavedir+"/{}_labels".format(num_labels))
+        pltsavedir=pltsavedir+"/{}_labels".format(num_labels), cc_calb=True)
 
     # merging clusters one at a time
     merged_label_ID = {}
@@ -812,7 +810,8 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
 
         reports[str((num_labels-1) - m)] = report_reproducibility(
             loci_1, loci_2, 
-            pltsavedir=pltsavedir+"/{}_labels".format((num_labels-1) - m))
+            pltsavedir=pltsavedir+"/{}_labels".format((num_labels-1) - m), 
+            cc_calb=False)
 
     nl = list(reports.keys())
     ys =[reports[k]["general agreement"] for k in nl]
