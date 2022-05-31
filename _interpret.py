@@ -1,4 +1,3 @@
-from re import L
 import requests, os
 
 def gtf_file(gtf_filename = 'label_interpretation/gencode.v29.primary_assembly.annotation_UCSC_names.gtf'): 
@@ -113,34 +112,34 @@ def chmm_sigdist(chmmruns_dir, original_files_dir):
                         if "dense.bed" in ff:
                             if "rep1" in ff:
                                 segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
-                                gd = "{}/{}/concat_rep1.genomedata".format(original_files_dir, ct)
+                                gd = "{}/{}/rep1.genomedata".format(original_files_dir, ct)
                                 outdir = "{}/{}/{}".format(chmmruns_dir, run, 'sigdist_rep1')
                                 os.system(
                                     'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
 
                             elif "rep2" in ff:
                                 segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
-                                gd = "{}/{}/concat_rep2.genomedata".format(original_files_dir, ct)
+                                gd = "{}/{}/rep2.genomedata".format(original_files_dir, ct)
                                 outdir = "{}/{}/{}".format(chmmruns_dir, run, 'sigdist_rep2')
                                 os.system(
                                     'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
 
-                else:
-                    for ff in ls2:
-                        if "dense.bed" in ff:
-                            if "rep1" in ff:
-                                segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
-                                gd = "{}/{}/rep1.genomedata".format(original_files_dir, ct)
-                                outdir = "{}/{}/{}".format(chmmruns_dir, run, 'sigdist')
-                                os.system(
-                                    'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
+                # else:
+                #     for ff in ls2:
+                #         if "dense.bed" in ff:
+                #             if "rep1" in ff:
+                #                 segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
+                #                 gd = "{}/{}/rep1.genomedata".format(original_files_dir, ct)
+                #                 outdir = "{}/{}/{}".format(chmmruns_dir, run, 'sigdist')
+                #                 os.system(
+                #                     'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
 
-                            elif "rep2" in ff:
-                                segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
-                                gd = "{}/{}/rep2.genomedata".format(original_files_dir, ct)
-                                outdir = "{}/{}/{}".format(chmmruns_dir, run, 'sigdist')
-                                os.system(
-                                    'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
+                #             elif "rep2" in ff:
+                #                 segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
+                #                 gd = "{}/{}/rep2.genomedata".format(original_files_dir, ct)
+                #                 outdir = "{}/{}/{}".format(chmmruns_dir, run, 'sigdist')
+                #                 os.system(
+                #                     'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
 
 
 def chmm_aggr(chmmruns_dir, original_files_dir, gtffile="biointerpret/gencode.v29.primary_assembly.annotation_UCSC_names.gtf"):
@@ -173,4 +172,46 @@ def chmm_aggr(chmmruns_dir, original_files_dir, gtffile="biointerpret/gencode.v2
                                  gtffile, "{}/{}/{}".format(chmmruns_dir, run, "aggre/")))
 
 def chmm_get_mnem():
-    pass
+    """
+    for each run:
+        mkdir(segwayoutput/runname)
+        cp run/aggre/.tab segwayoutput/runname/.tab
+        cp run/sigdist/.tab segwayoutput/runname/.tab
+    
+    run apply.py mnems
+
+    for each run:
+        cp mnems/run/mnem.txt run/mnem.txt
+    """
+
+    ls1 = os.listdir("segway_runs/")
+    for run in ls1:
+        with open("segway_runs/{}/signal_dist/signal_distribution.tab".format(run), 'r') as file:
+            lines = file.readlines()
+            lines = "".join(lines)
+        if "nan" not in lines:
+            if os.path.exists("biointerpret/segwayOutput/{}".format(run))==False:
+                os.mkdir("biointerpret/segwayOutput/{}".format(run))
+            os.system("cp segway_runs/{}/aggregations/feature_aggregation.tab biointerpret/segwayOutput/{}".format(run, run))
+            os.system("cp segway_runs/{}/signal_dist/signal_distribution.tab biointerpret/segwayOutput/{}".format(run, run))
+    os.system("cd biointerpret && python apply_samples.py segway_mnemons")
+    ls2 = os.listdir("biointerpret/segway_mnemons/classification")
+    for l in ls2:
+        os.system("cp biointerpret/segway_mnemons/classification/{}/mnemonics.txt segway_runs/{}".format(l,l))
+
+def segway_run_sigdist_concat():
+    ls0 = os.listdir("files/")
+    ls1 = os.listdir("segway_runs/")
+    for i in ls0:
+        for j in ls1:
+            print(j)
+            segbed = "segway_runs/"+j+'/segway.bed'
+            if i in j:
+                if "concat" in j:
+                    if "rep1" in j:
+                        gd = "files/"+i+"/concat_rep1.genomedata"
+                    elif "rep2" in j:
+                        gd = "files/"+i+"/concat_rep2.genomedata"
+
+                    os.system(
+                        'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, "segway_runs/"+j+'/signal_dist'))
