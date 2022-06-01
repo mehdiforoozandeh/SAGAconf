@@ -220,14 +220,16 @@ def chmm_get_mnem(chmmruns_dir):
         print("copying files back for {}".format(run))
 
         if "concat" in l:
-            
+
             if "rep1" in l:
-                os.system("cp biointerpret/chmm_mnemons/classification/{}/mnemonics.txt {}/{}".format(l, chmmruns_dir,l))
+                os.system("cp biointerpret/chmm_mnemons/classification/{}/mnemonics.txt {}/{}".format(
+                    l, chmmruns_dir,l.replace("_rep1","")))
                 os.system("mv {}/{}/mnemonics.txt {}/{}/mnemonics_rep1.txt".format(
                     chmmruns_dir,l.replace("_rep1",""), chmmruns_dir, l.replace("_rep1","")))
                     
             elif "rep2" in l:
-                os.system("cp biointerpret/chmm_mnemons/classification/{}/mnemonics.txt {}/{}".format(l, chmmruns_dir,l))
+                os.system("cp biointerpret/chmm_mnemons/classification/{}/mnemonics.txt {}/{}".format(
+                    l, chmmruns_dir,l.replace("_rep2","")))
                 os.system("mv {}/{}/mnemonics.txt {}/{}/mnemonics_rep2.txt".format(
                     chmmruns_dir,l.replace("_rep2",""), chmmruns_dir, l.replace("_rep2","")))
         else:
