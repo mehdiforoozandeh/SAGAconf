@@ -217,7 +217,7 @@ def chmm_get_mnem(chmmruns_dir):
     ls2 = os.listdir("biointerpret/chmm_mnemons/classification")
 
     for l in ls2:
-        print("copying files back for {}".format(run))
+        print("copying files back for {}".format(l))
 
         if "concat" in l:
 
