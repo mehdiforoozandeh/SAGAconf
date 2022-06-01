@@ -124,22 +124,22 @@ def chmm_sigdist(chmmruns_dir, original_files_dir):
                                 os.system(
                                     'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
 
-                # else:
-                #     for ff in ls2:
-                #         if "dense.bed" in ff:
-                #             if "rep1" in ff:
-                #                 segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
-                #                 gd = "{}/{}/rep1.genomedata".format(original_files_dir, ct)
-                #                 outdir = "{}/{}/{}".format(chmmruns_dir, run, 'sigdist')
-                #                 os.system(
-                #                     'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
+                else:
+                    for ff in ls2:
+                        if "dense.bed" in ff:
+                            if "rep1" in ff:
+                                segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
+                                gd = "{}/{}/rep1.genomedata".format(original_files_dir, ct)
+                                outdir = "{}/{}/{}".format(chmmruns_dir, run, 'sigdist')
+                                os.system(
+                                    'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
 
-                #             elif "rep2" in ff:
-                #                 segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
-                #                 gd = "{}/{}/rep2.genomedata".format(original_files_dir, ct)
-                #                 outdir = "{}/{}/{}".format(chmmruns_dir, run, 'sigdist')
-                #                 os.system(
-                #                     'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
+                            elif "rep2" in ff:
+                                segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
+                                gd = "{}/{}/rep2.genomedata".format(original_files_dir, ct)
+                                outdir = "{}/{}/{}".format(chmmruns_dir, run, 'sigdist')
+                                os.system(
+                                    'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
 
 
 def chmm_aggr(chmmruns_dir, original_files_dir, gtffile="biointerpret/gencode.v29.primary_assembly.annotation_UCSC_names.gtf"):
@@ -171,7 +171,7 @@ def chmm_aggr(chmmruns_dir, original_files_dir, gtffile="biointerpret/gencode.v2
                                 "{}/{}/{}".format(chmmruns_dir, run, ff),
                                  gtffile, "{}/{}/{}".format(chmmruns_dir, run, "aggre/")))
 
-def chmm_get_mnem():
+def chmm_get_mnem(chmmruns_dir):
     """
     for each run:
         mkdir(segwayoutput/runname)
@@ -184,34 +184,45 @@ def chmm_get_mnem():
         cp mnems/run/mnem.txt run/mnem.txt
     """
 
-    ls1 = os.listdir("segway_runs/")
+    ls1 = os.listdir(chmmruns_dir)
+
     for run in ls1:
-        with open("segway_runs/{}/signal_dist/signal_distribution.tab".format(run), 'r') as file:
-            lines = file.readlines()
-            lines = "".join(lines)
-        if "nan" not in lines:
+        print("copying files for {}".format(run))
+        if "concat" in run:
+
+            if os.path.exists("biointerpret/segwayOutput/{}_rep1".format(run))==False:
+                os.mkdir("biointerpret/segwayOutput/{}_rep1".format(run))
+
+            os.system("cp {}/{}/aggre_rep1/feature_aggregation.tab biointerpret/segwayOutput/{}_rep1".format(chmmruns_dir, run, run))
+            os.system("cp {}/{}/sigdist_rep1/signal_distribution.tab biointerpret/segwayOutput/{}_rep1".format(chmmruns_dir, run, run))
+
+            if os.path.exists("biointerpret/segwayOutput/{}_rep2".format(run))==False:
+                os.mkdir("biointerpret/segwayOutput/{}_rep2".format(run))
+
+            os.system("cp {}/{}/aggre_rep2/feature_aggregation.tab biointerpret/segwayOutput/{}_rep2".format(chmmruns_dir, run, run))
+            os.system("cp {}/{}/sigdist_rep2/signal_distribution.tab biointerpret/segwayOutput/{}_rep2".format(chmmruns_dir, run, run))
+
+
+        else:
+
             if os.path.exists("biointerpret/segwayOutput/{}".format(run))==False:
                 os.mkdir("biointerpret/segwayOutput/{}".format(run))
-            os.system("cp segway_runs/{}/aggregations/feature_aggregation.tab biointerpret/segwayOutput/{}".format(run, run))
-            os.system("cp segway_runs/{}/signal_dist/signal_distribution.tab biointerpret/segwayOutput/{}".format(run, run))
-    os.system("cd biointerpret && python apply_samples.py segway_mnemons")
-    ls2 = os.listdir("biointerpret/segway_mnemons/classification")
+            os.system("cp {}/{}/aggre/feature_aggregation.tab biointerpret/segwayOutput/{}".format(chmmruns_dir, run, run))
+            os.system("cp {}/{}/sigdist/signal_distribution.tab biointerpret/segwayOutput/{}".format(chmmruns_dir, run, run))
+
+
+    os.system("cd biointerpret && python apply_samples.py chmm_mnemons")
+
+
+    ls2 = os.listdir("biointerpret/chmm_mnemons/classification")
+
     for l in ls2:
-        os.system("cp biointerpret/segway_mnemons/classification/{}/mnemonics.txt segway_runs/{}".format(l,l))
+        print("copying files back for {}".format(run))
+        if "concat" in l:
+            if "rep1" in l:
+                os.system("cp biointerpret/chmm_mnemons/classification/{}/mnemonics.txt {}/{}/mnemonics_rep1.txt".format(l, chmmruns_dir,l))
+            elif "rep2" in l:
+                os.system("cp biointerpret/chmm_mnemons/classification/{}/mnemonics.txt {}/{}/mnemonics_rep2.txt".format(l, chmmruns_dir,l))
+        else:
+            os.system("cp biointerpret/chmm_mnemons/classification/{}/mnemonics.txt {}/{}".format(l, chmmruns_dir,l))
 
-def segway_run_sigdist_concat():
-    ls0 = os.listdir("files/")
-    ls1 = os.listdir("segway_runs/")
-    for i in ls0:
-        for j in ls1:
-            print(j)
-            segbed = "segway_runs/"+j+'/segway.bed'
-            if i in j:
-                if "concat" in j:
-                    if "rep1" in j:
-                        gd = "files/"+i+"/concat_rep1.genomedata"
-                    elif "rep2" in j:
-                        gd = "files/"+i+"/concat_rep2.genomedata"
-
-                    os.system(
-                        'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, "segway_runs/"+j+'/signal_dist'))
