@@ -1,3 +1,4 @@
+from os import lseek
 from timeit import timeit
 from _reproducibility import *
 import pandas as pd
@@ -232,6 +233,28 @@ def benchmark(replicate_1_dir, replicate_2_dir, pltsavedir):
     
     print(datetime.now() - t0)
 
+def TSS_test(loci_1, loci_2, tss):
+    num_labels = loci_1.shape[1]-3
+    loci_1.columns = ["chr", "start", "end"]+["posterior{}".format(i) for i in range(num_labels)]
+    loci_2.columns = ["chr", "start", "end"]+["posterior{}".format(i) for i in range(num_labels)]
+
+    print('generating confmat 1')
+    
+    conf_mat = confusion_matrix(
+        loci_1, loci_2, num_labels, 
+        OE_transform=True, symmetric=False)
+
+    assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
+
+    loci_1, loci_2 = \
+        connect_bipartite(loci_1, loci_2, assignment_pairs, mnemon=False)
+    
+    print('connected barpartite')
+    calb = posterior_calibration(loci_1, loci_2,"tests/clb", log_transform=False, ignore_overconf=False, filter_nan=True)
+    loci_1 = calb.perlabel_calibration_function(method="isoton_reg", degree=3, num_bins=10, return_caliberated_matrix=True)
+    print(loci_1.mean())
+    # print(tss_enrich(loci_1, tss))
+    
 
 if __name__=="__main__":
     # replicate_1_dir = 'tests/chromhmm_runs/gm12878_rep1/parsed_posterior_short.csv'
@@ -241,13 +264,25 @@ if __name__=="__main__":
     # replicate_1_dir = 'tests/segway_runs/gm12878_rep1/parsed_posterior_short.csv'
     # replicate_2_dir = 'tests/segway_runs/gm12878_rep2/parsed_posterior_short.csv'
     # test_calibration(replicate_1_dir, replicate_2_dir)
-    
-    replicate_1_dir = 'tests/segway_runs/GM12878_rep1/'
-    replicate_2_dir = 'tests/segway_runs/GM12878_rep2/'
     # benchmark(replicate_1_dir, replicate_2_dir,"tests/reprod_segw")
 
     # replicate_1_dir = 'tests/chromhmm_runs/GM12878_rep1/'
     # replicate_2_dir = 'tests/chromhmm_runs/GM12878_rep2/'
     # benchmark(replicate_1_dir, replicate_2_dir,  "tests/reprod_chmm")
 
-    full_reproducibility_report(replicate_1_dir, replicate_2_dir, "TEST_REPR")
+    # full_reproducibility_report(replicate_1_dir, replicate_2_dir, "TEST_REPR") 
+    
+    replicate_1_dir = 'tests/chmm/GM12878_rep1/parsed_posterior_short.csv'
+    replicate_2_dir = 'tests/chmm/GM12878_rep2/parsed_posterior_short.csv'
+    loci_1 = pd.read_csv(replicate_1_dir).drop("Unnamed: 0", axis=1)
+    loci_2 = pd.read_csv(replicate_2_dir).drop("Unnamed: 0", axis=1)
+    tss = pd.read_csv("tests/RefSeqTSS.hg38.txt", sep="\t", header=None)
+    tss.columns = ["chr", "coord", "strand"]
+
+    print(loci_1.mean())
+    if os.path.exists("tests/clb") == False:
+        os.mkdir("tests/clb")
+    
+    TSS_test(loci_1, loci_2, tss)
+    
+

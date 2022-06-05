@@ -2,20 +2,20 @@ from cProfile import label
 from csv import excel
 from mimetypes import init
 from operator import gt
+from pickle import TRUE
 from re import L, M
 from statistics import mean
 from textwrap import fill
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.ndimage.filters import gaussian_filter1d
 from _cluster_matching import *
 import plotly.graph_objects as go
 import plotly.express as px
-from sklearn.preprocessing import PolynomialFeatures
+from sklearn.preprocessing import PolynomialFeatures, MinMaxScaler
 from sklearn.isotonic import IsotonicRegression
 from sklearn.pipeline import make_pipeline
-from scipy.interpolate import interp1d, UnivariateSpline, splrep
+from scipy.interpolate import UnivariateSpline
 from sklearn.metrics import r2_score
 from sklearn.linear_model import LinearRegression
 from datetime import datetime
@@ -248,15 +248,17 @@ class posterior_calibration(object):
         self.MAPestimate1 = self.loci_1.iloc[:,3:].idxmax(axis=1)
         self.MAPestimate2 = self.loci_2.iloc[:,3:].idxmax(axis=1)
 
-        if log_transform:
-            self.loci_1.iloc[:,3:] = -1 * pd.DataFrame(
-                np.log(1 - self.loci_1.iloc[:,3:]) , 
-                columns=self.loci_1.iloc[:,3:].columns
-            )
-            self.loci_2.iloc[:,3:] = -1 * pd.DataFrame(
-                np.log(1 - self.loci_2.iloc[:,3:]) , 
-                columns=self.loci_2.iloc[:,3:].columns
-            )
+        self.log_transform = log_transform
+
+        # if log_transform:
+        #     self.loci_1.iloc[:,3:] = -1 * pd.DataFrame(
+        #         np.log(1 - self.loci_1.iloc[:,3:]) , 
+        #         columns=self.loci_1.iloc[:,3:].columns
+        #     )
+        #     self.loci_2.iloc[:,3:] = -1 * pd.DataFrame(
+        #         np.log(1 - self.loci_2.iloc[:,3:]) , 
+        #         columns=self.loci_2.iloc[:,3:].columns
+        #     )
 
     def perlabel_visualize_calibration(self, bins, label_name, scatter=False):
         if scatter:
@@ -287,12 +289,8 @@ class posterior_calibration(object):
             plt.ylabel("Ratio of Similarly Labeled Bins in replicate 2")
 
         if self.log_transform:
-            plt.xlabel("- log(1-posterior) in Replicate 1")
-            plt.tick_params(axis='x', which='both', bottom=False,top=False,labelbottom=False)
-
-        else:
             plt.xlabel("Posterior in Replicate 1")
-       
+
         plt.savefig('{}/caliberation_{}.pdf'.format(self.savedir, label_name), format='pdf')
         plt.savefig('{}/caliberation_{}.svg'.format(self.savedir, label_name), format='svg')
         plt.clf()
@@ -306,10 +304,7 @@ class posterior_calibration(object):
             else:
                 ylabel = "Ratio of Similarly Labeled Bins in replicate 2"
 
-            if self.log_transform:
-                xlabel = "- log(1-posterior) in Replicate 1"
-            else:
-                xlabel = "Posterior in Replicate 1"
+            xlabel = "Posterior in Replicate 1"
 
             pltxt.write(
                 "{}\n{}\n{}\n{}\n{}\n{}".format(
@@ -332,10 +327,7 @@ class posterior_calibration(object):
         else:
             plt.ylabel("reproducibility")
 
-        if self.log_transform:
-            plt.xlabel("-log(1-p)")
-        else:
-            plt.xlabel("p")
+        plt.xlabel("p")
 
         plt.savefig('{}/caliberation_{}.pdf'.format(self.savedir, "general"), format='pdf')
         plt.savefig('{}/caliberation_{}.svg'.format(self.savedir, "general"), format='svg')
@@ -350,10 +342,8 @@ class posterior_calibration(object):
             else:
                 ylabel = "Ratio of Similarly Labeled Bins in replicate 2"
 
-            if self.log_transform:
-                xlabel = "- log(1-posterior) in Replicate 1"
-            else:
-                xlabel = "Posterior in Replicate 1"
+
+            xlabel = "Posterior in Replicate 1"
 
             pltxt.write(
                 "{}\n{}\n{}\n{}".format(
@@ -367,7 +357,7 @@ class posterior_calibration(object):
                 pltxt.write(label_name+ "\t" + str(list(bins[:, 5])) + '\n')
             
 
-    def perlabel_calibration_function(self, method="isoton_reg", degree=3, num_bins=10, return_caliberated_matrix=True):
+    def perlabel_calibration_function(self, method="isoton_reg", degree=3, num_bins=10, return_caliberated_matrix=True, scale=True):
         perlabel_function = {}
         bins_dict = {}
         new_matrix = [self.loci_1.iloc[:,:3]]
@@ -395,15 +385,19 @@ class posterior_calibration(object):
                         else:
                             bins[b][4] += 1
 
-            for b in bins:
-                # if b[2] != 0:
+            for b in range(len(bins)):
                 if self.oe_transform:
-                    #enrichment (o/e) correctly labeled
-                    expected = ((1/self.num_labels) * b[2]) #(num in bins * 1/numlabels) 
-                    b[5] = (b[3] + 1) / (expected + 1)
-
+                    
+                    expected = ((1/self.num_labels) * bins[b][2]) #(num in bins * 1/numlabels)
+                    chi2 = ((bins[b][3] - expected)**2)/expected
+                    bins[b][5] = chi2
+                    # oe = ( bins[b][3] + 1) / (expected + 1)
+                    # if self.log_transform:
+                    #     bins[b][5] = np.log(oe)
+                    # else:
+                    #     bins[b][5] = oe
                 else:
-                    b[5] = b[3] / b[2] # raw correctly labeled
+                    bins[b][5] = bins[b][3] / bins[b][2]    
 
             bins = np.array(bins)
             bins_dict[kth_label] = bins
@@ -462,7 +456,11 @@ class posterior_calibration(object):
         self.general_visualize_calibration(bins_dict)
 
         if return_caliberated_matrix:
-            return pd.concat(new_matrix, axis=1)
+            new_matrix = pd.concat(new_matrix, axis=1)
+            if scale:
+                scaler = MinMaxScaler(feature_range=(0,1))
+                new_matrix.iloc[:, 3:] = scaler.fit_transform(new_matrix.iloc[:, 3:])
+            return new_matrix
 
         else:
             self.perlabel_function = perlabel_function
@@ -873,4 +871,48 @@ class validate_EXT():
         plt.xlabel("Calibrated Confidence Score")
         plt.ylabel("O/E # of segment at TSS")
         plt.show()
+    
+def get_coverage(loci):
+    MAP = loci.iloc[:,3:].idxmax(axis=1)
+    coverage = dict(zip(list(loci.columns[3:]), [0 for _ in range(len(loci.columns[3:]))]))
+
+    for c in list(loci.columns[3:]):
+        coverage[c] = len(MAP.loc[MAP == c]) / len(MAP)
+
+    return coverage
+
+def tss_enrich(loci, TSSs):
+    overlaps = []
+    for i in range(int(len(TSSs)/10)):
+        loci_subset = loci.loc[
+            (loci["chr"] == TSSs["chr"][i]) &
+            (loci["start"].astype("int") < int(TSSs["coord"][i])) &
+            (int(TSSs["coord"][i]) < loci["end"].astype("int")), :
+        ]
+
+        if len(loci_subset) > 0:
+            overlaps.append(loci_subset)
+
+    overlaps = pd.concat(overlaps, axis=0).reset_index(drop=True)
+    overlaps.iloc[:,3:] = overlaps.iloc[:,3:].astype("float16")
+    MAP = overlaps.iloc[:,3:].idxmax(axis=1)
+    enrich_dict = dict(zip(list(overlaps.columns[3:]), [0 for _ in range(len(overlaps.columns[3:]))]))
+
+    for i in range(len(MAP)):
+        enrich_dict[MAP[i]] += 1/len(MAP)
+
+    coverage = get_coverage(loci)
+    for k, v in enrich_dict.items():
+        enrich_dict[k] = (v + 0.003) / (coverage[k] + 0.003)
+
+    return enrich_dict
+    
+def tss_enrich_vs_repr(loci_1, loci_2, TSSs):
+    """
+    OPT: calibrate reprod (to get reproducibility scores)
+    x-axis: bins of calibrated reproducibility score
+    y-axis: enrichment of TSS in that bin
+    """
+
+
 

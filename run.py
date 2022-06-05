@@ -715,8 +715,8 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
 
     print("loading and intersecting")
     loci_1, loci_2 = intersect_parsed_posteriors(
-        replicate_1_dir+"/parsed_posterior.csv", 
-        replicate_2_dir+"/parsed_posterior.csv")
+        replicate_1_dir, 
+        replicate_2_dir)
 
     num_labels = loci_1.shape[1]-3
     loci_1.columns = ["chr", "start", "end"]+["posterior{}".format(i) for i in range(num_labels)]
@@ -730,8 +730,13 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
 
     assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
 
-    loci_1_mnemon = read_mnemonics(replicate_1_dir+"/mnemonics.txt")
-    loci_2_mnemon = read_mnemonics(replicate_2_dir+"/mnemonics.txt")
+    if os.path.exists(replicate_1_dir+"/mnemonics.txt") and os.path.exists(replicate_2_dir+"/mnemonics.txt"):
+        loci_1_mnemon = read_mnemonics(replicate_1_dir+"/mnemonics.txt")
+        loci_2_mnemon = read_mnemonics(replicate_2_dir+"/mnemonics.txt")
+
+    elif os.path.exists(replicate_1_dir+"/mnemonics_rep1.txt") and os.path.exists(replicate_2_dir+"/mnemonics_rep2.txt"):
+        loci_1_mnemon = read_mnemonics(replicate_1_dir+"/mnemonics_rep1.txt")
+        loci_2_mnemon = read_mnemonics(replicate_2_dir+"/mnemonics_rep2.txt")
     
     mnemon1_dict = {}
     for i in loci_1_mnemon:
@@ -852,38 +857,42 @@ def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, multi_p=True, t
             
         ct_runs = {}
         ct_runs["replicates"] = [
-            "{}/{}_rep1".format(runs_dir, ct), 
-            "{}/{}_rep2".format(runs_dir, ct), 
+            "{}/{}_rep1/parsed_posterior.csv".format(runs_dir, ct), 
+            "{}/{}_rep2/parsed_posterior.csv".format(runs_dir, ct), 
             "{}/{}/rep1_vs_rep2/".format(output_dir, ct)]
         
         if os.path.exists("{}/{}/rep1_paraminit".format(output_dir, ct))==False:
             os.mkdir("{}/{}/rep1_paraminit".format(output_dir, ct))
         
         ct_runs["rep1_paraminit"] = [
-            "{}/{}_rep1_{}".format(runs_dir, ct, random_seeds[0]), 
-            "{}/{}_rep1_{}".format(runs_dir, ct, random_seeds[1]), 
+            "{}/{}_rep1_{}/parsed_posterior.csv".format(runs_dir, ct, random_seeds[0]), 
+            "{}/{}_rep1_{}/parsed_posterior.csv".format(runs_dir, ct, random_seeds[1]), 
             "{}/{}/rep1_paraminit/".format(output_dir, ct)]
         
-        # if os.path.exists("{}/{}/rep2_paraminit".format(output_dir, ct))==False:
-        #     os.mkdir("{}/{}/rep2_paraminit".format(output_dir, ct))
+        # if rep2 rand_seeds exist, run paraminit analysis on rep2 as well 
+        if os.path.exists("{}/{}_rep2_{}/parsed_posterior.csv").format(runs_dir, ct, random_seeds[0]):
+            if os.path.exists("{}/{}/rep2_paraminit".format(output_dir, ct))==False:
+                os.mkdir("{}/{}/rep2_paraminit".format(output_dir, ct))
 
-        # ct_runs["rep2_paraminit"] = [
-        #     "{}/{}_rep2_{}".format(runs_dir, ct, random_seeds[0]), 
-        #     "{}/{}_rep2_{}".format(runs_dir, ct, random_seeds[1]), 
-        #     "{}/{}/rep2_paraminit/".format(output_dir, ct)]
+            ct_runs["rep2_paraminit"] = [
+                "{}/{}_rep2_{}".format(runs_dir, ct, random_seeds[0]), 
+                "{}/{}_rep2_{}".format(runs_dir, ct, random_seeds[1]), 
+                "{}/{}/rep2_paraminit/".format(output_dir, ct)]
         
         if os.path.exists("{}/{}/concatenated/".format(output_dir, ct))==False:
             os.mkdir("{}/{}/concatenated/".format(output_dir, ct))
 
         if type == "segway":
             ct_runs["concat"] = [
-            "{}/{}_concat_rep1".format(runs_dir, ct), 
-            "{}/{}_concat_rep2".format(runs_dir, ct), 
+            "{}/{}_concat_rep1/parsed_posterior.csv".format(runs_dir, ct), 
+            "{}/{}_concat_rep2/parsed_posterior.csv".format(runs_dir, ct), 
             "{}/{}/concatenated/".format(output_dir, ct)]
 
         elif type == "chmm":
-            ### TO BE COMPLETED
-            ct_runs["concat"] = []
+            ct_runs["concat"] = [
+            "{}/{}_concat/parsed_posterior_rep1.csv".format(runs_dir, ct), 
+            "{}/{}_concat/parsed_posterior_rep2.csv".format(runs_dir, ct), 
+            "{}/{}/concatenated/".format(output_dir, ct)]
 
         run_instances[ct] = ct_runs
     

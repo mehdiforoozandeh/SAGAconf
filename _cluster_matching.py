@@ -143,15 +143,19 @@ def Hungarian_algorithm(matrix, conf_or_dis='conf'):
         assignment_pairs = [(i, best_assignments[1][i]) for i in range(len(best_assignments[0]))]
         return assignment_pairs
 
-def connect_bipartite(loci_1, loci_2, assignment_matching):
+def connect_bipartite(loci_1, loci_2, assignment_matching, mnemon=True):
     corrected_loci_1 = loci_1.iloc[:, :3]
     corrected_loci_2 = loci_2.iloc[:, :3]
 
     for i in range(len(assignment_matching)):
-        new_name = assignment_matching[i][0] + "|" + assignment_matching[i][1]
+        new_name = str(assignment_matching[i][0]) + "|" + str(assignment_matching[i][1])
 
-        corrected_loci_1[new_name] = loci_1['posterior'+str(assignment_matching[i][0].split('_')[0])]
-        corrected_loci_2[new_name] = loci_2['posterior'+str(assignment_matching[i][1].split('_')[0])]
+        if mnemon:
+            corrected_loci_1[new_name] = loci_1['posterior'+str(assignment_matching[i][0].split('_')[0])]
+            corrected_loci_2[new_name] = loci_2['posterior'+str(assignment_matching[i][1].split('_')[0])]
+        else:
+            corrected_loci_1[new_name] = loci_1['posterior'+str(assignment_matching[i][0])]
+            corrected_loci_2[new_name] = loci_2['posterior'+str(assignment_matching[i][1])]
     
     return corrected_loci_1, corrected_loci_2
             
