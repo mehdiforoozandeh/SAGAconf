@@ -253,7 +253,7 @@ def TSS_test(loci_1, loci_2, tss):
     print(loci_2)
     
     print('connected barpartite')
-    calb = posterior_calibration(loci_1, loci_2, "tests/clb_1", log_transform=False, ignore_overconf=False, filter_nan=True)
+    calb = posterior_calibration(loci_1, loci_2, "tests/clb_1", log_transform=True, ignore_overconf=False, filter_nan=True)
     loci_1_c = calb.perlabel_calibration_function(method="isoton_reg", degree=3, num_bins=10, return_caliberated_matrix=True)
 
     # calb = posterior_calibration(loci_2, loci_1, "tests/clb_2", log_transform=False, ignore_overconf=False, filter_nan=True)
