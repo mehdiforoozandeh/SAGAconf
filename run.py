@@ -478,8 +478,10 @@ def read_mnemonics(mnemon_file):
     df = pd.read_csv(mnemon_file, sep="\t")
     mnemon = []
     for i in range(len(df)):
-        mnemon.append(str(df["old"][i])+"_"+df["new"][i])
-
+        if int(df["old"][0]) == 0:
+            mnemon.append(str(df["old"][i])+"_"+df["new"][i])
+        elif int(df["old"][0]) == 1:
+            mnemon.append(str(int(df["old"][i])-1)+"_"+df["new"][i])
     return mnemon
 
 def _report_reproducibility(loci_1, loci_2, pltsavedir, general=True, num_bins=20, merge_cc_curves=False, full_report=True):
