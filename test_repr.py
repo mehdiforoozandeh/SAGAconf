@@ -248,14 +248,26 @@ def TSS_test(loci_1, loci_2, tss):
 
     loci_1, loci_2 = \
         connect_bipartite(loci_1, loci_2, assignment_pairs, mnemon=False)
+
+    print(loci_1)
+    print(loci_2)
     
     print('connected barpartite')
-    calb = posterior_calibration(loci_1, loci_2,"tests/clb", log_transform=False, ignore_overconf=False, filter_nan=True)
-    loci_1 = calb.perlabel_calibration_function(method="isoton_reg", degree=3, num_bins=10, return_caliberated_matrix=True)
-    print(loci_1.mean())
-    # print(tss_enrich(loci_1, tss))
-    
+    calb = posterior_calibration(loci_1, loci_2, "tests/clb_1", log_transform=False, ignore_overconf=False, filter_nan=True)
+    loci_1_c = calb.perlabel_calibration_function(method="isoton_reg", degree=3, num_bins=10, return_caliberated_matrix=True)
 
+    # calb = posterior_calibration(loci_2, loci_1, "tests/clb_2", log_transform=False, ignore_overconf=False, filter_nan=True)
+    # loci_2_c = calb.perlabel_calibration_function(method="isoton_reg", degree=3, num_bins=10, return_caliberated_matrix=True)
+    
+    # tssenr1 = tss_enrich(loci_1_c, tss)
+    # plt.bar(list(tssenr1.keys()), list(tssenr1.values()))
+    # plt.show()
+    # tssenr2 = tss_enrich(loci_2_c, tss)
+    # plt.bar(list(tssenr2.keys()), list(tssenr2.values()))
+    # plt.show()
+    tss_enrich_vs_repr(loci_1_c, tss, num_bins=4)
+
+    
 if __name__=="__main__":
     # replicate_1_dir = 'tests/chromhmm_runs/gm12878_rep1/parsed_posterior_short.csv'
     # replicate_2_dir = 'tests/chromhmm_runs/gm12878_rep2/parsed_posterior_short.csv'
@@ -279,9 +291,11 @@ if __name__=="__main__":
     tss = pd.read_csv("tests/RefSeqTSS.hg38.txt", sep="\t", header=None)
     tss.columns = ["chr", "coord", "strand"]
 
-    print(loci_1.mean())
-    if os.path.exists("tests/clb") == False:
-        os.mkdir("tests/clb")
+
+    if os.path.exists("tests/clb_1") == False:
+        os.mkdir("tests/clb_1")
+    if os.path.exists("tests/clb_2") == False:
+        os.mkdir("tests/clb_2")
     
     TSS_test(loci_1, loci_2, tss)
     

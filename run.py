@@ -870,7 +870,7 @@ def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, multi_p=True, t
             "{}/{}/rep1_paraminit/".format(output_dir, ct)]
         
         # if rep2 rand_seeds exist, run paraminit analysis on rep2 as well 
-        if os.path.exists("{}/{}_rep2_{}/parsed_posterior.csv").format(runs_dir, ct, random_seeds[0]):
+        if os.path.exists("{}/{}_rep2_{}/parsed_posterior.csv".format(runs_dir, ct, random_seeds[0])):
             if os.path.exists("{}/{}/rep2_paraminit".format(output_dir, ct))==False:
                 os.mkdir("{}/{}/rep2_paraminit".format(output_dir, ct))
 

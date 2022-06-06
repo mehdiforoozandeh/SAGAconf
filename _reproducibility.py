@@ -6,6 +6,7 @@ from pickle import TRUE
 from re import L, M
 from statistics import mean
 from textwrap import fill
+from turtle import title
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -299,10 +300,17 @@ class posterior_calibration(object):
             """
             title, xaxis, yaxis, x, y, polyreg
             """
-            if self.oe_transform:
-                ylabel = "O/E of Similarly Labeled Bins in replicate 2"
+            if self.log_transform:
+                if self.oe_transform:
+                    ylabel = "log(O/E) of Similarly Labeled Bins in replicate 2"
+                else:
+                    ylabel = "log(Ratio) of Similarly Labeled Bins in replicate 2"
             else:
-                ylabel = "Ratio of Similarly Labeled Bins in replicate 2"
+                if self.oe_transform:
+                    ylabel = "O/E of Similarly Labeled Bins in replicate 2"
+                else:
+                    ylabel = "Ratio of Similarly Labeled Bins in replicate 2"
+
 
             xlabel = "Posterior in Replicate 1"
 
@@ -388,14 +396,13 @@ class posterior_calibration(object):
             for b in range(len(bins)):
                 if self.oe_transform:
                     
-                    expected = ((1/self.num_labels) * bins[b][2]) #(num in bins * 1/numlabels)
-                    chi2 = ((bins[b][3] - expected)**2)/expected
-                    bins[b][5] = chi2
-                    # oe = ( bins[b][3] + 1) / (expected + 1)
-                    # if self.log_transform:
-                    #     bins[b][5] = np.log(oe)
-                    # else:
-                    #     bins[b][5] = oe
+                    expected = ((1/self.num_labels) * bins[b][2])  #(num in bins * 1/numlabels)
+                    oe = ( bins[b][3] + 1) / (expected + 1)
+                    if self.log_transform:
+                        bins[b][5] = np.log(oe)
+                    else:
+                        bins[b][5] = oe
+                        
                 else:
                     bins[b][5] = bins[b][3] / bins[b][2]    
 
@@ -457,9 +464,18 @@ class posterior_calibration(object):
 
         if return_caliberated_matrix:
             new_matrix = pd.concat(new_matrix, axis=1)
+            
             if scale:
                 scaler = MinMaxScaler(feature_range=(0,1))
+                # remember_shape = new_matrix.iloc[:,3:].shape
+                # remember_columns = new_matrix.iloc[:,3:].columns
+                # new_matrix.iloc[:, 3:] = pd.DataFrame(
+                #     np.reshape(scaler.fit_transform(np.reshape(np.array(
+                #         new_matrix.iloc[:, 3:]), (-1,1))), remember_shape), 
+                #                     columns=remember_columns)
+
                 new_matrix.iloc[:, 3:] = scaler.fit_transform(new_matrix.iloc[:, 3:])
+    
             return new_matrix
 
         else:
@@ -903,16 +919,82 @@ def tss_enrich(loci, TSSs):
 
     coverage = get_coverage(loci)
     for k, v in enrich_dict.items():
-        enrich_dict[k] = (v + 0.003) / (coverage[k] + 0.003)
+        enrich_dict[k] = np.log((v + 0.003) / (coverage[k] + 0.003))
 
     return enrich_dict
     
-def tss_enrich_vs_repr(loci_1, loci_2, TSSs):
+def tss_enrich_vs_repr(loci_1, TSSs, num_bins=10):
     """
     OPT: calibrate reprod (to get reproducibility scores)
     x-axis: bins of calibrated reproducibility score
     y-axis: enrichment of TSS in that bin
     """
+    overlaps = []
+    for i in range(int(len(TSSs))):
+        loci_subset = loci_1.loc[
+            (loci_1["chr"] == TSSs["chr"][i]) &
+            (loci_1["start"].astype("int") < int(TSSs["coord"][i])) &
+            (int(TSSs["coord"][i]) < loci_1["end"].astype("int")), :
+        ]
 
+        if len(loci_subset) > 0:
+            overlaps.append(loci_subset)
+    overlaps = pd.concat(overlaps, axis=0).reset_index(drop=True)
+    bin_maps = []
+    enr_dict = {}
 
+    for l in loci_1.columns[3:]:
+        bin_length = (float(loci_1.iloc[:,3:].max().max()) - float(loci_1.iloc[:,3:].min().min())) / num_bins
+        enr_l = []
+        for b in range(int(loci_1.iloc[:,3:].min().min()*10000), int(loci_1.iloc[:,3:].max().max()*10000), int(bin_length*10000)):
+            bin_range = [float(b/10000), float(b/10000)+bin_length]
+            if len(bin_maps) < num_bins:
+                bin_maps.append(bin_range)
 
+            # what is the coverage of label l with score in bin range? (in loci)
+            coverage_l_b = float(len(loci_1.loc[
+                (bin_range[0] <= loci_1[l].astype("float"))&
+                (loci_1[l].astype("float") <= bin_range[1]), l
+            ])) / len(loci_1)
+            
+            # what is the coverage of label l with score in bin range? (in overlap)
+            tss_l_b = float(len(overlaps.loc[
+                (bin_range[0] <= overlaps[l].astype("float"))&
+                (overlaps[l].astype("float") <= bin_range[1]), l
+            ])) / len(overlaps)
+
+            enr_l.append( 
+                np.log(
+                    (tss_l_b + 3e-3) / (coverage_l_b + 3e-3)
+                )
+             )
+            # print("range {}-{}, coverage = {}\t|\t enr = {} ".format(bin_range[0], bin_range[1], coverage_l_b, tss_l_b))
+
+        enr_dict[l] = enr_l
+    
+    print(enr_dict)
+    for k in enr_dict.keys():
+        plt.scatter([(bin_maps[b][0] + bin_maps[b][1]) /2 for b in range(len(bin_maps))],
+        list(enr_dict[k]), label=k)
+
+    plt.legend()
+    plt.show()
+
+    for k in enr_dict.keys():
+        plt.plot([(bin_maps[b][0] + bin_maps[b][1]) /2 for b in range(len(bin_maps))],
+        list(enr_dict[k]), label=k)
+
+    plt.legend()
+    plt.show()
+     
+    '''
+    todo:
+
+        to see why the plots are wacky :)
+        review the process and see if sth is wrong
+            check if the problem is with the calibration process (log or other)
+        
+        test on full data (not short version)
+        
+
+    '''
