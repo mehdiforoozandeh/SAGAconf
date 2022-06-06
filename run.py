@@ -730,14 +730,17 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
 
     assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
 
-    if os.path.exists(replicate_1_dir+"/mnemonics_rep1.txt") and os.path.exists(replicate_2_dir+"/mnemonics_rep2.txt"):
+    if os.path.exists(
+        "/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics_rep1.txt") and os.path.exists(
+        "/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics_rep2.txt"):
+
         print("reading concat mnemonics")
-        loci_1_mnemon = read_mnemonics(replicate_1_dir+"/mnemonics_rep1.txt")
-        loci_2_mnemon = read_mnemonics(replicate_2_dir+"/mnemonics_rep2.txt")
+        loci_1_mnemon = read_mnemonics("/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics_rep1.txt")
+        loci_2_mnemon = read_mnemonics("/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics_rep2.txt")
     else:
         print("reading mnemonics")
-        loci_1_mnemon = read_mnemonics(replicate_1_dir+"/mnemonics.txt")
-        loci_2_mnemon = read_mnemonics(replicate_2_dir+"/mnemonics.txt")
+        loci_1_mnemon = read_mnemonics("/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics.txt")
+        loci_2_mnemon = read_mnemonics("/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics.txt")
 
     mnemon1_dict = {}
     for i in loci_1_mnemon:

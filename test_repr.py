@@ -256,8 +256,8 @@ def TSS_test(loci_1, loci_2, tss):
     calb = posterior_calibration(loci_1, loci_2, "tests/clb_1", log_transform=True, ignore_overconf=False, filter_nan=True)
     loci_1_c = calb.perlabel_calibration_function(method="isoton_reg", degree=3, num_bins=10, return_caliberated_matrix=True)
 
-    # calb = posterior_calibration(loci_2, loci_1, "tests/clb_2", log_transform=False, ignore_overconf=False, filter_nan=True)
-    # loci_2_c = calb.perlabel_calibration_function(method="isoton_reg", degree=3, num_bins=10, return_caliberated_matrix=True)
+    calb = posterior_calibration(loci_2, loci_1, "tests/clb_2", log_transform=True, ignore_overconf=False, filter_nan=True)
+    loci_2_c = calb.perlabel_calibration_function(method="isoton_reg", degree=3, num_bins=10, return_caliberated_matrix=True)
     
     # tssenr1 = tss_enrich(loci_1_c, tss)
     # plt.bar(list(tssenr1.keys()), list(tssenr1.values()))
@@ -266,6 +266,7 @@ def TSS_test(loci_1, loci_2, tss):
     # plt.bar(list(tssenr2.keys()), list(tssenr2.values()))
     # plt.show()
     tss_enrich_vs_repr(loci_1_c, tss, num_bins=4)
+    tss_enrich_vs_repr(loci_2_c, tss, num_bins=4)
 
     
 if __name__=="__main__":
@@ -284,8 +285,8 @@ if __name__=="__main__":
 
     # full_reproducibility_report(replicate_1_dir, replicate_2_dir, "TEST_REPR") 
     
-    replicate_1_dir = 'tests/chmm/GM12878_rep1/parsed_posterior_short.csv'
-    replicate_2_dir = 'tests/chmm/GM12878_rep2/parsed_posterior_short.csv'
+    replicate_1_dir = 'tests/chmm/GM12878_rep1/parsed_posterior.csv'
+    replicate_2_dir = 'tests/chmm/GM12878_rep2/parsed_posterior.csv'
     loci_1 = pd.read_csv(replicate_1_dir).drop("Unnamed: 0", axis=1)
     loci_2 = pd.read_csv(replicate_2_dir).drop("Unnamed: 0", axis=1)
     tss = pd.read_csv("tests/RefSeqTSS.hg38.txt", sep="\t", header=None)
