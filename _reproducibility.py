@@ -1,12 +1,8 @@
-from cProfile import label
-from csv import excel
-from mimetypes import init
-from operator import gt
-from pickle import TRUE
-from re import L, M
+
 from statistics import mean
-from textwrap import fill
-from turtle import title
+import functools
+import multiprocessing as mp
+from tkinter import N
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -897,6 +893,21 @@ def get_coverage(loci):
 
     return coverage
 
+def calculate_overlap_with_tss(loci, TSSs):
+    overlaps = []
+    for i in range(int(len(TSSs))):
+        loci_subset = loci.loc[
+            (loci["chr"] == TSSs["chr"][i]) &
+            (loci["start"].astype("int") < int(TSSs["coord"][i])) &
+            (int(TSSs["coord"][i]) < loci["end"].astype("int")), :
+        ]
+
+        if len(loci_subset) > 0:
+            overlaps.append(loci_subset)
+
+    if len(overlaps) > 0:
+        return pd.concat(overlaps, axis=0).reset_index(drop=True)
+
 def tss_enrich(loci, TSSs):
     overlaps = []
     for i in range(int(len(TSSs)/10)):
@@ -919,27 +930,41 @@ def tss_enrich(loci, TSSs):
 
     coverage = get_coverage(loci)
     for k, v in enrich_dict.items():
-        enrich_dict[k] = np.log((v + 0.003) / (coverage[k] + 0.003))
+        enrich_dict[k] = np.log((v) / (coverage[k]))
 
     return enrich_dict
     
-def tss_enrich_vs_repr(loci_1, TSSs, num_bins=10):
+def tss_enrich_vs_repr(loci_1, TSSs, num_bins=10, m_p=True, n_p=8):
     """
     OPT: calibrate reprod (to get reproducibility scores)
     x-axis: bins of calibrated reproducibility score
     y-axis: enrichment of TSS in that bin
     """
-    overlaps = []
-    for i in range(int(len(TSSs))):
-        loci_subset = loci_1.loc[
-            (loci_1["chr"] == TSSs["chr"][i]) &
-            (loci_1["start"].astype("int") < int(TSSs["coord"][i])) &
-            (int(TSSs["coord"][i]) < loci_1["end"].astype("int")), :
-        ]
+    if m_p:
+        locis = [loci_1.iloc[
+            p:p+int(len(loci_1)/n_p) ,:].reset_index(drop=True)
+                for p in range(0, len(loci_1), int(len(loci_1)/n_p))]
+        pobj = mp.Pool(n_p)
+        overlaps = pobj.map(
+            functools.partial(calculate_overlap_with_tss, 
+            TSSs=TSSs), locis)
 
-        if len(loci_subset) > 0:
-            overlaps.append(loci_subset)
-    overlaps = pd.concat(overlaps, axis=0).reset_index(drop=True)
+        overlaps = pd.concat(overlaps, axis=0).reset_index(drop=True)
+
+    else:
+        overlaps = []
+        
+        for i in range(int(len(TSSs))):
+            loci_subset = loci_1.loc[
+                (loci_1["chr"] == TSSs["chr"][i]) &
+                (loci_1["start"] <= int(TSSs["coord"][i])) &
+                (int(TSSs["coord"][i]) <= loci_1["end"]), :
+            ]
+
+            if len(loci_subset) > 0:
+                overlaps.append(loci_subset)
+        overlaps = pd.concat(overlaps, axis=0).reset_index(drop=True)
+
     bin_maps = []
     enr_dict = {}
 
@@ -965,25 +990,20 @@ def tss_enrich_vs_repr(loci_1, TSSs, num_bins=10):
 
             enr_l.append( 
                 np.log(
-                    (tss_l_b + 3e-3) / (coverage_l_b + 3e-3)
+                    (tss_l_b) / (coverage_l_b)
                 )
              )
             # print("range {}-{}, coverage = {}\t|\t enr = {} ".format(bin_range[0], bin_range[1], coverage_l_b, tss_l_b))
 
         enr_dict[l] = enr_l
-    
-    print(enr_dict)
-    for k in enr_dict.keys():
-        plt.scatter([(bin_maps[b][0] + bin_maps[b][1]) /2 for b in range(len(bin_maps))],
-        list(enr_dict[k]), label=k)
-
-    plt.legend()
-    plt.show()
 
     for k in enr_dict.keys():
         plt.plot([(bin_maps[b][0] + bin_maps[b][1]) /2 for b in range(len(bin_maps))],
         list(enr_dict[k]), label=k)
 
+    plt.ylabel("log(O/E) TSS enrichment")
+    plt.xlabel("Caliberated Posterior")
+    plt.title("TSS enrichment VS. Reproducibility")
     plt.legend()
     plt.show()
      
@@ -995,6 +1015,6 @@ def tss_enrich_vs_repr(loci_1, TSSs, num_bins=10):
             check if the problem is with the calibration process (log or other)
         
         test on full data (not short version)
-        
+
 
     '''
