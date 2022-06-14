@@ -1,4 +1,4 @@
-
+from scipy.ndimage import gaussian_filter1d
 from statistics import mean
 import functools
 import multiprocessing as mp
@@ -124,6 +124,7 @@ class Agreement(object):
         plt.yticks(np.arange(0, 1.1, step=0.1))
         plt.xlabel('Label')
         plt.ylabel('Agreement')
+        plt.tight_layout()
         plt.savefig('{}/agreement.pdf'.format(self.savedir), format='pdf')
         plt.savefig('{}/agreement.svg'.format(self.savedir), format='svg')
         plt.clf()
@@ -157,6 +158,7 @@ class Agreement(object):
         plt.xlabel('Label')
         plt.title('Observed Agreement/Expected Agreement plot')
         plt.ylabel('log(O/E)')
+        plt.tight_layout()
         plt.savefig('{}/oe_agreement.pdf'.format(self.savedir), format='pdf')
         plt.savefig('{}/oe_agreement.svg'.format(self.savedir), format='svg')
         plt.clf()
@@ -191,6 +193,7 @@ class Agreement(object):
         plt.xlabel('Label')
         plt.title("Cohen's Kappa")
         plt.ylabel("Cohen's Kappa Score")
+        plt.tight_layout()
         plt.savefig('{}/cohenskappa.pdf'.format(self.savedir), format='pdf')
         plt.savefig('{}/cohenskappa.svg'.format(self.savedir), format='svg')
         plt.clf()
@@ -261,7 +264,7 @@ class posterior_calibration(object):
         if scatter:
             plt.scatter(
                 x=np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), 
-                y=bins[:,5], c='black', s=1000/len(bins))
+                y=bins[:,5], c='black', s=10000/len(bins))
             
             polyreg = IsotonicRegression(
                     y_min=float(np.array(bins[:, 5]).min()), y_max=float(np.array(bins[:, 5]).max()), 
@@ -280,14 +283,21 @@ class posterior_calibration(object):
             plt.plot([(bins[i,0]+bins[i,1])/2 for i in range(len(bins))], bins[:,5], label=label_name)
 
         plt.title("Reproduciblity Plot {}".format(label_name))
-        if self.oe_transform:
-            plt.ylabel("O/E of Similarly Labeled Bins in replicate 2")
-        else:
-            plt.ylabel("Ratio of Similarly Labeled Bins in replicate 2")
-
         if self.log_transform:
-            plt.xlabel("Posterior in Replicate 1")
-
+            xlabel = "-log(1-posterior) in Replicate 1"
+            if self.oe_transform:
+                ylabel = "log(O/E) of Similarly Labeled Bins in replicate 2"
+            else:
+                ylabel = "log(Ratio) of Similarly Labeled Bins in replicate 2"
+        else:
+            xlabel = "Posterior in Replicate 1"
+            if self.oe_transform:
+                ylabel = "O/E of Similarly Labeled Bins in replicate 2"
+            else:
+                ylabel = "Ratio of Similarly Labeled Bins in replicate 2"
+        plt.ylabel(ylabel)
+        plt.xlabel(xlabel)
+        plt.tight_layout()
         plt.savefig('{}/caliberation_{}.pdf'.format(self.savedir, label_name), format='pdf')
         plt.savefig('{}/caliberation_{}.svg'.format(self.savedir, label_name), format='svg')
         plt.clf()
@@ -297,18 +307,17 @@ class posterior_calibration(object):
             title, xaxis, yaxis, x, y, polyreg
             """
             if self.log_transform:
+                xlabel = "-log(1-posterior) in Replicate 1"
                 if self.oe_transform:
                     ylabel = "log(O/E) of Similarly Labeled Bins in replicate 2"
                 else:
                     ylabel = "log(Ratio) of Similarly Labeled Bins in replicate 2"
             else:
+                xlabel = "Posterior in Replicate 1"
                 if self.oe_transform:
                     ylabel = "O/E of Similarly Labeled Bins in replicate 2"
                 else:
                     ylabel = "Ratio of Similarly Labeled Bins in replicate 2"
-
-
-            xlabel = "Posterior in Replicate 1"
 
             pltxt.write(
                 "{}\n{}\n{}\n{}\n{}\n{}".format(
@@ -323,31 +332,62 @@ class posterior_calibration(object):
 
     def general_visualize_calibration(self, bins_dict):
         for label_name, bins in bins_dict.items():
-            plt.plot([(bins[i,0]+bins[i,1])/2 for i in range(len(bins))], bins[:, 5], label=label_name)
+            polyreg = IsotonicRegression(
+                    y_min=float(np.array(bins[:, 5]).min()), y_max=float(np.array(bins[:, 5]).max()), 
+                    out_of_bounds="clip")
+            
+            polyreg.fit(
+                np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), 
+                bins[:, 5])
+            
+            r2 = r2_score(
+                    bins[:, 5], 
+                    polyreg.predict(
+                        np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))))
+            
+            plt.plot(
+                np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), 
+                polyreg.predict(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))])), 
+                label="{}_r2={:.3f}".format(label_name, float(r2)))
 
-        plt.legend()
-        if self.oe_transform:
-            plt.ylabel("o/e reproducibility")
+        if self.log_transform:
+            xlabel = "-log(1-posterior) in Replicate 1"
+            if self.oe_transform:
+                ylabel = "log(O/E) of Similarly Labeled Bins in replicate 2"
+            else:
+                ylabel = "log(Ratio) of Similarly Labeled Bins in replicate 2"
         else:
-            plt.ylabel("reproducibility")
-
-        plt.xlabel("p")
-
-        plt.savefig('{}/caliberation_{}.pdf'.format(self.savedir, "general"), format='pdf')
-        plt.savefig('{}/caliberation_{}.svg'.format(self.savedir, "general"), format='svg')
-        plt.clf()
-        
-        with open("{}/caliberation_{}.txt".format(self.savedir, "general"), 'w') as pltxt:
-            """
-            title, xaxis, yaxis, x, y(all labels)
-            """
+            xlabel = "Posterior in Replicate 1"
             if self.oe_transform:
                 ylabel = "O/E of Similarly Labeled Bins in replicate 2"
             else:
                 ylabel = "Ratio of Similarly Labeled Bins in replicate 2"
 
-
-            xlabel = "Posterior in Replicate 1"
+        plt.legend()
+        plt.ylabel(ylabel)
+        plt.xlabel(xlabel)
+        plt.tight_layout()
+        plt.savefig('{}/caliberation_{}.pdf'.format(self.savedir, "general"), format='pdf')
+        plt.savefig('{}/caliberation_{}.svg'.format(self.savedir, "general"), format='svg')
+        plt.clf()
+        ################################################
+        
+        with open("{}/caliberation_{}.txt".format(self.savedir, "general"), 'w') as pltxt:
+            """
+            title, xaxis, yaxis, x, y(all labels)
+            """
+            if self.log_transform:
+                xlabel = "-log(1-posterior) in Replicate 1"
+                if self.oe_transform:
+                    ylabel = "log(O/E) of Similarly Labeled Bins in replicate 2"
+                else:
+                    ylabel = "log(Ratio) of Similarly Labeled Bins in replicate 2"
+            else:
+                xlabel = "Posterior in Replicate 1"
+                if self.oe_transform:
+                    ylabel = "O/E of Similarly Labeled Bins in replicate 2"
+                else:
+                    ylabel = "Ratio of Similarly Labeled Bins in replicate 2"
 
             pltxt.write(
                 "{}\n{}\n{}\n{}".format(
@@ -361,46 +401,100 @@ class posterior_calibration(object):
                 pltxt.write(label_name+ "\t" + str(list(bins[:, 5])) + '\n')
             
 
-    def perlabel_calibration_function(self, method="isoton_reg", degree=3, num_bins=10, return_caliberated_matrix=True, scale=True):
+    def perlabel_calibration_function(self, method="isoton_reg", degree=3, num_bins=10, return_caliberated_matrix=True, scale=True, stratified_bins=True, strat_size="def"):
         perlabel_function = {}
         bins_dict = {}
         new_matrix = [self.loci_1.iloc[:,:3]]
         for k in range(self.num_labels):
-            # try:
             kth_label = self.loci_1.iloc[:,3:].columns[k]
             bins = []
-            posterior_vector_1 = np.array(self.loci_1.iloc[:,3:][kth_label])
+            if stratified_bins:
+                if strat_size == "def":
+                    strat_size = int(len(self.loci_1)/5000)
 
-            bin_length = (float(np.max(posterior_vector_1)) - float(np.min(posterior_vector_1))) / num_bins
-            for j in range(int(np.min(posterior_vector_1)*1000), int(np.max(posterior_vector_1)*1000), int(bin_length*1000)):
-                bins.append([float(j/1000), float(j/1000) + int(bin_length*1000)/1000, 0, 0, 0, 0])
-                
-                # [bin_start, bin_end, num_values_in_bin, num_agreement_in_bin, num_mislabeled, 
-                # ratio_correctly_labeled]
-            
-            for b in range(len(bins)):
-                
-                for i in range(len(posterior_vector_1)):
-                    if bins[b][0] <= posterior_vector_1[i] <= bins[b][1]:
-                        bins[b][2] += 1
+                posterior_vector_1 = self.loci_1.iloc[:,3:][kth_label]
 
-                        if kth_label == self.MAPestimate2[i]:
-                            bins[b][3] += 1
-                        else:
-                            bins[b][4] += 1
+                if self.log_transform:
+                    for i in range(len(posterior_vector_1)):
+                        if posterior_vector_1[i] == 1:
+                            posterior_vector_1[i] = 1-(1e-5)
 
-            for b in range(len(bins)):
-                if self.oe_transform:
-                    
-                    expected = ((1/self.num_labels) * bins[b][2])  #(num in bins * 1/numlabels)
-                    oe = ( bins[b][3] + 1) / (expected + 1)
-                    if self.log_transform:
-                        bins[b][5] = np.log(oe)
-                    else:
-                        bins[b][5] = oe
-                        
+                    vector_pair = pd.concat([
+                        -1 * np.log(
+                            1- posterior_vector_1
+                        ), self.MAPestimate2], axis=1)
                 else:
-                    bins[b][5] = bins[b][3] / bins[b][2]    
+                    vector_pair = pd.concat([posterior_vector_1, self.MAPestimate2], axis=1)
+
+                vector_pair.columns=["pv1", "map2"]
+                vector_pair = vector_pair.sort_values("pv1").reset_index(drop=True)
+
+                for b in range(0, vector_pair.shape[0], strat_size):
+                    subset_vector_pair = vector_pair.iloc[b:b+strat_size, :]
+                    # [bin_start, bin_end, num_values_in_bin, num_agreement, num_mislabeled, ratio_agreement]
+                    observed = len(subset_vector_pair.loc[subset_vector_pair["map2"] == kth_label])
+                    
+                    if self.oe_transform:
+                        expected = ((1/self.num_labels) * len(subset_vector_pair))
+                        if self.log_transform:
+                            if observed==0:
+                                observed += len(subset_vector_pair)*1e-3
+                                expected += len(subset_vector_pair)*1e-3
+
+                            oe = np.log(
+                                (observed)/(expected)
+                                )
+                        else:
+                            oe = observed/expected
+
+                        bins.append([
+                            float(subset_vector_pair["pv1"][subset_vector_pair.index[0]]), 
+                            float(subset_vector_pair["pv1"][subset_vector_pair.index[-1]]),
+                            len(subset_vector_pair),
+                            len(subset_vector_pair.loc[subset_vector_pair["map2"] == kth_label]),
+                            len(subset_vector_pair) - len(subset_vector_pair.loc[subset_vector_pair["map2"] == kth_label]),
+                            oe])
+                    else:
+                        bins.append([
+                            float(subset_vector_pair["pv1"][subset_vector_pair.index[0]]), 
+                            float(subset_vector_pair["pv1"][subset_vector_pair.index[-1]]),
+                            len(subset_vector_pair),
+                            len(subset_vector_pair.loc[subset_vector_pair["map2"] == kth_label]),
+                            len(subset_vector_pair) - len(subset_vector_pair.loc[subset_vector_pair["map2"] == kth_label]),
+                            float(observed)/float(len(subset_vector_pair))])
+
+            else:
+                posterior_vector_1 = np.array(self.loci_1.iloc[:,3:][kth_label])
+                bin_length = (float(np.max(posterior_vector_1)) - float(np.min(posterior_vector_1))) / num_bins
+                for j in range(int(np.min(posterior_vector_1)*1000), int(np.max(posterior_vector_1)*1000), int(bin_length*1000)):
+                    bins.append([float(j/1000), float(j/1000) + int(bin_length*1000)/1000, 0, 0, 0, 0])
+                    
+                    # [bin_start, bin_end, num_values_in_bin, num_agreement_in_bin, num_mislabeled, 
+                    # ratio_correctly_labeled]
+                
+                for b in range(len(bins)):
+                    
+                    for i in range(len(posterior_vector_1)):
+                        if bins[b][0] <= posterior_vector_1[i] <= bins[b][1]:
+                            bins[b][2] += 1
+
+                            if kth_label == self.MAPestimate2[i]:
+                                bins[b][3] += 1
+                            else:
+                                bins[b][4] += 1
+
+                for b in range(len(bins)):
+                    if self.oe_transform:
+                        
+                        expected = ((1/self.num_labels) * bins[b][2])  #(num in bins * 1/numlabels)
+                        oe = ( bins[b][3] + 1) / (expected + 1)
+                        if self.log_transform:
+                            bins[b][5] = np.log(oe)
+                        else:
+                            bins[b][5] = oe
+                            
+                    else:
+                        bins[b][5] = bins[b][3] / bins[b][2]    
 
             bins = np.array(bins)
             bins_dict[kth_label] = bins
@@ -477,6 +571,13 @@ class posterior_calibration(object):
         else:
             self.perlabel_function = perlabel_function
             return self.perlabel_function
+
+def plot_posterior_distribution(loci, num_labels=16):
+    if num_labels !=16:
+        num_labels = int(loci.shape[1])-3
+    
+    
+    
 
     
 class correspondence_curve(object):
@@ -601,6 +702,7 @@ class correspondence_curve(object):
             plt.xlabel('t')
             plt.ylabel("PSI")
             plt.legend()
+            plt.tight_layout()
             plt.savefig('{}/cc_merged.pdf'.format(self.savedir), format='pdf')
             plt.savefig('{}/cc_merged.svg'.format(self.savedir), format='svg')
             plt.clf()
@@ -638,6 +740,7 @@ class correspondence_curve(object):
                 plt.xlabel('t')
                 plt.ylabel("PSI")
                 plt.legend()
+                plt.tight_layout()
                 plt.savefig('{}/cc_{}.pdf'.format(self.savedir, str(p)), format='pdf')
                 plt.savefig('{}/cc_{}.svg'.format(self.savedir, str(p)), format='svg')
                 plt.clf()
@@ -704,7 +807,7 @@ class sankey(object):
         fig.write_html("{}/sankey.html".format(self.savedir))
     
     def heatmap(self):
-        confmat = confusion_matrix(self.loci_1, self.loci_2, self.num_labels, OE_transform=False)
+        confmat = confusion_matrix(self.loci_1, self.loci_2, self.num_labels, OE_transform=True)
         p = sns.heatmap(
             confmat.astype(int), annot=True, fmt="d",
             linewidths=0.01,  cbar=False,
@@ -717,9 +820,10 @@ class sankey(object):
         p.tick_params(axis='x', rotation=30, labelsize=7)
         p.tick_params(axis='y', rotation=45, labelsize=7)
 
-        plt.title('Label Matching Heatmap')
+        plt.title('Label Matching Heatmap (O/E overlap)')
         plt.xlabel('Replicate 1 Labels')
         plt.ylabel("Replicate 2 Labels")
+        plt.tight_layout()
         plt.savefig('{}/heatmap.pdf'.format(self.savedir), format='pdf')
         plt.savefig('{}/heatmap.svg'.format(self.savedir), format='svg')
         plt.clf()
