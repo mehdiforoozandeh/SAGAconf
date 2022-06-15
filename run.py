@@ -383,8 +383,8 @@ def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, out
         "mini_batch_fraction":0.03, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
         "name_sig":output_dir+name_sig+'_{}_rs{}'.format(replicate_number,random_seeds[1]),
         "genomedata_file":celltype_dir+'/{}.genomedata'.format(replicate_number), 
-        "traindir":output_dir+name_sig+'_{}_rs{}'.format(replicate_number, random_seeds[0])+'_train', 
-        "posteriordir":output_dir+name_sig+'_{}_rs{}'.format(replicate_number, random_seeds[0])+'_posterior'
+        "traindir":output_dir+name_sig+'_{}_rs{}'.format(replicate_number, random_seeds[1])+'_train', 
+        "posteriordir":output_dir+name_sig+'_{}_rs{}'.format(replicate_number, random_seeds[1])+'_posterior'
     }
 
     if os.path.exists(params_dict_1['name_sig']) == False:
@@ -830,9 +830,28 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
     plt.title("Post-clustering Progress")
     plt.xlabel("Number of Labels")
     plt.ylabel("General Agreement")
-    plt.savefig('{}/post_clustering/Progress.pdf'.format(pltsavedir), format='pdf')
-    plt.savefig('{}/post_clustering/Progress.svg'.format(pltsavedir), format='svg')
+    plt.savefig('{}/post_clustering/agr_Progress.pdf'.format(pltsavedir), format='pdf')
+    plt.savefig('{}/post_clustering/agr_Progress.svg'.format(pltsavedir), format='svg')
     plt.clf()
+
+    ys =[reports[k]["general log(o/e) agreement"] for k in nl]
+    plt.bar(list(nl), list(ys), color="grey")
+    plt.title("Post-clustering Progress")
+    plt.xlabel("Number of Labels")
+    plt.ylabel("log(O/E) Agreement")
+    plt.savefig('{}/post_clustering/oe_agr_Progress.pdf'.format(pltsavedir), format='pdf')
+    plt.savefig('{}/post_clustering/oe_agr_Progress.svg'.format(pltsavedir), format='svg')
+    plt.clf()
+
+    ys =[reports[k]["general Cohens Kappa score"] for k in nl]
+    plt.bar(list(nl), list(ys), color="grey")
+    plt.title("Post-clustering Progress")
+    plt.xlabel("Number of Labels")
+    plt.ylabel("Cohen's Kappa")
+    plt.savefig('{}/post_clustering/ck_Progress.pdf'.format(pltsavedir), format='pdf')
+    plt.savefig('{}/post_clustering/ck_Progress.svg'.format(pltsavedir), format='svg')
+    plt.clf()
+
     sns.reset_orig
     plt.style.use('default')
 

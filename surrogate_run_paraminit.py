@@ -3,7 +3,7 @@ from run import *
 CellType_list = np.array(
     ['K562', 'MCF-7', 'GM12878', 'HeLa-S3', 'CD14-positive monocyte'])
 
-download_dir = 'files/'
+download_dir = 'protect_files_/'
 segway_dir = 'segway_runs/'
 res_dir = 'reprod_results/'
 

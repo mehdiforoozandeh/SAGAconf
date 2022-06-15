@@ -2,7 +2,7 @@ from scipy.ndimage import gaussian_filter1d
 from statistics import mean
 import functools
 import multiprocessing as mp
-from tkinter import N
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -16,6 +16,7 @@ from scipy.interpolate import UnivariateSpline
 from sklearn.metrics import r2_score
 from sklearn.linear_model import LinearRegression
 from datetime import datetime
+import math
 
 
 class Agreement(object):
@@ -330,7 +331,63 @@ class posterior_calibration(object):
                 )
             )
 
-    def general_visualize_calibration(self, bins_dict):
+    def general_visualize_calibration(self, bins_dict, subplot=True):
+        if subplot:
+            list_binsdict = list(bins_dict.keys())
+            num_labels = self.num_labels
+            n_cols = math.floor(math.sqrt(num_labels))
+            n_rows = math.ceil(num_labels / n_cols)
+
+            fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)
+            label_being_plotted = 0
+            
+            for i in range(n_rows):
+                for j in range(n_cols):
+
+                    label_name = list_binsdict[label_being_plotted]
+                    bins = bins_dict[label_name]
+
+                    polyreg = IsotonicRegression(
+                        y_min=float(np.array(bins[:, 5]).min()), y_max=float(np.array(bins[:, 5]).max()), 
+                        out_of_bounds="clip")
+                    
+                    polyreg.fit(
+                        np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), 
+                        bins[:, 5])
+                    
+                    r2 = r2_score(
+                        bins[:, 5], 
+                        polyreg.predict(
+                            np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))))
+                    
+                    axs[i,j].plot(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), 
+                        polyreg.predict(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))])))
+
+                    axs[i,j].set_title("{}_r2={:.3f}".format(label_name, float(r2)))
+
+                    label_being_plotted+=1
+            
+            if self.log_transform:
+                xlabel = "-log(1-posterior) in Replicate 1"
+                if self.oe_transform:
+                    ylabel = "log(O/E) of Similarly Labeled Bins in replicate 2"
+                else:
+                    ylabel = "log(Ratio) of Similarly Labeled Bins in replicate 2"
+            else:
+                xlabel = "Posterior in Replicate 1"
+                if self.oe_transform:
+                    ylabel = "O/E of Similarly Labeled Bins in replicate 2"
+                else:
+                    ylabel = "Ratio of Similarly Labeled Bins in replicate 2"
+
+            plt.legend()
+            plt.ylabel(ylabel)
+            plt.xlabel(xlabel)
+            plt.tight_layout()
+            plt.savefig('{}/clb_{}.pdf'.format(self.savedir, "subplot"), format='pdf')
+            plt.savefig('{}/clb_{}.svg'.format(self.savedir, "subplot"), format='svg')
+            plt.clf()
+
         for label_name, bins in bins_dict.items():
             polyreg = IsotonicRegression(
                     y_min=float(np.array(bins[:, 5]).min()), y_max=float(np.array(bins[:, 5]).max()), 
@@ -572,14 +629,44 @@ class posterior_calibration(object):
             self.perlabel_function = perlabel_function
             return self.perlabel_function
 
-def plot_posterior_distribution(loci, num_labels=16):
-    if num_labels !=16:
-        num_labels = int(loci.shape[1])-3
-    
-    
-    
+def plot_posterior_histogram(loci):
+    num_labels = int(loci.shape[1])-3
+    n_cols = math.floor(math.sqrt(num_labels))
+    n_rows = math.ceil(num_labels / n_cols)
 
-    
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)
+    label_being_plotted = 0
+    for i in range(n_rows):
+        for j in range(n_cols):
+            x = loci.iloc[:, 3:].iloc[:, label_being_plotted]
+            x = x.loc[(x!=0)]
+            axs[i,j].hist(x)
+            axs[i,j].set_title("{}".format(loci.columns[3+label_being_plotted]))
+            
+            label_being_plotted+=1
+
+    plt.tight_layout()
+    plt.show()
+    # plt.clf()
+
+def plot_posterior_track(loci):
+    num_labels = int(loci.shape[1])-3
+    n_cols = math.floor(math.sqrt(num_labels))
+    n_rows = math.ceil(num_labels / n_cols)
+
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)
+    label_being_plotted = 0
+    for i in range(n_rows):
+        for j in range(n_cols):
+            x = loci.iloc[:, 3:].iloc[:, label_being_plotted]
+            axs[i,j].plot(list(range(len(x))), x, linewidth=0.05)
+            axs[i,j].set_title("{}".format(loci.columns[3+label_being_plotted]))
+            label_being_plotted+=1
+
+    plt.tight_layout()
+    plt.show()
+    # plt.clf()
+
 class correspondence_curve(object):
     '''
     implementation of the method described at
@@ -666,7 +753,7 @@ class correspondence_curve(object):
             
             return sigma / len(self.loci_1)
     
-    def plot_curve(self, num_t_steps=100, plot_labels=True, plot_general=True, merge_plots=False):
+    def plot_curve(self, num_t_steps=100, plot_labels=True, plot_general=True, merge_plots=False, subplot=True):
         self.psi_over_t = {}
         if plot_labels:
             post_cols = list(self.loci_1.columns)[3:]
@@ -725,6 +812,38 @@ class correspondence_curve(object):
                     pltxt.write(str(p)+ "\t" + str(list(URIs)))
 
         else:
+            if subplot:
+                psiovert_list = list(self.psi_over_t.keys())
+                num_labels = self.num_labels
+                n_cols = math.floor(math.sqrt(num_labels))
+                n_rows = math.ceil(num_labels / n_cols)
+
+                fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)
+                label_being_plotted = 0
+                
+                for i in range(n_rows):
+                    for j in range(n_cols):
+                        p = psiovert_list[label_being_plotted]
+                        URIs = self.psi_over_t[p]
+                        coeffs = np.polyfit(t_list, URIs, 5)
+                        ffit = np.poly1d(coeffs)
+                        fderiv = ffit.deriv()
+                        URIprime = fderiv(t_list)
+
+                        axs[i,j].plot(t_list, t_list, '--', label='Perfect Reproducibility')
+                        axs[i,j].plot(t_list, URIprime, label = 'Derivative Correspondence')
+                        axs[i,j].plot(t_list, URIs, label = 'Correspondence')
+                        axs[i,j].set_title('Correspondence Curve for '+str(p))
+                        axs[i,j].set(xlabel="t", ylabel="PSI")
+
+                        label_being_plotted+=1
+                
+                plt.tight_layout()
+                plt.legend()
+                plt.savefig('{}/cc_{}.pdf'.format(self.savedir, "subplot"), format='pdf')
+                plt.savefig('{}/cc_{}.svg'.format(self.savedir, "subplot"), format='svg')
+                plt.clf()
+
             for p in self.psi_over_t.keys():
                 plt.plot(t_list, t_list, '--', label='Perfect Reproducibility')
                 URIs = self.psi_over_t[p]
@@ -831,7 +950,6 @@ class sankey(object):
         plt.style.use('default')
 
         confmat.to_csv("{}/heatmap.csv".format(self.savedir))
-
 
 
 class validate_EXT():
@@ -1038,7 +1156,7 @@ def tss_enrich(loci, TSSs):
 
     return enrich_dict
     
-def tss_enrich_vs_repr(loci_1, TSSs, num_bins=10, m_p=True, n_p=8):
+def tss_enrich_vs_repr(loci_1, TSSs, num_bins=10, m_p=True, n_p=8, stratified_bins=True, strat_size="def"):
     """
     OPT: calibrate reprod (to get reproducibility scores)
     x-axis: bins of calibrated reproducibility score
@@ -1068,48 +1186,90 @@ def tss_enrich_vs_repr(loci_1, TSSs, num_bins=10, m_p=True, n_p=8):
             if len(loci_subset) > 0:
                 overlaps.append(loci_subset)
         overlaps = pd.concat(overlaps, axis=0).reset_index(drop=True)
-
-    bin_maps = []
-    enr_dict = {}
-
-    for l in loci_1.columns[3:]:
-        bin_length = (float(loci_1.iloc[:,3:].max().max()) - float(loci_1.iloc[:,3:].min().min())) / num_bins
-        enr_l = []
-        for b in range(int(loci_1.iloc[:,3:].min().min()*10000), int(loci_1.iloc[:,3:].max().max()*10000), int(bin_length*10000)):
-            bin_range = [float(b/10000), float(b/10000)+bin_length]
-            if len(bin_maps) < num_bins:
-                bin_maps.append(bin_range)
-
-            # what is the coverage of label l with score in bin range? (in loci)
-            coverage_l_b = float(len(loci_1.loc[
-                (bin_range[0] <= loci_1[l].astype("float"))&
-                (loci_1[l].astype("float") <= bin_range[1]), l
-            ])) / len(loci_1)
+    
+    enr_dict = {}       
+    if stratified_bins:
+        for l in loci_1.columns[3:]:
+            if strat_size == "def":
+                strat_size = int(len(overlaps)/50)
             
-            # what is the coverage of label l with score in bin range? (in overlap)
-            tss_l_b = float(len(overlaps.loc[
-                (bin_range[0] <= overlaps[l].astype("float"))&
-                (overlaps[l].astype("float") <= bin_range[1]), l
-            ])) / len(overlaps)
+            enr_l = []
+            posterior_vector = overlaps[l].astype("float").sort_values().reset_index(drop=True)
 
-            enr_l.append( 
-                np.log(
-                    (tss_l_b) / (coverage_l_b)
+            for b in range(0, posterior_vector.shape[0], strat_size):
+                subset_vector_pair = posterior_vector.iloc[b:b+strat_size].reset_index(drop=True)
+                bin_range = [
+                    float(subset_vector_pair.iloc[subset_vector_pair.index[0]]), 
+                    float(subset_vector_pair.iloc[subset_vector_pair.index[-1]])
+                ]
+
+                coverage_l_b = float(len(loci_1.loc[
+                    (bin_range[0] <= loci_1[l].astype("float"))&
+                    (loci_1[l].astype("float") <= bin_range[1]), l])) / len(loci_1)
+
+                tss_l_b = float(len(overlaps.loc[
+                    (bin_range[0] <= overlaps[l].astype("float"))&
+                    (overlaps[l].astype("float") <= bin_range[1]), l])) / len(overlaps)
+                
+                enr_l.append([
+                    bin_range[0], bin_range[1], np.log(float(tss_l_b/coverage_l_b))])
+            enr_dict[l] = enr_l
+        
+        for k in enr_dict.keys():
+            plt.plot(
+                [(kk[0]+kk[1])/2 for kk in enr_dict[k]],
+                [kk[2] for kk in enr_dict[k]], label=k
+            )
+
+        plt.ylabel("log(O/E) TSS enrichment")
+        plt.xlabel("Caliberated Posterior")
+        plt.title("TSS enrichment VS. Reproducibility")
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
+
+
+    else:
+        for l in loci_1.columns[3:]:
+            bin_maps = []
+            bin_length = (float(loci_1.iloc[:,3:].max().max()) - float(loci_1.iloc[:,3:].min().min())) / num_bins
+            enr_l = []
+            for b in range(int(loci_1.iloc[:,3:].min().min()*10000), int(loci_1.iloc[:,3:].max().max()*10000), int(bin_length*10000)):
+                bin_range = [float(b/10000), float(b/10000)+bin_length]
+
+                if len(bin_maps) < num_bins:
+                    bin_maps.append(bin_range)
+
+                # what is the coverage of label l with score in bin range? (in loci)
+                coverage_l_b = float(len(loci_1.loc[
+                    (bin_range[0] <= loci_1[l].astype("float"))&
+                    (loci_1[l].astype("float") <= bin_range[1]), l
+                ])) / len(loci_1)
+                
+                # what is the coverage of label l with score in bin range? (in overlap)
+                tss_l_b = float(len(overlaps.loc[
+                    (bin_range[0] <= overlaps[l].astype("float"))&
+                    (overlaps[l].astype("float") <= bin_range[1]), l
+                ])) / len(overlaps)
+
+                enr_l.append( 
+                    np.log(
+                        (tss_l_b) / (coverage_l_b)
+                    )
                 )
-             )
-            # print("range {}-{}, coverage = {}\t|\t enr = {} ".format(bin_range[0], bin_range[1], coverage_l_b, tss_l_b))
+                # print("range {}-{}, coverage = {}\t|\t enr = {} ".format(bin_range[0], bin_range[1], coverage_l_b, tss_l_b))
 
-        enr_dict[l] = enr_l
+            enr_dict[l] = enr_l
 
-    for k in enr_dict.keys():
-        plt.plot([(bin_maps[b][0] + bin_maps[b][1]) /2 for b in range(len(bin_maps))],
-        list(enr_dict[k]), label=k)
+        for k in enr_dict.keys():
+            plt.plot([(bin_maps[b][0] + bin_maps[b][1]) /2 for b in range(len(bin_maps))],
+            list(enr_dict[k]), label=k)
 
-    plt.ylabel("log(O/E) TSS enrichment")
-    plt.xlabel("Caliberated Posterior")
-    plt.title("TSS enrichment VS. Reproducibility")
-    plt.legend()
-    plt.show()
+        plt.ylabel("log(O/E) TSS enrichment")
+        plt.xlabel("Caliberated Posterior")
+        plt.title("TSS enrichment VS. Reproducibility")
+        plt.legend()
+        plt.show()
      
     '''
     todo:
