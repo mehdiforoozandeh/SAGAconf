@@ -200,9 +200,12 @@ def make_pseudo_replicates(celltype_dir, m_p=True):
         to_do_bams = to_do_bams + bams
 
     print(to_do_bams)
-    # if m_p:
-    #     p_obj = mp.Pool(len(bams))
-    #     p_obj.map(psdrep_pipeline, to_do_bams)
+    if m_p:
+        p_obj = mp.Pool(len(bams))
+        p_obj.map(psdrep_pipeline, to_do_bams)
+    else:
+        for bm in to_do_bams:
+            psdrep_pipeline(bm)
 
 
 def create_genomedata(celltype_dir, sequence_file):

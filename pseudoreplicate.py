@@ -105,6 +105,3 @@ def psdrep_pipeline(initial_bam):
 
     bw2bg(initial_bam.replace(".bam", "psdrep2_signals"))
     clean_up(initial_bam.replace(".bam", "psdrep2_signals"))
-
-psdrep_pipeline("tests/pseudoreps/ENCFF843BWY.bam")
-psdrep_pipeline("tests/pseudoreps/ENCFF126HII.bam")
