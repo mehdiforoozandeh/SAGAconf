@@ -86,6 +86,7 @@ def psdrep_pipeline(initial_bam):
 
     print("saving psedoreplicates...")
     save_pseudo(psd_bed1, psd_bed2, initial_bam)
+    del psd_bed1, psd_bed2
 
     print("getting signals for psdrep1")
     bed_to_fc(
