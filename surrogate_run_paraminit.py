@@ -77,14 +77,14 @@ if os.path.exists(segway_dir) == False:
 
 partial_runs_ii = partial(
     RunParse_segway_param_init, 
-    replicate_number = 'rep1', output_dir=segway_dir, random_seeds=[5, 7])
+    replicate_number = 'rep1', output_dir=segway_dir, random_seeds=[5, 27])
 
 p_obj = mp.Pool(len(CellType_list))
 p_obj.map(partial_runs_ii, [download_dir+ct for ct in CellType_list])
 
 partial_runs_iii = partial(
     RunParse_segway_param_init, 
-    replicate_number = 'rep2', output_dir=segway_dir, random_seeds=[5, 7])
+    replicate_number = 'rep2', output_dir=segway_dir, random_seeds=[5, 27])
     
 p_obj = mp.Pool(len(CellType_list))
 p_obj.map(partial_runs_iii, [download_dir+ct for ct in CellType_list])
