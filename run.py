@@ -13,6 +13,7 @@ import glob, os
 import multiprocessing as mp
 from functools import partial
 import matplotlib
+from pseudoreplicate import *
 '''
 
 In this file, the step-by-step execution of analysis-funcitons will be managed.
@@ -190,6 +191,19 @@ def bamtobed(download_dir):
                         )
                     )
                     print("converted ", ct+"/"+ass+'/'+bm, "->", ct+"/"+ass+'/'+bm.replace(".bam", '.bed'))
+
+def make_pseudo_replicates(celltype_dir, m_p=True):
+    to_do_bams = []
+    tracks = [tr for tr in os.listdir(celltype_dir) if os.path.isdir(celltype_dir+'/'+tr)]
+    for tr in tracks:
+        bams = [celltype_dir+'/'+tr+"/"+bm for bm in os.listdir(celltype_dir+'/'+tr) if ".bam" in bm]
+        to_do_bams = to_do_bams + bams
+
+    print(to_do_bams)
+    # if m_p:
+    #     p_obj = mp.Pool(len(bams))
+    #     p_obj.map(psdrep_pipeline, to_do_bams)
+
 
 def create_genomedata(celltype_dir, sequence_file):
     '''
@@ -653,6 +667,7 @@ def _post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
     plt.clf()
     return stepwise_report
 
+
 def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
     """
     get basic reproducibility results for a pair of 
@@ -667,27 +682,12 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
     if os.path.exists(pltsavedir+"/snk") == False:
         os.mkdir(pltsavedir+"/snk")
     
+    
+    
+    # plot posterior distribution
+
     to_report = {}
 
-    if cc_calb:
-        if os.path.exists(pltsavedir+"/cc") == False:
-            os.mkdir(pltsavedir+"/cc")
-        if os.path.exists(pltsavedir+"/clb") == False:
-            os.mkdir(pltsavedir+"/clb")
-
-        cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
-        cc.plot_curve(plot_general=False, merge_plots=False)
-        del cc
-        plt.close("all")
-        plt.style.use('default')
-
-        calb = posterior_calibration(
-            loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
-            oe_transform=True, savedir=pltsavedir+"/clb")
-        calibrated_loci_1 = calb.perlabel_calibration_function(degree=5, num_bins=25, return_caliberated_matrix=True)
-        plt.close("all")
-        plt.style.use('default')
-    
     agr = Agreement(loci_1, loci_2, pltsavedir+"/agr")
     to_report["per-label agreement"] = agr.per_label_agreement()
     to_report["general agreement"] = agr.general_agreement()
@@ -704,8 +704,64 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
     vis.sankey_diag()
     vis.heatmap()
     del vis
+
     plt.close('all')
     plt.style.use('default')
+
+    if os.path.exists(pltsavedir+"/pstdist_rep1") == False:
+        os.mkdir(pltsavedir+"/pstdist_rep1")
+    pstdist = Posterior_dist(loci_1, pltsavedir+"/pstdist_rep1")
+    pstdist.plot_posterior_histogram()
+
+    if os.path.exists(pltsavedir+"/pstdist_rep2") == False:
+        os.mkdir(pltsavedir+"/pstdist_rep2")
+    pstdist = Posterior_dist(loci_1, pltsavedir+"/pstdist_rep2")
+    pstdist.plot_posterior_histogram()
+
+    del pstdist
+
+    if cc_calb:
+        if os.path.exists(pltsavedir+"/cc") == False:
+            os.mkdir(pltsavedir+"/cc")
+        if os.path.exists(pltsavedir+"/clb") == False:
+            os.mkdir(pltsavedir+"/clb")
+
+        # cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
+        # cc.plot_curve(plot_general=False, merge_plots=False)
+        # del cc
+        # plt.close("all")
+        # plt.style.use('default')
+
+        calb = posterior_calibration(
+            loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
+            oe_transform=True, savedir=pltsavedir+"/clb")
+        calibrated_loci_1 = calb.perlabel_calibration_function(
+            degree=5, num_bins=25, return_caliberated_matrix=True, scale_columnwise=True)
+        
+        plt.close("all")
+        plt.style.use('default')
+
+        if os.path.exists(pltsavedir+"/tss_rep1") == False:
+            os.mkdir(pltsavedir+"/tss_rep1")
+        TSS_obj = TSS_enrichment(calibrated_loci_1, TSSdir="tests/RefSeqTSS.hg38.txt", savedir=pltsavedir+"/tss_rep1")
+        TSS_obj.tss_enrich()
+        TSS_obj.tss_enrich_vs_repr()
+
+        calb = posterior_calibration(
+            loci_2, loci_1, log_transform=False, ignore_overconf=False, filter_nan=True, 
+            oe_transform=True, savedir=pltsavedir+"/clb")
+        calibrated_loci_2 = calb.perlabel_calibration_function(
+            degree=5, num_bins=25, return_caliberated_matrix=True, scale_columnwise=True)
+        
+        plt.close("all")
+        plt.style.use('default')
+
+        if os.path.exists(pltsavedir+"/tss_rep2") == False:
+            os.mkdir(pltsavedir+"/tss_rep2")
+        TSS_obj = TSS_enrichment(calibrated_loci_2, TSSdir="tests/RefSeqTSS.hg38.txt", savedir=pltsavedir+"/tss_rep2")
+        TSS_obj.tss_enrich()
+        TSS_obj.tss_enrich_vs_repr()
+
     return to_report
 
 def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
@@ -731,6 +787,8 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
         OE_transform=True, symmetric=False)
 
     assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
+
+    new_columns = ["{}|{}".format(c[0], c[1]) for c in assignment_pairs]
 
     if os.path.exists(
         "/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics_rep1.txt") and os.path.exists(
@@ -789,12 +847,16 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
     sns.reset_orig
     plt.close("all")
     plt.style.use('default')
+
+    vis = sankey(loci_1, loci_2, pltsavedir)
+    vis.heatmap(new_columns)
      
     reports = {}
     reports[str(num_labels)] = report_reproducibility(
         loci_1, loci_2, 
         pltsavedir=pltsavedir+"/{}_labels".format(num_labels), cc_calb=True)
 
+    exit()
     # merging clusters one at a time
     merged_label_ID = {}
     labels = loci_1.iloc[:, 3:].columns

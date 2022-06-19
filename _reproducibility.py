@@ -2,7 +2,7 @@ from scipy.ndimage import gaussian_filter1d
 from statistics import mean
 import functools
 import multiprocessing as mp
-
+from matplotlib.cm import get_cmap
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -211,7 +211,6 @@ class Agreement(object):
                 )
             )
         
-
 class posterior_calibration(object):
     def __init__(self, loci_1, loci_2, savedir, log_transform=True, ignore_overconf=True, filter_nan=True, oe_transform=True):
         if filter_nan:
@@ -363,7 +362,7 @@ class posterior_calibration(object):
                     axs[i,j].plot(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), 
                         polyreg.predict(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))])))
 
-                    axs[i,j].set_title("{}_r2={:.3f}".format(label_name, float(r2)))
+                    axs[i,j].set_title("{}_r2={:.2f}".format(label_name, float(r2)), fontsize=7)
 
                     label_being_plotted+=1
             
@@ -380,15 +379,15 @@ class posterior_calibration(object):
                 else:
                     ylabel = "Ratio of Similarly Labeled Bins in replicate 2"
 
-            plt.legend()
-            plt.ylabel(ylabel)
-            plt.xlabel(xlabel)
             plt.tight_layout()
             plt.savefig('{}/clb_{}.pdf'.format(self.savedir, "subplot"), format='pdf')
             plt.savefig('{}/clb_{}.svg'.format(self.savedir, "subplot"), format='svg')
             plt.clf()
 
+        colors = [i for i in get_cmap('tab20').colors]
+        ci = 0
         for label_name, bins in bins_dict.items():
+            
             polyreg = IsotonicRegression(
                     y_min=float(np.array(bins[:, 5]).min()), y_max=float(np.array(bins[:, 5]).max()), 
                     out_of_bounds="clip")
@@ -405,7 +404,8 @@ class posterior_calibration(object):
             plt.plot(
                 np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), 
                 polyreg.predict(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))])), 
-                label="{}_r2={:.3f}".format(label_name, float(r2)))
+                label="{}_r2={:.2f}".format(label_name, float(r2)), c=colors[ci])
+            ci+=1
 
         if self.log_transform:
             xlabel = "-log(1-posterior) in Replicate 1"
@@ -420,7 +420,9 @@ class posterior_calibration(object):
             else:
                 ylabel = "Ratio of Similarly Labeled Bins in replicate 2"
 
-        plt.legend()
+        plt.legend(loc='upper center', bbox_to_anchor=(0.45, -0.05),
+            fancybox=True, ncol=4, fontsize=5)
+
         plt.ylabel(ylabel)
         plt.xlabel(xlabel)
         plt.tight_layout()
@@ -458,7 +460,7 @@ class posterior_calibration(object):
                 pltxt.write(label_name+ "\t" + str(list(bins[:, 5])) + '\n')
             
 
-    def perlabel_calibration_function(self, method="isoton_reg", degree=3, num_bins=10, return_caliberated_matrix=True, scale=True, stratified_bins=True, strat_size="def"):
+    def perlabel_calibration_function(self, method="isoton_reg", degree=3, num_bins=10, return_caliberated_matrix=True, scale=True, scale_columnwise=False, stratified_bins=True, strat_size="def"):
         perlabel_function = {}
         bins_dict = {}
         new_matrix = [self.loci_1.iloc[:,:3]]
@@ -614,14 +616,16 @@ class posterior_calibration(object):
             
             if scale:
                 scaler = MinMaxScaler(feature_range=(0,1))
-                # remember_shape = new_matrix.iloc[:,3:].shape
-                # remember_columns = new_matrix.iloc[:,3:].columns
-                # new_matrix.iloc[:, 3:] = pd.DataFrame(
-                #     np.reshape(scaler.fit_transform(np.reshape(np.array(
-                #         new_matrix.iloc[:, 3:]), (-1,1))), remember_shape), 
-                #                     columns=remember_columns)
+                if scale_columnwise:
+                    new_matrix.iloc[:, 3:] = scaler.fit_transform(new_matrix.iloc[:, 3:])
 
-                new_matrix.iloc[:, 3:] = scaler.fit_transform(new_matrix.iloc[:, 3:])
+                else:
+                    remember_shape = new_matrix.iloc[:,3:].shape
+                    remember_columns = new_matrix.iloc[:,3:].columns
+                    new_matrix.iloc[:, 3:] = pd.DataFrame(
+                        np.reshape(scaler.fit_transform(np.reshape(np.array(
+                            new_matrix.iloc[:, 3:]), (-1,1))), remember_shape), 
+                                        columns=remember_columns)
     
             return new_matrix
 
@@ -629,43 +633,50 @@ class posterior_calibration(object):
             self.perlabel_function = perlabel_function
             return self.perlabel_function
 
-def plot_posterior_histogram(loci):
-    num_labels = int(loci.shape[1])-3
-    n_cols = math.floor(math.sqrt(num_labels))
-    n_rows = math.ceil(num_labels / n_cols)
+class Posterior_dist(object):
+    def __init__(self, loci, savedir):
+        self.loci = loci
+        self.savedir= savedir
 
-    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)
-    label_being_plotted = 0
-    for i in range(n_rows):
-        for j in range(n_cols):
-            x = loci.iloc[:, 3:].iloc[:, label_being_plotted]
-            x = x.loc[(x!=0)]
-            axs[i,j].hist(x)
-            axs[i,j].set_title("{}".format(loci.columns[3+label_being_plotted]))
-            
-            label_being_plotted+=1
+    def plot_posterior_histogram(self):
+        num_labels = int(self.loci.shape[1])-3
+        n_cols = math.floor(math.sqrt(num_labels))
+        n_rows = math.ceil(num_labels / n_cols)
 
-    plt.tight_layout()
-    plt.show()
-    # plt.clf()
+        fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)
+        label_being_plotted = 0
+        for i in range(n_rows):
+            for j in range(n_cols):
+                x = self.loci.iloc[:, 3:].iloc[:, label_being_plotted]
+                x = x.loc[(x!=0)]
+                axs[i,j].hist(x)
+                axs[i,j].set_title("{}".format(self.loci.columns[3+label_being_plotted]))
+                
+                label_being_plotted+=1
 
-def plot_posterior_track(loci):
-    num_labels = int(loci.shape[1])-3
-    n_cols = math.floor(math.sqrt(num_labels))
-    n_rows = math.ceil(num_labels / n_cols)
+        plt.tight_layout()
+        plt.savefig('{}/posterior_dir_histogram.pdf'.format(self.savedir), format='pdf')
+        plt.savefig('{}/posterior_dir_histogram.svg'.format(self.savedir), format='svg')
+        plt.clf()
 
-    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)
-    label_being_plotted = 0
-    for i in range(n_rows):
-        for j in range(n_cols):
-            x = loci.iloc[:, 3:].iloc[:, label_being_plotted]
-            axs[i,j].plot(list(range(len(x))), x, linewidth=0.05)
-            axs[i,j].set_title("{}".format(loci.columns[3+label_being_plotted]))
-            label_being_plotted+=1
+    def plot_posterior_track(self):
+        num_labels = int(self.loci.shape[1])-3
+        n_cols = math.floor(math.sqrt(num_labels))
+        n_rows = math.ceil(num_labels / n_cols)
 
-    plt.tight_layout()
-    plt.show()
-    # plt.clf()
+        fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)
+        label_being_plotted = 0
+        for i in range(n_rows):
+            for j in range(n_cols):
+                x = self.loci.iloc[:, 3:].iloc[:, label_being_plotted]
+                axs[i,j].plot(list(range(len(x))), x, linewidth=0.05)
+                axs[i,j].set_title("{}".format(self.loci.columns[3+label_being_plotted]))
+                label_being_plotted+=1
+
+        plt.tight_layout()
+        plt.savefig('{}/posterior_dir_track.pdf'.format(self.savedir), format='pdf')
+        plt.savefig('{}/posterior_dir_track.svg'.format(self.savedir), format='svg')
+        plt.clf()
 
 class correspondence_curve(object):
     '''
@@ -833,7 +844,7 @@ class correspondence_curve(object):
                         axs[i,j].plot(t_list, t_list, '--', label='Perfect Reproducibility')
                         axs[i,j].plot(t_list, URIprime, label = 'Derivative Correspondence')
                         axs[i,j].plot(t_list, URIs, label = 'Correspondence')
-                        axs[i,j].set_title('Correspondence Curve for '+str(p))
+                        axs[i,j].set_title('Correspondence Curve for '+str(p), fontsize=6)
                         axs[i,j].set(xlabel="t", ylabel="PSI")
 
                         label_being_plotted+=1
@@ -925,13 +936,18 @@ class sankey(object):
         fig.write_image("{}/sankey.svg".format(self.savedir))
         fig.write_html("{}/sankey.html".format(self.savedir))
     
-    def heatmap(self):
+    def heatmap(self, new_column=None):
+        if new_column != None:
+            pass
+        else:
+            new_column = self.loci_1.columns[3:]
+            new_column = self.loci_2.columns[3:]
         confmat = confusion_matrix(self.loci_1, self.loci_2, self.num_labels, OE_transform=True)
         p = sns.heatmap(
             confmat.astype(int), annot=True, fmt="d",
             linewidths=0.01,  cbar=False,
-            yticklabels=self.loci_1.columns[3:],
-            xticklabels=self.loci_2.columns[3:],
+            yticklabels=new_column,
+            xticklabels=new_column,
             # vmin=confmat.min().min(),
             # vmax=confmat.max().max()
             )
@@ -939,7 +955,7 @@ class sankey(object):
         p.tick_params(axis='x', rotation=30, labelsize=7)
         p.tick_params(axis='y', rotation=45, labelsize=7)
 
-        plt.title('Label Matching Heatmap (O/E overlap)')
+        plt.title('Label Matching Heatmap (log(O/E) overlap)')
         plt.xlabel('Replicate 1 Labels')
         plt.ylabel("Replicate 2 Labels")
         plt.tight_layout()
@@ -952,333 +968,402 @@ class sankey(object):
         confmat.to_csv("{}/heatmap.csv".format(self.savedir))
 
 
-class validate_EXT():
-    def __init__(self):
-        """
-        1. read segtools feature aggregation tab file
-        2. read enrichment of each label +- X bp s upstream and downstream of “initial exon start site”
-        3. open a df containing these columns
-            1. the label
-            2. the enrichment
-            3. label's reproducibility (agreement)
-            4. label's calibrated posterior
-        """
+# class validate_EXT():
+#     def __init__(self):
+#         """
+#         1. read segtools feature aggregation tab file
+#         2. read enrichment of each label +- X bp s upstream and downstream of “initial exon start site”
+#         3. open a df containing these columns
+#             1. the label
+#             2. the enrichment
+#             3. label's reproducibility (agreement)
+#             4. label's calibrated posterior
+#         """
 
-    def read_feat_agg_enrichment(self, agg_tab_file, label_agreement_dict, TSS_offset=2):
-        aggr_df = []
-        with open(agg_tab_file,'r') as aggfile:
-            lines = aggfile.readlines()
-            for i in range(1, len(lines)):
-                sp = lines[i].split('\t')
-                sp[-1] = sp[-1].replace("\n", "")
-                aggr_df.append(sp)
+#     def read_feat_agg_enrichment(self, agg_tab_file, label_agreement_dict, TSS_offset=2):
+#         aggr_df = []
+#         with open(agg_tab_file,'r') as aggfile:
+#             lines = aggfile.readlines()
+#             for i in range(1, len(lines)):
+#                 sp = lines[i].split('\t')
+#                 sp[-1] = sp[-1].replace("\n", "")
+#                 aggr_df.append(sp)
 
-                if "initial exon" in sp[1] and sp[2]=="0":
-                    initial_exon_idx = i-2
+#                 if "initial exon" in sp[1] and sp[2]=="0":
+#                     initial_exon_idx = i-2
 
-        if "E1" in aggr_df[0]:
-            aggr_df[0][3:] = [str(i) for i in range(len(aggr_df[0])-3)]
+#         if "E1" in aggr_df[0]:
+#             aggr_df[0][3:] = [str(i) for i in range(len(aggr_df[0])-3)]
 
-        self.aggr_df = pd.DataFrame(
-            aggr_df[1:], columns=aggr_df[0])
+#         self.aggr_df = pd.DataFrame(
+#             aggr_df[1:], columns=aggr_df[0])
         
-        TSS = (self.aggr_df.iloc[
-            int(initial_exon_idx-(TSS_offset/2)):int(initial_exon_idx+(TSS_offset/2))
-            , :])
+#         TSS = (self.aggr_df.iloc[
+#             int(initial_exon_idx-(TSS_offset/2)):int(initial_exon_idx+(TSS_offset/2))
+#             , :])
 
-        print(TSS)
-        enrich_df = []
-        for k, v in label_agreement_dict.items():
-            if "posterior" in k:
-                k = k.replace("posterior", "")
+#         print(TSS)
+#         enrich_df = []
+#         for k, v in label_agreement_dict.items():
+#             if "posterior" in k:
+#                 k = k.replace("posterior", "")
             
-            enrich_df.append([k, v, mean(list(TSS.loc[:, k].astype('int')))])
+#             enrich_df.append([k, v, mean(list(TSS.loc[:, k].astype('int')))])
 
-        self.enrich_df = pd.DataFrame(enrich_df, columns=["label", "agreement", "enrichment"])
+#         self.enrich_df = pd.DataFrame(enrich_df, columns=["label", "agreement", "enrichment"])
 
-    def TSS_vs_agreement_plot(self):
-        plt.scatter(
-            x=self.enrich_df["agreement"],
-            y=self.enrich_df["enrichment"]
-        )
-        for i in range(self.enrich_df.shape[0]):
-            plt.annotate(
-                self.enrich_df['label'][i],
-                (
-                    self.enrich_df["agreement"][i],
-                    self.enrich_df["enrichment"][i]
-                )
-            )
-        plt.xlabel("Agreement")
-        plt.xlabel("Label enrichment around TSS")
-        plt.show()
+#     def TSS_vs_agreement_plot(self):
+#         plt.scatter(
+#             x=self.enrich_df["agreement"],
+#             y=self.enrich_df["enrichment"]
+#         )
+#         for i in range(self.enrich_df.shape[0]):
+#             plt.annotate(
+#                 self.enrich_df['label'][i],
+#                 (
+#                     self.enrich_df["agreement"][i],
+#                     self.enrich_df["enrichment"][i]
+#                 )
+#             )
+#         plt.xlabel("Agreement")
+#         plt.xlabel("Label enrichment around TSS")
+#         plt.show()
 
-    def TSS_from_gtf(self, gtf_file):
-        with open(gtf_file, 'r') as gtff:
-            lines = gtff.readlines()
-            self.TSS_coords = []
-            for l in lines:
-                if l[0] != "#":
-                    cols = l.split(";")
-                    cols[0] = cols[0].split("\t")
-                    cols = cols[0] + cols[1:]
-                    # assure TSS
-                    if cols[2] == "gene":
-                        if cols[6] == "+":
-                            #for + strands TSS=Startsite
-                            tss_i = cols[3]
-                        elif cols[6] == '-':
-                            #for - strands TSS=endsite
-                            tss_i = cols[4]
-                        self.TSS_coords.append(
-                            [cols[0], int(tss_i), cols[10].replace("gene_name ","")[2:-1]])
-        self.TSS_coords =  pd.DataFrame(self.TSS_coords, columns=["chr", "TSS", "gene_name"])   
-        return self.TSS_coords
+#     def TSS_from_gtf(self, gtf_file):
+#         with open(gtf_file, 'r') as gtff:
+#             lines = gtff.readlines()
+#             self.TSS_coords = []
+#             for l in lines:
+#                 if l[0] != "#":
+#                     cols = l.split(";")
+#                     cols[0] = cols[0].split("\t")
+#                     cols = cols[0] + cols[1:]
+#                     # assure TSS
+#                     if cols[2] == "gene":
+#                         if cols[6] == "+":
+#                             #for + strands TSS=Startsite
+#                             tss_i = cols[3]
+#                         elif cols[6] == '-':
+#                             #for - strands TSS=endsite
+#                             tss_i = cols[4]
+#                         self.TSS_coords.append(
+#                             [cols[0], int(tss_i), cols[10].replace("gene_name ","")[2:-1]])
+#         self.TSS_coords =  pd.DataFrame(self.TSS_coords, columns=["chr", "TSS", "gene_name"])   
+#         return self.TSS_coords
 
-    def TSS_enrich_vs_reproducibility(self, loci_1, num_bins=10):
-        t0 = datetime.now()
-        label_enrich = {}
-        num_of_tss_occurence = 0
-        bin_length = float(loci_1.iloc[:,3:].max().max() - loci_1.iloc[:,3:].max().min()) / num_bins
+#     def TSS_enrich_vs_reproducibility(self, loci_1, num_bins=10):
+#         t0 = datetime.now()
+#         label_enrich = {}
+#         num_of_tss_occurence = 0
+#         bin_length = float(loci_1.iloc[:,3:].max().max() - loci_1.iloc[:,3:].max().min()) / num_bins
 
-        for k in loci_1.iloc[:,3:].columns:
-            k_MAP = loci_1.loc[
-                (loci_1.iloc[:,3:].idxmax(axis=1) == k), :
-            ] 
+#         for k in loci_1.iloc[:,3:].columns:
+#             k_MAP = loci_1.loc[
+#                 (loci_1.iloc[:,3:].idxmax(axis=1) == k), :
+#             ] 
 
-            bins = {}
-            for b in range(int(loci_1.iloc[:,3:].max().min()*10000), int(loci_1.iloc[:,3:].max().max()*10000), int(bin_length*10000)):
-                bin_range = [float(b/10000), float(b/10000)+bin_length]
+#             bins = {}
+#             for b in range(int(loci_1.iloc[:,3:].max().min()*10000), int(loci_1.iloc[:,3:].max().max()*10000), int(bin_length*10000)):
+#                 bin_range = [float(b/10000), float(b/10000)+bin_length]
 
-                within_bin = k_MAP.loc[
-                    (bin_range[0] <= k_MAP[k]) & (k_MAP[k] <= bin_range[1]), 
-                    :]
+#                 within_bin = k_MAP.loc[
+#                     (bin_range[0] <= k_MAP[k]) & (k_MAP[k] <= bin_range[1]), 
+#                     :]
                 
-                chrs = np.unique(within_bin[['chr']].values)
-                tss_occurence = []
+#                 chrs = np.unique(within_bin[['chr']].values)
+#                 tss_occurence = []
 
-                for c in chrs:
+#                 for c in chrs:
 
-                    chr_c_tss_coords = self.TSS_coords.loc[(self.TSS_coords['chr'] == c), :]
-                    chr_c_tss_coords = chr_c_tss_coords.reset_index(drop=True)
+#                     chr_c_tss_coords = self.TSS_coords.loc[(self.TSS_coords['chr'] == c), :]
+#                     chr_c_tss_coords = chr_c_tss_coords.reset_index(drop=True)
 
-                    chr_c_loci = within_bin.loc[(within_bin['chr'] == c), :]
-                    chr_c_loci = chr_c_loci.reset_index(drop=True)
+#                     chr_c_loci = within_bin.loc[(within_bin['chr'] == c), :]
+#                     chr_c_loci = chr_c_loci.reset_index(drop=True)
                     
-                    for i in range(len(chr_c_loci)):
+#                     for i in range(len(chr_c_loci)):
 
-                        tss_occ = chr_c_tss_coords.loc[
-                            (chr_c_loci["start"][i] <= chr_c_tss_coords["TSS"]) & 
-                            (chr_c_tss_coords["TSS"] <= chr_c_loci["end"][i]),
-                            :
-                        ]
+#                         tss_occ = chr_c_tss_coords.loc[
+#                             (chr_c_loci["start"][i] <= chr_c_tss_coords["TSS"]) & 
+#                             (chr_c_tss_coords["TSS"] <= chr_c_loci["end"][i]),
+#                             :
+#                         ]
                         
-                        if len(tss_occ) > 0:
-                            tss_occurence.append(np.array(chr_c_loci.iloc[i,:]))
+#                         if len(tss_occ) > 0:
+#                             tss_occurence.append(np.array(chr_c_loci.iloc[i,:]))
 
-                if len(tss_occurence) > 0:
-                    tss_occurence = pd.DataFrame(tss_occurence, columns=chr_c_loci.columns)
-                    num_of_tss_occurence += len(tss_occurence)
+#                 if len(tss_occurence) > 0:
+#                     tss_occurence = pd.DataFrame(tss_occurence, columns=chr_c_loci.columns)
+#                     num_of_tss_occurence += len(tss_occurence)
 
-                    bins[tuple(bin_range)] = [len(within_bin), len(tss_occurence)]
+#                     bins[tuple(bin_range)] = [len(within_bin), len(tss_occurence)]
             
-            label_enrich[k] = bins
+#             label_enrich[k] = bins
 
-        print(label_enrich)
+#         print(label_enrich)
 
-        for k, v in label_enrich.items():
-            for kk in v.keys():
-                expected_tss_occ = float(v[kk][0])/len(loci_1) * num_of_tss_occurence
-                v[kk] = v[kk][1] / expected_tss_occ
+#         for k, v in label_enrich.items():
+#             for kk in v.keys():
+#                 expected_tss_occ = float(v[kk][0])/len(loci_1) * num_of_tss_occurence
+#                 v[kk] = v[kk][1] / expected_tss_occ
         
-        print(label_enrich)
+#         print(label_enrich)
         
-        for k, v in label_enrich.items():
-            plt.plot(
-                [(kk[0] + kk[1])/2 for kk in v.keys()],
-                [v[kk] for kk in v.keys()],
-                label=k
-            )
+#         for k, v in label_enrich.items():
+#             plt.plot(
+#                 [(kk[0] + kk[1])/2 for kk in v.keys()],
+#                 [v[kk] for kk in v.keys()],
+#                 label=k
+#             )
 
-        print(datetime.now() - t0)
-        plt.legend()
-        plt.xlabel("Calibrated Confidence Score")
-        plt.ylabel("O/E # of segment at TSS")
-        plt.show()
+#         print(datetime.now() - t0)
+#         plt.legend()
+#         plt.xlabel("Calibrated Confidence Score")
+#         plt.ylabel("O/E # of segment at TSS")
+#         plt.show()
     
-def get_coverage(loci):
-    MAP = loci.iloc[:,3:].idxmax(axis=1)
-    coverage = dict(zip(list(loci.columns[3:]), [0 for _ in range(len(loci.columns[3:]))]))
+class TSS_enrichment(object):
+    def __init__(self, loci, TSSdir, savedir):
+        self.TSSs = pd.read_csv(TSSdir, sep="\t", header=None)
+        self.TSSs.columns = ["chr", "coord", "strand"]
+        self.loci = loci
+        self.savedir = savedir
 
-    for c in list(loci.columns[3:]):
-        coverage[c] = len(MAP.loc[MAP == c]) / len(MAP)
+    def get_coverage(self):
+        MAP = self.loci.iloc[:,3:].idxmax(axis=1)
+        self.coverage = dict(zip(list(self.loci.columns[3:]), [0 for _ in range(len(self.loci.columns[3:]))]))
 
-    return coverage
+        for c in list(self.loci.columns[3:]):
+            self.coverage[c] = len(MAP.loc[MAP == c]) / len(MAP)
 
-def calculate_overlap_with_tss(loci, TSSs):
-    overlaps = []
-    for i in range(int(len(TSSs))):
-        loci_subset = loci.loc[
-            (loci["chr"] == TSSs["chr"][i]) &
-            (loci["start"].astype("int") < int(TSSs["coord"][i])) &
-            (int(TSSs["coord"][i]) < loci["end"].astype("int")), :
-        ]
-
-        if len(loci_subset) > 0:
-            overlaps.append(loci_subset)
-
-    if len(overlaps) > 0:
-        return pd.concat(overlaps, axis=0).reset_index(drop=True)
-
-def tss_enrich(loci, TSSs):
-    overlaps = []
-    for i in range(int(len(TSSs)/10)):
-        loci_subset = loci.loc[
-            (loci["chr"] == TSSs["chr"][i]) &
-            (loci["start"].astype("int") < int(TSSs["coord"][i])) &
-            (int(TSSs["coord"][i]) < loci["end"].astype("int")), :
-        ]
-
-        if len(loci_subset) > 0:
-            overlaps.append(loci_subset)
-
-    overlaps = pd.concat(overlaps, axis=0).reset_index(drop=True)
-    overlaps.iloc[:,3:] = overlaps.iloc[:,3:].astype("float16")
-    MAP = overlaps.iloc[:,3:].idxmax(axis=1)
-    enrich_dict = dict(zip(list(overlaps.columns[3:]), [0 for _ in range(len(overlaps.columns[3:]))]))
-
-    for i in range(len(MAP)):
-        enrich_dict[MAP[i]] += 1/len(MAP)
-
-    coverage = get_coverage(loci)
-    for k, v in enrich_dict.items():
-        enrich_dict[k] = np.log((v) / (coverage[k]))
-
-    return enrich_dict
-    
-def tss_enrich_vs_repr(loci_1, TSSs, num_bins=10, m_p=True, n_p=8, stratified_bins=True, strat_size="def"):
-    """
-    OPT: calibrate reprod (to get reproducibility scores)
-    x-axis: bins of calibrated reproducibility score
-    y-axis: enrichment of TSS in that bin
-    """
-    if m_p:
-        locis = [loci_1.iloc[
-            p:p+int(len(loci_1)/n_p) ,:].reset_index(drop=True)
-                for p in range(0, len(loci_1), int(len(loci_1)/n_p))]
-        pobj = mp.Pool(n_p)
-        overlaps = pobj.map(
-            functools.partial(calculate_overlap_with_tss, 
-            TSSs=TSSs), locis)
-
-        overlaps = pd.concat(overlaps, axis=0).reset_index(drop=True)
-
-    else:
+    def calculate_overlap_with_tss(self, loci):
         overlaps = []
-        
-        for i in range(int(len(TSSs))):
-            loci_subset = loci_1.loc[
-                (loci_1["chr"] == TSSs["chr"][i]) &
-                (loci_1["start"] <= int(TSSs["coord"][i])) &
-                (int(TSSs["coord"][i]) <= loci_1["end"]), :
+        for i in range(int(len(self.TSSs))):
+            loci_subset = loci.loc[
+                (loci["chr"] == self.TSSs["chr"][i]) &
+                (loci["start"].astype("int") < int(self.TSSs["coord"][i])) &
+                (int(self.TSSs["coord"][i]) < loci["end"].astype("int")), :
             ]
 
             if len(loci_subset) > 0:
                 overlaps.append(loci_subset)
-        overlaps = pd.concat(overlaps, axis=0).reset_index(drop=True)
-    
-    enr_dict = {}       
-    if stratified_bins:
-        for l in loci_1.columns[3:]:
-            if strat_size == "def":
-                strat_size = int(len(overlaps)/50)
-            
-            enr_l = []
-            posterior_vector = overlaps[l].astype("float").sort_values().reset_index(drop=True)
 
-            for b in range(0, posterior_vector.shape[0], strat_size):
-                subset_vector_pair = posterior_vector.iloc[b:b+strat_size].reset_index(drop=True)
-                bin_range = [
-                    float(subset_vector_pair.iloc[subset_vector_pair.index[0]]), 
-                    float(subset_vector_pair.iloc[subset_vector_pair.index[-1]])
+        if len(overlaps) > 0:
+            return pd.concat(overlaps, axis=0).reset_index(drop=True)
+
+    def get_overlap(self, m_p, n_p=8):
+        if m_p:
+            locis = [self.loci.iloc[
+                p:p+int(len(self.loci)/n_p) ,:].reset_index(drop=True)
+                    for p in range(0, len(self.loci), int(len(self.loci)/n_p))]
+
+            pobj = mp.Pool(n_p)
+            overlaps = pobj.map(self.calculate_overlap_with_tss, locis)
+
+                # functools.partial(, 
+                # TSSs=self.TSSs), )
+
+            self.overlaps = pd.concat(overlaps, axis=0).reset_index(drop=True)
+
+        else:
+            overlaps = []
+            
+            for i in range(int(len(self.TSSs))):
+                loci_subset = self.loci.loc[
+                    (self.loci["chr"] == self.TSSs["chr"][i]) &
+                    (self.loci["start"] <= int(self.TSSs["coord"][i])) &
+                    (int(self.TSSs["coord"][i]) <= self.loci["end"]), :
                 ]
 
-                coverage_l_b = float(len(loci_1.loc[
-                    (bin_range[0] <= loci_1[l].astype("float"))&
-                    (loci_1[l].astype("float") <= bin_range[1]), l])) / len(loci_1)
+                if len(loci_subset) > 0:
+                    overlaps.append(loci_subset)
+            self.overlaps = pd.concat(overlaps, axis=0).reset_index(drop=True)
 
-                tss_l_b = float(len(overlaps.loc[
-                    (bin_range[0] <= overlaps[l].astype("float"))&
-                    (overlaps[l].astype("float") <= bin_range[1]), l])) / len(overlaps)
-                
-                enr_l.append([
-                    bin_range[0], bin_range[1], np.log(float(tss_l_b/coverage_l_b))])
-            enr_dict[l] = enr_l
+        self.overlaps.iloc[:,3:] = self.overlaps.iloc[:,3:].astype("float16")
+
+    def tss_enrich(self, log_transform=True):
         
-        for k in enr_dict.keys():
-            plt.plot(
-                [(kk[0]+kk[1])/2 for kk in enr_dict[k]],
-                [kk[2] for kk in enr_dict[k]], label=k
-            )
+        self.get_coverage()
+        self.get_overlap(m_p=True)
 
+        MAP = self.overlaps.iloc[:,3:].idxmax(axis=1)
+        enrich_dict = dict(zip(list(self.overlaps.columns[3:]), [0 for _ in range(len(self.overlaps.columns[3:]))]))
+
+        for i in range(len(MAP)):
+            enrich_dict[MAP[i]] += 1/len(MAP)
+
+        for k, v in enrich_dict.items():
+            if log_transform:
+                if v == 0:
+                    enrich_dict[k] = np.log(
+                        (v + 1/len(MAP)) / (self.coverage[k]+ 1/len(MAP))
+                        )
+                else:
+                    enrich_dict[k] = np.log(
+                        (v) / (self.coverage[k])
+                        )
+                        
+            else:
+                enrich_dict[k] = (v) / (self.coverage[k])
+
+        plt.bar(list(enrich_dict.keys()), list(enrich_dict.values()))
         plt.ylabel("log(O/E) TSS enrichment")
-        plt.xlabel("Caliberated Posterior")
-        plt.title("TSS enrichment VS. Reproducibility")
-        plt.legend()
+        plt.xticks(rotation=45, fontsize=7)
         plt.tight_layout()
-        plt.show()
+        plt.savefig('{}/general_TSS_enrichment.pdf'.format(self.savedir), format='pdf')
+        plt.savefig('{}/general_TSS_enrichment.svg'.format(self.savedir), format='svg')
+        plt.clf()
 
-
-    else:
-        for l in loci_1.columns[3:]:
-            bin_maps = []
-            bin_length = (float(loci_1.iloc[:,3:].max().max()) - float(loci_1.iloc[:,3:].min().min())) / num_bins
-            enr_l = []
-            for b in range(int(loci_1.iloc[:,3:].min().min()*10000), int(loci_1.iloc[:,3:].max().max()*10000), int(bin_length*10000)):
-                bin_range = [float(b/10000), float(b/10000)+bin_length]
-
-                if len(bin_maps) < num_bins:
-                    bin_maps.append(bin_range)
-
-                # what is the coverage of label l with score in bin range? (in loci)
-                coverage_l_b = float(len(loci_1.loc[
-                    (bin_range[0] <= loci_1[l].astype("float"))&
-                    (loci_1[l].astype("float") <= bin_range[1]), l
-                ])) / len(loci_1)
-                
-                # what is the coverage of label l with score in bin range? (in overlap)
-                tss_l_b = float(len(overlaps.loc[
-                    (bin_range[0] <= overlaps[l].astype("float"))&
-                    (overlaps[l].astype("float") <= bin_range[1]), l
-                ])) / len(overlaps)
-
-                enr_l.append( 
-                    np.log(
-                        (tss_l_b) / (coverage_l_b)
-                    )
-                )
-                # print("range {}-{}, coverage = {}\t|\t enr = {} ".format(bin_range[0], bin_range[1], coverage_l_b, tss_l_b))
-
-            enr_dict[l] = enr_l
-
-        for k in enr_dict.keys():
-            plt.plot([(bin_maps[b][0] + bin_maps[b][1]) /2 for b in range(len(bin_maps))],
-            list(enr_dict[k]), label=k)
-
-        plt.ylabel("log(O/E) TSS enrichment")
-        plt.xlabel("Caliberated Posterior")
-        plt.title("TSS enrichment VS. Reproducibility")
-        plt.legend()
-        plt.show()
-     
-    '''
-    todo:
-
-        to see why the plots are wacky :)
-        review the process and see if sth is wrong
-            check if the problem is with the calibration process (log or other)
+        return enrich_dict
         
-        test on full data (not short version)
+    def tss_enrich_vs_repr(self, num_bins=10, stratified_bins=True, strat_size="def"):
+        """
+        OPT: calibrate reprod (to get reproducibility scores)
+        x-axis: bins of calibrated reproducibility score
+        y-axis: enrichment of TSS in that bin
+        """
+        
+        enr_dict = {}       
+        if stratified_bins:
+            for l in self.loci.columns[3:]:
+                if strat_size == "def":
+                    strat_size = int(len(self.overlaps)/15)
+                
+                enr_l = []
+                posterior_vector = self.overlaps[l].astype("float").sort_values().reset_index(drop=True)
 
+                for b in range(0, posterior_vector.shape[0], strat_size):
+                    subset_vector_pair = posterior_vector.iloc[b:b+strat_size].reset_index(drop=True)
+                    bin_range = [
+                        float(subset_vector_pair.iloc[subset_vector_pair.index[0]]), 
+                        float(subset_vector_pair.iloc[subset_vector_pair.index[-1]])
+                    ]
+                    _clb = float(len(self.loci.loc[
+                        (bin_range[0] <= self.loci[l].astype("float"))&
+                        (self.loci[l].astype("float") <= bin_range[1]), l]))
 
-    '''
+                    _tlb = float(len(self.overlaps.loc[
+                        (bin_range[0] <= self.overlaps[l].astype("float"))&
+                        (self.overlaps[l].astype("float") <= bin_range[1]), l]))
+                    
+                    # if _tlb == 0 or _clb == 0:
+                    #     # to avoid log crash 0
+                    #     _clb += 1/len(self.overlaps)
+                    #     _tlb += 1/len(self.overlaps)
+                    
+                    if _tlb != 0 and _clb != 0:
+                        coverage_l_b = float(_clb / (len(self.loci)))
+                        tss_l_b = float(_tlb / (len(self.overlaps)))
+                        
+                        enr_l.append([
+                            bin_range[0], bin_range[1], 
+                            np.log(tss_l_b/coverage_l_b)]
+                            )
+
+                enr_dict[l] = enr_l
+            
+            colors = [i for i in get_cmap('tab20').colors]
+            ci = 0
+            for k in enr_dict.keys():
+                plt.plot(
+                    [(kk[0]+kk[1])/2 for kk in enr_dict[k]],
+                    [kk[2] for kk in enr_dict[k]], label=k, c=colors[ci]
+                )
+                ci+=1
+
+            plt.ylabel("log(O/E) TSS enrichment")
+            plt.xlabel("Caliberated Posterior")
+            plt.title("TSS enrichment VS. Reproducibility")
+            plt.legend()
+            plt.tight_layout()
+            plt.savefig('{}/rep_vs_TSS_enrichment.pdf'.format(self.savedir), format='pdf')
+            plt.savefig('{}/rep_vs_TSS_enrichment.svg'.format(self.savedir), format='svg')
+            plt.clf()
+
+            ci = 0
+            
+            for k in enr_dict.keys():
+                x = [(kk[0]+kk[1])/2 for kk in enr_dict[k]]
+                y = [kk[2] for kk in enr_dict[k]]
+
+                try:
+                    if len(x)<=3:
+                        f = UnivariateSpline(x= np.array(x), y=y, k=2)
+                    else:
+                        f = UnivariateSpline(x= np.array(x), y=y, k=3)
+
+                    r2 = r2_score(
+                        y, 
+                        f(
+                            np.reshape(np.array(x), (-1,1))
+                        ))
+                    
+                    print("R2 score for {}: {}".format(k, r2))
+
+                    plt.plot(
+                        x, 
+                        f(x),
+                        label=k, c=colors[ci]
+                    )
+                    ci+=1
+                except:
+                    ci+=1
+                    print("faced error with {}".format(k))
+
+            plt.ylabel("log(O/E) TSS enrichment")
+            plt.xlabel("Caliberated Posterior")
+            plt.title("TSS enrichment VS. Reproducibility")
+            plt.legend()
+            plt.tight_layout()
+            plt.savefig('{}/rep_vs_TSS_enrichment_spline.pdf'.format(self.savedir), format='pdf')
+            plt.savefig('{}/rep_vs_TSS_enrichment_spline.svg'.format(self.savedir), format='svg')
+            plt.clf()
+
+        else:
+            for l in self.loci.columns[3:]:
+                bin_maps = []
+                bin_length = (float(self.loci.iloc[:,3:].max().max()) - float(self.loci.iloc[:,3:].min().min())) / num_bins
+                enr_l = []
+                for b in range(
+                    int(self.loci.iloc[:,3:].min().min()*10000), 
+                    int(self.loci.iloc[:,3:].max().max()*10000), 
+                    int(bin_length*10000)):
+
+                    bin_range = [float(b/10000), float(b/10000)+bin_length]
+
+                    if len(bin_maps) < num_bins:
+                        bin_maps.append(bin_range)
+
+                    # what is the coverage of label l with score in bin range? (in loci)
+                    coverage_l_b = float(len(self.loci.loc[
+                        (bin_range[0] <= self.loci[l].astype("float"))&
+                        (self.loci[l].astype("float") <= bin_range[1]), l])) / len(self.loci)
+                    
+                    # what is the coverage of label l with score in bin range? (in overlap)
+                    tss_l_b = float(len(self.overlaps.loc[
+                        (bin_range[0] <= self.overlaps[l].astype("float"))&
+                        (self.overlaps[l].astype("float") <= bin_range[1]), l])) / len(self.overlaps)
+
+                    enr_l.append( 
+                        np.log(
+                            (tss_l_b) / (coverage_l_b)
+                        )
+                    )
+
+                enr_dict[l] = enr_l
+
+            colors = [i for i in get_cmap('tab20').colors]
+            ci = 0
+            for k in enr_dict.keys():
+                plt.plot([(bin_maps[b][0] + bin_maps[b][1]) /2 for b in range(len(bin_maps))],
+                list(enr_dict[k]), label=k, c=colors[ci])
+                ci+=1
+
+            plt.ylabel("log(O/E) TSS enrichment")
+            plt.xlabel("Caliberated Posterior")
+            plt.title("TSS enrichment VS. Reproducibility")
+            plt.legend()
+            plt.tight_layout()
+            plt.savefig('{}/rep_vs_TSS_enrichment.pdf'.format(self.savedir), format='pdf')
+            plt.savefig('{}/rep_vs_TSS_enrichment.svg'.format(self.savedir), format='svg')
+            plt.clf()
