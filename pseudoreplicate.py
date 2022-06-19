@@ -36,8 +36,8 @@ def sample_pseudo(bed, ignore_decoy=True):
     return bed1, bed2
 
 def save_pseudo(psd_bed1, psd_bed2, initial_bam_dir):
-    psd_bed1.to_csv(initial_bam_dir.replace(".bam", "_psdrep1"), index=False, header=False, sep="\t")
-    psd_bed2.to_csv(initial_bam_dir.replace(".bam", "_psdrep2"), index=False, header=False, sep="\t")
+    psd_bed1.to_csv(initial_bam_dir.replace(".bam", "_psdrep1.bed"), index=False, header=False, sep="\t")
+    psd_bed2.to_csv(initial_bam_dir.replace(".bam", "_psdrep2.bed"), index=False, header=False, sep="\t")
 
 def genomesize(chrsz):
     chr = pd.read_csv(chrsz, sep="\t", header=None)
@@ -55,7 +55,7 @@ def bw2bg(dir):
     for e in ls_bws:
         os.system(
             "bigWigToBedGraph {} {}".format(
-                e, e.replace(".bigwig", ".bedGraph")
+                e, e.replace(".bed.",".").replace(".bigwig", ".bedGraph")
             )
         )
 

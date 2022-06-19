@@ -245,6 +245,76 @@ def create_genomedata(celltype_dir, sequence_file):
         'genomedata-load -s {} --sizes {} --verbose {}.genomedata'.format(
             sequence_file, tracklist_rep2, celltype_dir+'/rep2'))
 
+
+def create_psdrep_genomedata(celltype_dir, sequence_file):
+    '''
+    find the bam name corresponding to rep1/rep2
+    find psdrep* files for each track and each replicate
+
+    create genomedata file_rep1 in celltype_dir
+    create genomedata file_rep2 in celltype_dir
+    '''
+
+    print('creating genomedata files for {}...'.format(celltype_dir))
+
+    assaylist = [tr for tr in os.listdir(celltype_dir) if os.path.isdir(celltype_dir+'/'+tr)]# and tr in essential_tracks]
+    navigate = {
+        "rep1_psdrep1":[],
+        "rep1_psdrep2":[],
+        "rep2_psdrep1":[],
+        "rep2_psdrep2":[]
+    }
+
+    for tr in assaylist:
+        tfmd = pd.read_csv(celltype_dir+'/'+tr+'/track_files_metadata.csv')
+        tfmd.index = list(tfmd['Unnamed: 0'])
+        tfmd = tfmd.drop('Unnamed: 0', axis=1) 
+        navigate["rep1_psdrep1"].append(
+            [tfmd.loc['assay', 'rep1_alig'], "rep1", str(tfmd.loc['accession', 'rep1_alig'])+"_psdrep1.fc.signal.bedGraph"]
+        )
+        navigate["rep1_psdrep2"].append(
+            [tfmd.loc['assay', 'rep1_alig'], "rep1", str(tfmd.loc['accession', 'rep1_alig'])+"_psdrep2.fc.signal.bedGraph"]
+        )
+        navigate["rep2_psdrep1"].append(
+            [tfmd.loc['assay', 'rep2_alig'], "rep2", str(tfmd.loc['accession', 'rep2_alig'])+"_psdrep1.fc.signal.bedGraph"]
+        )
+        navigate["rep2_psdrep2"].append(
+            [tfmd.loc['assay', 'rep2_alig'], "rep2", str(tfmd.loc['accession', 'rep2_alig'])+"_psdrep2.fc.signal.bedGraph"]
+        )
+    tracklist_rep1psd1 = ''
+    for e in navigate["rep1_psdrep1"]:
+        tracklist_rep1psd1 = tracklist_rep1psd1 + '-t {}={} '.format(e[0], "{}/{}/{}".format(celltype_dir, e[0], e[2]))
+
+    tracklist_rep1psd2 = ''
+    for e in navigate["rep1_psdrep2"]:
+        tracklist_rep1psd2 = tracklist_rep1psd2 + '-t {}={} '.format(e[0], "{}/{}/{}".format(celltype_dir, e[0], e[2]))
+
+    tracklist_rep2psd1 = ''
+    for e in navigate["rep2_psdrep1"]:
+        tracklist_rep2psd1 = tracklist_rep2psd1 + '-t {}={} '.format(e[0], "{}/{}/{}".format(celltype_dir, e[0], e[2]))
+
+    tracklist_rep2psd2 = ''
+    for e in navigate["rep2_psdrep2"]:
+        tracklist_rep2psd2 = tracklist_rep2psd2 + '-t {}={} '.format(e[0], "{}/{}/{}".format(celltype_dir, e[0], e[2]))
+
+
+    os.system(
+        'genomedata-load -s {} --sizes {} --verbose {}.genomedata'.format(
+            sequence_file, tracklist_rep1psd1, celltype_dir+'/rep1_psdrep1'))
+
+    os.system(
+        'genomedata-load -s {} --sizes {} --verbose {}.genomedata'.format(
+            sequence_file, tracklist_rep1psd2, celltype_dir+'/rep1_psdrep2'))
+
+    os.system(
+        'genomedata-load -s {} --sizes {} --verbose {}.genomedata'.format(
+            sequence_file, tracklist_rep2psd1, celltype_dir+'/rep2_psdrep1'))
+
+    os.system(
+        'genomedata-load -s {} --sizes {} --verbose {}.genomedata'.format(
+            sequence_file, tracklist_rep2psd2, celltype_dir+'/rep2_psdrep2'))
+
+
 def concat_create_genomedata(celltype_dir, sequence_file):
     tracks_bgs_rep1 = {}
     with open(glob.glob(celltype_dir+'/seg_rep1_*')[0], 'r') as rep1_guidefile:
@@ -377,6 +447,72 @@ def RunParse_segway_replicates(celltype_dir, output_dir, random_seed=73):
 
     else:
         print(params_dict_2['name_sig'], "already exists")
+
+def RunParse_segway_psdreps(celltype_dir, output_dir, random_seed=73):
+    name_sig = celltype_dir.split('/')[-1]
+    num_tracks = len(
+        [tr for tr in os.listdir(celltype_dir) if os.path.isdir(celltype_dir+'/'+tr)])
+
+    params_dict_r1p1 = {
+        "random_seed":random_seed, "track_weight":0.01,
+        "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
+        "mini_batch_fraction":0.03, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "name_sig":output_dir+name_sig+'_rep1_psdrep1', 
+        "genomedata_file":celltype_dir+'/{}.genomedata'.format("rep1_psdrep1"), 
+        "traindir":output_dir+name_sig+'_rep1_psdrep1_train', 
+        "posteriordir":output_dir+name_sig+'_rep1_psdrep1_posterior'
+    }
+
+    params_dict_r1p2 = {
+        "random_seed":random_seed, "track_weight":0.01,
+        "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
+        "mini_batch_fraction":0.03, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "name_sig":output_dir+name_sig+'_rep1_psdrep2', 
+        "genomedata_file":celltype_dir+'/{}.genomedata'.format("rep1_psdrep2"), 
+        "traindir":output_dir+name_sig+'_rep1_psdrep2_train', 
+        "posteriordir":output_dir+name_sig+'_rep1_psdrep2_posterior'
+    }
+
+    params_dict_r2p1 = {
+        "random_seed":random_seed, "track_weight":0.01,
+        "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
+        "mini_batch_fraction":0.03, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "name_sig":output_dir+name_sig+'_rep2_psdrep1', 
+        "genomedata_file":celltype_dir+'/{}.genomedata'.format("rep2_psdrep1"), 
+        "traindir":output_dir+name_sig+'_rep2_psdrep1_train', 
+        "posteriordir":output_dir+name_sig+'_rep2_psdrep1_posterior'
+    }
+
+    params_dict_r2p2 = {
+        "random_seed":random_seed, "track_weight":0.01,
+        "stws":1, "ruler_scale":100, "prior_strength":1, "resolution":100, 
+        "mini_batch_fraction":0.03, "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
+        "name_sig":output_dir+name_sig+'_rep2_psdrep2', 
+        "genomedata_file":celltype_dir+'/{}.genomedata'.format("rep2_psdrep2"), 
+        "traindir":output_dir+name_sig+'_rep2_psdrep2_train', 
+        "posteriordir":output_dir+name_sig+'_rep2_psdrep2_posterior'
+    }
+
+    if os.path.exists(params_dict_r1p1['name_sig']) == False:
+        run_segway_and_post_process(params_dict_r1p1)
+    else:
+        print(params_dict_r1p1['name_sig'], "already exists")
+
+    if os.path.exists(params_dict_r1p2['name_sig']) == False:
+        run_segway_and_post_process(params_dict_r1p2)
+    else:
+        print(params_dict_r1p2['name_sig'], "already exists")
+
+    if os.path.exists(params_dict_r2p1['name_sig']) == False:
+        run_segway_and_post_process(params_dict_r2p1)
+    else:
+        print(params_dict_r2p1['name_sig'], "already exists")
+
+    if os.path.exists(params_dict_r2p2['name_sig']) == False:
+        run_segway_and_post_process(params_dict_r2p2)
+    else:
+        print(params_dict_r2p2['name_sig'], "already exists")
+
 
 def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, output_dir):
     # replicate number should be in format "repN" -> i.e. rep1, rep2

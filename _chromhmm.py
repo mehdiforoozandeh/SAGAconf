@@ -2,14 +2,14 @@ import os
 import pandas as pd
 
 def binarize_data(inputbeddir, cellmarkfiletable, outputdir, resolution=200, chromlength='ChromHMM/CHROMSIZES/hg38.txt'):
-    cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar BinarizeBam -b {} -t {} {} {} {} {}".format(
+    cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar BinarizeBed -b {} -t {} {} {} {} {}".format(
         resolution, outputdir+"/signals", chromlength, inputbeddir, cellmarkfiletable, outputdir
     )
     os.system(cmdline)
 
 def learnModel(binary_input_dir, output_dir, num_labels='16', assembly='hg38', n_threads='0', random_seed=None):
     if random_seed != None:
-        learnmodel_cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar LearnModel -printposterior -init random -s {} -p {} {} {} {} {}".format(
+        learnmodel_cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar LearnModel -printposterior -r 400 -init random -s {} -p {} {} {} {} {}".format(
             random_seed, n_threads, binary_input_dir, output_dir, num_labels, assembly)
     else:
         learnmodel_cmdline = "java -Xmx20g -jar ChromHMM/ChromHMM.jar LearnModel -printposterior -p {} {} {} {} {}".format(
@@ -100,18 +100,7 @@ def prepare_chmm_inputdata(CellType_dir, assertion=False):
     for tr in assaylist:
         tfmd = pd.read_csv(CellType_dir+'/'+tr+'/track_files_metadata.csv')
         tfmd.index = list(tfmd['Unnamed: 0'])
-        tfmd = tfmd.drop('Unnamed: 0', axis=1) 
-
-        # if assertion:
-        #     assert str(tfmd.loc['biosample', 'rep1_spv']) == rep1_biosampleID
-        #     assert str(tfmd.loc['biosample', 'rep2_spv']) == rep2_biosampleID
-        #     assert tfmd.loc['assay', 'rep1_spv'] == tr
-        #     assert tfmd.loc['assay', 'rep2_spv'] == tr
-
-        # navigate.append(
-        #     [tfmd.loc['assay', 'rep1_spv'], "rep1", str(tfmd.loc['accession', 'rep1_spv'])+".bedGraph"])  
-        # navigate.append(
-        #     [tfmd.loc['assay', 'rep2_spv'], "rep2", str(tfmd.loc['accession', 'rep2_spv'])+".bedGraph"])
+        tfmd = tfmd.drop('Unnamed: 0', axis=1)
 
         if assertion:
             assert str(tfmd.loc['biosample', 'rep1_alig']) == rep1_biosampleID
@@ -120,14 +109,28 @@ def prepare_chmm_inputdata(CellType_dir, assertion=False):
             assert tfmd.loc['assay', 'rep2_alig'] == tr
 
         navigate.append(
-            [tfmd.loc['assay', 'rep1_alig'], "rep1", str(tfmd.loc['accession', 'rep1_alig'])+".bam"])  
+            [tfmd.loc['assay', 'rep1_alig'], "rep1", str(tfmd.loc['accession', 'rep1_alig'])+".bed"])  
         navigate.append(
-            [tfmd.loc['assay', 'rep2_alig'], "rep2", str(tfmd.loc['accession', 'rep2_alig'])+".bam"])
+            [tfmd.loc['assay', 'rep2_alig'], "rep2", str(tfmd.loc['accession', 'rep2_alig'])+".bed"])
+
+        navigate.append(
+            [tfmd.loc['assay', 'rep1_alig'], "rep1_psd1", str(tfmd.loc['accession', 'rep1_alig'])+"_psdrep1.bed"])
+        navigate.append(
+            [tfmd.loc['assay', 'rep1_alig'], "rep1_psd2", str(tfmd.loc['accession', 'rep1_alig'])+"_psdrep2.bed"])
+        navigate.append(
+            [tfmd.loc['assay', 'rep2_alig'], "rep2_psd1", str(tfmd.loc['accession', 'rep2_alig'])+"_psdrep1.bed"])
+        navigate.append(
+            [tfmd.loc['assay', 'rep2_alig'], "rep2_psd2", str(tfmd.loc['accession', 'rep2_alig'])+"_psdrep2.bed"])
 
     
     cmft_concat = open("chmmfiles/{}/cmft_concat.txt".format(celltype_name), "w")
     cmft_rep1 = open("chmmfiles/{}/cmft_rep1.txt".format(celltype_name), "w")
     cmft_rep2 = open("chmmfiles/{}/cmft_rep2.txt".format(celltype_name), "w")
+
+    cmft_rep1psd1 = open("chmmfiles/{}/cmft_rep1psd1.txt".format(celltype_name), "w")
+    cmft_rep1psd2 = open("chmmfiles/{}/cmft_rep1psd2.txt".format(celltype_name), "w")
+    cmft_rep2psd1 = open("chmmfiles/{}/cmft_rep2psd1.txt".format(celltype_name), "w")
+    cmft_rep2psd2 = open("chmmfiles/{}/cmft_rep2psd2.txt".format(celltype_name), "w")
     
     for ins in navigate:
         os.system("cp {} {}".format(
@@ -141,10 +144,27 @@ def prepare_chmm_inputdata(CellType_dir, assertion=False):
         elif ins[1] == "rep2":
             cmft_rep2.write("{}_{}\t{}\t{}\n".format(
                 celltype_name, ins[1], ins[0], ins[2]))
+        elif ins[1] == "rep1_psd1":
+            cmft_rep1psd1.write("{}_{}\t{}\t{}\n".format(
+                celltype_name, ins[1], ins[0], ins[2]))
+        elif ins[1] == "rep1_psd2":
+            cmft_rep1psd2.write("{}_{}\t{}\t{}\n".format(
+                celltype_name, ins[1], ins[0], ins[2]))
+        elif ins[1] == "rep2_psd1":
+            cmft_rep2psd1.write("{}_{}\t{}\t{}\n".format(
+                celltype_name, ins[1], ins[0], ins[2]))
+        elif ins[1] == "rep2_psd2":
+            cmft_rep2psd2.write("{}_{}\t{}\t{}\n".format(
+                celltype_name, ins[1], ins[0], ins[2]))
     
     cmft_concat.close()
     cmft_rep1.close()
     cmft_rep2.close()
+
+    cmft_rep1psd1.close()
+    cmft_rep1psd2.close()
+    cmft_rep2psd1.close()
+    cmft_rep2psd2.close()
 
 def ChromHMM_replicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0', num_labels=16):
     namesig = chmm_celltype_dir.split("/")[-1]
@@ -185,6 +205,86 @@ def ChromHMM_replicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0', nu
                 chmm_output_dir+"/"+namesig+"_rep2/POSTERIOR", "rep2", resolution=200)
             
             parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep2/parsed_posterior.csv")
+    except:
+        pass
+
+def ChromHMM_pseudoreplicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='0', num_labels=16):
+    namesig = chmm_celltype_dir.split("/")[-1]
+
+    if os.path.exists(chmm_celltype_dir+"/binarized_rep1psd1") == False:
+        binarize_data(
+            chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep1psd1.txt", chmm_celltype_dir+"/binarized_rep1psd1", 
+            resolution=200)
+
+    if os.path.exists(chmm_output_dir+"/"+namesig+"_rep1psd1") == False:
+        learnModel(
+            chmm_celltype_dir+"/binarized_rep1psd1", chmm_output_dir+"/"+namesig+"_rep1psd1", 
+            num_labels=num_labels, assembly='hg38', n_threads=n_thread, random_seed=None)
+
+    try:
+        if os.path.exists(chmm_output_dir+"/"+namesig+"_rep1psd1/parsed_posterior.csv") == False:
+            parsed_posterior = ChrHMM_read_posteriordir(
+                chmm_output_dir+"/"+namesig+"_rep1psd1/POSTERIOR", "rep1_psd1", resolution=200)
+            
+            parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep1psd1/parsed_posterior.csv")
+    except:
+        pass
+
+    if os.path.exists(chmm_celltype_dir+"/binarized_rep1psd2") == False:
+        binarize_data(
+            chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep1psd2.txt", chmm_celltype_dir+"/binarized_rep1psd2", 
+            resolution=200)
+
+    if os.path.exists(chmm_output_dir+"/"+namesig+"_rep1psd2") == False:
+        learnModel(
+            chmm_celltype_dir+"/binarized_rep1psd2", chmm_output_dir+"/"+namesig+"_rep1psd2", 
+            num_labels=num_labels, assembly='hg38', n_threads=n_thread, random_seed=None)
+
+    try:
+        if os.path.exists(chmm_output_dir+"/"+namesig+"_rep1psd2/parsed_posterior.csv") == False:
+            parsed_posterior = ChrHMM_read_posteriordir(
+                chmm_output_dir+"/"+namesig+"_rep1psd2/POSTERIOR", "rep1_psd2", resolution=200)
+            
+            parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep1psd2/parsed_posterior.csv")
+    except:
+        pass
+
+    ####=================================================================================================####
+    if os.path.exists(chmm_celltype_dir+"/binarized_rep2psd1") == False:
+        binarize_data(
+            chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep2psd1.txt", chmm_celltype_dir+"/binarized_rep2psd1", 
+            resolution=200)
+
+    if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2psd1") == False:
+        learnModel(
+            chmm_celltype_dir+"/binarized_rep2psd1", chmm_output_dir+"/"+namesig+"_rep2psd1", 
+            num_labels=num_labels, assembly='hg38', n_threads=n_thread, random_seed=None)
+
+    try:
+        if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2psd1/parsed_posterior.csv") == False:
+            parsed_posterior = ChrHMM_read_posteriordir(
+                chmm_output_dir+"/"+namesig+"_rep2psd1/POSTERIOR", "rep2_psd1", resolution=200)
+            
+            parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep2psd1/parsed_posterior.csv")
+    except:
+        pass
+
+    if os.path.exists(chmm_celltype_dir+"/binarized_rep2psd2") == False:
+        binarize_data(
+            chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep2psd2.txt", chmm_celltype_dir+"/binarized_rep2psd2", 
+            resolution=200)
+
+    if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2psd2") == False:
+        learnModel(
+            chmm_celltype_dir+"/binarized_rep2psd2", chmm_output_dir+"/"+namesig+"_rep2psd2", 
+            num_labels=num_labels, assembly='hg38', n_threads=n_thread, random_seed=None)
+
+    try:
+        if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2psd2/parsed_posterior.csv") == False:
+            parsed_posterior = ChrHMM_read_posteriordir(
+                chmm_output_dir+"/"+namesig+"_rep2psd2/POSTERIOR", "rep2_psd2", resolution=200)
+            
+            parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep2psd2/parsed_posterior.csv")
     except:
         pass
 
