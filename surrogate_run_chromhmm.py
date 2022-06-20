@@ -57,7 +57,7 @@ chmm_output_dir = "chromhmm_runs/"
 chmm_input_dir = "chmmfiles/"
 for ct in CellType_list:
     print("Preparing ChromHMM inputfiles")
-    prepare_chmm_inputdata("files/"+ct, assertion=False)
+    prepare_chmm_inputdata(download_dir+ct, assertion=False)
 
     print("running chmm rep")
     ChromHMM_replicate_runs("chmmfiles/"+ct, chmm_output_dir, n_thread='0', num_labels=16)
