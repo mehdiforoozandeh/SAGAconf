@@ -503,15 +503,15 @@ def RunParse_segway_psdreps(celltype_dir, output_dir, random_seed=73):
     else:
         print(params_dict_r1p2['name_sig'], "already exists")
 
-    if os.path.exists(params_dict_r2p1['name_sig']) == False:
-        run_segway_and_post_process(params_dict_r2p1)
-    else:
-        print(params_dict_r2p1['name_sig'], "already exists")
+    # if os.path.exists(params_dict_r2p1['name_sig']) == False:
+    #     run_segway_and_post_process(params_dict_r2p1)
+    # else:
+    #     print(params_dict_r2p1['name_sig'], "already exists")
 
-    if os.path.exists(params_dict_r2p2['name_sig']) == False:
-        run_segway_and_post_process(params_dict_r2p2)
-    else:
-        print(params_dict_r2p2['name_sig'], "already exists")
+    # if os.path.exists(params_dict_r2p2['name_sig']) == False:
+    #     run_segway_and_post_process(params_dict_r2p2)
+    # else:
+    #     print(params_dict_r2p2['name_sig'], "already exists")
 
 
 def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, output_dir):
@@ -821,23 +821,25 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
     if os.path.exists(pltsavedir+"/snk") == False:
         os.mkdir(pltsavedir+"/snk")
     
-    
-    
     # plot posterior distribution
 
     to_report = {}
 
-    agr = Agreement(loci_1, loci_2, pltsavedir+"/agr")
+    agr = Agreement(loci_1, loci_2, pltsavedir+"/agr", assume_uniform_coverage=False)
     to_report["per-label agreement"] = agr.per_label_agreement()
+    to_report["per-label log(o/e) agreement"] = agr.per_label_OE_ratio()
+    to_report["per-label  Cohens Kappa score"] = agr.per_label_cohens_kappa()
+
     to_report["general agreement"] = agr.general_agreement()
     to_report["general log(o/e) agreement"] = agr.general_OE_ratio()
     to_report["general Cohens Kappa score"] = agr.general_cohens_kappa()
+
     agr.plot_agreement()
     agr.plot_CK()
     agr.plot_OE()
     del agr
     plt.close("all")
-    plt.style.use('default')
+    plt.style.use('default')   
 
     vis = sankey(loci_1, loci_2, pltsavedir+"/snk")
     vis.sankey_diag()
@@ -862,18 +864,21 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
     if cc_calb:
         if os.path.exists(pltsavedir+"/cc") == False:
             os.mkdir(pltsavedir+"/cc")
-        if os.path.exists(pltsavedir+"/clb") == False:
-            os.mkdir(pltsavedir+"/clb")
 
-        # cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
-        # cc.plot_curve(plot_general=False, merge_plots=False)
-        # del cc
-        # plt.close("all")
-        # plt.style.use('default')
+        cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
+        cc.plot_curve(plot_general=False, merge_plots=False)
+        del cc
+        plt.close("all")
+        plt.style.use('default')
+
+        if os.path.exists(pltsavedir+"/clb_1") == False:
+            os.mkdir(pltsavedir+"/clb_1")
+        if os.path.exists(pltsavedir+"/clb_2") == False:
+            os.mkdir(pltsavedir+"/clb_2")
 
         calb = posterior_calibration(
             loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
-            oe_transform=True, savedir=pltsavedir+"/clb")
+            oe_transform=True, savedir=pltsavedir+"/clb_1")
         calibrated_loci_1 = calb.perlabel_calibration_function(
             degree=5, num_bins=25, return_caliberated_matrix=True, scale_columnwise=True)
         
@@ -888,7 +893,7 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
 
         calb = posterior_calibration(
             loci_2, loci_1, log_transform=False, ignore_overconf=False, filter_nan=True, 
-            oe_transform=True, savedir=pltsavedir+"/clb")
+            oe_transform=True, savedir=pltsavedir+"/clb_2")
         calibrated_loci_2 = calb.perlabel_calibration_function(
             degree=5, num_bins=25, return_caliberated_matrix=True, scale_columnwise=True)
         

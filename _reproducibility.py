@@ -1,3 +1,4 @@
+
 from scipy.ndimage import gaussian_filter1d
 from statistics import mean
 import functools
@@ -20,7 +21,7 @@ import math
 
 
 class Agreement(object):
-    def __init__(self, loci_1, loci_2, savedir, filter_nan=True):
+    def __init__(self, loci_1, loci_2, savedir, filter_nan=True, assume_uniform_coverage=True):
         if filter_nan:
             loci_1 = loci_1.dropna()
             loci_1 = loci_1.reset_index(drop=True)
@@ -35,8 +36,8 @@ class Agreement(object):
 
         self.max_posteri1 = list(self.loci_1.iloc[:, 3:].idxmax(axis=1))
         self.max_posteri2 = list(self.loci_2.iloc[:, 3:].idxmax(axis=1))
-
-        self.expected_agreement = 1 / float(self.num_labels)
+        self.assume_uniform_coverage = assume_uniform_coverage
+        self.expected_agreement = {}
 
     def per_label_agreement(self):
         label_dict = {}
@@ -45,8 +46,14 @@ class Agreement(object):
         for c in self.loci_1.columns[3:]:
             label_dict[c] = [0, 0] # [agreement_count, disagreement_count]
             label_coverage[c] = 0
+            if self.assume_uniform_coverage == False:
+                self.expected_agreement[c] = 0
+            else:
+                self.expected_agreement[c] = float(1) / float(self.num_labels)
 
         for i in range(self.loci_1.shape[0]):
+            if self.assume_uniform_coverage == False:
+                self.expected_agreement[self.max_posteri2[i]] += 1 / self.loci_1.shape[0]
 
             if self.max_posteri1[i] == self.max_posteri2[i]:
                 label_dict[self.max_posteri1[i]][0] += 1 
@@ -67,7 +74,7 @@ class Agreement(object):
         return self.label_agreements
 
     def general_agreement(self):
-        self.per_label_agreement()
+        # self.per_label_agreement()
         # l = list(self.label_agreements.values())
 
         self.overall_agreement = 0
@@ -81,17 +88,19 @@ class Agreement(object):
         self.label_OE = {}
         for k in self.label_agreements.keys():
             if log_transform:
-                self.label_OE[k] = np.log(self.label_agreements[k] / (self.expected_agreement + self.epsilon))
+                self.label_OE[k] = np.log(
+                    self.label_agreements[k] / (self.expected_agreement[k] + self.epsilon)
+                    )
             else:
-                self.label_OE[k] = self.label_agreements[k] / (self.expected_agreement + self.epsilon)
+                self.label_OE[k] = self.label_agreements[k] / (self.expected_agreement[k] + self.epsilon)
 
         return self.label_OE
 
     def general_OE_ratio(self, log_transform=True):
         if log_transform:
-            self.overall_OE = np.log(self.overall_agreement/ (self.expected_agreement + self.epsilon))
+            self.overall_OE = np.log(self.overall_agreement/ ((float(1) / float(self.num_labels)) + self.epsilon))
         else:
-            self.overall_OE =  self.overall_agreement/ (self.expected_agreement + self.epsilon)
+            self.overall_OE =  self.overall_agreement/ (float(1) / float(self.num_labels) + self.epsilon)
 
         return self.overall_OE  
 
@@ -100,13 +109,13 @@ class Agreement(object):
 
         for k in self.label_agreements.keys():
             self.label_CK[k] = \
-                (self.label_agreements[k] - (self.expected_agreement + self.epsilon)) / (1 - (self.expected_agreement + self.epsilon))
-        
+                (self.label_agreements[k] - (self.expected_agreement[k] + self.epsilon)) / (1 - (self.expected_agreement[k] + self.epsilon))
+                
         return self.label_CK
 
     def general_cohens_kappa(self):
         self.overall_CK = \
-            (self.overall_agreement - (self.expected_agreement + self.epsilon)) / (1 - (self.expected_agreement + self.epsilon))
+            (self.overall_agreement - (float(1) / float(self.num_labels) + self.epsilon)) / (1 - (float(1) / float(self.num_labels) + self.epsilon))
         return self.overall_CK
     
     def plot_agreement(self):
@@ -143,7 +152,7 @@ class Agreement(object):
             )
 
     def plot_OE(self):
-        self.per_label_OE_ratio()
+        # self.per_label_OE_ratio()
         x = []
         height = []
         for k, v in self.label_OE.items():
@@ -177,7 +186,7 @@ class Agreement(object):
             )
 
     def plot_CK(self):
-        self.per_label_cohens_kappa()
+        # self.per_label_cohens_kappa()
         x = []
         height = []
         for k, v in self.label_CK.items():
@@ -764,6 +773,36 @@ class correspondence_curve(object):
             
             return sigma / len(self.loci_1)
     
+    def plot_1vs2(self):
+        post_cols = list(self.loci_1.columns)[3:]
+
+        # colors = np.array([i for i in get_cmap('tab20').colors])
+        for k in post_cols:
+            k_sorted_loci_1 = self.loci_1.sort_values(by=[k], axis=0, ascending=False).reset_index()
+            k_sorted_loci_2 = self.loci_2.sort_values(by=[k], axis=0, ascending=False).reset_index()
+            bb= []
+            kk = []
+            for b in range(5):
+                subset1 = list(k_sorted_loci_1.loc[:int(((b+1)/5)*len(k_sorted_loci_1)), "index"])
+                subset2 = list(k_sorted_loci_2.loc[:int(((b+1)/5)*len(k_sorted_loci_2)), "index"])
+                x = []
+                y = []
+                for i in range(len(subset1)):
+                    if subset1[i] in subset2:
+                        x.append(float(k_sorted_loci_1.loc[
+                            (k_sorted_loci_1["index"] == subset1[i]),k
+                        ]))
+                        y.append(float(k_sorted_loci_2.loc[
+                            (k_sorted_loci_2["index"] ==  subset1[i]),k
+                        ]))
+
+                print(len(x), len(subset1))
+                plt.scatter(x, y, s=5, alpha=1-float(b/5), c="black", label = 'top {} percent'.format(float((b+1)/5)*100))
+
+            plt.legend()
+            plt.show()
+                
+
     def plot_curve(self, num_t_steps=100, plot_labels=True, plot_general=True, merge_plots=False, subplot=True):
         self.psi_over_t = {}
         if plot_labels:
