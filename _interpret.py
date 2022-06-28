@@ -289,3 +289,6 @@ def main():
             chmm_get_mnem(chmmruns)
         except:
             pass
+
+if __name__=="__main__":
+    main()
