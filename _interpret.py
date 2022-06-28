@@ -1,6 +1,6 @@
-import requests, os
+import requests, os, sys
 
-def gtf_file(gtf_filename = 'label_interpretation/gencode.v29.primary_assembly.annotation_UCSC_names.gtf'): 
+def gtf_file(gtf_filename = 'biointerpret/gencode.v29.primary_assembly.annotation_UCSC_names.gtf'): 
     if not os.path.isfile(gtf_filename):
         url='https://www.encodeproject.org/files/\
         gencode.v29.primary_assembly.annotation_UCSC_names/\
@@ -13,32 +13,7 @@ def gtf_file(gtf_filename = 'label_interpretation/gencode.v29.primary_assembly.a
 
         return gtf_filename
 
-def make_temp_bed_for_concat(segbed_file):
-    "for running segtools on concat runs, we need to convert the bed files to sth with normal chr names"
-    write_obj = open(segbed_file.replace(".bed", "_temp.bed"), 'w')
-    with open(segbed_file, 'r') as sfn:
-        lines = sfn.readlines()
-        for l in lines:
-            if l[:3] == "chr":
-                l = l.split('\t')
-                l[0] = l[0][:-2]
-                write_obj.write("\t".join(l))
-            else:
-                write_obj.write(l)
-    write_obj.close()
-
-def create_input_dir(exp_name):
-    ''' MUST CONTAIN:
-    segwayOutput/exp_name
-    segwayOutput/exp_name/feature_aggegation.tab
-    segwayOutput/exp_name/signal_distribution.tab
-    segwayOutput/exp_name/segway.bed
-    segwayOutput/exp_name/{gtf_file}
-    segwayOutput/exp_name/{genomedata_file}
-    '''
-    os.mkdir('label_interpretation/segwayOutput/exp_name/')
-
-def feature_aggreg(exp_name, segbed, gtf):
+def __feature_aggreg(exp_name, segbed, gtf):
     '''
     use segtools to run segtools feat_aggreg
     '''
@@ -46,7 +21,7 @@ def feature_aggreg(exp_name, segbed, gtf):
 
     os.system('segtools-aggregation --normalize --mode=gene {} {} --outdir={}'.format(segbed, gtf, outdir))
 
-def signal_dist(exp_name, segbed, gd):
+def __signal_dist(exp_name, segbed, gd):
     '''
     use segtools to run segtools signal_distribution
     '''
@@ -54,7 +29,39 @@ def signal_dist(exp_name, segbed, gd):
 
     os.system('segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
 
-def segway_get_mnem():
+def segway_sigdist(segwayruns_dir, originalfiles_dir): 
+    ls0 = os.listdir(originalfiles_dir)
+    ls1 = os.listdir(segwayruns_dir)
+    for i in ls0:
+        for j in ls1:
+            segbed = segwayruns_dir+j+'/segway.bed'
+            if i in j:
+                if "concat" in j:
+                    if "rep1" in j:
+                        gd = originalfiles_dir+i+"/concat_rep1.genomedata"
+                    elif "rep2" in j:
+                        gd = originalfiles_dir+i+"/concat_rep2.genomedata"
+
+                else:
+                    if "rep1" in j:
+                        gd = originalfiles_dir+i+"/rep1.genomedata"
+                    elif "rep2" in j:
+                        gd = originalfiles_dir+i+"/rep2.genomedata"
+
+                os.system(
+                    'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, segwayruns_dir+j+'/sigdist'))
+
+
+def segway_feataggr(
+    segwayruns_dir, gtffile="biointerpret/gencode.v29.primary_assembly.annotation_UCSC_names.gtf"):
+    ls0 = os.listdir(segwayruns_dir)
+    for i in ls0:
+        segbed = segwayruns_dir+i+'/segway.bed'
+        os.system(
+            'segtools-aggregation --normalize --mode=gene {} {} --outdir={}'.format(
+                segbed, gtffile, "{}/{}/aggre".format(segwayruns_dir, i)))
+
+def segway_get_mnem(segwayruns_dir):
     """
     for each run:
         mkdir(segwayoutput/runname)
@@ -66,37 +73,23 @@ def segway_get_mnem():
     for each run:
         cp mnems/run/mnem.txt run/mnem.txt
         """
-    ls1 = os.listdir("segway_runs/")
+    ls1 = os.listdir(segwayruns_dir)
     for run in ls1:
-        with open("segway_runs/{}/signal_dist/signal_distribution.tab".format(run), 'r') as file:
+        with open("{}/{}/signal_dist/signal_distribution.tab".format(segwayruns_dir, run), 'r') as file:
             lines = file.readlines()
             lines = "".join(lines)
         if "nan" not in lines:
             if os.path.exists("biointerpret/segwayOutput/{}".format(run))==False:
                 os.mkdir("biointerpret/segwayOutput/{}".format(run))
-            os.system("cp segway_runs/{}/aggregations/feature_aggregation.tab biointerpret/segwayOutput/{}".format(run, run))
-            os.system("cp segway_runs/{}/signal_dist/signal_distribution.tab biointerpret/segwayOutput/{}".format(run, run))
+            os.system("cp {}/{}/aggregations/feature_aggregation.tab biointerpret/segwayOutput/{}".format(segwayruns_dir, run, run))
+            os.system("cp {}/{}/signal_dist/signal_distribution.tab biointerpret/segwayOutput/{}".format(segwayruns_dir,run, run))
+
     os.system("cd biointerpret && python apply_samples.py segway_mnemons")
     ls2 = os.listdir("biointerpret/segway_mnemons/classification")
+
     for l in ls2:
-        os.system("cp biointerpret/segway_mnemons/classification/{}/mnemonics.txt segway_runs/{}".format(l,l))
+        os.system("cp biointerpret/segway_mnemons/classification/{}/mnemonics.txt {}/{}".format(l, segwayruns_dir, l))
 
-def segway_run_sigdist_concat():
-    ls0 = os.listdir("files/")
-    ls1 = os.listdir("segway_runs/")
-    for i in ls0:
-        for j in ls1:
-            print(j)
-            segbed = "segway_runs/"+j+'/segway.bed'
-            if i in j:
-                if "concat" in j:
-                    if "rep1" in j:
-                        gd = "files/"+i+"/concat_rep1.genomedata"
-                    elif "rep2" in j:
-                        gd = "files/"+i+"/concat_rep2.genomedata"
-
-                    os.system(
-                        'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, "segway_runs/"+j+'/signal_dist'))
 
 def chmm_sigdist(chmmruns_dir, original_files_dir):
     ls0 = os.listdir(chmmruns_dir)
@@ -235,3 +228,63 @@ def chmm_get_mnem(chmmruns_dir):
         else:
             os.system("cp biointerpret/chmm_mnemons/classification/{}/mnemonics.txt {}/{}".format(l, chmmruns_dir,l))
 
+
+"""
+make executable bash using "chmod u+x get_mnemons.sh"
+
+**BASH FILE get_mnemons.sh:
+    conda activate p27segenv
+    python interpret.py sigdist 
+    conda deactivate
+    conda activate segenv
+    python interpret.py feataggr
+    python interprete.py get_mnemons
+    conda deactivate
+"""
+
+def main():
+    task = sys.argv[1]
+    originalfiles = "protect_files_/"
+    chmmruns = "chromhmm_runs/"
+    segwayruns = "segway_runs/"
+
+    if os.path.exists('biointerpret/gencode.v29.primary_assembly.annotation_UCSC_names.gtf')==False:
+        gtf_file()
+
+    if task == "sigdist":
+        try:
+            print("running segway signal dist")
+            segway_sigdist(segwayruns, originalfiles)
+        except:
+            pass
+
+        try:
+            print("running chromhmm signal dist")
+            chmm_sigdist(chmmruns_dir=chmmruns, original_files_dir=originalfiles)
+        except:
+            pass
+
+    elif task == "feataggr":
+        try:
+            print("running segway feature aggregation")
+            segway_feataggr(segwayruns)
+        except:
+            pass
+
+        try:
+            print("running chromhmm feature aggregation")
+            chmm_aggr(chmmruns_dir=chmmruns, original_files_dir=originalfiles)
+        except:
+            pass
+
+    elif task == "mnemon":
+        try:
+            print("getting segway mnemons")
+            segway_get_mnem(segwayruns)
+        except:
+            pass
+        try:
+            print("getting chromhmm mnemons")
+            chmm_get_mnem(chmmruns)
+        except:
+            pass
