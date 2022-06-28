@@ -1,5 +1,6 @@
 #!/bin/bash
 
+source  ~/miniconda3/etc/profile.d/conda.sh
 conda activate p27segenv
 python _interpret.py sigdist 
 conda deactivate

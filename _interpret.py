@@ -233,7 +233,8 @@ def chmm_get_mnem(chmmruns_dir):
 make executable bash using "chmod u+x get_mnemons.sh"
 
 **BASH FILE get_mnemons.sh:
-    conda activate p27segenv
+    source ~/miniconda3/etc/profile.d/conda.sh
+    activate p27segenv
     python interpret.py sigdist 
     conda deactivate
     conda activate segenv
