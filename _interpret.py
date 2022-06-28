@@ -239,7 +239,7 @@ make executable bash using "chmod u+x get_mnemons.sh"
     conda deactivate
     conda activate segenv
     python interpret.py feataggr
-    python interprete.py get_mnemons
+    python interpret.py get_mnemons
     conda deactivate
 """
 
