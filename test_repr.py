@@ -318,8 +318,8 @@ if __name__=="__main__":
 
     # full_reproducibility_report(replicate_1_dir, replicate_2_dir, "tests/pltsavedir_chmm/")
 
-    replicate_1_dir = "tests/segway/GM12878_rep1/parsed_posterior.csv"
-    replicate_2_dir = "tests/segway/GM12878_rep2/parsed_posterior.csv"
+    replicate_1_dir = "tests/segway/GM12878_rep1/parsed_posterior_short.csv"
+    replicate_2_dir = "tests/segway/GM12878_rep2/parsed_posterior_short.csv"
 
     full_reproducibility_report(replicate_1_dir, replicate_2_dir, "tests/pltsavedir_segw/")
     

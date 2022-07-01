@@ -287,7 +287,7 @@ def inplace_binning(posterior_file, resolution):
     new_posterior_list = pd.DataFrame(new_posterior_list, columns=['chr', 'start', 'end', posterior_ID])
     return new_posterior_list
 
-def mp_inplace_binning(posterior_dir, resolution, assert_coord_match=False, mp=True):
+def mp_inplace_binning(posterior_dir, resolution, assert_coord_match=False, mp=False):
     ls_dir = os.listdir(posterior_dir)
     posterior_file_list = []
 
