@@ -313,10 +313,15 @@ def benchmark(replicate_1_dir, replicate_2_dir, pltsavedir):
     print("the whole process took:  ",datetime.now() - t0)
     
 if __name__=="__main__":
-    replicate_1_dir = "tests/chmm/GM12878_concat/parsed_posterior_rep1_short.csv"
-    replicate_2_dir = "tests/chmm/GM12878_concat/parsed_posterior_rep2_short.csv"
+    # replicate_1_dir = "tests/chmm/GM12878_rep1/parsed_posterior.csv"
+    # replicate_2_dir = "tests/chmm/GM12878_rep2/parsed_posterior.csv"
 
-    full_reproducibility_report(replicate_1_dir, replicate_2_dir, "tests/pltsavedir/")
+    # full_reproducibility_report(replicate_1_dir, replicate_2_dir, "tests/pltsavedir_chmm/")
+
+    replicate_1_dir = "tests/segway/GM12878_rep1/parsed_posterior.csv"
+    replicate_2_dir = "tests/segway/GM12878_rep2/parsed_posterior.csv"
+
+    full_reproducibility_report(replicate_1_dir, replicate_2_dir, "tests/pltsavedir_segw/")
     
     # benchmark(replicate_1_dir, replicate_2_dir, "tests/pltsavedir/")
 

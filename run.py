@@ -637,175 +637,6 @@ def read_mnemonics(mnemon_file):
             mnemon.append(str(int(df["old"][i])-1)+"_"+df["new"][i])
     return mnemon
 
-def _report_reproducibility(loci_1, loci_2, pltsavedir, general=True, num_bins=20, merge_cc_curves=False, full_report=True):
-    '''
-    TODO:
-    1- instead of showing the plot, savefig (vector)
-    2- save the visualized data for each plot in text,csv format to enable 
-    easy reproduction of better visualize with other visualization tools
-    '''
-    if os.path.exists(pltsavedir)==False:
-        os.mkdir(pltsavedir)
-
-    if os.path.exists(pltsavedir+"/agreement")==False:
-        os.mkdir(pltsavedir+"/agreement")
-
-    if os.path.exists(pltsavedir+"/sankey")==False:
-        os.mkdir(pltsavedir+"/sankey")
-
-    agr = Agreement(loci_1, loci_2, pltsavedir+"/agreement")
-    vis = sankey(loci_1, loci_2, pltsavedir+"/sankey")
-
-    to_report = [
-        agr.general_agreement(), agr.general_OE_ratio(log_transform=False), agr.general_cohens_kappa()]
-
-    print('general agreement:    ', to_report[0])
-    print('general o/e ratio:    ', to_report[1])
-    print('general CK:    ', to_report[2])
-
-    agr.plot_agreement()
-    agr.plot_CK()
-    agr.plot_OE()
-    vis.sankey_diag()
-
-    if full_report:
-        if os.path.exists(pltsavedir+"/cc")==False:
-            os.mkdir(pltsavedir+"/cc")
-
-        if os.path.exists(pltsavedir+"/calib")==False:
-            os.mkdir(pltsavedir+"/calib")
-
-        cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
-        # repr = Reprodroducibility_vs_posterior(loci_1,loci_2, pltsavedir+"/calib",log_transform=False)
-
-        cc.plot_curve(plot_general=general, merge_plots=merge_cc_curves)
-        repr.per_label_count_independent(num_bins=num_bins)
-
-        if general:
-            repr.general_count_independent(num_bins=num_bins)
-        
-        return to_report
-
-
-def _post_clustering(loci_1, loci_2, pltsavedir, OE_transform=True):
-    num_labels = loci_1.shape[1]-3
-
-    print('generating confmat 1')
-    
-    conf_mat = confusion_matrix(
-        loci_1, loci_2, num_labels, 
-        OE_transform=True, symmetric=False)
-
-    assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
-
-    print('connecting barpartite')
-
-    corrected_loci_1, corrected_loci_2 = \
-        connect_bipartite(loci_1, loci_2, assignment_pairs)
-    
-    print('connected barpartite')
-
-    del loci_1, loci_2
-
-    print('generating confmat 2')
-    conf_mat = confusion_matrix(
-        corrected_loci_1, corrected_loci_2, num_labels, 
-        OE_transform=OE_transform, symmetric=True)  
-
-    mat_max = conf_mat.max(axis=1).max(axis=0)
-    mat_min = conf_mat.min(axis=1).min(axis=0)
-
-    conf_mat = (conf_mat - mat_min) / (mat_max - mat_min)
-    distance_matrix = 1 - conf_mat
-    linkage = hc.linkage(distance_matrix, method='average')
-
-    if os.path.exists(pltsavedir)==False:
-        os.mkdir(pltsavedir)
-
-    # initial reproducibility without cluster merging
-    if os.path.exists(pltsavedir+"/{}_labels".format(num_labels)) == False:
-            os.mkdir(pltsavedir+"/{}_labels".format(num_labels))
-
-    stepwise_report = {}
-    
-    stepwise_report[num_labels] = report_reproducibility(
-            corrected_loci_1, corrected_loci_2, pltsavedir+"/{}_labels".format(num_labels), 
-            general=False, num_bins=20, merge_cc_curves=False)
-
-    # sns.clustermap(
-    #     distance_matrix, row_linkage=linkage, 
-    #     col_linkage=linkage, annot=True)
-
-    # if os.path.exists(pltsavedir+'/post_clustering/')==False:
-    #     os.mkdir(pltsavedir+'/post_clustering/')
-
-    # plt.savefig('{}/post_clustering/clustermap.pdf'.format(pltsavedir), format='pdf')
-    # plt.savefig('{}/post_clustering/clustermap.svg'.format(pltsavedir), format='svg')
-    # plt.clf()
-
-    for m in range(len(linkage)):
-        # merging clusters one at a time
-        to_be_merged = [
-            "posterior{}".format(int(linkage[m, 0])), 
-            "posterior{}".format(int(linkage[m, 1]))]
-
-        print("to be merged", to_be_merged)
-        corrected_loci_1['posterior{}'.format(num_labels + m)] = \
-            corrected_loci_1[to_be_merged[0]] + corrected_loci_1[to_be_merged[1]]
-
-        corrected_loci_1 = corrected_loci_1.drop(to_be_merged, axis=1)
-
-        corrected_loci_2['posterior{}'.format(num_labels + m)] = \
-            corrected_loci_2[to_be_merged[0]] + corrected_loci_2[to_be_merged[1]]
-
-        corrected_loci_2 = corrected_loci_2.drop(to_be_merged, axis=1)
-
-        # print("merged loci_1", corrected_loci_1, "\nmerged loci_2", corrected_loci_2)
-
-        if os.path.exists(pltsavedir+"/"+str(num_labels-(m+1))+'_labels') == False:
-            os.mkdir(pltsavedir+"/"+str(num_labels-(m+1))+'_labels')
-
-        stepwise_report[int(num_labels-(m+1))] = report_reproducibility(
-            corrected_loci_1, corrected_loci_2, pltsavedir+"/"+str(num_labels-(m+1))+'_labels', 
-            general=False, num_bins=20, merge_cc_curves=False, full_report=True)
-
-    xaxis, yaxis = [], []
-    for k, v in stepwise_report.items():
-        xaxis.append(k)
-        yaxis.append(v[0])
-
-    plt.bar(xaxis, yaxis)
-    plt.xlabel('Number of Labels')
-    plt.ylabel('General Agreement')
-    plt.savefig('{}/postclustering_agreement.svg'.format(pltsavedir), format='svg')
-    plt.savefig('{}/postclustering_agreement.pdf'.format(pltsavedir), format='pdf')
-    plt.clf()
-    
-    xaxis, yaxis = [], []
-    for k, v in stepwise_report.items():
-        xaxis.append(k)
-        yaxis.append(v[1])
-
-    plt.bar(xaxis, yaxis)
-    plt.xlabel('Number of Labels')
-    plt.ylabel('O/E Agreement')
-    plt.savefig('{}/postclustering_oe_agreement.svg'.format(pltsavedir), format='svg')
-    plt.savefig('{}/postclustering_oe_agreement.pdf'.format(pltsavedir), format='pdf')
-    plt.clf()
-
-    xaxis, yaxis = [], []
-    for k, v in stepwise_report.items():
-        xaxis.append(k)
-        yaxis.append(v[2])
-
-    plt.bar(xaxis, yaxis)
-    plt.xlabel('Number of Labels')
-    plt.ylabel("Cohen's Kappa")
-    plt.savefig('{}/postclustering_ck.svg'.format(pltsavedir), format='svg')
-    plt.savefig('{}/postclustering_ck.pdf'.format(pltsavedir), format='pdf')
-    plt.clf()
-    return stepwise_report
-
 
 def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
     """
@@ -849,62 +680,77 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
     plt.close('all')
     plt.style.use('default')
 
-    if os.path.exists(pltsavedir+"/pstdist_rep1") == False:
-        os.mkdir(pltsavedir+"/pstdist_rep1")
-    pstdist = Posterior_dist(loci_1, pltsavedir+"/pstdist_rep1")
-    pstdist.plot_posterior_histogram()
+    try:
+        if os.path.exists(pltsavedir+"/pstdist_rep1") == False:
+            os.mkdir(pltsavedir+"/pstdist_rep1")
+        pstdist = Posterior_dist(loci_1, pltsavedir+"/pstdist_rep1")
+        pstdist.plot_posterior_histogram()
 
-    if os.path.exists(pltsavedir+"/pstdist_rep2") == False:
-        os.mkdir(pltsavedir+"/pstdist_rep2")
-    pstdist = Posterior_dist(loci_1, pltsavedir+"/pstdist_rep2")
-    pstdist.plot_posterior_histogram()
+        if os.path.exists(pltsavedir+"/pstdist_rep2") == False:
+            os.mkdir(pltsavedir+"/pstdist_rep2")
+        pstdist = Posterior_dist(loci_2, pltsavedir+"/pstdist_rep2")
+        pstdist.plot_posterior_histogram()
 
-    del pstdist
-
+        del pstdist
+        
+    except:
+        pass
+    
     if cc_calb:
         if os.path.exists(pltsavedir+"/cc") == False:
             os.mkdir(pltsavedir+"/cc")
 
-        cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
-        cc.plot_curve(plot_general=False, merge_plots=False)
-        del cc
-        plt.close("all")
-        plt.style.use('default')
+        try:
+            cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
+            cc.plot_curve(plot_general=False, merge_plots=False)
+            del cc
+            plt.close("all")
+            plt.style.use('default')
+
+        except:
+            print("could not generate corresp. curve")
 
         if os.path.exists(pltsavedir+"/clb_1") == False:
             os.mkdir(pltsavedir+"/clb_1")
         if os.path.exists(pltsavedir+"/clb_2") == False:
             os.mkdir(pltsavedir+"/clb_2")
 
-        calb = posterior_calibration(
-            loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
-            oe_transform=True, savedir=pltsavedir+"/clb_1")
-        calibrated_loci_1 = calb.perlabel_calibration_function(
-            degree=5, num_bins=25, return_caliberated_matrix=True, scale_columnwise=True)
+        try:
+            calb = posterior_calibration(
+                loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
+                oe_transform=True, savedir=pltsavedir+"/clb_1")
+            calibrated_loci_1 = calb.perlabel_calibration_function(
+                degree=5, num_bins=25, return_caliberated_matrix=True, scale_columnwise=True)
+            
+            plt.close("all")
+            plt.style.use('default')
+
+            if os.path.exists(pltsavedir+"/tss_rep1") == False:
+                os.mkdir(pltsavedir+"/tss_rep1")
+            TSS_obj = TSS_enrichment(calibrated_loci_1, TSSdir="tests/RefSeqTSS.hg38.txt", savedir=pltsavedir+"/tss_rep1")
+            TSS_obj.tss_enrich(m_p=False)
+            TSS_obj.tss_enrich_vs_repr()
+
+        except:
+            print("could not generate calibrations and TSS enrichment")
         
-        plt.close("all")
-        plt.style.use('default')
+        # try:
+        #     calb = posterior_calibration(
+        #         loci_2, loci_1, log_transform=False, ignore_overconf=False, filter_nan=True, 
+        #         oe_transform=True, savedir=pltsavedir+"/clb_2")
+        #     calibrated_loci_2 = calb.perlabel_calibration_function(
+        #         degree=5, num_bins=25, return_caliberated_matrix=True, scale_columnwise=True)
+            
+        #     plt.close("all")
+        #     plt.style.use('default')
 
-        if os.path.exists(pltsavedir+"/tss_rep1") == False:
-            os.mkdir(pltsavedir+"/tss_rep1")
-        TSS_obj = TSS_enrichment(calibrated_loci_1, TSSdir="tests/RefSeqTSS.hg38.txt", savedir=pltsavedir+"/tss_rep1")
-        TSS_obj.tss_enrich()
-        TSS_obj.tss_enrich_vs_repr()
-
-        calb = posterior_calibration(
-            loci_2, loci_1, log_transform=False, ignore_overconf=False, filter_nan=True, 
-            oe_transform=True, savedir=pltsavedir+"/clb_2")
-        calibrated_loci_2 = calb.perlabel_calibration_function(
-            degree=5, num_bins=25, return_caliberated_matrix=True, scale_columnwise=True)
-        
-        plt.close("all")
-        plt.style.use('default')
-
-        if os.path.exists(pltsavedir+"/tss_rep2") == False:
-            os.mkdir(pltsavedir+"/tss_rep2")
-        TSS_obj = TSS_enrichment(calibrated_loci_2, TSSdir="tests/RefSeqTSS.hg38.txt", savedir=pltsavedir+"/tss_rep2")
-        TSS_obj.tss_enrich()
-        TSS_obj.tss_enrich_vs_repr()
+        #     if os.path.exists(pltsavedir+"/tss_rep2") == False:
+        #         os.mkdir(pltsavedir+"/tss_rep2")
+        #     TSS_obj = TSS_enrichment(calibrated_loci_2, TSSdir="tests/RefSeqTSS.hg38.txt", savedir=pltsavedir+"/tss_rep2")
+        #     TSS_obj.tss_enrich()
+        #     TSS_obj.tss_enrich_vs_repr()
+        # except:
+        #     pass
 
     return to_report
 
@@ -1000,7 +846,21 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
         loci_1, loci_2, 
         pltsavedir=pltsavedir+"/{}_labels".format(num_labels), cc_calb=True)
 
-    exit()
+    coverage1= {}
+    coverage2= {}
+
+    merge_track1 = []
+    merge_track2 = []
+
+    MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
+    coverage1[str(num_labels)] = MAP1.value_counts()/len(MAP1)
+
+    MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
+    coverage2[str(num_labels)] = MAP2.value_counts()/len(MAP2)
+
+    merge_track1.append(MAP1)
+    merge_track2.append(MAP2)
+
     # merging clusters one at a time
     merged_label_ID = {}
     labels = loci_1.iloc[:, 3:].columns
@@ -1025,10 +885,27 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
             loci_2[to_be_merged[0]] + loci_2[to_be_merged[1]]
         loci_2 = loci_2.drop(to_be_merged, axis=1)
 
+        MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
+        coverage1[str((num_labels-1) - m)] = MAP1.value_counts()/len(MAP1)
+        merge_track1.append(MAP1)
+
+        MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
+        coverage2[str((num_labels-1) - m)] = MAP2.value_counts()/len(MAP2)
+        merge_track2.append(MAP2)
+        
         reports[str((num_labels-1) - m)] = report_reproducibility(
             loci_1, loci_2, 
             pltsavedir=pltsavedir+"/{}_labels".format((num_labels-1) - m), 
             cc_calb=False)
+
+    merge_track1 = pd.concat(merge_track1, axis=1)
+    merge_track1.columns = ["{}_labels".format(16-lm) for lm in range(16)] 
+
+    merge_track2 = pd.concat(merge_track2, axis=1)
+    merge_track2.columns = ["{}_labels".format(16-lm) for lm in range(16)] 
+
+    merge_track1.to_csv('{}/post_clustering/merged_MAP1.csv'.format(pltsavedir))
+    merge_track2.to_csv('{}/post_clustering/merged_MAP2.csv'.format(pltsavedir))
 
     nl = list(reports.keys())
     ys =[reports[k]["general agreement"] for k in nl]

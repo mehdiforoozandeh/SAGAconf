@@ -42,14 +42,24 @@ def segway_sigdist(segwayruns_dir, originalfiles_dir):
                     elif "rep2" in j:
                         gd = originalfiles_dir+i+"/concat_rep2.genomedata"
 
+                elif "_rep1_psdrep1" in j:
+                    gd = originalfiles_dir+i+"/rep1_psdrep1.genomedata"
+                elif "_rep1_psdrep2" in j:
+                    gd = originalfiles_dir+i+"/rep1_psdrep2.genomedata"
+                elif "_rep2_psdrep1" in j:
+                    gd = originalfiles_dir+i+"/rep2_psdrep1.genomedata"
+                elif "_rep2_psdrep2" in j:
+                    gd = originalfiles_dir+i+"/rep2_psdrep2.genomedata"
+
                 else:
                     if "rep1" in j:
                         gd = originalfiles_dir+i+"/rep1.genomedata"
                     elif "rep2" in j:
                         gd = originalfiles_dir+i+"/rep2.genomedata"
 
-                os.system(
-                    'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, segwayruns_dir+j+'/sigdist'))
+                if os.path.exists(segwayruns_dir+j+'/sigdist') == False:
+                    os.system(
+                        'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, segwayruns_dir+j+'/sigdist'))
 
 
 def segway_feataggr(
@@ -57,9 +67,10 @@ def segway_feataggr(
     ls0 = os.listdir(segwayruns_dir)
     for i in ls0:
         segbed = segwayruns_dir+i+'/segway.bed'
-        os.system(
-            'segtools-aggregation --normalize --mode=gene {} {} --outdir={}'.format(
-                segbed, gtffile, "{}/{}/aggre".format(segwayruns_dir, i)))
+        if os.path.exists("{}/{}/aggre".format(segwayruns_dir, i)) == False:
+            os.system(
+                'segtools-aggregation --normalize --mode=gene {} {} --outdir={}'.format(
+                    segbed, gtffile, "{}/{}/aggre".format(segwayruns_dir, i)))
 
 def segway_get_mnem(segwayruns_dir):
     """
@@ -107,15 +118,44 @@ def chmm_sigdist(chmmruns_dir, original_files_dir):
                                 segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
                                 gd = "{}/{}/rep1.genomedata".format(original_files_dir, ct)
                                 outdir = "{}/{}/{}".format(chmmruns_dir, run, 'sigdist_rep1')
-                                os.system(
-                                    'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
+                                if os.path.exists("{}/{}/aggre".format(outdir)) == False:
+                                    os.system(
+                                        'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
 
                             elif "rep2" in ff:
                                 segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
                                 gd = "{}/{}/rep2.genomedata".format(original_files_dir, ct)
                                 outdir = "{}/{}/{}".format(chmmruns_dir, run, 'sigdist_rep2')
-                                os.system(
-                                    'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
+                                if os.path.exists("{}/{}/aggre".format(outdir)) == False:
+                                    os.system(
+                                        'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
+                elif "rep1psd1" in run:
+                    for ff in ls2:
+                        if "dense.bed" in ff:
+                            segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
+                            gd = "{}/{}/rep1_psdrep1.genomedata".format(original_files_dir, ct)
+                            outdir = "{}/{}/{}".format(chmmruns_dir, run, 'sigdist')
+
+                elif "rep1psd2" in run:
+                    for ff in ls2:
+                        if "dense.bed" in ff:
+                            segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
+                            gd = "{}/{}/rep1_psdrep2.genomedata".format(original_files_dir, ct)
+                            outdir = "{}/{}/{}".format(chmmruns_dir, run, 'sigdist')
+
+                elif "rep2psd1" in run:
+                    for ff in ls2:
+                        if "dense.bed" in ff:
+                            segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
+                            gd = "{}/{}/rep2_psdrep1.genomedata".format(original_files_dir, ct)
+                            outdir = "{}/{}/{}".format(chmmruns_dir, run, 'sigdist')
+
+                elif "rep2psd2" in run:
+                    for ff in ls2:
+                        if "dense.bed" in ff:
+                            segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
+                            gd = "{}/{}/rep2_psdrep2.genomedata".format(original_files_dir, ct)
+                            outdir = "{}/{}/{}".format(chmmruns_dir, run, 'sigdist')
 
                 else:
                     for ff in ls2:
@@ -124,15 +164,17 @@ def chmm_sigdist(chmmruns_dir, original_files_dir):
                                 segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
                                 gd = "{}/{}/rep1.genomedata".format(original_files_dir, ct)
                                 outdir = "{}/{}/{}".format(chmmruns_dir, run, 'sigdist')
-                                os.system(
-                                    'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
+                                if os.path.exists("{}/{}/aggre".format(outdir)) == False:
+                                    os.system(
+                                        'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
 
                             elif "rep2" in ff:
                                 segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
                                 gd = "{}/{}/rep2.genomedata".format(original_files_dir, ct)
                                 outdir = "{}/{}/{}".format(chmmruns_dir, run, 'sigdist')
-                                os.system(
-                                    'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
+                                if os.path.exists("{}/{}/aggre".format(outdir)) == False:
+                                    os.system(
+                                        'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
 
 
 def chmm_aggr(chmmruns_dir, original_files_dir, gtffile="biointerpret/gencode.v29.primary_assembly.annotation_UCSC_names.gtf"):
@@ -148,21 +190,24 @@ def chmm_aggr(chmmruns_dir, original_files_dir, gtffile="biointerpret/gencode.v2
                     for ff in ls2:
                         if "dense.bed" in ff:
                             if "rep1" in ff:
-                                os.system('segtools-aggregation --normalize --mode=gene {} {} --outdir={}'.format(
-                                "{}/{}/{}".format(chmmruns_dir, run, ff),
-                                 gtffile, "{}/{}/{}".format(chmmruns_dir, run, "aggre_rep1/")))
+                                if os.path.exists("{}/{}/aggre".format("{}/{}/{}".format(chmmruns_dir, run, "aggre_rep1/"))) == False:
+                                    os.system('segtools-aggregation --normalize --mode=gene {} {} --outdir={}'.format(
+                                    "{}/{}/{}".format(chmmruns_dir, run, ff),
+                                    gtffile, "{}/{}/{}".format(chmmruns_dir, run, "aggre_rep1/")))
 
                             elif "rep2" in ff:
-                                os.system('segtools-aggregation --normalize --mode=gene {} {} --outdir={}'.format(
-                                "{}/{}/{}".format(chmmruns_dir, run, ff),
-                                 gtffile, "{}/{}/{}".format(chmmruns_dir, run, "aggre_rep2/")))
+                                if os.path.exists("{}/{}/aggre".format("{}/{}/{}".format(chmmruns_dir, run, "aggre_rep2/"))) == False:
+                                    os.system('segtools-aggregation --normalize --mode=gene {} {} --outdir={}'.format(
+                                    "{}/{}/{}".format(chmmruns_dir, run, ff),
+                                    gtffile, "{}/{}/{}".format(chmmruns_dir, run, "aggre_rep2/")))
 
                 else:
                     for ff in ls2:
                         if "dense.bed" in ff:
-                            os.system('segtools-aggregation --normalize --mode=gene {} {} --outdir={}'.format(
-                                "{}/{}/{}".format(chmmruns_dir, run, ff),
-                                 gtffile, "{}/{}/{}".format(chmmruns_dir, run, "aggre/")))
+                            if os.path.exists("{}/{}/aggre".format("{}/{}/{}".format(chmmruns_dir, run, "aggre/"))) == False:
+                                os.system('segtools-aggregation --normalize --mode=gene {} {} --outdir={}'.format(
+                                    "{}/{}/{}".format(chmmruns_dir, run, ff),
+                                    gtffile, "{}/{}/{}".format(chmmruns_dir, run, "aggre/")))
 
 def chmm_get_mnem(chmmruns_dir):
     """
@@ -254,14 +299,15 @@ def main():
 
     if task == "sigdist":
         try:
-            print("running segway signal dist")
-            segway_sigdist(segwayruns, originalfiles)
+            print("running chromhmm signal dist")
+            chmm_sigdist(chmmruns_dir=chmmruns, original_files_dir=originalfiles)
+            
         except:
             pass
 
         try:
-            print("running chromhmm signal dist")
-            chmm_sigdist(chmmruns_dir=chmmruns, original_files_dir=originalfiles)
+            print("running segway signal dist")
+            segway_sigdist(segwayruns, originalfiles)
         except:
             pass
 
