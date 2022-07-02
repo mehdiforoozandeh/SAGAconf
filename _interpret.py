@@ -92,7 +92,7 @@ def segway_get_mnem(segwayruns_dir):
         if "nan" not in lines:
             if os.path.exists("biointerpret/segwayOutput/{}".format(run))==False:
                 os.mkdir("biointerpret/segwayOutput/{}".format(run))
-            os.system("cp {}/{}/aggregations/feature_aggregation.tab biointerpret/segwayOutput/{}".format(segwayruns_dir, run, run))
+            os.system("cp {}/{}/aggre/feature_aggregation.tab biointerpret/segwayOutput/{}".format(segwayruns_dir, run, run))
             os.system("cp {}/{}/sigdist/signal_distribution.tab biointerpret/segwayOutput/{}".format(segwayruns_dir,run, run))
 
     os.system("cd biointerpret && python apply_samples.py segway_mnemons")
