@@ -101,6 +101,11 @@ def segway_get_mnem(segwayruns_dir):
     for l in ls2:
         os.system("cp biointerpret/segway_mnemons/classification/{}/mnemonics.txt {}/{}".format(l, segwayruns_dir, l))
 
+    print("cleaning up the segwayOutput dir...")
+    ls3 = ["biointerpret/segwayOutput/"+i for i in os.listdir("biointerpret/segwayOutput") if os.path.isdir("biointerpret/segwayOutput/"+i)]
+    for l in ls3:
+        os.system("rm -r {}".format(l))
+
 
 def chmm_sigdist(chmmruns_dir, original_files_dir):
     ls0 = os.listdir(chmmruns_dir)
@@ -285,6 +290,11 @@ def chmm_get_mnem(chmmruns_dir):
                     chmmruns_dir,l.replace("_rep2",""), chmmruns_dir, l.replace("_rep2","")))
         else:
             os.system("cp biointerpret/chmm_mnemons/classification/{}/mnemonics.txt {}/{}".format(l, chmmruns_dir,l))
+    
+    print("cleaning up the segwayOutput dir...")
+    ls3 = ["biointerpret/segwayOutput/"+i for i in os.listdir("biointerpret/segwayOutput") if os.path.isdir("biointerpret/segwayOutput/"+i)]
+    for l in ls3:
+        os.system("rm -r {}".format(l))
 
 
 """

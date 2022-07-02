@@ -917,6 +917,15 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
     plt.savefig('{}/post_clustering/agr_Progress.svg'.format(pltsavedir), format='svg')
     plt.clf()
 
+    with open('{}/post_clustering/agr_Progress.txt'.format(pltsavedir), "w") as wrfile:
+        # xlabel, ylabel, bars, heights
+        wrfile.write(
+            "{}\n{}\n{}\n{}".format(
+                "Number of Labels", "General Agreement",
+                str(nl), str(ys)
+            )
+        )
+
     ys =[reports[k]["general log(o/e) agreement"] for k in nl]
     plt.bar(list(nl), list(ys), color="grey")
     plt.title("Post-clustering Progress")
@@ -926,6 +935,15 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
     plt.savefig('{}/post_clustering/oe_agr_Progress.svg'.format(pltsavedir), format='svg')
     plt.clf()
 
+    with open('{}/post_clustering/oe_agr_Progress.txt'.format(pltsavedir), "w") as wrfile:
+        # xlabel, ylabel, bars, heights
+        wrfile.write(
+            "{}\n{}\n{}\n{}".format(
+                "Number of Labels", "log(O/E) Agreement",
+                str(nl), str(ys)
+            )
+        )
+
     ys =[reports[k]["general Cohens Kappa score"] for k in nl]
     plt.bar(list(nl), list(ys), color="grey")
     plt.title("Post-clustering Progress")
@@ -934,6 +952,15 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
     plt.savefig('{}/post_clustering/ck_Progress.pdf'.format(pltsavedir), format='pdf')
     plt.savefig('{}/post_clustering/ck_Progress.svg'.format(pltsavedir), format='svg')
     plt.clf()
+
+    with open('{}/post_clustering/ck_Progress.txt'.format(pltsavedir), "w") as wrfile:
+        # xlabel, ylabel, bars, heights
+        wrfile.write(
+            "{}\n{}\n{}\n{}".format(
+                "Number of Labels", "Cohen's Kappa",
+                str(nl), str(ys)
+            )
+        )
 
     sns.reset_orig
     plt.style.use('default')
