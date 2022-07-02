@@ -29,6 +29,28 @@ def __signal_dist(exp_name, segbed, gd):
 
     os.system('segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
 
+def segway_concat_beds(segwayruns_dir):
+    "takes care of the added index infront of the chromosomes in the bed file"
+    ls0 = os.listdir(segwayruns_dir)
+
+    for l in ls0:
+        if "concat" in l:
+            ls1 = os.listdir(segwayruns_dir+"/"+l+"/")
+            if "segway_temp.bed" not in ls1 and "segway.bed" in ls1:
+                
+                with open(segwayruns_dir+"/"+l+"/segway.bed", 'r') as fr:
+                    lines = fr.readlines()
+                    with open(segwayruns_dir+"/"+l+"/segway_temp.bed", 'w') as fw:
+                        for ll in lines:
+                            if ll[:3] == "chr":
+                                lll = ll.split("\t")
+                                lll[0] = lll[0][:-2]
+                                lll = "\t".join(lll)
+                                fw.write(lll)
+
+                            else:
+                                fw.write(ll)
+
 def segway_sigdist(segwayruns_dir, originalfiles_dir): 
     ls0 = os.listdir(originalfiles_dir)
     ls1 = os.listdir(segwayruns_dir)
@@ -37,6 +59,7 @@ def segway_sigdist(segwayruns_dir, originalfiles_dir):
             segbed = segwayruns_dir+j+'/segway.bed'
             if i in j:
                 if "concat" in j:
+                    segbed = segwayruns_dir+j+'/segway_temp.bed'
                     if "rep1" in j:
                         gd = originalfiles_dir+i+"/concat_rep1.genomedata"
                     elif "rep2" in j:
@@ -61,12 +84,15 @@ def segway_sigdist(segwayruns_dir, originalfiles_dir):
                     os.system(
                         'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, segwayruns_dir+j+'/sigdist'))
 
-
 def segway_feataggr(
     segwayruns_dir, gtffile="biointerpret/gencode.v29.primary_assembly.annotation_UCSC_names.gtf"):
     ls0 = os.listdir(segwayruns_dir)
     for i in ls0:
-        segbed = segwayruns_dir+i+'/segway.bed'
+        if "concat" in i:
+            segbed = segwayruns_dir+i+'/segway_temp.bed'
+        else:
+            segbed = segwayruns_dir+i+'/segway.bed'
+            
         if os.path.exists("{}/{}/aggre".format(segwayruns_dir, i)) == False:
             os.system(
                 'segtools-aggregation --normalize --mode=gene {} {} --outdir={}'.format(
