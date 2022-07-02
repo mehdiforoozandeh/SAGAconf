@@ -349,13 +349,14 @@ def main():
 
     elif task == "mnemon":
         # try:
-        print("getting segway mnemons")
-        segway_get_mnem(segwayruns)
-        # except:
-        #     pass
-        # try:
         print("getting chromhmm mnemons")
         chmm_get_mnem(chmmruns)
+        # except:
+        #     pass
+
+        # try:
+        print("getting segway mnemons")
+        segway_get_mnem(segwayruns)
         # except:
         #     pass
 
