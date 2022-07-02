@@ -503,15 +503,15 @@ def RunParse_segway_psdreps(celltype_dir, output_dir, random_seed=73):
     else:
         print(params_dict_r1p2['name_sig'], "already exists")
 
-    # if os.path.exists(params_dict_r2p1['name_sig']) == False:
-    #     run_segway_and_post_process(params_dict_r2p1)
-    # else:
-    #     print(params_dict_r2p1['name_sig'], "already exists")
+    if os.path.exists(params_dict_r2p1['name_sig']) == False:
+        run_segway_and_post_process(params_dict_r2p1)
+    else:
+        print(params_dict_r2p1['name_sig'], "already exists")
 
-    # if os.path.exists(params_dict_r2p2['name_sig']) == False:
-    #     run_segway_and_post_process(params_dict_r2p2)
-    # else:
-    #     print(params_dict_r2p2['name_sig'], "already exists")
+    if os.path.exists(params_dict_r2p2['name_sig']) == False:
+        run_segway_and_post_process(params_dict_r2p2)
+    else:
+        print(params_dict_r2p2['name_sig'], "already exists")
 
 
 def RunParse_segway_param_init(celltype_dir, replicate_number, random_seeds, output_dir):

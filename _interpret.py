@@ -99,12 +99,13 @@ def segway_get_mnem(segwayruns_dir):
     ls2 = os.listdir("biointerpret/segway_mnemons/classification")
 
     for l in ls2:
-        os.system("cp biointerpret/segway_mnemons/classification/{}/mnemonics.txt {}/{}".format(l, segwayruns_dir, l))
+        if l in ls1:
+            os.system("cp biointerpret/segway_mnemons/classification/{}/mnemonics.txt {}/{}".format(l, segwayruns_dir, l))
 
-    print("cleaning up the segwayOutput dir...")
-    ls3 = ["biointerpret/segwayOutput/"+i for i in os.listdir("biointerpret/segwayOutput") if os.path.isdir("biointerpret/segwayOutput/"+i)]
-    for l in ls3:
-        os.system("rm -r {}".format(l))
+    # print("cleaning up the segwayOutput dir...")
+    # ls3 = ["biointerpret/segwayOutput/"+i for i in os.listdir("biointerpret/segwayOutput") if os.path.isdir("biointerpret/segwayOutput/"+i)]
+    # for l in ls3:
+    #     os.system("rm -r {}".format(l))
 
 
 def chmm_sigdist(chmmruns_dir, original_files_dir):
@@ -273,28 +274,29 @@ def chmm_get_mnem(chmmruns_dir):
     ls2 = os.listdir("biointerpret/chmm_mnemons/classification")
 
     for l in ls2:
-        print("copying files back for {}".format(l))
+        if l in ls1:
+            print("copying files back for {}".format(l))
 
-        if "concat" in l:
+            if "concat" in l:
 
-            if "rep1" in l:
-                os.system("cp biointerpret/chmm_mnemons/classification/{}/mnemonics.txt {}/{}".format(
-                    l, chmmruns_dir,l.replace("_rep1","")))
-                os.system("mv {}/{}/mnemonics.txt {}/{}/mnemonics_rep1.txt".format(
-                    chmmruns_dir,l.replace("_rep1",""), chmmruns_dir, l.replace("_rep1","")))
-                    
-            elif "rep2" in l:
-                os.system("cp biointerpret/chmm_mnemons/classification/{}/mnemonics.txt {}/{}".format(
-                    l, chmmruns_dir,l.replace("_rep2","")))
-                os.system("mv {}/{}/mnemonics.txt {}/{}/mnemonics_rep2.txt".format(
-                    chmmruns_dir,l.replace("_rep2",""), chmmruns_dir, l.replace("_rep2","")))
-        else:
-            os.system("cp biointerpret/chmm_mnemons/classification/{}/mnemonics.txt {}/{}".format(l, chmmruns_dir,l))
+                if "rep1" in l:
+                    os.system("cp biointerpret/chmm_mnemons/classification/{}/mnemonics.txt {}/{}".format(
+                        l, chmmruns_dir,l.replace("_rep1","")))
+                    os.system("mv {}/{}/mnemonics.txt {}/{}/mnemonics_rep1.txt".format(
+                        chmmruns_dir,l.replace("_rep1",""), chmmruns_dir, l.replace("_rep1","")))
+                        
+                elif "rep2" in l:
+                    os.system("cp biointerpret/chmm_mnemons/classification/{}/mnemonics.txt {}/{}".format(
+                        l, chmmruns_dir,l.replace("_rep2","")))
+                    os.system("mv {}/{}/mnemonics.txt {}/{}/mnemonics_rep2.txt".format(
+                        chmmruns_dir,l.replace("_rep2",""), chmmruns_dir, l.replace("_rep2","")))
+            else:
+                os.system("cp biointerpret/chmm_mnemons/classification/{}/mnemonics.txt {}/{}".format(l, chmmruns_dir,l))
     
-    print("cleaning up the segwayOutput dir...")
-    ls3 = ["biointerpret/segwayOutput/"+i for i in os.listdir("biointerpret/segwayOutput") if os.path.isdir("biointerpret/segwayOutput/"+i)]
-    for l in ls3:
-        os.system("rm -r {}".format(l))
+    # print("cleaning up the segwayOutput dir...")
+    # ls3 = ["biointerpret/segwayOutput/"+i for i in os.listdir("biointerpret/segwayOutput") if os.path.isdir("biointerpret/segwayOutput/"+i)]
+    # for l in ls3:
+    #     os.system("rm -r {}".format(l))
 
 
 """
