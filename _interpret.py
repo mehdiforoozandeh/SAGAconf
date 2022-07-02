@@ -86,14 +86,14 @@ def segway_get_mnem(segwayruns_dir):
         """
     ls1 = os.listdir(segwayruns_dir)
     for run in ls1:
-        with open("{}/{}/signal_dist/signal_distribution.tab".format(segwayruns_dir, run), 'r') as file:
+        with open("{}/{}/sigdist/signal_distribution.tab".format(segwayruns_dir, run), 'r') as file:
             lines = file.readlines()
             lines = "".join(lines)
         if "nan" not in lines:
             if os.path.exists("biointerpret/segwayOutput/{}".format(run))==False:
                 os.mkdir("biointerpret/segwayOutput/{}".format(run))
             os.system("cp {}/{}/aggregations/feature_aggregation.tab biointerpret/segwayOutput/{}".format(segwayruns_dir, run, run))
-            os.system("cp {}/{}/signal_dist/signal_distribution.tab biointerpret/segwayOutput/{}".format(segwayruns_dir,run, run))
+            os.system("cp {}/{}/sigdist/signal_distribution.tab biointerpret/segwayOutput/{}".format(segwayruns_dir,run, run))
 
     os.system("cd biointerpret && python apply_samples.py segway_mnemons")
     ls2 = os.listdir("biointerpret/segway_mnemons/classification")
