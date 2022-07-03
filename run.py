@@ -712,29 +712,29 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
 
         if os.path.exists(pltsavedir+"/clb_1") == False:
             os.mkdir(pltsavedir+"/clb_1")
-        if os.path.exists(pltsavedir+"/clb_2") == False:
-            os.mkdir(pltsavedir+"/clb_2")
 
-        try:
-            calb = posterior_calibration(
-                loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
-                oe_transform=True, savedir=pltsavedir+"/clb_1")
-            calibrated_loci_1 = calb.perlabel_calibration_function(
-                degree=5, num_bins=25, return_caliberated_matrix=True, scale_columnwise=True)
-            
-            plt.close("all")
-            plt.style.use('default')
+        # try:
+        calb = posterior_calibration(
+            loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
+            oe_transform=True, savedir=pltsavedir+"/clb_1")
+        calibrated_loci_1 = calb.perlabel_calibration_function(
+            degree=5, num_bins=25, return_caliberated_matrix=True, scale_columnwise=True)
+        
+        plt.close("all")
+        plt.style.use('default')
 
-            if os.path.exists(pltsavedir+"/tss_rep1") == False:
-                os.mkdir(pltsavedir+"/tss_rep1")
-            TSS_obj = TSS_enrichment(calibrated_loci_1, TSSdir="tests/RefSeqTSS.hg38.txt", savedir=pltsavedir+"/tss_rep1")
-            TSS_obj.tss_enrich(m_p=False)
-            TSS_obj.tss_enrich_vs_repr()
+        if os.path.exists(pltsavedir+"/tss_rep1") == False:
+            os.mkdir(pltsavedir+"/tss_rep1")
+        TSS_obj = TSS_enrichment(calibrated_loci_1, TSSdir="tests/RefSeqTSS.hg38.txt", savedir=pltsavedir+"/tss_rep1")
+        TSS_obj.tss_enrich(m_p=False)
+        TSS_obj.tss_enrich_vs_repr()
 
-        except:
-            print("could not generate calibrations and TSS enrichment")
+        # except:
+        #     print("could not generate calibrations and TSS enrichment")
         
         # try:
+        #     if os.path.exists(pltsavedir+"/clb_2") == False:
+        #         os.mkdir(pltsavedir+"/clb_2")
         #     calb = posterior_calibration(
         #         loci_2, loci_1, log_transform=False, ignore_overconf=False, filter_nan=True, 
         #         oe_transform=True, savedir=pltsavedir+"/clb_2")
@@ -973,7 +973,7 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir, ru
 
 def run_single_reprod_analysis(input_dict):
     print("running type: {}".format(input_dict["runtype"]))
-    
+
     with open(input_dict["output_dir"]+"/run_info.txt", 'w') as fw:
         fw.write(str(input_dict))
 
