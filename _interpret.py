@@ -59,7 +59,7 @@ def segway_sigdist(segwayruns_dir, originalfiles_dir):
             segbed = segwayruns_dir+j+'/segway.bed'
             if i in j:
                 if "concat" in j:
-                    segbed = segwayruns_dir+j+'/segway_temp.bed'
+
                     if "rep1" in j:
                         gd = originalfiles_dir+i+"/concat_rep1.genomedata"
                     elif "rep2" in j:
