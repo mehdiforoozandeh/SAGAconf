@@ -747,14 +747,14 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
         #     if os.path.exists(pltsavedir+"/tss_rep2") == False:
         #         os.mkdir(pltsavedir+"/tss_rep2")
         #     TSS_obj = TSS_enrichment(calibrated_loci_2, TSSdir="tests/RefSeqTSS.hg38.txt", savedir=pltsavedir+"/tss_rep2")
-        #     TSS_obj.tss_enrich()
+        #     TSS_obj.tss_enrich(m_p=False)
         #     TSS_obj.tss_enrich_vs_repr()
         # except:
-        #     pass
+        #     print("could not generate calibrations and TSS enrichment")
 
     return to_report
 
-def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
+def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir, run_on_subset=False):
     """
     get full reproducibility results
     including stepwise merging of labels through 
@@ -765,6 +765,12 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
     loci_1, loci_2 = intersect_parsed_posteriors(
         replicate_1_dir, 
         replicate_2_dir)
+
+    if run_on_subset:
+        loci_1 = loci_1.iloc[[i for i in range(0, len(loci_1), 100)], :].reset_index(drop=True)
+        loci_2 = loci_2.iloc[[i for i in range(0, len(loci_2), 100)], :].reset_index(drop=True)
+
+    print("the shapes of the input matrices are: {}, {}".format(str(loci_1.shape), str(loci_2.shape)))
 
     num_labels = loci_1.shape[1]-3
     loci_1.columns = ["chr", "start", "end"]+["posterior{}".format(i) for i in range(num_labels)]
@@ -799,7 +805,7 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
     mnemon2_dict = {}
     for i in loci_2_mnemon:
         mnemon2_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
-    
+
     for i in range(len(assignment_pairs)):
         assignment_pairs[i] = (mnemon1_dict[str(assignment_pairs[i][0])], mnemon2_dict[str(assignment_pairs[i][1])])
     print(assignment_pairs)
@@ -967,7 +973,11 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir):
 
 def run_single_reprod_analysis(input_dict):
     print("running type: {}".format(input_dict["runtype"]))
-    full_reproducibility_report(input_dict["rep1_dir"], input_dict["rep2_dir"], input_dict["output_dir"])
+    
+    with open(input_dict["output_dir"]+"/run_info.txt", 'w') as fw:
+        fw.write(str(input_dict))
+
+    full_reproducibility_report(input_dict["rep1_dir"], input_dict["rep2_dir"], input_dict["output_dir"], run_on_subset=True)
 
 def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, multi_p=True, type="segway", n_processors=8):
     """Given a directory containing all segway or chromHMM runs, 
@@ -983,37 +993,53 @@ def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, multi_p=True, t
     run_instances = {}
     
     for ct in CellType_list:
+        ct_runs = {}
 
         if os.path.exists("{}/{}".format(output_dir, ct))==False:
             os.mkdir("{}/{}".format(output_dir, ct))
 
+        ################################################################################
         if os.path.exists("{}/{}/rep1_vs_rep2/".format(output_dir, ct))==False:
             os.mkdir("{}/{}/rep1_vs_rep2/".format(output_dir, ct))
-            
-        ct_runs = {}
+        
         ct_runs["replicates"] = [
             "{}/{}_rep1/parsed_posterior.csv".format(runs_dir, ct), 
             "{}/{}_rep2/parsed_posterior.csv".format(runs_dir, ct), 
             "{}/{}/rep1_vs_rep2/".format(output_dir, ct)]
         
+        ################################################################################
         if os.path.exists("{}/{}/rep1_paraminit".format(output_dir, ct))==False:
             os.mkdir("{}/{}/rep1_paraminit".format(output_dir, ct))
         
-        ct_runs["rep1_paraminit"] = [
-            "{}/{}_rep1_{}/parsed_posterior.csv".format(runs_dir, ct, random_seeds[0]), 
-            "{}/{}_rep1_{}/parsed_posterior.csv".format(runs_dir, ct, random_seeds[1]), 
-            "{}/{}/rep1_paraminit/".format(output_dir, ct)]
-        
-        # if rep2 rand_seeds exist, run paraminit analysis on rep2 as well 
-        if os.path.exists("{}/{}_rep2_{}/parsed_posterior.csv".format(runs_dir, ct, random_seeds[0])):
-            if os.path.exists("{}/{}/rep2_paraminit".format(output_dir, ct))==False:
-                os.mkdir("{}/{}/rep2_paraminit".format(output_dir, ct))
+        if type=="segway":
+            ct_runs["rep1_paraminit"] = [
+                "{}/{}_rep1/parsed_posterior.csv".format(runs_dir, ct), 
+                "{}/{}_rep1_rs5/parsed_posterior.csv".format(runs_dir, ct), 
+                "{}/{}/rep1_paraminit/".format(output_dir, ct)]
 
-            ct_runs["rep2_paraminit"] = [
-                "{}/{}_rep2_{}/parsed_posterior.csv".format(runs_dir, ct, random_seeds[0]), 
-                "{}/{}_rep2_{}/parsed_posterior.csv".format(runs_dir, ct, random_seeds[1]), 
-                "{}/{}/rep2_paraminit/".format(output_dir, ct)]
+        elif type == "chmm":
+            ct_runs["rep1_paraminit"] = [
+                "{}/{}_rep1_{}/parsed_posterior.csv".format(runs_dir, ct, random_seeds[0]), 
+                "{}/{}_rep1_{}/parsed_posterior.csv".format(runs_dir, ct, random_seeds[1]), 
+                "{}/{}/rep1_paraminit/".format(output_dir, ct)]
+
+        ################################################################################
+        if os.path.exists("{}/{}/rep1_pseudoreps".format(output_dir, ct))==False:
+            os.mkdir("{}/{}/rep1_pseudoreps".format(output_dir, ct))
         
+        if type=="chmm":
+            ct_runs["rep1_pseudoreps"] = [
+            "{}/{}_rep1psd1/parsed_posterior.csv".format(runs_dir, ct), 
+            "{}/{}_rep1psd2/parsed_posterior.csv".format(runs_dir, ct), 
+            "{}/{}/rep1_pseudoreps/".format(output_dir, ct)]
+
+        elif type == "segway":
+            ct_runs["rep1_pseudoreps"] = [
+            "{}/{}_rep1_psdrep1/parsed_posterior.csv".format(runs_dir, ct), 
+            "{}/{}_rep1_psdrep2/parsed_posterior.csv".format(runs_dir, ct), 
+            "{}/{}/rep1_pseudoreps/".format(output_dir, ct)]
+        
+        ################################################################################
         if os.path.exists("{}/{}/concatenated/".format(output_dir, ct))==False:
             os.mkdir("{}/{}/concatenated/".format(output_dir, ct))
 
@@ -1029,6 +1055,7 @@ def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, multi_p=True, t
             "{}/{}_concat/parsed_posterior_rep2.csv".format(runs_dir, ct), 
             "{}/{}/concatenated/".format(output_dir, ct)]
 
+        ################################################################################
         run_instances[ct] = ct_runs
     
     list_of_runs = []

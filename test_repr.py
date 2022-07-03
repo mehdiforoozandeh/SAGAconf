@@ -126,16 +126,16 @@ def test_calibration(replicate_1_dir, replicate_2_dir):
         loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, oe_transform=True, savedir="tests/reprod_plots")
     calibrated_loci_1 = calb.perlabel_calibration_function(degree=5, num_bins=10, return_caliberated_matrix=True)
 
-    vext = validate_EXT()
+    # vext = validate_EXT()
     # vext.read_feat_agg_enrichment(
     #     replicate_1_dir+"/aggregations/feature_aggregation.tab", 
     #     agr.per_label_agreement())
     # vext.TSS_vs_agreement_plot()
-    tss_coords = vext.TSS_from_gtf("gencode.v29.primary_assembly.annotation_UCSC_names.gtf")
+    # tss_coords = vext.TSS_from_gtf("gencode.v29.primary_assembly.annotation_UCSC_names.gtf")
 
-    print(tss_coords)
-    # vext.TSS_vs_calibrated_plot(calibrated_loci_1)
-    vext.TSS_enrich_vs_reproducibility(calibrated_loci_1)
+    # print(tss_coords)
+    # # vext.TSS_vs_calibrated_plot(calibrated_loci_1)
+    # vext.TSS_enrich_vs_reproducibility(calibrated_loci_1)
 
 def subsampleloci(replicate_1_dir, samplesize=100):
     with open(replicate_1_dir+"/parsed_posterior_short.csv", 'w') as newfile:
@@ -205,13 +205,13 @@ def TSS_test(loci_1, loci_2, tss, replicate_1_dir, replicate_2_dir):
     # loci_2_c = calb.perlabel_calibration_function(method="isoton_reg", degree=3, num_bins=10, return_caliberated_matrix=True)
     # print(loci_2_c)
 
-    tssenr1 = tss_enrich(loci_1_c, tss)
-    plt.bar(list(tssenr1.keys()), list(tssenr1.values()))
-    plt.ylabel("log(O/E) TSS enrichment")
-    plt.xticks(rotation=45, fontsize=7)
-    plt.show()
+    # tssenr1 = tss_enrich(loci_1_c, tss)
+    # plt.bar(list(tssenr1.keys()), list(tssenr1.values()))
+    # plt.ylabel("log(O/E) TSS enrichment")
+    # plt.xticks(rotation=45, fontsize=7)
+    # plt.show()
 
-    tss_enrich_vs_repr(loci_1_c, tss, m_p=True)
+    # tss_enrich_vs_repr(loci_1_c, tss, m_p=True)
 
     # tssenr2 = tss_enrich(loci_2_c, tss)
     # plt.bar(list(tssenr2.keys()), list(tssenr2.values()))
@@ -313,10 +313,10 @@ def benchmark(replicate_1_dir, replicate_2_dir, pltsavedir):
     print("the whole process took:  ",datetime.now() - t0)
     
 if __name__=="__main__":
-    # replicate_1_dir = "tests/chmm/GM12878_rep1/parsed_posterior.csv"
-    # replicate_2_dir = "tests/chmm/GM12878_rep2/parsed_posterior.csv"
+    replicate_1_dir = "tests/chmm/GM12878_rep1/parsed_posterior_short.csv"
+    replicate_2_dir = "tests/chmm/GM12878_rep2/parsed_posterior_short.csv"
 
-    # full_reproducibility_report(replicate_1_dir, replicate_2_dir, "tests/pltsavedir_chmm/")
+    full_reproducibility_report(replicate_1_dir, replicate_2_dir, "tests/pltsavedir_chmm/")
 
     replicate_1_dir = "tests/segway/GM12878_rep1/parsed_posterior_short.csv"
     replicate_2_dir = "tests/segway/GM12878_rep2/parsed_posterior_short.csv"

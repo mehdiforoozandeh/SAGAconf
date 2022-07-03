@@ -1,3 +1,4 @@
+import pstats
 import requests, os, sys
 
 def gtf_file(gtf_filename = 'biointerpret/gencode.v29.primary_assembly.annotation_UCSC_names.gtf'): 
@@ -300,7 +301,7 @@ def chmm_get_mnem(chmmruns_dir):
     ls2 = os.listdir("biointerpret/chmm_mnemons/classification")
 
     for l in ls2:
-        if l in ls1:
+        if l in ls1 or l.replace("concat_rep1", "concat") in ls1 or l.replace("concat_rep2", "concat") in ls1:
             print("copying files back for {}".format(l))
 
             if "concat" in l:
