@@ -1,3 +1,4 @@
+from cProfile import run
 from os import lseek
 from timeit import timeit
 from _reproducibility import *
@@ -313,17 +314,16 @@ def benchmark(replicate_1_dir, replicate_2_dir, pltsavedir):
     print("the whole process took:  ",datetime.now() - t0)
     
 if __name__=="__main__":
-    replicate_1_dir = "tests/chmm/GM12878_rep1/parsed_posterior_short.csv"
-    replicate_2_dir = "tests/chmm/GM12878_rep2/parsed_posterior_short.csv"
+    replicate_1_dir = "tests/chmm/rs5/parsed_posterior.csv"
+    replicate_2_dir = "tests/chmm/rs27/parsed_posterior.csv"
 
-    full_reproducibility_report(replicate_1_dir, replicate_2_dir, "tests/pltsavedir_chmm/")
+    full_reproducibility_report(replicate_1_dir, replicate_2_dir, "tests/pltsavedir_chmm/", run_on_subset=True)
 
-    replicate_1_dir = "tests/segway/GM12878_rep1/parsed_posterior_short.csv"
-    replicate_2_dir = "tests/segway/GM12878_rep2/parsed_posterior_short.csv"
+    # replicate_1_dir = "tests/segway/GM12878_rep1/parsed_posterior_short.csv"
+    # replicate_2_dir = "tests/segway/GM12878_rep2/parsed_posterior_short.csv"
 
-    full_reproducibility_report(replicate_1_dir, replicate_2_dir, "tests/pltsavedir_segw/")
+    # full_reproducibility_report(replicate_1_dir, replicate_2_dir, "tests/pltsavedir_segw/")
     
-    # benchmark(replicate_1_dir, replicate_2_dir, "tests/pltsavedir/")
 
     exit()
     # replicate_1_dir = 'tests/chromhmm_runs/gm12878_rep1/parsed_posterior_short.csv'

@@ -710,26 +710,26 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
         except:
             print("could not generate corresp. curve")
 
-        # try:
-        if os.path.exists(pltsavedir+"/clb_1") == False:
-            os.mkdir(pltsavedir+"/clb_1")
-        calb = posterior_calibration(
-            loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
-            oe_transform=True, savedir=pltsavedir+"/clb_1")
-        calibrated_loci_1 = calb.perlabel_calibration_function(
-            degree=5, num_bins=25, return_caliberated_matrix=True, scale_columnwise=True)
-        
-        plt.close("all")
-        plt.style.use('default')
+        try:
+            if os.path.exists(pltsavedir+"/clb_1") == False:
+                os.mkdir(pltsavedir+"/clb_1")
+            calb = posterior_calibration(
+                loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
+                oe_transform=True, savedir=pltsavedir+"/clb_1")
+            calibrated_loci_1 = calb.perlabel_calibration_function(
+                degree=5, num_bins=25, return_caliberated_matrix=True, scale_columnwise=True)
+            
+            plt.close("all")
+            plt.style.use('default')
 
-        if os.path.exists(pltsavedir+"/tss_rep1") == False:
-            os.mkdir(pltsavedir+"/tss_rep1")
-        TSS_obj = TSS_enrichment(calibrated_loci_1, TSSdir="RefSeqTSS.hg38.txt", savedir=pltsavedir+"/tss_rep1")
-        TSS_obj.tss_enrich(m_p=False)
-        TSS_obj.tss_enrich_vs_repr()
+            if os.path.exists(pltsavedir+"/tss_rep1") == False:
+                os.mkdir(pltsavedir+"/tss_rep1")
+            TSS_obj = TSS_enrichment(calibrated_loci_1, TSSdir="RefSeqTSS.hg38.txt", savedir=pltsavedir+"/tss_rep1")
+            TSS_obj.tss_enrich(m_p=False)
+            TSS_obj.tss_enrich_vs_repr()
 
-        # except:
-        #     print("could not generate calibrations and TSS enrichment")
+        except:
+            print("could not generate calibrations and TSS enrichment")
         
         # try:
         #     if os.path.exists(pltsavedir+"/clb_2") == False:
@@ -774,7 +774,7 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir, ru
     num_labels = loci_1.shape[1]-3
     loci_1.columns = ["chr", "start", "end"]+["posterior{}".format(i) for i in range(num_labels)]
     loci_2.columns = ["chr", "start", "end"]+["posterior{}".format(i) for i in range(num_labels)]
-
+    
     print('generating confmat 1')
     
     conf_mat = confusion_matrix(
@@ -804,6 +804,14 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir, ru
     mnemon2_dict = {}
     for i in loci_2_mnemon:
         mnemon2_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
+
+    #handle missing mnemonics
+    for i in range(num_labels):
+        if str(i) not in mnemon1_dict.keys():
+            mnemon1_dict[str(i)] = str(i)
+        if str(i) not in mnemon2_dict.keys():
+            mnemon2_dict[str(i)] = str(i)
+        
 
     for i in range(len(assignment_pairs)):
         assignment_pairs[i] = (mnemon1_dict[str(assignment_pairs[i][0])], mnemon2_dict[str(assignment_pairs[i][1])])
@@ -910,7 +918,10 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir, ru
     merge_track2.columns = ["{}_labels".format(16-lm) for lm in range(16)] 
 
     merge_track1.to_csv('{}/post_clustering/merged_MAP1.csv'.format(pltsavedir))
+    os.system("gzip {}/post_clustering/merged_MAP1.csv".format(pltsavedir))
+    
     merge_track2.to_csv('{}/post_clustering/merged_MAP2.csv'.format(pltsavedir))
+    os.system("gzip {}/post_clustering/merged_MAP2.csv".format(pltsavedir))
 
     nl = list(reports.keys())
     ys =[reports[k]["general agreement"] for k in nl]
