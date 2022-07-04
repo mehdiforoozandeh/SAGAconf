@@ -11,6 +11,11 @@ res_dir = 'reprod_results/'
 if os.path.exists(res_dir) == False:
     os.mkdir(res_dir)
 
+if os.path.exists(res_dir+"chmm/") == False:
+    os.mkdir(res_dir+"chmm/")
+
+RUN_ALL_REPROD_ANALYSIS(
+    chmm_dir,  CellType_list, res_dir+"chmm/", type="chmm", multi_p=True, n_processors=6)
 
 if os.path.exists(res_dir+"segway/") == False:
     os.mkdir(res_dir+"segway/")
@@ -18,8 +23,4 @@ if os.path.exists(res_dir+"segway/") == False:
 RUN_ALL_REPROD_ANALYSIS(
     segway_dir,  CellType_list, res_dir+"segway/", type="segway", multi_p=True, n_processors=6)
 
-if os.path.exists(res_dir+"chmm/") == False:
-    os.mkdir(res_dir+"chmm/")
 
-RUN_ALL_REPROD_ANALYSIS(
-    chmm_dir,  CellType_list, res_dir+"chmm/", type="chmm", multi_p=True, n_processors=6)

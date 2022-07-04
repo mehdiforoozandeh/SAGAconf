@@ -919,7 +919,7 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir, ru
 
     merge_track1.to_csv('{}/post_clustering/merged_MAP1.csv'.format(pltsavedir))
     os.system("gzip {}/post_clustering/merged_MAP1.csv".format(pltsavedir))
-    
+
     merge_track2.to_csv('{}/post_clustering/merged_MAP2.csv'.format(pltsavedir))
     os.system("gzip {}/post_clustering/merged_MAP2.csv".format(pltsavedir))
 
@@ -987,7 +987,7 @@ def run_single_reprod_analysis(input_dict):
     with open(input_dict["output_dir"]+"/run_info.txt", 'w') as fw:
         fw.write(str(input_dict))
 
-    full_reproducibility_report(input_dict["rep1_dir"], input_dict["rep2_dir"], input_dict["output_dir"], run_on_subset=True)
+    full_reproducibility_report(input_dict["rep1_dir"], input_dict["rep2_dir"], input_dict["output_dir"], run_on_subset=False)
 
 def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, multi_p=True, type="segway", n_processors=8):
     """Given a directory containing all segway or chromHMM runs, 
