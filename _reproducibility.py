@@ -978,15 +978,9 @@ def plot_bidir_bar_chart(metr1, metr2, type, savedir):
     plt.savefig('{}/bidir_{}.pdf'.format(savedir, type), format='pdf')
     plt.savefig('{}/bidir_{}.svg'.format(savedir, type), format='svg')
 
-def plot_heatmap(confmat, savedir, type, columns=None):
-    if columns!=None:
-        columns1 = columns
-        columns2 = columns
-    else:
-        columns1 = columns[0]
-        columns2 = columns[1]
-
-
+def plot_heatmap(confmat, savedir, type, columns):
+    columns1 = columns[0]
+    columns2 = columns[1]
     p = sns.heatmap(
         confmat.astype(int), annot=True, fmt="d",
         linewidths=0.01,  cbar=True,

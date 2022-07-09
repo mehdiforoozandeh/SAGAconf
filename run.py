@@ -740,8 +740,8 @@ def get_short_report(replicate_1_dir, replicate_2_dir, outdir, type="chmm"):
         OE_transform=False, symmetric=False)  
 
     
-    plot_heatmap(confmat_raw_matched, outdir, type="RawOverlapMatrix_matched", columns=new_columns)
-    plot_heatmap(confmat_OE_matched, outdir, type="log(O/E)OverlapMatrix_matched", columns=new_columns)
+    plot_heatmap(confmat_raw_matched, outdir, type="RawOverlapMatrix_matched", columns=[new_columns,new_columns])
+    plot_heatmap(confmat_OE_matched, outdir, type="log(O/E)OverlapMatrix_matched", columns=[new_columns,new_columns])
 
     agreement_report_1 = {}
     agreement_report_2 = {}

@@ -269,15 +269,28 @@ def compare_overalls(res_dir, target_metric="ck"):
 			heights = ast.literal_eval(lines[4].replace("-inf", "0"))
 			navig.append([ct, s, heights[-1]])
 	
-	navig = pd.DataFrame(navig, columns=["Celltype", "Setting", target_metric])
+	navig = pd.DataFrame(navig, columns=["Celltype", "Setting", target_metric]).sort_values(by="Setting")
+	navig.sort_values(by="Setting")
 
 	sns.set_theme(style="whitegrid")
+	sns.reset_orig
+	plt.style.use('default')
+
 	sns.set(rc={'figure.figsize':(10,8)})
-	ax = sns.barplot(x="Celltype", y=target_metric, hue="Setting", data=navig)
+	sns.set_palette(sns.color_palette("deep"))
+	sns.barplot(x="Celltype", y=target_metric, hue="Setting", data=navig)
 
 	plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
+
+	if target_metric=="agr" or target_metric=="ck":
+		plt.yticks(np.arange(0, 1.1, step=0.1))
+	elif target_metric == "oe":
+		plt.yticks(np.arange(0, 4.5, step=0.5))
+
 	plt.tight_layout()
-	plt.show()
+	plt.savefig(res_dir+"/overall_comparison_{}.png".format(target_metric), format="png", dpi=500)
+	plt.savefig(res_dir+"/overall_comparison_{}.svg".format(target_metric), format="svg")
+	plt.clf()
 	
 
 def INTEGRATE_ALL(ct_dir):
@@ -296,9 +309,11 @@ if __name__=="__main__":
 	segres_dir = "tests/repres_subset/segway/"
 	chmmres_dir = "tests/reprod_results/chmm/"
 	compare_overalls(chmmres_dir)
-	# compare_overalls(segres_dir)
-	# compare_overalls(chmmres_dir, target_metric="oe")
-	# compare_overalls(chmmres_dir, target_metric="agr")
+	compare_overalls(segres_dir)
+	compare_overalls(chmmres_dir, target_metric="oe")
+	compare_overalls(segres_dir, target_metric="oe")
+	compare_overalls(chmmres_dir, target_metric="agr")
+	compare_overalls(segres_dir, target_metric="agr")
 	exit()
 	for ct in ct_list:
 		INTEGRATE_ALL("{}/{}".format(segres_dir, ct))
