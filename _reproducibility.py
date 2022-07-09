@@ -1,4 +1,5 @@
 
+import collections
 from turtle import color, width
 from scipy.ndimage import gaussian_filter1d
 from statistics import mean
@@ -949,6 +950,70 @@ class correspondence_curve(object):
                             str(list(URIs))
                         )
                     )
+
+def plot_bidir_bar_chart(metr1, metr2, type, savedir):
+    data = pd.DataFrame([metr1, metr2]).transpose()
+    data.columns = ["metr1", "metr2"]
+    color_red = '#fd625e'
+    color_blue = '#01b8aa'
+    index = data.index
+    column0 = data['metr1']
+    column1 = data['metr2']
+    title0 = '{}: Annotation 1 vs. Annotation 2'.format(type)
+    title1 = '{}: Annotation 2 vs. Annotation 1'.format(type)
+    fig, axes = plt.subplots(figsize=(15,10), ncols=2, sharey=True)
+    axes[0].barh(index, column0, align='center', color=color_red, zorder=10)
+    axes[0].set_title(title0, fontsize=18, pad=15, color=color_red)
+    axes[1].barh(index, column1, align='center', color=color_blue, zorder=10)
+    axes[1].set_title(title1, fontsize=18, pad=15, color=color_blue)
+    axes[0].invert_xaxis() 
+    plt.gca().invert_yaxis()
+    axes[0].set(yticks=data.index, yticklabels=data.index)
+    axes[0].yaxis.tick_left()
+    axes[1].set_xticks(np.arange(0, 1.1, step=0.1))
+    axes[0].set_xticks(np.arange(0, 1.1, step=0.1))
+    plt.subplots_adjust(wspace=0, top=0.85, bottom=0.1, left=0.18, right=0.95)
+    fig.tight_layout()
+    plt.savefig('{}/bidir_{}.pdf'.format(savedir, type), format='pdf')
+    plt.savefig('{}/bidir_{}.svg'.format(savedir, type), format='svg')
+
+def plot_heatmap(confmat, savedir, type, columns=None):
+    if columns!=None:
+        columns1 = columns
+        columns2 = columns
+    else:
+        columns1 = columns[0]
+        columns2 = columns[1]
+
+
+    p = sns.heatmap(
+        confmat.astype(int), annot=True, fmt="d",
+        linewidths=0.01,  cbar=True,
+        yticklabels=columns1,
+        xticklabels=columns2,
+        # vmin=confmat.min().min(),
+        # vmax=confmat.max().max()
+        )
+    sns.set(rc={'figure.figsize':(15,20)})
+    p.tick_params(axis='x', rotation=30, labelsize=7)
+    p.tick_params(axis='y', rotation=45, labelsize=7)
+    
+    plt.xlabel('Replicate 1 Labels')
+    plt.ylabel("Replicate 2 Labels")
+    plt.tight_layout()
+
+
+    plt.title(type)
+    plt.savefig('{}/{}.pdf'.format(savedir,type), format='pdf')
+    plt.savefig('{}/{}.svg'.format(savedir,type), format='svg')
+    confmat.to_csv("{}/{}.csv".format(savedir,type))
+
+
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
+    
 
 class sankey(object):
     def __init__(self, loci_1, corrected_loci_2, savedir):

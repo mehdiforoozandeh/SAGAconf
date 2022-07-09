@@ -637,6 +637,133 @@ def read_mnemonics(mnemon_file):
             mnemon.append(str(int(df["old"][i])-1)+"_"+df["new"][i])
     return mnemon
 
+def get_short_report(replicate_1_dir, replicate_2_dir, outdir, type="chmm"):
+    """
+    copy dir1 emission to outdir
+    copy dir2 emission to outdir
+
+    read parsed_posterior1
+    read parsed_posterior2
+
+    get raw overlap CM
+    get matched overlap CM
+
+    get agreements rep1 vs rep2
+    get agreements rep2 vs rep1
+    """
+
+    if os.path.exists(outdir)==False:
+        os.mkdir(outdir)
+
+    ls1 = os.listdir(replicate_1_dir)
+    ls2 = os.listdir(replicate_2_dir)
+
+    if type == "chmm":
+        for l in ls1:
+            if "emissions" in l and ".svg" in l:
+                os.system("cp {}/{} {}/emissions_1.svg".format(replicate_1_dir, l, outdir))
+
+        for l in ls2:
+            if "emissions" in l and ".svg" in l:
+                os.system("cp {}/{} {}/emissions_2.svg".format(replicate_2_dir, l, outdir))
+
+    elif type == "segw":
+        os.system("cp {}/gmtk_parameters/gmtk_parameters.png {}/emissions_1.png".format(replicate_1_dir, outdir))
+        os.system("cp {}/gmtk_parameters/gmtk_parameters.png {}/emissions_2.png".format(replicate_2_dir, outdir))
+
+
+    loci_1, loci_2 = intersect_parsed_posteriors(
+        replicate_1_dir, 
+        replicate_2_dir)
+    
+    num_labels = loci_1.shape[1]-3
+
+    confmat_raw = confusion_matrix(
+        loci_1, loci_2, num_labels, 
+        OE_transform=False, symmetric=False)
+    plot_heatmap(confmat_raw, outdir, [loci_1.columns[3:], loci_2.columns[3:]], type="RawOverlapMatrix")
+
+    confmat_OE = confusion_matrix(
+        loci_1, loci_2, num_labels, 
+        OE_transform=True, symmetric=False)    
+    plot_heatmap(confmat_OE, outdir, [loci_1.columns[3:], loci_2.columns[3:]], type="log(O/E)OverlapMatrix")
+
+    assignment_pairs = Hungarian_algorithm(confmat_OE, conf_or_dis='conf')
+    new_columns = ["{}|{}".format(c[0], c[1]) for c in assignment_pairs]
+
+    if os.path.exists(
+        "/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics_rep1.txt") and os.path.exists(
+        "/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics_rep2.txt"):
+
+        print("reading concat mnemonics")
+        loci_1_mnemon = read_mnemonics("/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics_rep1.txt")
+        loci_2_mnemon = read_mnemonics("/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics_rep2.txt")
+    else:
+        print("reading mnemonics")
+        loci_1_mnemon = read_mnemonics("/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics.txt")
+        loci_2_mnemon = read_mnemonics("/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics.txt")
+
+    mnemon1_dict = {}
+    for i in loci_1_mnemon:
+        mnemon1_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
+
+    mnemon2_dict = {}
+    for i in loci_2_mnemon:
+        mnemon2_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
+
+    #handle missing mnemonics
+    for i in range(num_labels):
+        if str(i) not in mnemon1_dict.keys():
+            mnemon1_dict[str(i)] = str(i)
+        if str(i) not in mnemon2_dict.keys():
+            mnemon2_dict[str(i)] = str(i)
+        
+
+    for i in range(len(assignment_pairs)):
+        assignment_pairs[i] = (mnemon1_dict[str(assignment_pairs[i][0])], mnemon2_dict[str(assignment_pairs[i][1])])
+    print(assignment_pairs)
+
+    loci_1, loci_2 = \
+        connect_bipartite(loci_1, loci_2, assignment_pairs)
+
+    print('connected barpartite')
+
+    print('generating confmat 2')
+    confmat_OE_matched = confusion_matrix(
+        loci_1, loci_2, num_labels, 
+        OE_transform=True, symmetric=False) 
+
+    confmat_raw_matched = confusion_matrix(
+        loci_1, loci_2, num_labels, 
+        OE_transform=False, symmetric=False)  
+
+    
+    plot_heatmap(confmat_raw_matched, outdir, new_columns, type="RawOverlapMatrix_matched")
+    plot_heatmap(confmat_OE_matched, outdir, new_columns, type="log(O/E)OverlapMatrix_matched")
+
+    agreement_report_1 = {}
+    agreement_report_2 = {}
+
+    agr1 = Agreement(loci_1, loci_2, outdir+"/agr1", assume_uniform_coverage=False)
+    agreement_report_1["PL_agr"] = agr1.per_label_agreement()
+    agreement_report_1["PL_OE"] = agr1.per_label_OE_ratio()
+    agreement_report_1["PL_CK"] = agr1.per_label_cohens_kappa()
+    agreement_report_1["G_agr"] = agr1.general_agreement()
+    agreement_report_1["G_OE"] = agr1.general_OE_ratio()
+    agreement_report_1["G_CK"] = agr1.general_cohens_kappa()
+
+    agr2 = Agreement(loci_2, loci_1, outdir+"/agr2", assume_uniform_coverage=False)
+    agreement_report_2["PL_agr"] = agr2.per_label_agreement()
+    agreement_report_2["PL_OE"] = agr2.per_label_OE_ratio()
+    agreement_report_2["PL_CK"] = agr2.per_label_cohens_kappa()
+    agreement_report_2["G_agr"] = agr2.general_agreement()
+    agreement_report_2["G_OE"] = agr2.general_OE_ratio()
+    agreement_report_2["G_CK"] = agr2.general_cohens_kappa()
+
+    plot_bidir_bar_chart(agreement_report_1["PL_agr"], agreement_report_2["PL_agr"], type="Raw_Agreement", savedir=outdir)
+    plot_bidir_bar_chart(agreement_report_1["PL_OE"], agreement_report_2["PL_OE"], type="log(O/E)_Agreement", savedir=outdir)
+    plot_bidir_bar_chart(agreement_report_1["PL_CK"], agreement_report_2["PL_CK"], type="Cohens_Kappa", savedir=outdir)
+
 
 def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
     """
@@ -989,7 +1116,20 @@ def run_single_reprod_analysis(input_dict):
 
     full_reproducibility_report(input_dict["rep1_dir"], input_dict["rep2_dir"], input_dict["output_dir"], run_on_subset=False)
 
-def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, multi_p=True, type="segway", n_processors=8):
+def run_single_short_report(input_dict):
+    print("running type: {}".format(input_dict["runtype"]))
+
+    with open(input_dict["output_dir"]+"/run_info.txt", 'w') as fw:
+        fw.write(str(input_dict))
+
+    if "segway" in input_dict["rep1_dir"]:
+        type = "segw"
+    elif "chromhmm" in input_dict["rep1_dir"]:
+        type = "chmm"
+
+    get_short_report(input_dict["rep1_dir"], input_dict["rep2_dir"], input_dict["output_dir"], type=type)
+
+def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, multi_p=True, type="segway", n_processors=8, run="long"):
     """Given a directory containing all segway or chromHMM runs, 
     generates all orders of reproducibility analysis including 
     replicates, concatenated, and param_init modes. Stores all results in 
@@ -1078,14 +1218,23 @@ def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, multi_p=True, t
                 "output_dir": v[kk][2]
                 }
             )
-    
-    if multi_p:
-        p_obj = mp.Pool(n_processors)
-        p_obj.map(run_single_reprod_analysis, list_of_runs)
+    if run=="long":
+        if multi_p:
+            p_obj = mp.Pool(n_processors)
+            p_obj.map(run_single_reprod_analysis, list_of_runs)
 
-    else:
-        for r in list_of_runs:
-            run_single_reprod_analysis(r)
+        else:
+            for r in list_of_runs:
+                run_single_reprod_analysis(r)
+
+    elif run == "short":
+        if multi_p:
+            p_obj = mp.Pool(n_processors)
+            p_obj.map(run_single_short_report, list_of_runs)
+
+        else:
+            for r in list_of_runs:
+                run_single_short_report(r)
 
 """when running the whole script from start to end to generate (and reproduce) results
 remember to put label interpretation in try blocks (skippable) to prevent any kind of
