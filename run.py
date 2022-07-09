@@ -688,7 +688,7 @@ def get_short_report(replicate_1_dir, replicate_2_dir, outdir, type="chmm"):
     confmat_OE = confusion_matrix(
         loci_1, loci_2, num_labels, 
         OE_transform=True, symmetric=False)    
-    plot_heatmap(confmat_OE, outdir, type="log(O/E)OverlapMatrix", columns=[loci_1.columns[3:],loci_2.columns[3:]])
+    plot_heatmap(confmat_OE, outdir, type="log_OE_OverlapMatrix", columns=[loci_1.columns[3:],loci_2.columns[3:]])
 
     assignment_pairs = Hungarian_algorithm(confmat_OE, conf_or_dis='conf')
     new_columns = ["{}|{}".format(c[0], c[1]) for c in assignment_pairs]
@@ -741,7 +741,7 @@ def get_short_report(replicate_1_dir, replicate_2_dir, outdir, type="chmm"):
 
     
     plot_heatmap(confmat_raw_matched, outdir, type="RawOverlapMatrix_matched", columns=[new_columns,new_columns])
-    plot_heatmap(confmat_OE_matched, outdir, type="log(O/E)OverlapMatrix_matched", columns=[new_columns,new_columns])
+    plot_heatmap(confmat_OE_matched, outdir, type="logOEOverlapMatrix_matched", columns=[new_columns,new_columns])
 
     agreement_report_1 = {}
     agreement_report_2 = {}
@@ -763,7 +763,7 @@ def get_short_report(replicate_1_dir, replicate_2_dir, outdir, type="chmm"):
     agreement_report_2["G_CK"] = agr2.general_cohens_kappa()
 
     plot_bidir_bar_chart(agreement_report_1["PL_agr"], agreement_report_2["PL_agr"], type="Raw_Agreement", savedir=outdir)
-    plot_bidir_bar_chart(agreement_report_1["PL_OE"], agreement_report_2["PL_OE"], type="log(O/E)_Agreement", savedir=outdir)
+    plot_bidir_bar_chart(agreement_report_1["PL_OE"], agreement_report_2["PL_OE"], type="logOE_Agreement", savedir=outdir)
     plot_bidir_bar_chart(agreement_report_1["PL_CK"], agreement_report_2["PL_CK"], type="Cohens_Kappa", savedir=outdir)
 
 
