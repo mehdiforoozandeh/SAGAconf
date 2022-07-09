@@ -683,12 +683,12 @@ def get_short_report(replicate_1_dir, replicate_2_dir, outdir, type="chmm"):
     confmat_raw = confusion_matrix(
         loci_1, loci_2, num_labels, 
         OE_transform=False, symmetric=False)
-    plot_heatmap(confmat_raw, outdir, [loci_1.columns[3:], loci_2.columns[3:]], type="RawOverlapMatrix")
+    plot_heatmap(confmat_raw, outdir, type="RawOverlapMatrix", columns=[loci_1.columns[3:],loci_2.columns[3:]])
 
     confmat_OE = confusion_matrix(
         loci_1, loci_2, num_labels, 
         OE_transform=True, symmetric=False)    
-    plot_heatmap(confmat_OE, outdir, [loci_1.columns[3:], loci_2.columns[3:]], type="log(O/E)OverlapMatrix")
+    plot_heatmap(confmat_OE, outdir, type="log(O/E)OverlapMatrix", columns=[loci_1.columns[3:],loci_2.columns[3:]])
 
     assignment_pairs = Hungarian_algorithm(confmat_OE, conf_or_dis='conf')
     new_columns = ["{}|{}".format(c[0], c[1]) for c in assignment_pairs]
@@ -740,8 +740,8 @@ def get_short_report(replicate_1_dir, replicate_2_dir, outdir, type="chmm"):
         OE_transform=False, symmetric=False)  
 
     
-    plot_heatmap(confmat_raw_matched, outdir, new_columns, type="RawOverlapMatrix_matched")
-    plot_heatmap(confmat_OE_matched, outdir, new_columns, type="log(O/E)OverlapMatrix_matched")
+    plot_heatmap(confmat_raw_matched, outdir, type="RawOverlapMatrix_matched", columns=new_columns)
+    plot_heatmap(confmat_OE_matched, outdir, type="log(O/E)OverlapMatrix_matched", columns=new_columns)
 
     agreement_report_1 = {}
     agreement_report_2 = {}

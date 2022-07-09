@@ -4,6 +4,7 @@ import cairosvg
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 def clear_summary_plots(celltype_repres_dir):
 	todel = [l for l in os.listdir(celltype_repres_dir) if os.path.isdir(celltype_repres_dir+"/"+l)==False]
@@ -243,9 +244,40 @@ def compare_overalls(res_dir, target_metric="ck"):
 	ct_list = [ct for ct in os.listdir(res_dir) if os.path.isdir(res_dir+"/"+ct)]
 	for ct in ct_list:
 		settings = [s for s in os.listdir(res_dir+"/"+ct) if os.path.isdir(res_dir+"/"+ct+"/"+s)]
-		for s in settings:
-			pass
 
+		if "chmm" in res_dir:
+			settings.remove("rep1_paraminit")
+		elif "segway" in res_dir:
+			settings.remove("rep1_pseudoreps")
+
+		for s in settings:
+			file = res_dir+"/"+ct+"/"+s+"/16_labels/agr/"
+			if target_metric=="ck":
+				file = file + "cohenskappa.txt"
+
+			elif target_metric=="agr":
+				file = file + "agreement.txt"
+			
+			elif target_metric=="oe":
+				file = file + "oe_agreement.txt"
+
+			lines = open(file, 'r').readlines()
+			title = lines[0].replace("\n","")
+			xlabel = lines[1].replace("\n","")
+			ylabel = lines[2].replace("\n","")
+			x = ast.literal_eval(lines[3])
+			heights = ast.literal_eval(lines[4].replace("-inf", "0"))
+			navig.append([ct, s, heights[-1]])
+	
+	navig = pd.DataFrame(navig, columns=["celltype", "setting", target_metric])
+
+	sns.set_theme(style="whitegrid")
+	ax = sns.barplot(x="celltype", y=target_metric, hue="setting", data=navig)
+
+	plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
+	plt.tight_layout()
+	plt.show()
+	
 
 def INTEGRATE_ALL(ct_dir):
 	clear_summary_plots(ct_dir)
@@ -262,6 +294,11 @@ if __name__=="__main__":
 	ct_list = ['CD14-positive_monocyte', "GM12878", "K562", "HeLa-S3", "MCF-7"]
 	segres_dir = "tests/repres_subset/segway/"
 	chmmres_dir = "tests/reprod_results/chmm/"
+	compare_overalls(chmmres_dir)
+	# compare_overalls(segres_dir)
+	# compare_overalls(chmmres_dir, target_metric="oe")
+	# compare_overalls(chmmres_dir, target_metric="agr")
+	exit()
 	for ct in ct_list:
 		INTEGRATE_ALL("{}/{}".format(segres_dir, ct))
 		INTEGRATE_ALL("{}/{}".format(chmmres_dir, ct))

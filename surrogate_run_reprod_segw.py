@@ -20,13 +20,13 @@ if sys.argv[1] == "short":
         os.mkdir(short_res_dir+"segway/")
 
     RUN_ALL_REPROD_ANALYSIS(
-        segway_dir,  CellType_list, short_res_dir+"segway/", type="segway", multi_p=True, n_processors=4, run="short")
+        segway_dir,  CellType_list, short_res_dir+"segway/", type="segway", multi_p=True, n_processors=5, run="short")
 
     if os.path.exists(short_res_dir+"chmm/") == False:
         os.mkdir(short_res_dir+"chmm/")
 
     RUN_ALL_REPROD_ANALYSIS(
-        chmm_dir,  CellType_list, short_res_dir+"chmm/", type="chmm", multi_p=True, n_processors=4, run="short")
+        chmm_dir,  CellType_list, short_res_dir+"chmm/", type="chmm", multi_p=True, n_processors=5, run="short")
 
 ################################    LONG RUNS   ###################################
 
@@ -38,10 +38,10 @@ elif sys.argv[1] == "long":
         os.mkdir(res_dir+"segway/")
 
     RUN_ALL_REPROD_ANALYSIS(
-        segway_dir,  CellType_list, res_dir+"segway/", type="segway", multi_p=True, n_processors=8)
+        segway_dir,  CellType_list, res_dir+"segway/", type="segway", multi_p=True, n_processors=10)
 
     if os.path.exists(res_dir+"chmm/") == False:
         os.mkdir(res_dir+"chmm/")
 
     RUN_ALL_REPROD_ANALYSIS(
-        chmm_dir,  CellType_list, res_dir+"chmm/", type="chmm", multi_p=True, n_processors=8)
+        chmm_dir,  CellType_list, res_dir+"chmm/", type="chmm", multi_p=True, n_processors=10)
