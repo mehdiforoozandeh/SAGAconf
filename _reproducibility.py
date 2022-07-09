@@ -978,12 +978,21 @@ def plot_bidir_bar_chart(metr1, metr2, type, savedir):
     plt.savefig('{}/bidir_{}.pdf'.format(savedir, type), format='pdf')
     plt.savefig('{}/bidir_{}.svg'.format(savedir, type), format='svg')
 
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
 def plot_heatmap(confmat, savedir, type, columns):
+    if "posterior" in columns[0][0]:
+        for i in range(len(columns[0])):
+            columns[0][i] = columns[0][i].replace("posterior", "")
+            columns[1][i] = columns[1][i].replace("posterior", "")
+            
     columns1 = columns[0]
     columns2 = columns[1]
     p = sns.heatmap(
         confmat.astype(int), annot=True, fmt="d",
-        linewidths=0.01,  cbar=True,
+        linewidths=0.01,  cbar=False,
         yticklabels=columns1,
         xticklabels=columns2,
         # vmin=confmat.min().min(),
@@ -995,14 +1004,12 @@ def plot_heatmap(confmat, savedir, type, columns):
     
     plt.xlabel('Replicate 1 Labels')
     plt.ylabel("Replicate 2 Labels")
-    plt.tight_layout()
-
 
     plt.title(type)
+    plt.tight_layout()
     plt.savefig('{}/{}.pdf'.format(savedir,type), format='pdf')
     plt.savefig('{}/{}.svg'.format(savedir,type), format='svg')
     confmat.to_csv("{}/{}.csv".format(savedir,type))
-
 
     plt.clf()
     sns.reset_orig

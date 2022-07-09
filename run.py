@@ -668,17 +668,18 @@ def get_short_report(replicate_1_dir, replicate_2_dir, outdir, type="chmm"):
                 os.system("cp {}/{} {}/emissions_2.svg".format("/".join(replicate_2_dir.split("/")[:-1]), l, outdir))
 
     elif type == "segw":
-        os.system("cp {}/gmtk_parameters/gmtk_parameters.png {}/emissions_1.png".format(
+        os.system("cp {}/gmtk_parameters/gmtk_parameters.stats.slide.png {}/emissions_1.png".format(
             "/".join(replicate_1_dir.split("/")[:-1]), outdir))
-        os.system("cp {}/gmtk_parameters/gmtk_parameters.png {}/emissions_2.png".format(
+        os.system("cp {}/gmtk_parameters/gmtk_parameters.stats.slide.png {}/emissions_2.png".format(
             "/".join(replicate_2_dir.split("/")[:-1]), outdir))
-
 
     loci_1, loci_2 = intersect_parsed_posteriors(
         replicate_1_dir, 
         replicate_2_dir)
     
     num_labels = loci_1.shape[1]-3
+    loci_1.columns = ["chr", "start", "end"]+["posterior{}".format(i) for i in range(num_labels)]
+    loci_2.columns = ["chr", "start", "end"]+["posterior{}".format(i) for i in range(num_labels)]
 
     confmat_raw = confusion_matrix(
         loci_1, loci_2, num_labels, 
@@ -745,7 +746,8 @@ def get_short_report(replicate_1_dir, replicate_2_dir, outdir, type="chmm"):
 
     agreement_report_1 = {}
     agreement_report_2 = {}
-
+    
+    print("calculating agr 1vs2")
     agr1 = Agreement(loci_1, loci_2, outdir+"/agr1", assume_uniform_coverage=False)
     agreement_report_1["PL_agr"] = agr1.per_label_agreement()
     agreement_report_1["PL_OE"] = agr1.per_label_OE_ratio()
@@ -754,6 +756,7 @@ def get_short_report(replicate_1_dir, replicate_2_dir, outdir, type="chmm"):
     agreement_report_1["G_OE"] = agr1.general_OE_ratio()
     agreement_report_1["G_CK"] = agr1.general_cohens_kappa()
 
+    print("calculating agr 2vs1")
     agr2 = Agreement(loci_2, loci_1, outdir+"/agr2", assume_uniform_coverage=False)
     agreement_report_2["PL_agr"] = agr2.per_label_agreement()
     agreement_report_2["PL_OE"] = agr2.per_label_OE_ratio()
@@ -762,6 +765,7 @@ def get_short_report(replicate_1_dir, replicate_2_dir, outdir, type="chmm"):
     agreement_report_2["G_OE"] = agr2.general_OE_ratio()
     agreement_report_2["G_CK"] = agr2.general_cohens_kappa()
 
+    print("plotting bidirectional agreements")
     plot_bidir_bar_chart(agreement_report_1["PL_agr"], agreement_report_2["PL_agr"], type="Raw_Agreement", savedir=outdir)
     plot_bidir_bar_chart(agreement_report_1["PL_OE"], agreement_report_2["PL_OE"], type="logOE_Agreement", savedir=outdir)
     plot_bidir_bar_chart(agreement_report_1["PL_CK"], agreement_report_2["PL_CK"], type="Cohens_Kappa", savedir=outdir)
