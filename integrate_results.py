@@ -238,6 +238,15 @@ def ct_enrtss(celltype_repres_dir):
 	new_im.save(celltype_repres_dir+"/integ_enrtss_{}.png".format("_".join(name)))
 	# new_im.save(celltype_repres_dir+"/integ_enrtss_{}.eps".format("_".join(name)))
 
+def compare_overalls(res_dir, target_metric="ck"):
+	navig = []
+	ct_list = [ct for ct in os.listdir(res_dir) if os.path.isdir(res_dir+"/"+ct)]
+	for ct in ct_list:
+		settings = [s for s in os.listdir(res_dir+"/"+ct) if os.path.isdir(res_dir+"/"+ct+"/"+s)]
+		for s in settings:
+			pass
+
+
 def INTEGRATE_ALL(ct_dir):
 	clear_summary_plots(ct_dir)
 	print("summarizing", ct_dir)

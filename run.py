@@ -655,21 +655,23 @@ def get_short_report(replicate_1_dir, replicate_2_dir, outdir, type="chmm"):
     if os.path.exists(outdir)==False:
         os.mkdir(outdir)
 
-    ls1 = os.listdir(replicate_1_dir)
-    ls2 = os.listdir(replicate_2_dir)
+    ls1 = os.listdir("/".join(replicate_1_dir.split("/")[:-1]))
+    ls2 = os.listdir("/".join(replicate_2_dir.split("/")[:-1]))
 
     if type == "chmm":
         for l in ls1:
             if "emissions" in l and ".svg" in l:
-                os.system("cp {}/{} {}/emissions_1.svg".format(replicate_1_dir, l, outdir))
+                os.system("cp {}/{} {}/emissions_1.svg".format("/".join(replicate_1_dir.split("/")[:-1]), l, outdir))
 
         for l in ls2:
             if "emissions" in l and ".svg" in l:
-                os.system("cp {}/{} {}/emissions_2.svg".format(replicate_2_dir, l, outdir))
+                os.system("cp {}/{} {}/emissions_2.svg".format("/".join(replicate_2_dir.split("/")[:-1]), l, outdir))
 
     elif type == "segw":
-        os.system("cp {}/gmtk_parameters/gmtk_parameters.png {}/emissions_1.png".format(replicate_1_dir, outdir))
-        os.system("cp {}/gmtk_parameters/gmtk_parameters.png {}/emissions_2.png".format(replicate_2_dir, outdir))
+        os.system("cp {}/gmtk_parameters/gmtk_parameters.png {}/emissions_1.png".format(
+            "/".join(replicate_1_dir.split("/")[:-1]), outdir))
+        os.system("cp {}/gmtk_parameters/gmtk_parameters.png {}/emissions_2.png".format(
+            "/".join(replicate_2_dir.split("/")[:-1]), outdir))
 
 
     loci_1, loci_2 = intersect_parsed_posteriors(
