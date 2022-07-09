@@ -970,8 +970,9 @@ def plot_bidir_bar_chart(metr1, metr2, type, savedir):
     plt.gca().invert_yaxis()
     axes[0].set(yticks=data.index, yticklabels=data.index)
     axes[0].yaxis.tick_left()
-    axes[1].set_xticks(np.arange(0, 1.1, step=0.1))
-    axes[0].set_xticks(np.arange(0, 1.1, step=0.1))
+    if type == "Raw_Agreement" or type == "Cohens_Kappa":
+        axes[1].set_xticks(np.arange(0, 1.1, step=0.1))
+        axes[0].set_xticks(np.arange(0, 1.1, step=0.1))
     plt.subplots_adjust(wspace=0, top=0.85, bottom=0.1, left=0.18, right=0.95)
     fig.tight_layout()
     plt.savefig('{}/bidir_{}.pdf'.format(savedir, type), format='pdf')

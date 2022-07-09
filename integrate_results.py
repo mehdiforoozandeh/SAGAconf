@@ -269,10 +269,11 @@ def compare_overalls(res_dir, target_metric="ck"):
 			heights = ast.literal_eval(lines[4].replace("-inf", "0"))
 			navig.append([ct, s, heights[-1]])
 	
-	navig = pd.DataFrame(navig, columns=["celltype", "setting", target_metric])
+	navig = pd.DataFrame(navig, columns=["Celltype", "Setting", target_metric])
 
 	sns.set_theme(style="whitegrid")
-	ax = sns.barplot(x="celltype", y=target_metric, hue="setting", data=navig)
+	sns.set(rc={'figure.figsize':(10,8)})
+	ax = sns.barplot(x="Celltype", y=target_metric, hue="Setting", data=navig)
 
 	plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
 	plt.tight_layout()
