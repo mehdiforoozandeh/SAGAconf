@@ -985,8 +985,10 @@ def plot_bidir_bar_chart(metr1, metr2, type, savedir):
 def plot_heatmap(confmat, savedir, type, columns):
     if "posterior" in columns[0][0]:
         for i in range(len(columns[0])):
-            columns[0][i] = columns[0][i].replace("posterior", "")
-            columns[1][i] = columns[1][i].replace("posterior", "")
+            label0_i =columns[0][i] 
+            label1_i =columns[1][i] 
+            columns[0][i] = label0_i.replace("posterior", "")
+            columns[1][i] = label1_i.replace("posterior", "")
             
     columns1 = columns[0]
     columns2 = columns[1]
