@@ -1,6 +1,6 @@
 from run import *
 
-download_dir = 'protect_files_/'
+download_dir = '_protect_files_/'
 segway_dir = 'segway_runs/'
 res_dir = 'reprod_results/'
 
