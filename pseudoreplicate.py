@@ -93,6 +93,7 @@ def get_fraglen(encode_file_accession):
 
     print(
         encode_file_accession, int(fraglen))
+    return int(fraglen)
     
 
 def psdrep_pipeline(initial_bam):
