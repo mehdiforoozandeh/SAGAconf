@@ -318,29 +318,29 @@ def ChromHMM_paraminit_multi_subruns(chmm_celltype_dir, chmm_output_dir, random_
 
             list_of_subrun_dirs.append(chmm_output_dir+"/"+namesig+"_rep1_rs{}_srs{}".format(rs, srs))
     
-    # now browse subruns
-    nlls = {}
-    for subrun in list_of_subrun_dirs:
-        lfiles = os.listdir(subrun)
-        for ll in lfiles:
-            if "model" in ll:
-                nlls[subrun] = float(open(subrun+"/"+ll, 'r').readlines()[0].split("\t")[3])
+        # now browse subruns
+        nlls = {}
+        for subrun in list_of_subrun_dirs:
+            lfiles = os.listdir(subrun)
+            for ll in lfiles:
+                if "model" in ll:
+                    nlls[subrun] = float(open(subrun+"/"+ll, 'r').readlines()[0].split("\t")[3])
 
-    # pick the best run
-    best_run = max(nlls, key=nlls.get)
-    os.system("mv {} {}".format(
-        chmm_output_dir+"/"+namesig+"_rep1_rs{}_srs{}".format(rs, srs),
-        chmm_output_dir+"/"+namesig+"_rep1_rs{}".format(rs)))
+        # pick the best run
+        best_run = max(nlls, key=nlls.get)
+        os.system("mv {} {}".format(
+            chmm_output_dir+"/"+namesig+"_rep1_rs{}_srs{}".format(rs, srs),
+            chmm_output_dir+"/"+namesig+"_rep1_rs{}".format(rs)))
 
-    for k in nlls.keys():
-        if os.path.isdir(k):
-            os.system("rm -r {}".format(k))
-    
-    # now parse posteriors
-    if os.path.exists(chmm_output_dir+"/"+namesig+"_rep1_rs{}/parsed_posterior.csv".format(rs)) == False:
-            parsed_posterior = ChrHMM_read_posteriordir(
-                chmm_output_dir+"/"+namesig+"_rep1_rs{}/POSTERIOR".format(rs), "rep1", resolution=200)
-            parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep1_rs{}/parsed_posterior.csv".format(rs))
+        for k in nlls.keys():
+            if os.path.isdir(k):
+                os.system("rm -r {}".format(k))
+        
+        # now parse posteriors
+        if os.path.exists(chmm_output_dir+"/"+namesig+"_rep1_rs{}/parsed_posterior.csv".format(rs)) == False:
+                parsed_posterior = ChrHMM_read_posteriordir(
+                    chmm_output_dir+"/"+namesig+"_rep1_rs{}/POSTERIOR".format(rs), "rep1", resolution=200)
+                parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep1_rs{}/parsed_posterior.csv".format(rs))
     
     ####=================================================================================================####
     # if os.path.exists(chmm_celltype_dir+"/binarized_rep2") == False:
@@ -359,29 +359,29 @@ def ChromHMM_paraminit_multi_subruns(chmm_celltype_dir, chmm_output_dir, random_
 
     #         list_of_subrun_dirs.append(chmm_output_dir+"/"+namesig+"_rep2_rs{}_srs{}".format(rs, srs))
     
-    # # now browse subruns
-    # nlls = {}
-    # for subrun in list_of_subrun_dirs:
-    #     lfiles = os.listdir(subrun)
-    #     for ll in lfiles:
-    #         if "model" in ll:
-    #             nlls[subrun] = float(open(subrun+"/"+ll, 'r').readlines()[0].split("\t")[3])
+        # now browse subruns
+        # nlls = {}
+        # for subrun in list_of_subrun_dirs:
+        #     lfiles = os.listdir(subrun)
+        #     for ll in lfiles:
+        #         if "model" in ll:
+        #             nlls[subrun] = float(open(subrun+"/"+ll, 'r').readlines()[0].split("\t")[3])
 
-    # # pick the best run
-    # best_run = max(nlls, key=nlls.get)
-    # os.system("mv {} {}".format(
-    #     chmm_output_dir+"/"+namesig+"_rep2_rs{}_srs{}".format(rs, srs),
-    #     chmm_output_dir+"/"+namesig+"_rep2_rs{}".format(rs)))
+        # # pick the best run
+        # best_run = max(nlls, key=nlls.get)
+        # os.system("mv {} {}".format(
+        #     chmm_output_dir+"/"+namesig+"_rep2_rs{}_srs{}".format(rs, srs),
+        #     chmm_output_dir+"/"+namesig+"_rep2_rs{}".format(rs)))
 
-    # for k in nlls.keys():
-    #     if os.path.isdir(k):
-    #         os.system("rm -r {}".format(k))
-    
-    # # now parse posteriors
-    # if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2_rs{}/parsed_posterior.csv".format(rs)) == False:
-    #         parsed_posterior = ChrHMM_read_posteriordir(
-    #             chmm_output_dir+"/"+namesig+"_rep2_rs{}/POSTERIOR".format(rs), "rep2", resolution=200)
-    #         parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep2_rs{}/parsed_posterior.csv".format(rs))
+        # for k in nlls.keys():
+        #     if os.path.isdir(k):
+        #         os.system("rm -r {}".format(k))
+        
+        # # now parse posteriors
+        # if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2_rs{}/parsed_posterior.csv".format(rs)) == False:
+        #         parsed_posterior = ChrHMM_read_posteriordir(
+        #             chmm_output_dir+"/"+namesig+"_rep2_rs{}/POSTERIOR".format(rs), "rep2", resolution=200)
+        #         parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep2_rs{}/parsed_posterior.csv".format(rs))
 
 def ChromHMM_paraminit_runs(chmm_celltype_dir, chmm_output_dir, random_seeds,  n_thread='0', num_labels=16):
     namesig = chmm_celltype_dir.split("/")[-1]
