@@ -139,10 +139,14 @@ def psdrep_pipeline(initial_bam):
 
 if __name__=="__main__":
     testbed = "_protect_files_/GM12878/H3K4me3/ENCFF843BWY.bed"
+    bed = read_bed(testbed)
+    bed = bed.drop(bed[bed.chr == "chrEBV"].index).reset_index(drop=True)
+    bed.to_csv(testbed.replace(".bed", "_test.bed"), index=False, header=False, sep="\t")
+
     fraglen = get_fraglen("ENCFF843BWY")
     gensz = genomesize("hg38.txt")
     bed_to_fc(
-        testbed, 
+        testbed.replace(".bed", "_test.bed"), 
         fraglen, "hg38.txt", gensz,
         testbed.replace("ENCFF843BWY.bed", "test_signalgen"))
     bw2bg(testbed.replace("ENCFF843BWY.bed", "test_signalgen"))
