@@ -256,51 +256,37 @@ def ChromHMM_pseudoreplicate_runs(chmm_celltype_dir, chmm_output_dir, n_thread='
         pass
 
     ####=================================================================================================####
-    namesig = chmm_celltype_dir.split("/")[-1]
+    # namesig = chmm_celltype_dir.split("/")[-1]
 
-    if os.path.exists(chmm_celltype_dir+"/binarized_rep2psd_concat") == False:
-        binarize_data(
-            chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep2psd_concat.txt", chmm_celltype_dir+"/binarized_rep2psd_concat", 
-            resolution=200)
+    # if os.path.exists(chmm_celltype_dir+"/binarized_rep2psd_concat") == False:
+    #     binarize_data(
+    #         chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep2psd_concat.txt", chmm_celltype_dir+"/binarized_rep2psd_concat", 
+    #         resolution=200)
 
-    if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2psd_concat") == False:
-        learnModel(
-            chmm_celltype_dir+"/binarized_rep2psd_concat", chmm_output_dir+"/"+namesig+"_rep2psd_concat", 
-            num_labels=num_labels, assembly='hg38', n_threads=n_thread, random_seed=None)
+    # if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2psd_concat") == False:
+    #     learnModel(
+    #         chmm_celltype_dir+"/binarized_rep2psd_concat", chmm_output_dir+"/"+namesig+"_rep2psd_concat", 
+    #         num_labels=num_labels, assembly='hg38', n_threads=n_thread, random_seed=None)
 
-    try:
-        if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2psd_concat/parsed_posterior_rep2_psd1.csv") == False:
-            parsed_posterior = ChrHMM_read_posteriordir(
-                chmm_output_dir+"/"+namesig+"_rep2psd_concat/POSTERIOR", "rep2_psd1", resolution=200)
+    # try:
+    #     if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2psd_concat/parsed_posterior_rep2_psd1.csv") == False:
+    #         parsed_posterior = ChrHMM_read_posteriordir(
+    #             chmm_output_dir+"/"+namesig+"_rep2psd_concat/POSTERIOR", "rep2_psd1", resolution=200)
             
-            parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep2psd_concat/parsed_posterior_rep2_psd1.csv")
-    except:
-        pass
+    #         parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep2psd_concat/parsed_posterior_rep2_psd1.csv")
+    # except:
+    #     pass
 
-    try:
-        if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2psd_concat/parsed_posterior_rep2_psd2.csv") == False:
-            parsed_posterior = ChrHMM_read_posteriordir(
-                chmm_output_dir+"/"+namesig+"_rep2psd_concat/POSTERIOR", "rep2_psd2", resolution=200)
+    # try:
+    #     if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2psd_concat/parsed_posterior_rep2_psd2.csv") == False:
+    #         parsed_posterior = ChrHMM_read_posteriordir(
+    #             chmm_output_dir+"/"+namesig+"_rep2psd_concat/POSTERIOR", "rep2_psd2", resolution=200)
             
-            parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep2psd_concat/parsed_posterior_rep2_psd2.csv")
-    except:
-        pass
+    #         parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep2psd_concat/parsed_posterior_rep2_psd2.csv")
+    # except:
+    #     pass
 
 def ChromHMM_paraminit_multi_subruns(chmm_celltype_dir, chmm_output_dir, random_seeds,  num_subruns=10, n_thread='0', num_labels=16):
-    namesig = chmm_celltype_dir.split("/")[-1]
-    if "/" in namesig:
-        namesig.replace("/", "")
-
-    list_of_subrun_dirs = []
-    for rs in random_seeds: 
-        sub_randseeds = np.random.seed(rs); np.random.randint(1000, size=int(num_subruns))
-
-        for srs in sub_randseeds:
-            binarize_data()
-            learnModel()
-            list_of_subrun_dirs.append()
-    
-    nlls = {}
     """
     initialize s_n=10 subrun_seeds with parent-seed {rs}
     run all 10 instances
@@ -311,7 +297,91 @@ def ChromHMM_paraminit_multi_subruns(chmm_celltype_dir, chmm_output_dir, random_
     name it namesig+_rep*_{rs}
     parse posterior for namesig+_rep*_{rs} only
     """
+
+    namesig = chmm_celltype_dir.split("/")[-1]
+    if "/" in namesig:
+        namesig.replace("/", "")
+
+    if os.path.exists(chmm_celltype_dir+"/binarized_rep1") == False:
+        binarize_data(
+            chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep1.txt", 
+            chmm_celltype_dir+"/binarized_rep1", resolution=200)
+            
+    list_of_subrun_dirs = []
+    for rs in random_seeds: 
+        sub_randseeds = np.random.seed(rs); np.random.randint(1000, size=int(num_subruns))
+
+        for srs in sub_randseeds:
+            learnModel(
+                chmm_celltype_dir+"/binarized_rep1", chmm_output_dir+"/"+namesig+"_rep1_rs{}_srs{}".format(rs, srs), 
+                num_labels=num_labels, assembly='hg38', n_threads=n_thread, random_seed=int(srs))
+
+            list_of_subrun_dirs.append(chmm_output_dir+"/"+namesig+"_rep1_rs{}_srs{}".format(rs, srs))
     
+    # now browse subruns
+    nlls = {}
+    for subrun in list_of_subrun_dirs:
+        lfiles = os.listdir(subrun)
+        for ll in lfiles:
+            if "model" in ll:
+                nlls[subrun] = float(open(subrun+"/"+ll, 'r').readlines()[0].split("\t")[3])
+
+    # pick the best run
+    best_run = max(nlls, key=nlls.get)
+    os.system("mv {} {}".format(
+        chmm_output_dir+"/"+namesig+"_rep1_rs{}_srs{}".format(rs, srs),
+        chmm_output_dir+"/"+namesig+"_rep1_rs{}".format(rs)))
+
+    for k in nlls.keys():
+        if os.path.isdir(k):
+            os.system("rm -r {}".format(k))
+    
+    # now parse posteriors
+    if os.path.exists(chmm_output_dir+"/"+namesig+"_rep1_rs{}/parsed_posterior.csv".format(rs)) == False:
+            parsed_posterior = ChrHMM_read_posteriordir(
+                chmm_output_dir+"/"+namesig+"_rep1_rs{}/POSTERIOR".format(rs), "rep1", resolution=200)
+            parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep1_rs{}/parsed_posterior.csv".format(rs))
+    
+    ####=================================================================================================####
+    # if os.path.exists(chmm_celltype_dir+"/binarized_rep2") == False:
+    #     binarize_data(
+    #         chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep2.txt", 
+    #         chmm_celltype_dir+"/binarized_rep2", resolution=200)
+            
+    # list_of_subrun_dirs = []
+    # for rs in random_seeds: 
+    #     sub_randseeds = np.random.seed(rs); np.random.randint(1000, size=int(num_subruns))
+
+    #     for srs in sub_randseeds:
+    #         learnModel(
+    #             chmm_celltype_dir+"/binarized_rep2", chmm_output_dir+"/"+namesig+"_rep2_rs{}_srs{}".format(rs, srs), 
+    #             num_labels=num_labels, assembly='hg38', n_threads=n_thread, random_seed=int(srs))
+
+    #         list_of_subrun_dirs.append(chmm_output_dir+"/"+namesig+"_rep2_rs{}_srs{}".format(rs, srs))
+    
+    # # now browse subruns
+    # nlls = {}
+    # for subrun in list_of_subrun_dirs:
+    #     lfiles = os.listdir(subrun)
+    #     for ll in lfiles:
+    #         if "model" in ll:
+    #             nlls[subrun] = float(open(subrun+"/"+ll, 'r').readlines()[0].split("\t")[3])
+
+    # # pick the best run
+    # best_run = max(nlls, key=nlls.get)
+    # os.system("mv {} {}".format(
+    #     chmm_output_dir+"/"+namesig+"_rep2_rs{}_srs{}".format(rs, srs),
+    #     chmm_output_dir+"/"+namesig+"_rep2_rs{}".format(rs)))
+
+    # for k in nlls.keys():
+    #     if os.path.isdir(k):
+    #         os.system("rm -r {}".format(k))
+    
+    # # now parse posteriors
+    # if os.path.exists(chmm_output_dir+"/"+namesig+"_rep2_rs{}/parsed_posterior.csv".format(rs)) == False:
+    #         parsed_posterior = ChrHMM_read_posteriordir(
+    #             chmm_output_dir+"/"+namesig+"_rep2_rs{}/POSTERIOR".format(rs), "rep2", resolution=200)
+    #         parsed_posterior.to_csv(chmm_output_dir+"/"+namesig+"_rep2_rs{}/parsed_posterior.csv".format(rs))
 
 def ChromHMM_paraminit_runs(chmm_celltype_dir, chmm_output_dir, random_seeds,  n_thread='0', num_labels=16):
     namesig = chmm_celltype_dir.split("/")[-1]

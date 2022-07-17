@@ -3,7 +3,7 @@ from run import *
 CellType_list = np.array(
     ['K562', 'MCF-7', 'GM12878', 'HeLa-S3', 'CD14-positive monocyte'])
 
-download_dir = 'protect_files_/'
+download_dir = '_protect_files_/'
 res_dir = 'reprod_results/'
 
 if os.path.exists(res_dir) == False:
@@ -59,14 +59,14 @@ for ct in CellType_list:
     print("Preparing ChromHMM inputfiles")
     prepare_chmm_inputdata(download_dir+ct, assertion=False)
 
-    print("running chmm rep")
-    ChromHMM_replicate_runs("chmmfiles/"+ct, chmm_output_dir, n_thread='0', num_labels=16)
+    # print("running chmm rep")
+    # ChromHMM_replicate_runs("chmmfiles/"+ct, chmm_output_dir, n_thread='0', num_labels=16)
 
-    print("running chmm concat")
-    ChromHMM_concat_runs("chmmfiles/"+ct, chmm_output_dir, n_thread='0', num_labels=16)
+    # print("running chmm concat")
+    # ChromHMM_concat_runs("chmmfiles/"+ct, chmm_output_dir, n_thread='0', num_labels=16)
 
     print("running chmm param-init")
-    ChromHMM_paraminit_runs("chmmfiles/"+ct, chmm_output_dir, [5, 27],  n_thread='0', num_labels=16)
+    ChromHMM_paraminit_multi_subruns("chmmfiles/"+ct, chmm_output_dir, [5, 27],  n_thread='0', num_labels=16)
 
     print("running chmm pseudoreps")
     ChromHMM_pseudoreplicate_runs("chmmfiles/"+ct, chmm_output_dir, n_thread='0', num_labels=16)
