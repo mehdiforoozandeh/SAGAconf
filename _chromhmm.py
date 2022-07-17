@@ -330,7 +330,7 @@ def ChromHMM_paraminit_multi_subruns(chmm_celltype_dir, chmm_output_dir, random_
         # pick the best run
         best_run = max(nlls, key=nlls.get)
         os.system("mv {} {}".format(
-            chmm_output_dir+"/"+namesig+"_rep1_rs{}_srs{}".format(rs, srs),
+            best_run,
             chmm_output_dir+"/"+namesig+"_rep1_rs{}".format(rs)))
 
         for k in nlls.keys():
