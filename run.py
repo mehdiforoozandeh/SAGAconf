@@ -297,7 +297,6 @@ def create_psdrep_genomedata(celltype_dir, sequence_file):
     for e in navigate["rep2_psdrep2"]:
         tracklist_rep2psd2 = tracklist_rep2psd2 + '-t {}={} '.format(e[0], "{}/{}/{}".format(celltype_dir, e[0], e[2]))
 
-
     os.system(
         'genomedata-load -s {} --sizes {} --verbose {}.genomedata'.format(
             sequence_file, tracklist_rep1psd1, celltype_dir+'/rep1_psdrep1'))
@@ -313,6 +312,153 @@ def create_psdrep_genomedata(celltype_dir, sequence_file):
     os.system(
         'genomedata-load -s {} --sizes {} --verbose {}.genomedata'.format(
             sequence_file, tracklist_rep2psd2, celltype_dir+'/rep2_psdrep2'))
+
+def create_concat_psdrep_genomedata(celltype_dir, sequence_file):
+    # navigate all psdfiles for all tracks
+    print('creating genomedata files for {}...'.format(celltype_dir))
+
+    assaylist = [tr for tr in os.listdir(celltype_dir) if os.path.isdir(celltype_dir+'/'+tr)]# and tr in essential_tracks]
+    navigate = {
+        "rep1_psdrep1":[],
+        "rep1_psdrep2":[],
+        "rep2_psdrep1":[],
+        "rep2_psdrep2":[]
+    }
+
+    for tr in assaylist:
+        tfmd = pd.read_csv(celltype_dir+'/'+tr+'/track_files_metadata.csv')
+        tfmd.index = list(tfmd['Unnamed: 0'])
+        tfmd = tfmd.drop('Unnamed: 0', axis=1)
+
+        navigate["rep1_psdrep1"].append(
+            [tfmd.loc['assay', 'rep1_alig'], "rep1", str(tfmd.loc['accession', 'rep1_alig'])+"_psdrep1.fc.signal.bedGraph"]
+        )
+        navigate["rep1_psdrep2"].append(
+            [tfmd.loc['assay', 'rep1_alig'], "rep1", str(tfmd.loc['accession', 'rep1_alig'])+"_psdrep2.fc.signal.bedGraph"]
+        )
+        navigate["rep2_psdrep1"].append(
+            [tfmd.loc['assay', 'rep2_alig'], "rep2", str(tfmd.loc['accession', 'rep2_alig'])+"_psdrep1.fc.signal.bedGraph"]
+        )
+        navigate["rep2_psdrep2"].append(
+            [tfmd.loc['assay', 'rep2_alig'], "rep2", str(tfmd.loc['accession', 'rep2_alig'])+"_psdrep2.fc.signal.bedGraph"]
+        )
+
+    # chrom-rename for all of them (rename chroms based on psd number)
+    for i in range(len(assaylist)):
+        if os.path.exists(celltype_dir + "/" + navigate["rep1_psdrep1"][i][0] + "/" + navigate["rep1_psdrep1"][i][2].replace(".bedGraph", "_concat.bedGraph")) == False:
+            concat_rename_chroms(
+                celltype_dir + "/" + navigate["rep1_psdrep1"][i][0] + "/" + navigate["rep1_psdrep1"][i][2], 
+                celltype_dir + "/" + navigate["rep1_psdrep1"][i][0] + "/" + navigate["rep1_psdrep1"][i][2].replace(".bedGraph", "_concat.bedGraph"), 1)
+
+        if os.path.exists(celltype_dir + "/" + navigate["rep1_psdrep2"][i][0] + "/" + navigate["rep1_psdrep2"][i][2].replace(".bedGraph", "_concat.bedGraph")) == False:
+            concat_rename_chroms(
+                celltype_dir + "/" + navigate["rep1_psdrep2"][i][0] + "/" + navigate["rep1_psdrep2"][i][2], 
+                celltype_dir + "/" + navigate["rep1_psdrep2"][i][0] + "/" + navigate["rep1_psdrep2"][i][2].replace(".bedGraph", "_concat.bedGraph"), 2)
+
+        if os.path.exists(celltype_dir + "/" + navigate["rep2_psdrep1"][i][0] + "/" + navigate["rep2_psdrep1"][i][2].replace(".bedGraph", "_concat.bedGraph")) == False:
+            concat_rename_chroms(
+                celltype_dir + "/" + navigate["rep2_psdrep1"][i][0] + "/" + navigate["rep2_psdrep1"][i][2], 
+                celltype_dir + "/" + navigate["rep2_psdrep1"][i][0] + "/" + navigate["rep2_psdrep1"][i][2].replace(".bedGraph", "_concat.bedGraph"), 1)
+
+        if os.path.exists(celltype_dir + "/" + navigate["rep2_psdrep2"][i][0] + "/" + navigate["rep2_psdrep2"][i][2].replace(".bedGraph", "_concat.bedGraph")) == False:
+            concat_rename_chroms(
+                celltype_dir + "/" + navigate["rep2_psdrep2"][i][0] + "/" + navigate["rep2_psdrep2"][i][2], 
+                celltype_dir + "/" + navigate["rep2_psdrep2"][i][0] + "/" + navigate["rep2_psdrep2"][i][2].replace(".bedGraph", "_concat.bedGraph"), 2)
+
+        # virtualize bedgraphs
+        if os.path.exists(celltype_dir + "/" + navigate["rep1_psdrep1"][i][0] + "/rep1psd_concatenated.bedGraph") == False:
+            concat_virtualize_chroms(
+                celltype_dir + "/" + navigate["rep1_psdrep1"][i][0] + "/" + navigate["rep1_psdrep1"][i][2].replace(".bedGraph", "_concat.bedGraph"),
+                celltype_dir + "/" + navigate["rep1_psdrep2"][i][0] + "/" + navigate["rep1_psdrep2"][i][2].replace(".bedGraph", "_concat.bedGraph"),
+                celltype_dir + "/" + navigate["rep1_psdrep1"][i][0] + "/rep1psd_concatenated.bedGraph")
+
+        if os.path.exists(celltype_dir + "/" + navigate["rep2_psdrep1"][i][0] + "/rep2psd_concatenated.bedGraph") == False:
+            concat_virtualize_chroms(
+                celltype_dir + "/" + navigate["rep2_psdrep1"][i][0] + "/" + navigate["rep2_psdrep1"][i][2].replace(".bedGraph", "_concat.bedGraph"),
+                celltype_dir + "/" + navigate["rep2_psdrep2"][i][0] + "/" + navigate["rep2_psdrep2"][i][2].replace(".bedGraph", "_concat.bedGraph"),
+                celltype_dir + "/" + navigate["rep2_psdrep1"][i][0] + "/rep2psd_concatenated.bedGraph")
+
+    # virtualize chrsz file
+    if os.path.exists(sequence_file.replace(".sizes", "_concatenated.sizes")) == False:
+        concat_virtualize_include_file(
+            sequence_file, sequence_file.replace(".sizes", "_concatenated.sizes"), 
+            write_separate=True)
+
+    # create 6 genomedata files per celltype:  
+    # concatenated_rep1psd
+    rep1psd_tracklist = ''
+
+    # concat_rep1psd1
+    rep1psd1_tracklist = ''
+    
+    # concat_rep1psd2
+    rep1psd2_tracklist = ''
+
+    # concatenated_rep2psd
+    rep2psd_tracklist = ''
+
+    # concat_rep2psd1
+    rep2psd1_tracklist = ''
+    
+    # concat_rep2psd2
+    rep2psd2_tracklist = ''
+
+    for i in range(len(assaylist)):
+        rep1psd_tracklist = rep1psd_tracklist + '-t {}={} '.format(
+            navigate["rep1_psdrep1"][i][0], celltype_dir + "/" + navigate["rep1_psdrep1"][i][0] + "/rep1psd_concatenated.bedGraph")
+
+        rep1psd1_tracklist = rep1psd1_tracklist + '-t {}={} '.format(
+            navigate["rep1_psdrep1"][i][0], celltype_dir + "/" + navigate["rep1_psdrep1"][i][0] + "/" + navigate["rep1_psdrep1"][i][2].replace(".bedGraph", "_concat.bedGraph"))
+
+        rep1psd2_tracklist = rep1psd2_tracklist + '-t {}={} '.format(
+            navigate["rep1_psdrep1"][i][0], celltype_dir + "/" + navigate["rep1_psdrep2"][i][0] + "/" + navigate["rep1_psdrep2"][i][2].replace(".bedGraph", "_concat.bedGraph"))
+        
+        # rep2psd_tracklist = rep2psd_tracklist + '-t {}={} '.format(
+        #     navigate["rep2_psdrep1"][i][0], celltype_dir + "/" + navigate["rep2_psdrep1"][i][0] + "/rep2psd_concatenated.bedGraph")
+
+        # rep2psd1_tracklist = rep2psd1_tracklist + '-t {}={} '.format(
+        #     navigate["rep2_psdrep1"][i][0], celltype_dir + "/" + navigate["rep2_psdrep1"][i][0] + "/" + navigate["rep2_psdrep1"][i][2].replace(".bedGraph", "_concat.bedGraph"))
+            
+        # rep2psd2_tracklist = rep2psd2_tracklist + '-t {}={} '.format(
+        #     navigate["rep2_psdrep2"][i][0], celltype_dir + "/" + navigate["rep2_psdrep2"][i][0] + "/" + navigate["rep2_psdrep2"][i][2].replace(".bedGraph", "_concat.bedGraph"))
+        
+    if os.path.exists(celltype_dir + "/" + "rep1psd_concatenated.genomedata") == False:
+        os.system('genomedata-load -s {} --sizes {} --verbose {}'.format(
+            sequence_file.replace(".sizes", "_concatenated.sizes"), 
+            rep1psd_tracklist, 
+            celltype_dir + "/" + "rep1psd_concatenated.genomedata"))
+
+    if os.path.exists(celltype_dir + "/" + "rep1psd1_concat.genomedata") == False:
+        os.system('genomedata-load -s {} --sizes {} --verbose {}'.format(
+            sequence_file.replace(".sizes", "_VirtRep1_concatenated.sizes"), 
+            rep1psd1_tracklist, 
+            celltype_dir + "/" + "rep1psd1_concat.genomedata"))
+
+    if os.path.exists(celltype_dir + "/" + "rep1psd2_concat.genomedata") == False:
+        os.system('genomedata-load -s {} --sizes {} --verbose {}'.format(
+            sequence_file.replace(".sizes", "_VirtRep2_concatenated.sizes"), 
+            rep1psd2_tracklist, 
+            celltype_dir + "/" + "rep1psd2_concat.genomedata"))
+    
+    #========================================================================================#
+
+    # if os.path.exists(celltype_dir + "/" + "rep2psd_concatenated.genomedata") == False:
+    #     os.system('genomedata-load -s {} --sizes {} --verbose {}'.format(
+    #         sequence_file.replace(".sizes", "_concatenated.sizes"), 
+    #         rep2psd_tracklist, 
+    #         celltype_dir + "/" + "rep2psd_concatenated.genomedata"))
+
+    # if os.path.exists(celltype_dir + "/" + "rep2psd1_concat.genomedata") == False:
+    #     os.system('genomedata-load -s {} --sizes {} --verbose {}'.format(
+    #         sequence_file.replace(".sizes", "_VirtRep1_concatenated.sizes"), 
+    #         rep2psd1_tracklist, 
+    #         celltype_dir + "/" + "rep2psd1_concat.genomedata"))
+
+    # if os.path.exists(celltype_dir + "/" + "rep2psd2_concat.genomedata") == False:
+    #     os.system('genomedata-load -s {} --sizes {} --verbose {}'.format(
+    #         sequence_file.replace(".sizes", "_VirtRep2_concatenated.sizes"), 
+    #         rep2psd2_tracklist, 
+    #         celltype_dir + "/" + "rep2psd2_concat.genomedata"))
 
 
 def concat_create_genomedata(celltype_dir, sequence_file):

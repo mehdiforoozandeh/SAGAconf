@@ -6,32 +6,30 @@ res_dir = 'reprod_results/'
 
 CellType_list = [ct for ct in os.listdir(download_dir) if os.path.isdir(download_dir+ct)]
 
-for ct in CellType_list:
-    make_pseudo_replicates(download_dir+ct, m_p=True)
-
-# gd_exists = []
 # for ct in CellType_list:
-#     if os.path.exists(download_dir+ct+'/rep1_psdrep1.genomedata') == False or \
-#         os.path.exists(download_dir+ct+'/rep1_psdrep2.genomedata') == False or \
-#             os.path.exists(download_dir+ct+'/rep2_psdrep1.genomedata') == False or \
-#                 os.path.exists(download_dir+ct+'/rep2_psdrep2.genomedata') == False:
+#     make_pseudo_replicates(download_dir+ct, m_p=True)
 
-#         gd_exists.append(False)
+gd_exists = []
+for ct in CellType_list:
+    if os.path.exists(download_dir+ct+'/rep1psd_concatenated.genomedata') == False or \
+        os.path.exists(download_dir+ct+'/rep1psd1_concat.genomedata') == False or \
+                os.path.exists(download_dir+ct+'/rep1psd2_concat.genomedata') == False:
+
+        gd_exists.append(False)
     
-#     else:
-#         gd_exists.append(True)
+    else:
+        gd_exists.append(True)
 
-# gd_to_create = [CellType_list[i] for i in range(len(CellType_list)) if gd_exists[i]==False]
+gd_to_create = [CellType_list[i] for i in range(len(CellType_list)) if gd_exists[i]==False]
 
-# if len(gd_to_create) != 0:
-#     p_obj = mp.Pool(len(gd_to_create))
-#     p_obj.map(partial(
-#         create_psdrep_genomedata, sequence_file=download_dir+"hg38.chrom.sizes"), 
-#         [download_dir + ct for ct in gd_to_create])
+if len(gd_to_create) != 0:
+    p_obj = mp.Pool(len(gd_to_create))
+    p_obj.map(partial(
+        create_concat_psdrep_genomedata, sequence_file=download_dir+"hg38.chrom.sizes"), 
+        [download_dir + ct for ct in gd_to_create])
 
 # if os.path.exists(segway_dir) == False:
 #     os.mkdir(segway_dir)
-
 
 # partial_runs_ii = partial(
 #     RunParse_segway_psdreps, 
