@@ -306,12 +306,11 @@ def ChromHMM_paraminit_multi_subruns(chmm_celltype_dir, chmm_output_dir, random_
         binarize_data(
             chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep1.txt", 
             chmm_celltype_dir+"/binarized_rep1", resolution=200)
-            
-    list_of_subrun_dirs = []
+
     for rs in random_seeds: 
         np.random.seed(rs)
         sub_randseeds = np.random.randint(1000, size=int(num_subruns))
-
+        list_of_subrun_dirs = []
         for srs in sub_randseeds:
             learnModel(
                 chmm_celltype_dir+"/binarized_rep1", chmm_output_dir+"/"+namesig+"_rep1_rs{}_srs{}".format(rs, srs), 
@@ -349,8 +348,8 @@ def ChromHMM_paraminit_multi_subruns(chmm_celltype_dir, chmm_output_dir, random_
     #         chmm_celltype_dir, chmm_celltype_dir+"/cmft_rep2.txt", 
     #         chmm_celltype_dir+"/binarized_rep2", resolution=200)
             
-    # list_of_subrun_dirs = []
     # for rs in random_seeds: 
+        # list_of_subrun_dirs = []
         # np.random.seed(rs)
         # sub_randseeds = np.random.randint(1000, size=int(num_subruns))
     #     for srs in sub_randseeds:
