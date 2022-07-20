@@ -8,9 +8,6 @@ from _cluster_matching import *
 from scipy.ndimage.filters import gaussian_filter1d
 import plotly.graph_objects as go
 import plotly.express as px
-"""
-depricated
-"""
 
 class visualize(object):
     def __init__(self, loci_1, corrected_loci_2, savedir=None):
