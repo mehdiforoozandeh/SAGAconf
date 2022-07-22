@@ -601,7 +601,7 @@ def RunParse_segway_psdreps(celltype_dir, output_dir, random_seed=73):
 
     concat_param_dict = {
         "random_seed":random_seed, "track_weight":0.01,"stws":1, "ruler_scale":100, 
-        "prior_strength":1, "resolution":100, "mini_batch_fraction":0.03,
+        "prior_strength":1, "resolution":100, "mini_batch_fraction":0.01,
         "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
         "name_sig_concat":output_dir+name_sig+'_rep1psd_concat', 
         "name_sig_rep1":output_dir+name_sig+'_concat_rep1psd1', 
