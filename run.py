@@ -1260,9 +1260,11 @@ def run_single_reprod_analysis(input_dict):
 
     with open(input_dict["output_dir"]+"/run_info.txt", 'w') as fw:
         fw.write(str(input_dict))
-
-    full_reproducibility_report(input_dict["rep1_dir"], input_dict["rep2_dir"], input_dict["output_dir"], run_on_subset=False)
-
+    try:
+        full_reproducibility_report(input_dict["rep1_dir"], input_dict["rep2_dir"], input_dict["output_dir"], run_on_subset=False)
+    except:
+        pass
+    
 def run_single_short_report(input_dict):
     print("running type: {}".format(input_dict["runtype"]))
 
@@ -1274,7 +1276,10 @@ def run_single_short_report(input_dict):
     elif "chromhmm" in input_dict["rep1_dir"]:
         type = "chmm"
 
-    get_short_report(input_dict["rep1_dir"], input_dict["rep2_dir"], input_dict["output_dir"], type=type)
+    try:
+        get_short_report(input_dict["rep1_dir"], input_dict["rep2_dir"], input_dict["output_dir"], type=type)
+    except:
+        pass
 
 def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, multi_p=True, type="segway", n_processors=8, run="long"):
     """Given a directory containing all segway or chromHMM runs, 
