@@ -939,56 +939,60 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
     plt.close('all')
     plt.style.use('default')
     
-    if cc_calb:
-        try:
-            if os.path.exists(pltsavedir+"/pstdist_rep1") == False:
-                os.mkdir(pltsavedir+"/pstdist_rep1")
-            pstdist = Posterior_dist(loci_1, pltsavedir+"/pstdist_rep1")
-            pstdist.plot_posterior_histogram()
+    ##============================================================================================================##
 
-            if os.path.exists(pltsavedir+"/pstdist_rep2") == False:
-                os.mkdir(pltsavedir+"/pstdist_rep2")
-            pstdist = Posterior_dist(loci_2, pltsavedir+"/pstdist_rep2")
-            pstdist.plot_posterior_histogram()
+    # if cc_calb:
+    #     try:
+    #         if os.path.exists(pltsavedir+"/pstdist_rep1") == False:
+    #             os.mkdir(pltsavedir+"/pstdist_rep1")
+    #         pstdist = Posterior_dist(loci_1, pltsavedir+"/pstdist_rep1")
+    #         pstdist.plot_posterior_histogram()
 
-            del pstdist
+    #         if os.path.exists(pltsavedir+"/pstdist_rep2") == False:
+    #             os.mkdir(pltsavedir+"/pstdist_rep2")
+    #         pstdist = Posterior_dist(loci_2, pltsavedir+"/pstdist_rep2")
+    #         pstdist.plot_posterior_histogram()
+
+    #         del pstdist
             
-        except:
-            pass
+    #     except:
+    #         pass
 
-        if os.path.exists(pltsavedir+"/cc") == False:
-            os.mkdir(pltsavedir+"/cc")
+    #     if os.path.exists(pltsavedir+"/cc") == False:
+    #         os.mkdir(pltsavedir+"/cc")
 
-        try:
-            cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
-            cc.plot_curve(plot_general=False, merge_plots=False)
-            del cc
-            plt.close("all")
-            plt.style.use('default')
+    #     try:
+    #         cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
+    #         cc.plot_curve(plot_general=False, merge_plots=False)
+    #         del cc
+    #         plt.close("all")
+    #         plt.style.use('default')
 
-        except:
-            print("could not generate corresp. curve")
+    #     except:
+    #         print("could not generate corresp. curve")
 
-        try:
-            if os.path.exists(pltsavedir+"/clb_1") == False:
-                os.mkdir(pltsavedir+"/clb_1")
-            calb = posterior_calibration(
-                loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
-                oe_transform=True, savedir=pltsavedir+"/clb_1")
-            calibrated_loci_1 = calb.perlabel_calibration_function(
-                degree=5, num_bins=25, return_caliberated_matrix=True, scale_columnwise=True)
+    #     try:
+    #         if os.path.exists(pltsavedir+"/clb_1") == False:
+    #             os.mkdir(pltsavedir+"/clb_1")
+    #         calb = posterior_calibration(
+    #             loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
+    #             oe_transform=True, savedir=pltsavedir+"/clb_1")
+    #         calibrated_loci_1 = calb.perlabel_calibration_function(
+    #             degree=5, num_bins=25, return_caliberated_matrix=True, scale_columnwise=True)
             
-            plt.close("all")
-            plt.style.use('default')
+    #         plt.close("all")
+    #         plt.style.use('default')
 
-            if os.path.exists(pltsavedir+"/tss_rep1") == False:
-                os.mkdir(pltsavedir+"/tss_rep1")
-            TSS_obj = TSS_enrichment(calibrated_loci_1, TSSdir="RefSeqTSS.hg38.txt", savedir=pltsavedir+"/tss_rep1")
-            TSS_obj.tss_enrich(m_p=False)
-            TSS_obj.tss_enrich_vs_repr()
+    #         if os.path.exists(pltsavedir+"/tss_rep1") == False:
+    #             os.mkdir(pltsavedir+"/tss_rep1")
+    #         TSS_obj = TSS_enrichment(calibrated_loci_1, TSSdir="RefSeqTSS.hg38.txt", savedir=pltsavedir+"/tss_rep1")
+    #         TSS_obj.tss_enrich(m_p=False)
+    #         TSS_obj.tss_enrich_vs_repr()
 
-        except:
-            print("could not generate calibrations and TSS enrichment")
+    #     except:
+    #         print("could not generate calibrations and TSS enrichment")
+        
+        ##============================================================================================================##
         
         # try:
         #     if os.path.exists(pltsavedir+"/clb_2") == False:
