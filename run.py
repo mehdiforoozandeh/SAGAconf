@@ -1326,14 +1326,14 @@ def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, multi_p=True, t
         
         if type=="chmm":
             ct_runs["rep1_pseudoreps"] = [
-            "{}/{}_rep1psd1/parsed_posterior.csv".format(runs_dir, ct), 
-            "{}/{}_rep1psd2/parsed_posterior.csv".format(runs_dir, ct), 
+            "{}/{}_rep1psd_concat/parsed_posterior_rep1_psd1.csv".format(runs_dir, ct), 
+            "{}/{}_rep1psd_concat/parsed_posterior_rep1_psd2.csv".format(runs_dir, ct), 
             "{}/{}/rep1_pseudoreps/".format(output_dir, ct)]
 
         elif type == "segway":
             ct_runs["rep1_pseudoreps"] = [
-            "{}/{}_rep1_psdrep1/parsed_posterior.csv".format(runs_dir, ct), 
-            "{}/{}_rep1_psdrep2/parsed_posterior.csv".format(runs_dir, ct), 
+            "{}/{}_concat_rep1psd1/parsed_posterior.csv".format(runs_dir, ct), 
+            "{}/{}_concat_rep1psd2/parsed_posterior.csv".format(runs_dir, ct), 
             "{}/{}/rep1_pseudoreps/".format(output_dir, ct)]
         
         ################################################################################
