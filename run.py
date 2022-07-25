@@ -1301,13 +1301,13 @@ def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, multi_p=True, t
             os.mkdir("{}/{}".format(output_dir, ct))
 
         ################################################################################
-        if os.path.exists("{}/{}/rep1_vs_rep2/".format(output_dir, ct))==False:
-            os.mkdir("{}/{}/rep1_vs_rep2/".format(output_dir, ct))
+        # if os.path.exists("{}/{}/rep1_vs_rep2/".format(output_dir, ct))==False:
+        #     os.mkdir("{}/{}/rep1_vs_rep2/".format(output_dir, ct))
         
-        ct_runs["replicates"] = [
-            "{}/{}_rep1/parsed_posterior.csv".format(runs_dir, ct), 
-            "{}/{}_rep2/parsed_posterior.csv".format(runs_dir, ct), 
-            "{}/{}/rep1_vs_rep2/".format(output_dir, ct)]
+        # ct_runs["replicates"] = [
+        #     "{}/{}_rep1/parsed_posterior.csv".format(runs_dir, ct), 
+        #     "{}/{}_rep2/parsed_posterior.csv".format(runs_dir, ct), 
+        #     "{}/{}/rep1_vs_rep2/".format(output_dir, ct)]
         
         ################################################################################
         if os.path.exists("{}/{}/rep1_paraminit".format(output_dir, ct))==False:
@@ -1342,20 +1342,20 @@ def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, multi_p=True, t
             "{}/{}/rep1_pseudoreps/".format(output_dir, ct)]
         
         ################################################################################
-        if os.path.exists("{}/{}/concatenated/".format(output_dir, ct))==False:
-            os.mkdir("{}/{}/concatenated/".format(output_dir, ct))
+        # if os.path.exists("{}/{}/concatenated/".format(output_dir, ct))==False:
+        #     os.mkdir("{}/{}/concatenated/".format(output_dir, ct))
 
-        if type == "segway":
-            ct_runs["concat"] = [
-            "{}/{}_concat_rep1/parsed_posterior.csv".format(runs_dir, ct), 
-            "{}/{}_concat_rep2/parsed_posterior.csv".format(runs_dir, ct), 
-            "{}/{}/concatenated/".format(output_dir, ct)]
+        # if type == "segway":
+        #     ct_runs["concat"] = [
+        #     "{}/{}_concat_rep1/parsed_posterior.csv".format(runs_dir, ct), 
+        #     "{}/{}_concat_rep2/parsed_posterior.csv".format(runs_dir, ct), 
+        #     "{}/{}/concatenated/".format(output_dir, ct)]
 
-        elif type == "chmm":
-            ct_runs["concat"] = [
-            "{}/{}_concat/parsed_posterior_rep1.csv".format(runs_dir, ct), 
-            "{}/{}_concat/parsed_posterior_rep2.csv".format(runs_dir, ct), 
-            "{}/{}/concatenated/".format(output_dir, ct)]
+        # elif type == "chmm":
+        #     ct_runs["concat"] = [
+        #     "{}/{}_concat/parsed_posterior_rep1.csv".format(runs_dir, ct), 
+        #     "{}/{}_concat/parsed_posterior_rep2.csv".format(runs_dir, ct), 
+        #     "{}/{}/concatenated/".format(output_dir, ct)]
 
         ################################################################################
         run_instances[ct] = ct_runs
