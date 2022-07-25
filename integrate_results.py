@@ -71,8 +71,8 @@ def ct_progress_plot(celltype_repres_dir):
 
 def ct_agr(celltype_repres_dir, ck=True):
 	var_setting_dict = {
-		"concatenated":"Setting 2", "rep1_vs_rep2":"Setting 1", 
-		"rep1_pseudoreps":"Setting 3", "rep1_paraminit":"Setting 4"}
+		"concatenated":"Diff. data, Shared training", "rep1_vs_rep2":"Diff. data, Separate training", 
+		"rep1_pseudoreps":"Similar data, Shared Training", "rep1_paraminit":"Same data, Separate training"}
 	ls0 = [l for l in os.listdir(celltype_repres_dir) if os.path.isdir(celltype_repres_dir+"/"+l)]
 
 	if "chmm" in celltype_repres_dir:
@@ -118,8 +118,8 @@ def ct_agr(celltype_repres_dir, ck=True):
 
 def ct_cc(celltype_repres_dir):
 	var_setting_dict = {
-		"concatenated":"Setting 2", "rep1_vs_rep2":"Setting 1", 
-		"rep1_pseudoreps":"Setting 3", "rep1_paraminit":"Setting 4"}
+		"concatenated":"Diff. data, Shared training", "rep1_vs_rep2":"Diff. data, Separate training", 
+		"rep1_pseudoreps":"Similar data, Shared Training", "rep1_paraminit":"Same data, Separate training"}
 	ls0 = [l for l in os.listdir(celltype_repres_dir) if os.path.isdir(celltype_repres_dir+"/"+l)]
 
 	if "chmm" in celltype_repres_dir:
@@ -155,8 +155,8 @@ def ct_cc(celltype_repres_dir):
 
 def ct_clb(celltype_repres_dir):
 	var_setting_dict = {
-		"concatenated":"Setting 2", "rep1_vs_rep2":"Setting 1", 
-		"rep1_pseudoreps":"Setting 3", "rep1_paraminit":"Setting 4"}
+		"concatenated":"Diff. data, Shared training", "rep1_vs_rep2":"Diff. data, Separate training", 
+		"rep1_pseudoreps":"Similar data, Shared Training", "rep1_paraminit":"Same data, Separate training"}
 	ls0 = [l for l in os.listdir(celltype_repres_dir) if os.path.isdir(celltype_repres_dir+"/"+l)]
 
 	if "chmm" in celltype_repres_dir:
@@ -192,8 +192,8 @@ def ct_clb(celltype_repres_dir):
 
 def ct_reprtss(celltype_repres_dir):
 	var_setting_dict = {
-		"concatenated":"Setting 2", "rep1_vs_rep2":"Setting 1", 
-		"rep1_pseudoreps":"Setting 3", "rep1_paraminit":"Setting 4"}
+		"concatenated":"Diff. data, Shared training", "rep1_vs_rep2":"Diff. data, Separate training", 
+		"rep1_pseudoreps":"Similar data, Shared Training", "rep1_paraminit":"Same data, Separate training"}
 	ls0 = [l for l in os.listdir(celltype_repres_dir) if os.path.isdir(celltype_repres_dir+"/"+l)]
 
 	if "chmm" in celltype_repres_dir:
@@ -229,8 +229,8 @@ def ct_reprtss(celltype_repres_dir):
 
 def ct_enrtss(celltype_repres_dir):
 	var_setting_dict = {
-		"concatenated":"Setting 2", "rep1_vs_rep2":"Setting 1", 
-		"rep1_pseudoreps":"Setting 3", "rep1_paraminit":"Setting 4"}
+		"concatenated":"Diff. data, Shared training", "rep1_vs_rep2":"Diff. data, Separate training", 
+		"rep1_pseudoreps":"Similar data, Shared Training", "rep1_paraminit":"Same data, Separate training"}
 	ls0 = [l for l in os.listdir(celltype_repres_dir) if os.path.isdir(celltype_repres_dir+"/"+l)]
 
 	if "chmm" in celltype_repres_dir:
@@ -266,8 +266,8 @@ def ct_enrtss(celltype_repres_dir):
 
 def ct_clstrmap(celltype_repres_dir):
 	var_setting_dict = {
-		"concatenated":"Setting 2", "rep1_vs_rep2":"Setting 1", 
-		"rep1_pseudoreps":"Setting 3", "rep1_paraminit":"Setting 4"}
+		"concatenated":"Diff. data, Shared training", "rep1_vs_rep2":"Diff. data, Separate training", 
+		"rep1_pseudoreps":"Similar data, Shared Training", "rep1_paraminit":"Same data, Separate training"}
 	ls0 = [l for l in os.listdir(celltype_repres_dir) if os.path.isdir(celltype_repres_dir+"/"+l)]
 
 	if "chmm" in celltype_repres_dir:
@@ -303,8 +303,8 @@ def ct_clstrmap(celltype_repres_dir):
 
 def ct_short_report(celltype_repres_dir):
 	var_setting_dict = {
-		"concatenated":"Setting 2", "rep1_vs_rep2":"Setting 1", 
-		"rep1_pseudoreps":"Setting 3", "rep1_paraminit":"Setting 4"}
+		"concatenated":"Diff. data, Shared training", "rep1_vs_rep2":"Diff. data, Separate training", 
+		"rep1_pseudoreps":"Similar data, Shared Training", "rep1_paraminit":"Same data, Separate training"}
 	ls0 = [l for l in os.listdir(celltype_repres_dir) if os.path.isdir(celltype_repres_dir+"/"+l)]
 
 	if "chmm" in celltype_repres_dir:
@@ -346,18 +346,18 @@ def ct_short_report(celltype_repres_dir):
 def compare_overalls(res_dir, target_metric="ck"):
 	
 	var_setting_dict = {
-		"concatenated":"Setting 2", "rep1_vs_rep2":"Setting 1", 
-		"rep1_pseudoreps":"Setting 3", "rep1_paraminit":"Setting 4"}
+		"concatenated":"S2: Diff. data, Shared train", "rep1_vs_rep2":"S1: Diff. data, Separate train", 
+		"rep1_pseudoreps":"S4: Similar data, Shared Train", "rep1_paraminit":"S3s: Same data, Separate train"}
 
 	navig = []
 	ct_list = [ct for ct in os.listdir(res_dir) if os.path.isdir(res_dir+"/"+ct)]
 	for ct in ct_list:
 		settings = [s for s in os.listdir(res_dir+"/"+ct) if os.path.isdir(res_dir+"/"+ct+"/"+s)]
 
-		if "chmm" in res_dir:
-			settings.remove("rep1_paraminit")
-		elif "segway" in res_dir:
-			settings.remove("rep1_pseudoreps")
+		# if "chmm" in res_dir:
+		# 	settings.remove("rep1_paraminit")
+		# elif "segway" in res_dir:
+		# 	settings.remove("rep1_pseudoreps")
 
 		for s in settings:
 			file = res_dir+"/"+ct+"/"+s+"/16_labels/agr/"
@@ -379,7 +379,7 @@ def compare_overalls(res_dir, target_metric="ck"):
 			navig.append([ct, var_setting_dict[s], heights[-1]])
 	
 	navig = pd.DataFrame(navig, columns=["Celltype", "Setting", target_metric]).sort_values(by="Setting")
-	navig.sort_values(by="Setting")
+	# navig.sort_values(by="Setting")
 
 	sns.set_theme(style="whitegrid")
 	sns.reset_orig
