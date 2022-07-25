@@ -1316,10 +1316,11 @@ def RUN_ALL_REPROD_ANALYSIS(runs_dir, CellType_list, output_dir, multi_p=True, t
             os.mkdir("{}/{}/rep1_paraminit".format(output_dir, ct))
         
         if type=="segway":
-            ct_runs["rep1_paraminit"] = [
-                "{}/{}_rep1/parsed_posterior.csv".format(runs_dir, ct), 
-                "{}/{}_rep1_rs5/parsed_posterior.csv".format(runs_dir, ct), 
-                "{}/{}/rep1_paraminit/".format(output_dir, ct)]
+            pass
+            # ct_runs["rep1_paraminit"] = [
+            #     "{}/{}_rep1/parsed_posterior.csv".format(runs_dir, ct), 
+            #     "{}/{}_rep1_rs5/parsed_posterior.csv".format(runs_dir, ct), 
+            #     "{}/{}/rep1_paraminit/".format(output_dir, ct)]
 
         elif type == "chmm":
             ct_runs["rep1_paraminit"] = [
