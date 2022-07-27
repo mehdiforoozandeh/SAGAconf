@@ -192,7 +192,7 @@ def bamtobed(download_dir):
                     )
                     print("converted ", ct+"/"+ass+'/'+bm, "->", ct+"/"+ass+'/'+bm.replace(".bam", '.bed'))
 
-def make_pseudo_replicates(celltype_dir, m_p=True):
+def make_pseudo_replicates(celltype_dir, m_p=True, num_threads=4):
     to_do_bams = []
     tracks = [tr for tr in os.listdir(celltype_dir) if os.path.isdir(celltype_dir+'/'+tr)]
     for tr in tracks:
@@ -201,7 +201,7 @@ def make_pseudo_replicates(celltype_dir, m_p=True):
 
     print(to_do_bams)
     if m_p:
-        p_obj = mp.Pool(8)
+        p_obj = mp.Pool(num_threads)
         p_obj.map(psdrep_pipeline, to_do_bams)
     else:
         for bm in to_do_bams:
@@ -365,6 +365,9 @@ def create_concat_psdrep_genomedata(celltype_dir, sequence_file):
                 celltype_dir + "/" + navigate["rep2_psdrep2"][i][0] + "/" + navigate["rep2_psdrep2"][i][2], 
                 celltype_dir + "/" + navigate["rep2_psdrep2"][i][0] + "/" + navigate["rep2_psdrep2"][i][2].replace(".bedGraph", "_concat.bedGraph"), 2)
 
+
+
+
         # virtualize bedgraphs
         if os.path.exists(celltype_dir + "/" + navigate["rep1_psdrep1"][i][0] + "/rep1psd_concatenated.bedGraph") == False:
             concat_virtualize_chroms(
@@ -377,6 +380,8 @@ def create_concat_psdrep_genomedata(celltype_dir, sequence_file):
                 celltype_dir + "/" + navigate["rep2_psdrep1"][i][0] + "/" + navigate["rep2_psdrep1"][i][2].replace(".bedGraph", "_concat.bedGraph"),
                 celltype_dir + "/" + navigate["rep2_psdrep2"][i][0] + "/" + navigate["rep2_psdrep2"][i][2].replace(".bedGraph", "_concat.bedGraph"),
                 celltype_dir + "/" + navigate["rep2_psdrep1"][i][0] + "/rep2psd_concatenated.bedGraph")
+
+
 
     # virtualize chrsz file
     if os.path.exists(sequence_file.replace(".sizes", "_concatenated.sizes")) == False:
@@ -941,25 +946,25 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
     
     ##============================================================================================================##
 
-    # if cc_calb:
-    #     try:
-    #         if os.path.exists(pltsavedir+"/pstdist_rep1") == False:
-    #             os.mkdir(pltsavedir+"/pstdist_rep1")
-    #         pstdist = Posterior_dist(loci_1, pltsavedir+"/pstdist_rep1")
-    #         pstdist.plot_posterior_histogram()
+    if cc_calb:
+        try:
+            if os.path.exists(pltsavedir+"/pstdist_rep1") == False:
+                os.mkdir(pltsavedir+"/pstdist_rep1")
+            pstdist = Posterior_dist(loci_1, pltsavedir+"/pstdist_rep1")
+            pstdist.plot_posterior_histogram()
 
-    #         if os.path.exists(pltsavedir+"/pstdist_rep2") == False:
-    #             os.mkdir(pltsavedir+"/pstdist_rep2")
-    #         pstdist = Posterior_dist(loci_2, pltsavedir+"/pstdist_rep2")
-    #         pstdist.plot_posterior_histogram()
+            if os.path.exists(pltsavedir+"/pstdist_rep2") == False:
+                os.mkdir(pltsavedir+"/pstdist_rep2")
+            pstdist = Posterior_dist(loci_2, pltsavedir+"/pstdist_rep2")
+            pstdist.plot_posterior_histogram()
 
-    #         del pstdist
+            del pstdist
             
-    #     except:
-    #         pass
+        except:
+            pass
 
-    #     if os.path.exists(pltsavedir+"/cc") == False:
-    #         os.mkdir(pltsavedir+"/cc")
+        # if os.path.exists(pltsavedir+"/cc") == False:
+        #     os.mkdir(pltsavedir+"/cc")
 
     #     try:
     #         cc = correspondence_curve(loci_1, loci_2, pltsavedir+"/cc")
@@ -971,26 +976,26 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
     #     except:
     #         print("could not generate corresp. curve")
 
-    #     try:
-    #         if os.path.exists(pltsavedir+"/clb_1") == False:
-    #             os.mkdir(pltsavedir+"/clb_1")
-    #         calb = posterior_calibration(
-    #             loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
-    #             oe_transform=True, savedir=pltsavedir+"/clb_1")
-    #         calibrated_loci_1 = calb.perlabel_calibration_function(
-    #             degree=5, num_bins=25, return_caliberated_matrix=True, scale_columnwise=True)
+        try:
+            if os.path.exists(pltsavedir+"/clb_1") == False:
+                os.mkdir(pltsavedir+"/clb_1")
+            calb = posterior_calibration(
+                loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
+                oe_transform=True, savedir=pltsavedir+"/clb_1")
+            calibrated_loci_1 = calb.perlabel_calibration_function(
+                degree=5, num_bins=25, return_caliberated_matrix=True, scale_columnwise=True)
             
-    #         plt.close("all")
-    #         plt.style.use('default')
+            plt.close("all")
+            plt.style.use('default')
 
-    #         if os.path.exists(pltsavedir+"/tss_rep1") == False:
-    #             os.mkdir(pltsavedir+"/tss_rep1")
-    #         TSS_obj = TSS_enrichment(calibrated_loci_1, TSSdir="RefSeqTSS.hg38.txt", savedir=pltsavedir+"/tss_rep1")
-    #         TSS_obj.tss_enrich(m_p=False)
-    #         TSS_obj.tss_enrich_vs_repr()
+            if os.path.exists(pltsavedir+"/tss_rep1") == False:
+                os.mkdir(pltsavedir+"/tss_rep1")
+            TSS_obj = TSS_enrichment(calibrated_loci_1, TSSdir="RefSeqTSS.hg38.txt", savedir=pltsavedir+"/tss_rep1")
+            TSS_obj.tss_enrich(m_p=False)
+            TSS_obj.tss_enrich_vs_repr()
 
-    #     except:
-    #         print("could not generate calibrations and TSS enrichment")
+        except:
+            print("could not generate calibrations and TSS enrichment")
         
         ##============================================================================================================##
         
@@ -1122,138 +1127,138 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir, ru
         loci_1, loci_2, 
         pltsavedir=pltsavedir+"/{}_labels".format(num_labels), cc_calb=True)
 
-    # coverage1= {}
-    # coverage2= {}
+    coverage1= {}
+    coverage2= {}
 
-    # merge_track1 = []
-    # merge_track2 = []
+    merge_track1 = []
+    merge_track2 = []
 
-    # MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
-    # coverage1[str(num_labels)] = MAP1.value_counts()/len(MAP1)
+    MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
+    coverage1[str(num_labels)] = MAP1.value_counts()/len(MAP1)
 
-    # MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
-    # coverage2[str(num_labels)] = MAP2.value_counts()/len(MAP2)
+    MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
+    coverage2[str(num_labels)] = MAP2.value_counts()/len(MAP2)
 
-    # merge_track1.append(MAP1)
-    # merge_track2.append(MAP2)
+    merge_track1.append(MAP1)
+    merge_track2.append(MAP2)
 
-    # # to avoid MAP changes during the merging process, disregard probability granularity and convert 
-    # # to hard zero vs one matrix
+    # to avoid MAP changes during the merging process, disregard probability granularity and convert 
+    # to hard zero vs one matrix
 
-    # for c in loci_1.columns[3:]:
-    #     loci_1.loc[MAP1==c, c] = 1
-    #     loci_1.loc[MAP1!=c, c] = 0
+    for c in loci_1.columns[3:]:
+        loci_1.loc[MAP1==c, c] = 1
+        loci_1.loc[MAP1!=c, c] = 0
     
-    # for c in loci_2.columns[3:]:
-    #     loci_2.loc[MAP2==c, c] = 1
-    #     loci_2.loc[MAP2!=c, c] = 0
+    for c in loci_2.columns[3:]:
+        loci_2.loc[MAP2==c, c] = 1
+        loci_2.loc[MAP2!=c, c] = 0
 
-    # # merging clusters one at a time
-    # merged_label_ID = {}
-    # labels = loci_1.iloc[:, 3:].columns
-    # for i in range(num_labels):
-    #     merged_label_ID[i] = labels[i]
+    # merging clusters one at a time
+    merged_label_ID = {}
+    labels = loci_1.iloc[:, 3:].columns
+    for i in range(num_labels):
+        merged_label_ID[i] = labels[i]
 
-    # for m in range(len(linkage)):
-    #     to_be_merged = [
-    #         merged_label_ID[int(linkage[m, 0])],
-    #         merged_label_ID[int(linkage[m, 1])],
-    #     ]
+    for m in range(len(linkage)):
+        to_be_merged = [
+            merged_label_ID[int(linkage[m, 0])],
+            merged_label_ID[int(linkage[m, 1])],
+        ]
 
-    #     merged_label_ID[num_labels + m] = str(
-    #         merged_label_ID[int(linkage[m, 0])] + "+" + merged_label_ID[int(linkage[m, 1])]
-    #     )
+        merged_label_ID[num_labels + m] = str(
+            merged_label_ID[int(linkage[m, 0])] + "+" + merged_label_ID[int(linkage[m, 1])]
+        )
 
-    #     loci_1[merged_label_ID[num_labels + m]] = \
-    #         loci_1[to_be_merged[0]] + loci_1[to_be_merged[1]]
-    #     loci_1 = loci_1.drop(to_be_merged, axis=1)
+        loci_1[merged_label_ID[num_labels + m]] = \
+            loci_1[to_be_merged[0]] + loci_1[to_be_merged[1]]
+        loci_1 = loci_1.drop(to_be_merged, axis=1)
 
-    #     loci_2[merged_label_ID[num_labels + m]] = \
-    #         loci_2[to_be_merged[0]] + loci_2[to_be_merged[1]]
-    #     loci_2 = loci_2.drop(to_be_merged, axis=1)
+        loci_2[merged_label_ID[num_labels + m]] = \
+            loci_2[to_be_merged[0]] + loci_2[to_be_merged[1]]
+        loci_2 = loci_2.drop(to_be_merged, axis=1)
 
-    #     MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
-    #     coverage1[str((num_labels-1) - m)] = MAP1.value_counts()/len(MAP1)
-    #     merge_track1.append(MAP1)
+        MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
+        coverage1[str((num_labels-1) - m)] = MAP1.value_counts()/len(MAP1)
+        merge_track1.append(MAP1)
 
-    #     MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
-    #     coverage2[str((num_labels-1) - m)] = MAP2.value_counts()/len(MAP2)
-    #     merge_track2.append(MAP2)
+        MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
+        coverage2[str((num_labels-1) - m)] = MAP2.value_counts()/len(MAP2)
+        merge_track2.append(MAP2)
         
-    #     reports[str((num_labels-1) - m)] = report_reproducibility(
-    #         loci_1, loci_2, 
-    #         pltsavedir=pltsavedir+"/{}_labels".format((num_labels-1) - m), 
-    #         cc_calb=False)
+        reports[str((num_labels-1) - m)] = report_reproducibility(
+            loci_1, loci_2, 
+            pltsavedir=pltsavedir+"/{}_labels".format((num_labels-1) - m), 
+            cc_calb=False)
 
-    # merge_track1 = pd.concat(merge_track1, axis=1)
-    # merge_track1.columns = ["{}_labels".format(16-lm) for lm in range(16)] 
+    merge_track1 = pd.concat(merge_track1, axis=1)
+    merge_track1.columns = ["{}_labels".format(16-lm) for lm in range(16)] 
 
-    # merge_track2 = pd.concat(merge_track2, axis=1)
-    # merge_track2.columns = ["{}_labels".format(16-lm) for lm in range(16)] 
+    merge_track2 = pd.concat(merge_track2, axis=1)
+    merge_track2.columns = ["{}_labels".format(16-lm) for lm in range(16)] 
 
-    # merge_track1.to_csv('{}/post_clustering/merged_MAP1.csv'.format(pltsavedir))
-    # os.system("gzip {}/post_clustering/merged_MAP1.csv".format(pltsavedir))
+    merge_track1.to_csv('{}/post_clustering/merged_MAP1.csv'.format(pltsavedir))
+    os.system("gzip {}/post_clustering/merged_MAP1.csv".format(pltsavedir))
 
-    # merge_track2.to_csv('{}/post_clustering/merged_MAP2.csv'.format(pltsavedir))
-    # os.system("gzip {}/post_clustering/merged_MAP2.csv".format(pltsavedir))
+    merge_track2.to_csv('{}/post_clustering/merged_MAP2.csv'.format(pltsavedir))
+    os.system("gzip {}/post_clustering/merged_MAP2.csv".format(pltsavedir))
 
-    # nl = list(reports.keys())
-    # ys =[reports[k]["general agreement"] for k in nl]
-    # plt.bar(list(nl), list(ys), color="grey")
-    # plt.title("Post-clustering Progress")
-    # plt.xlabel("Number of Labels")
-    # plt.ylabel("General Agreement")
-    # plt.savefig('{}/post_clustering/agr_Progress.pdf'.format(pltsavedir), format='pdf')
-    # plt.savefig('{}/post_clustering/agr_Progress.svg'.format(pltsavedir), format='svg')
-    # plt.clf()
+    nl = list(reports.keys())
+    ys =[reports[k]["general agreement"] for k in nl]
+    plt.bar(list(nl), list(ys), color="grey")
+    plt.title("Post-clustering Progress")
+    plt.xlabel("Number of Labels")
+    plt.ylabel("General Agreement")
+    plt.savefig('{}/post_clustering/agr_Progress.pdf'.format(pltsavedir), format='pdf')
+    plt.savefig('{}/post_clustering/agr_Progress.svg'.format(pltsavedir), format='svg')
+    plt.clf()
 
-    # with open('{}/post_clustering/agr_Progress.txt'.format(pltsavedir), "w") as wrfile:
-    #     # xlabel, ylabel, bars, heights
-    #     wrfile.write(
-    #         "{}\n{}\n{}\n{}".format(
-    #             "Number of Labels", "General Agreement",
-    #             str(nl), str(ys)
-    #         )
-    #     )
+    with open('{}/post_clustering/agr_Progress.txt'.format(pltsavedir), "w") as wrfile:
+        # xlabel, ylabel, bars, heights
+        wrfile.write(
+            "{}\n{}\n{}\n{}".format(
+                "Number of Labels", "General Agreement",
+                str(nl), str(ys)
+            )
+        )
 
-    # ys =[reports[k]["general log(o/e) agreement"] for k in nl]
-    # plt.bar(list(nl), list(ys), color="grey")
-    # plt.title("Post-clustering Progress")
-    # plt.xlabel("Number of Labels")
-    # plt.ylabel("log(O/E) Agreement")
-    # plt.savefig('{}/post_clustering/oe_agr_Progress.pdf'.format(pltsavedir), format='pdf')
-    # plt.savefig('{}/post_clustering/oe_agr_Progress.svg'.format(pltsavedir), format='svg')
-    # plt.clf()
+    ys =[reports[k]["general log(o/e) agreement"] for k in nl]
+    plt.bar(list(nl), list(ys), color="grey")
+    plt.title("Post-clustering Progress")
+    plt.xlabel("Number of Labels")
+    plt.ylabel("log(O/E) Agreement")
+    plt.savefig('{}/post_clustering/oe_agr_Progress.pdf'.format(pltsavedir), format='pdf')
+    plt.savefig('{}/post_clustering/oe_agr_Progress.svg'.format(pltsavedir), format='svg')
+    plt.clf()
 
-    # with open('{}/post_clustering/oe_agr_Progress.txt'.format(pltsavedir), "w") as wrfile:
-    #     # xlabel, ylabel, bars, heights
-    #     wrfile.write(
-    #         "{}\n{}\n{}\n{}".format(
-    #             "Number of Labels", "log(O/E) Agreement",
-    #             str(nl), str(ys)
-    #         )
-    #     )
+    with open('{}/post_clustering/oe_agr_Progress.txt'.format(pltsavedir), "w") as wrfile:
+        # xlabel, ylabel, bars, heights
+        wrfile.write(
+            "{}\n{}\n{}\n{}".format(
+                "Number of Labels", "log(O/E) Agreement",
+                str(nl), str(ys)
+            )
+        )
 
-    # ys =[reports[k]["general Cohens Kappa score"] for k in nl]
-    # plt.bar(list(nl), list(ys), color="grey")
-    # plt.title("Post-clustering Progress")
-    # plt.xlabel("Number of Labels")
-    # plt.ylabel("Cohen's Kappa")
-    # plt.savefig('{}/post_clustering/ck_Progress.pdf'.format(pltsavedir), format='pdf')
-    # plt.savefig('{}/post_clustering/ck_Progress.svg'.format(pltsavedir), format='svg')
-    # plt.clf()
+    ys =[reports[k]["general Cohens Kappa score"] for k in nl]
+    plt.bar(list(nl), list(ys), color="grey")
+    plt.title("Post-clustering Progress")
+    plt.xlabel("Number of Labels")
+    plt.ylabel("Cohen's Kappa")
+    plt.savefig('{}/post_clustering/ck_Progress.pdf'.format(pltsavedir), format='pdf')
+    plt.savefig('{}/post_clustering/ck_Progress.svg'.format(pltsavedir), format='svg')
+    plt.clf()
 
-    # with open('{}/post_clustering/ck_Progress.txt'.format(pltsavedir), "w") as wrfile:
-    #     # xlabel, ylabel, bars, heights
-    #     wrfile.write(
-    #         "{}\n{}\n{}\n{}".format(
-    #             "Number of Labels", "Cohen's Kappa",
-    #             str(nl), str(ys)
-    #         )
-    #     )
+    with open('{}/post_clustering/ck_Progress.txt'.format(pltsavedir), "w") as wrfile:
+        # xlabel, ylabel, bars, heights
+        wrfile.write(
+            "{}\n{}\n{}\n{}".format(
+                "Number of Labels", "Cohen's Kappa",
+                str(nl), str(ys)
+            )
+        )
 
-    # sns.reset_orig
-    # plt.style.use('default')
+    sns.reset_orig
+    plt.style.use('default')
 
 def run_single_reprod_analysis(input_dict):
     print("running type: {}".format(input_dict["runtype"]))

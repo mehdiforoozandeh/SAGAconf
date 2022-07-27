@@ -65,10 +65,6 @@ def ct_progress_plot(celltype_repres_dir):
 		plt.savefig(celltype_repres_dir+"/{}_ck_progress.svg".format(l), format="svg")
 		plt.clf()
 
-
-	
-		
-
 def ct_agr(celltype_repres_dir, ck=True):
 	var_setting_dict = {
 		"concatenated":"Diff. data, Shared training", "rep1_vs_rep2":"Diff. data, Separate training", 
@@ -347,17 +343,18 @@ def compare_overalls(res_dir, target_metric="ck"):
 	
 	var_setting_dict = {
 		"concatenated":"S2: Diff. data, Shared train", "rep1_vs_rep2":"S1: Diff. data, Separate train", 
-		"rep1_pseudoreps":"S4: Similar data, Shared Train", "rep1_paraminit":"S3s: Same data, Separate train"}
+		"rep1_pseudoreps":"S4: Similar data, Shared Train", "rep1_paraminit":"S3: Same data, Separate train"}
 
 	navig = []
 	ct_list = [ct for ct in os.listdir(res_dir) if os.path.isdir(res_dir+"/"+ct)]
 	for ct in ct_list:
 		settings = [s for s in os.listdir(res_dir+"/"+ct) if os.path.isdir(res_dir+"/"+ct+"/"+s)]
 
-		# if "chmm" in res_dir:
-		# 	settings.remove("rep1_paraminit")
-		# elif "segway" in res_dir:
-		# 	settings.remove("rep1_pseudoreps")
+		if "chmm" in res_dir:
+			# settings.remove("rep1_paraminit")
+			pass
+		elif "segway" in res_dir:
+			settings.remove("rep1_pseudoreps")
 
 		for s in settings:
 			file = res_dir+"/"+ct+"/"+s+"/16_labels/agr/"
@@ -378,7 +375,7 @@ def compare_overalls(res_dir, target_metric="ck"):
 			heights = ast.literal_eval(lines[4].replace("-inf", "0"))
 			navig.append([ct, var_setting_dict[s], heights[-1]])
 	
-	navig = pd.DataFrame(navig, columns=["Celltype", "Setting", target_metric]).sort_values(by="Setting")
+	navig = pd.DataFrame(navig, columns=["Celltype", "Setting", target_metric]).sort_values(by=["Setting", "Celltype"])
 	# navig.sort_values(by="Setting")
 
 	sns.set_theme(style="whitegrid")
@@ -389,7 +386,11 @@ def compare_overalls(res_dir, target_metric="ck"):
 	sns.set_palette(sns.color_palette("deep"))
 	sns.barplot(x="Celltype", y=target_metric, hue="Setting", data=navig)
 
-	plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
+	if "chmm" in res_dir:
+		plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=2)
+		pass
+	elif "segway" in res_dir:
+		plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
 
 	if target_metric=="agr" or target_metric=="ck":
 		plt.yticks(np.arange(0, 1.1, step=0.1))
@@ -421,16 +422,16 @@ if __name__=="__main__":
 	seg_short = "tests/short_reports/segway/"
 	chmm_short = "tests/short_reports/chmm/"
 
-	for ct in ct_list:
-		INTEGRATE_ALL("{}/{}".format(segres_dir, ct))
-		INTEGRATE_ALL("{}/{}".format(chmmres_dir, ct))
+	# for ct in ct_list:
+	# 	INTEGRATE_ALL("{}/{}".format(segres_dir, ct))
+	# 	INTEGRATE_ALL("{}/{}".format(chmmres_dir, ct))
 
-		# ct_short_report(seg_short+ct)
-		# ct_short_report(chmm_short+ct)
+	# 	# ct_short_report(seg_short+ct)
+	# 	# ct_short_report(chmm_short+ct)
 
 		
 	
-	exit()
+	# exit()
 	compare_overalls(chmmres_dir)
 	compare_overalls(segres_dir)
 	compare_overalls(chmmres_dir, target_metric="oe")

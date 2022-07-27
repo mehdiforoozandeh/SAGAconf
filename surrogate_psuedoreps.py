@@ -6,8 +6,10 @@ res_dir = 'reprod_results/'
 
 CellType_list = [ct for ct in os.listdir(download_dir) if os.path.isdir(download_dir+ct)]
 
-# for ct in CellType_list:
-#     make_pseudo_replicates(download_dir+ct, m_p=True)
+for ct in CellType_list:
+    make_pseudo_replicates(download_dir+ct, m_p=True)
+
+exit()
 
 gd_exists = []
 for ct in CellType_list:
