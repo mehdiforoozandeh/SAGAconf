@@ -365,9 +365,6 @@ def create_concat_psdrep_genomedata(celltype_dir, sequence_file):
                 celltype_dir + "/" + navigate["rep2_psdrep2"][i][0] + "/" + navigate["rep2_psdrep2"][i][2], 
                 celltype_dir + "/" + navigate["rep2_psdrep2"][i][0] + "/" + navigate["rep2_psdrep2"][i][2].replace(".bedGraph", "_concat.bedGraph"), 2)
 
-
-
-
         # virtualize bedgraphs
         if os.path.exists(celltype_dir + "/" + navigate["rep1_psdrep1"][i][0] + "/rep1psd_concatenated.bedGraph") == False:
             concat_virtualize_chroms(
@@ -380,8 +377,6 @@ def create_concat_psdrep_genomedata(celltype_dir, sequence_file):
                 celltype_dir + "/" + navigate["rep2_psdrep1"][i][0] + "/" + navigate["rep2_psdrep1"][i][2].replace(".bedGraph", "_concat.bedGraph"),
                 celltype_dir + "/" + navigate["rep2_psdrep2"][i][0] + "/" + navigate["rep2_psdrep2"][i][2].replace(".bedGraph", "_concat.bedGraph"),
                 celltype_dir + "/" + navigate["rep2_psdrep1"][i][0] + "/rep2psd_concatenated.bedGraph")
-
-
 
     # virtualize chrsz file
     if os.path.exists(sequence_file.replace(".sizes", "_concatenated.sizes")) == False:
@@ -400,13 +395,13 @@ def create_concat_psdrep_genomedata(celltype_dir, sequence_file):
     rep1psd2_tracklist = ''
 
     # concatenated_rep2psd
-    rep2psd_tracklist = ''
+    # rep2psd_tracklist = ''
 
-    # concat_rep2psd1
-    rep2psd1_tracklist = ''
+    # # concat_rep2psd1
+    # rep2psd1_tracklist = ''
     
-    # concat_rep2psd2
-    rep2psd2_tracklist = ''
+    # # concat_rep2psd2
+    # rep2psd2_tracklist = ''
 
     for i in range(len(assaylist)):
         rep1psd_tracklist = rep1psd_tracklist + '-t {}={} '.format(
@@ -606,7 +601,7 @@ def RunParse_segway_psdreps(celltype_dir, output_dir, random_seed=73):
 
     concat_param_dict = {
         "random_seed":random_seed, "track_weight":0.01,"stws":1, "ruler_scale":100, 
-        "prior_strength":1, "resolution":100, "mini_batch_fraction":0.01,
+        "prior_strength":1, "resolution":100, "mini_batch_fraction":0.03,
         "num_labels": 10 + (2 * int(np.sqrt(num_tracks))), 
         "name_sig_concat":output_dir+name_sig+'_rep1psd_concat', 
         "name_sig_rep1":output_dir+name_sig+'_concat_rep1psd1', 
