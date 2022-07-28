@@ -4,7 +4,7 @@ download_dir = '_protect_files_/'
 segway_dir = 'segway_runs/'
 res_dir = 'reprod_results/'
 
-CellType_list = [ct for ct in os.listdir(download_dir) if os.path.isdir(download_dir+ct)][:3]
+CellType_list = [ct for ct in os.listdir(download_dir) if os.path.isdir(download_dir+ct)][3:]
 
 # for ct in CellType_list:
 #     make_pseudo_replicates(download_dir+ct, m_p=True)
