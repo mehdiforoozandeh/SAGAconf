@@ -1494,5 +1494,5 @@ if __name__=="__main__":
     print('All parsed!')
 
 
-
-
+def genomedata_from_dict(input_dict):
+    tracklist = ''
