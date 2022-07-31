@@ -7,7 +7,7 @@ res_dir = 'reprod_results/'
 
 whichct = int(sys.argv[1])
 
-CellType_list = [ct for ct in os.listdir(download_dir) if os.path.isdir(download_dir+ct)][whichct]
+CellType_list = list([ct for ct in os.listdir(download_dir) if os.path.isdir(download_dir+ct)][whichct])
 
 # for ct in CellType_list:
 #     make_pseudo_replicates(download_dir+ct, m_p=True)
