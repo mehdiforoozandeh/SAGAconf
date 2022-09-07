@@ -763,7 +763,7 @@ def read_mnemonics(mnemon_file):
             mnemon.append(str(int(df["old"][i])-1)+"_"+df["new"][i])
     return mnemon
 
-def get_short_report(replicate_1_dir, replicate_2_dir, outdir, type="chmm"):
+def get_short_report(replicate_1_dir, replicate_2_dir, outdir, type="chmm", mnemons=True):
     """
     copy dir1 emission to outdir
     copy dir2 emission to outdir
@@ -820,40 +820,44 @@ def get_short_report(replicate_1_dir, replicate_2_dir, outdir, type="chmm"):
     assignment_pairs = Hungarian_algorithm(confmat_OE, conf_or_dis='conf')
     new_columns = ["{}|{}".format(c[0], c[1]) for c in assignment_pairs]
 
-    if os.path.exists(
-        "/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics_rep1.txt") and os.path.exists(
-        "/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics_rep2.txt"):
+    if mnemons:
+        if os.path.exists(
+            "/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics_rep1.txt") and os.path.exists(
+            "/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics_rep2.txt"):
 
-        print("reading concat mnemonics")
-        loci_1_mnemon = read_mnemonics("/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics_rep1.txt")
-        loci_2_mnemon = read_mnemonics("/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics_rep2.txt")
+            print("reading concat mnemonics")
+            loci_1_mnemon = read_mnemonics("/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics_rep1.txt")
+            loci_2_mnemon = read_mnemonics("/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics_rep2.txt")
+        else:
+            print("reading mnemonics")
+            loci_1_mnemon = read_mnemonics("/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics.txt")
+            loci_2_mnemon = read_mnemonics("/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics.txt")
+
+        mnemon1_dict = {}
+        for i in loci_1_mnemon:
+            mnemon1_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
+
+        mnemon2_dict = {}
+        for i in loci_2_mnemon:
+            mnemon2_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
+
+        #handle missing mnemonics
+        for i in range(num_labels):
+            if str(i) not in mnemon1_dict.keys():
+                mnemon1_dict[str(i)] = str(i)
+            if str(i) not in mnemon2_dict.keys():
+                mnemon2_dict[str(i)] = str(i)
+            
+
+        for i in range(len(assignment_pairs)):
+            assignment_pairs[i] = (mnemon1_dict[str(assignment_pairs[i][0])], mnemon2_dict[str(assignment_pairs[i][1])])
+        print(assignment_pairs)
+
+        loci_1, loci_2 = \
+            connect_bipartite(loci_1, loci_2, assignment_pairs)
     else:
-        print("reading mnemonics")
-        loci_1_mnemon = read_mnemonics("/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics.txt")
-        loci_2_mnemon = read_mnemonics("/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics.txt")
-
-    mnemon1_dict = {}
-    for i in loci_1_mnemon:
-        mnemon1_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
-
-    mnemon2_dict = {}
-    for i in loci_2_mnemon:
-        mnemon2_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
-
-    #handle missing mnemonics
-    for i in range(num_labels):
-        if str(i) not in mnemon1_dict.keys():
-            mnemon1_dict[str(i)] = str(i)
-        if str(i) not in mnemon2_dict.keys():
-            mnemon2_dict[str(i)] = str(i)
-        
-
-    for i in range(len(assignment_pairs)):
-        assignment_pairs[i] = (mnemon1_dict[str(assignment_pairs[i][0])], mnemon2_dict[str(assignment_pairs[i][1])])
-    print(assignment_pairs)
-
-    loci_1, loci_2 = \
-        connect_bipartite(loci_1, loci_2, assignment_pairs)
+        loci_1, loci_2 = \
+            connect_bipartite(loci_1, loci_2, assignment_pairs, mnemon=False)
 
     print('connected barpartite')
 
@@ -1016,7 +1020,7 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
 
     return to_report
 
-def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir, run_on_subset=False):
+def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir, run_on_subset=False, mnemons=True):
     """
     get full reproducibility results
     including stepwise merging of labels through 
@@ -1048,40 +1052,44 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir, ru
 
     new_columns = ["{}|{}".format(c[0], c[1]) for c in assignment_pairs]
 
-    if os.path.exists(
-        "/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics_rep1.txt") and os.path.exists(
-        "/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics_rep2.txt"):
+    if mnemons:
+        if os.path.exists(
+            "/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics_rep1.txt") and os.path.exists(
+            "/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics_rep2.txt"):
 
-        print("reading concat mnemonics")
-        loci_1_mnemon = read_mnemonics("/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics_rep1.txt")
-        loci_2_mnemon = read_mnemonics("/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics_rep2.txt")
+            print("reading concat mnemonics")
+            loci_1_mnemon = read_mnemonics("/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics_rep1.txt")
+            loci_2_mnemon = read_mnemonics("/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics_rep2.txt")
+        else:
+            print("reading mnemonics")
+            loci_1_mnemon = read_mnemonics("/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics.txt")
+            loci_2_mnemon = read_mnemonics("/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics.txt")
+
+        mnemon1_dict = {}
+        for i in loci_1_mnemon:
+            mnemon1_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
+
+        mnemon2_dict = {}
+        for i in loci_2_mnemon:
+            mnemon2_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
+
+        #handle missing mnemonics
+        for i in range(num_labels):
+            if str(i) not in mnemon1_dict.keys():
+                mnemon1_dict[str(i)] = str(i)
+            if str(i) not in mnemon2_dict.keys():
+                mnemon2_dict[str(i)] = str(i)
+            
+
+        for i in range(len(assignment_pairs)):
+            assignment_pairs[i] = (mnemon1_dict[str(assignment_pairs[i][0])], mnemon2_dict[str(assignment_pairs[i][1])])
+        print(assignment_pairs)
+
+        loci_1, loci_2 = \
+            connect_bipartite(loci_1, loci_2, assignment_pairs)
     else:
-        print("reading mnemonics")
-        loci_1_mnemon = read_mnemonics("/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics.txt")
-        loci_2_mnemon = read_mnemonics("/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics.txt")
-
-    mnemon1_dict = {}
-    for i in loci_1_mnemon:
-        mnemon1_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
-
-    mnemon2_dict = {}
-    for i in loci_2_mnemon:
-        mnemon2_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
-
-    #handle missing mnemonics
-    for i in range(num_labels):
-        if str(i) not in mnemon1_dict.keys():
-            mnemon1_dict[str(i)] = str(i)
-        if str(i) not in mnemon2_dict.keys():
-            mnemon2_dict[str(i)] = str(i)
-        
-
-    for i in range(len(assignment_pairs)):
-        assignment_pairs[i] = (mnemon1_dict[str(assignment_pairs[i][0])], mnemon2_dict[str(assignment_pairs[i][1])])
-    print(assignment_pairs)
-
-    loci_1, loci_2 = \
-        connect_bipartite(loci_1, loci_2, assignment_pairs)
+        loci_1, loci_2 = \
+            connect_bipartite(loci_1, loci_2, assignment_pairs, mnemon=False)
     
     print('connected barpartite')
 

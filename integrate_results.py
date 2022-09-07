@@ -15,7 +15,8 @@ def ct_progress_plot(celltype_repres_dir):
 	ls0 = [l for l in os.listdir(celltype_repres_dir) if os.path.isdir(celltype_repres_dir+"/"+l)]
 
 	if "chmm" in celltype_repres_dir:
-		ls0.remove("rep1_paraminit")
+		# ls0.remove("rep1_paraminit")
+		pass
 	elif "segway" in celltype_repres_dir:
 		ls0.remove("rep1_pseudoreps")
 
@@ -72,7 +73,8 @@ def ct_agr(celltype_repres_dir, ck=True):
 	ls0 = [l for l in os.listdir(celltype_repres_dir) if os.path.isdir(celltype_repres_dir+"/"+l)]
 
 	if "chmm" in celltype_repres_dir:
-		ls0.remove("rep1_paraminit")
+		# ls0.remove("rep1_paraminit")
+		pass
 	elif "segway" in celltype_repres_dir:
 		ls0.remove("rep1_pseudoreps")
 
@@ -119,7 +121,8 @@ def ct_cc(celltype_repres_dir):
 	ls0 = [l for l in os.listdir(celltype_repres_dir) if os.path.isdir(celltype_repres_dir+"/"+l)]
 
 	if "chmm" in celltype_repres_dir:
-		ls0.remove("rep1_paraminit")
+		# ls0.remove("rep1_paraminit")
+		pass
 	elif "segway" in celltype_repres_dir:
 		ls0.remove("rep1_pseudoreps")
 
@@ -156,7 +159,8 @@ def ct_clb(celltype_repres_dir):
 	ls0 = [l for l in os.listdir(celltype_repres_dir) if os.path.isdir(celltype_repres_dir+"/"+l)]
 
 	if "chmm" in celltype_repres_dir:
-		ls0.remove("rep1_paraminit")
+		# ls0.remove("rep1_paraminit")
+		pass
 	elif "segway" in celltype_repres_dir:
 		ls0.remove("rep1_pseudoreps")
 
@@ -193,7 +197,8 @@ def ct_reprtss(celltype_repres_dir):
 	ls0 = [l for l in os.listdir(celltype_repres_dir) if os.path.isdir(celltype_repres_dir+"/"+l)]
 
 	if "chmm" in celltype_repres_dir:
-		ls0.remove("rep1_paraminit")
+		# ls0.remove("rep1_paraminit")
+		pass
 	elif "segway" in celltype_repres_dir:
 		ls0.remove("rep1_pseudoreps")
 
@@ -230,7 +235,8 @@ def ct_enrtss(celltype_repres_dir):
 	ls0 = [l for l in os.listdir(celltype_repres_dir) if os.path.isdir(celltype_repres_dir+"/"+l)]
 
 	if "chmm" in celltype_repres_dir:
-		ls0.remove("rep1_paraminit")
+		# ls0.remove("rep1_paraminit")
+		pass
 	elif "segway" in celltype_repres_dir:
 		ls0.remove("rep1_pseudoreps")
 
@@ -267,7 +273,8 @@ def ct_clstrmap(celltype_repres_dir):
 	ls0 = [l for l in os.listdir(celltype_repres_dir) if os.path.isdir(celltype_repres_dir+"/"+l)]
 
 	if "chmm" in celltype_repres_dir:
-		ls0.remove("rep1_paraminit")
+		# ls0.remove("rep1_paraminit")
+		pass
 	elif "segway" in celltype_repres_dir:
 		ls0.remove("rep1_pseudoreps")
 
@@ -277,7 +284,7 @@ def ct_clstrmap(celltype_repres_dir):
 		pngfile = svgfile.replace(".svg", ".png")
 
 		if os.path.exists(pngfile)==False:
-			cairosvg.svg2png(url=svgfile, write_to=pngfile, dpi=500)
+			cairosvg.svg2png(url=svgfile, write_to=pngfile, dpi=300)
 
 		agrfiles[var_setting_dict[l]] = Image.open(pngfile)
 
@@ -304,7 +311,8 @@ def ct_short_report(celltype_repres_dir):
 	ls0 = [l for l in os.listdir(celltype_repres_dir) if os.path.isdir(celltype_repres_dir+"/"+l)]
 
 	if "chmm" in celltype_repres_dir:
-		ls0.remove("rep1_paraminit")
+		# ls0.remove("rep1_paraminit")
+		pass
 	elif "segway" in celltype_repres_dir:
 		ls0.remove("rep1_pseudoreps")
 
@@ -339,8 +347,8 @@ def ct_short_report(celltype_repres_dir):
 			new_im.save(celltype_repres_dir+"/integrated_{}_{}.png".format(f.replace(".svg", ""), "_".join(name)))
 		except:
 			pass
+
 def compare_overalls(res_dir, target_metric="ck"):
-	
 	var_setting_dict = {
 		"concatenated":"S2: Diff. data, Shared train", "rep1_vs_rep2":"S1: Diff. data, Separate train", 
 		"rep1_pseudoreps":"S4: Similar data, Shared Train", "rep1_paraminit":"S3: Same data, Separate train"}
@@ -404,15 +412,19 @@ def compare_overalls(res_dir, target_metric="ck"):
 	
 
 def INTEGRATE_ALL(ct_dir):
-	# clear_summary_plots(ct_dir)
-	# print("summarizing", ct_dir)
-	ct_progress_plot(ct_dir)
+	clear_summary_plots(ct_dir)
+	print("summarizing", ct_dir)
+	# ct_progress_plot(ct_dir)
 	# ct_agr(ct_dir, ck=True)
+	# ct_agr(ct_dir, ck=False)
 	# ct_cc(ct_dir)
-	# ct_clb(ct_dir)
-	# ct_enrtss(ct_dir)
-	# ct_reprtss(ct_dir)
-	# ct_clstrmap(ct_dir)
+	ct_clb(ct_dir)
+	ct_enrtss(ct_dir)
+	ct_reprtss(ct_dir)
+	try:
+		ct_clstrmap(ct_dir)
+	except:
+		print("couldnt do clstrmp")
 
 
 if __name__=="__main__":
@@ -422,15 +434,12 @@ if __name__=="__main__":
 	seg_short = "tests/short_reports/segway/"
 	chmm_short = "tests/short_reports/chmm/"
 
-	# for ct in ct_list:
-	# 	INTEGRATE_ALL("{}/{}".format(segres_dir, ct))
-	# 	INTEGRATE_ALL("{}/{}".format(chmmres_dir, ct))
+	for ct in ct_list:
+		INTEGRATE_ALL("{}/{}".format(segres_dir, ct))
+		INTEGRATE_ALL("{}/{}".format(chmmres_dir, ct))
+		ct_short_report(seg_short+ct)
+		ct_short_report(chmm_short+ct)
 
-	# 	# ct_short_report(seg_short+ct)
-	# 	# ct_short_report(chmm_short+ct)
-
-		
-	
 	# exit()
 	compare_overalls(chmmres_dir)
 	compare_overalls(segres_dir)
