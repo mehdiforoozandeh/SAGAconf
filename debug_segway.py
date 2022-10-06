@@ -38,14 +38,14 @@ def run_clean_parse(param_dict):
     parse_posterior_results(param_dict["name_sig"], param_dict["resolution"], mp=False)
 
 if __name__=="__main__":
-    param_dict = {"name_sig":"MCF7_100_1", "resolution":100, "genomedata_file":"_protect_files_/GM12878/rep1.genomedata", "traindir":"testsegway/res100_GM12878_1_train", "posteriordir":"testsegway/res100_GM12878_1_posterior"}
+    param_dict = {"name_sig":"testsegway/res100_GM12878_1", "resolution":100, "genomedata_file":"_protect_files_/GM12878/rep1.genomedata", "traindir":"testsegway/res100_GM12878_1_train", "posteriordir":"testsegway/res100_GM12878_1_posterior"}
     run_clean_parse(param_dict)
 
-    param_dict = {"name_sig":"MCF7_100_2", "resolution":100, "genomedata_file":"_protect_files_/GM12878/rep2.genomedata", "traindir":"testsegway/res100_GM12878_2_train", "posteriordir":"testsegway/res100_GM12878_2_posterior"}
+    param_dict = {"name_sig":"testsegway/res100_GM12878_2", "resolution":100, "genomedata_file":"_protect_files_/GM12878/rep2.genomedata", "traindir":"testsegway/res100_GM12878_2_train", "posteriordir":"testsegway/res100_GM12878_2_posterior"}
     run_clean_parse(param_dict)
 
-    param_dict = {"name_sig":"MCF7_200_1", "resolution":200, "genomedata_file":"_protect_files_/GM12878/rep1.genomedata", "traindir":"testsegway/res200_GM12878_1_train", "posteriordir":"testsegway/res200_GM12878_1_posterior"}
+    param_dict = {"name_sig":"testsegway/res200_GM12878_1", "resolution":200, "genomedata_file":"_protect_files_/GM12878/rep1.genomedata", "traindir":"testsegway/res200_GM12878_1_train", "posteriordir":"testsegway/res200_GM12878_1_posterior"}
     run_clean_parse(param_dict)
 
-    param_dict = {"name_sig":"MCF7_200_2", "resolution":200, "genomedata_file":"_protect_files_/GM12878/rep2.genomedata", "traindir":"testsegway/res200_GM12878_2_train", "posteriordir":"testsegway/res200_GM12878_2_posterior"}
+    param_dict = {"name_sig":"testsegway/res200_GM12878_2", "resolution":200, "genomedata_file":"_protect_files_/GM12878/rep2.genomedata", "traindir":"testsegway/res200_GM12878_2_train", "posteriordir":"testsegway/res200_GM12878_2_posterior"}
     run_clean_parse(param_dict)
