@@ -1,6 +1,7 @@
 from cmath import exp
 from math import log
 from traceback import print_tb
+from unittest import expectedFailure
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
@@ -49,7 +50,45 @@ def make_symmetric_matrix(matrix0):
     
     return matrix1
 
+def enrichment_of_overlap_matrix(loci_1, loci_2, OE_transform=True):
+    num_labels = len(loci_1.columns) -3
+    MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
+    MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
 
+    coverage1 = {k: len(MAP1.loc[MAP1 == k]) / len(MAP1) for k in loci_1.columns[3:]}
+    coverage2 = {k: len(MAP2.loc[MAP2 == k]) / len(MAP2) for k in loci_2.columns[3:]}
+
+    observed_overlap = {} # np.zeros((num_labels, num_labels))
+    expected_overlap = {} # np.zeros((num_labels, num_labels))
+
+    for k in loci_1.columns[3:]:
+        for j in loci_2.columns[3:]:
+            observed_overlap[str(k + "|" + j)] = 0
+            expected_overlap[str(k + "|" + j)] = coverage1[k] * coverage2[j] * len(MAP1)
+
+    for i in range(MAP1.shape[0]):
+        k = MAP1[i]
+        j = MAP2[i]
+
+        observed_overlap[str(k + "|" + j)] += 1
+
+    oo_mat = pd.DataFrame(np.zeros((num_labels, num_labels)), columns=loci_2.columns[3:], index=loci_1.columns[3:])
+    eo_mat = pd.DataFrame(np.zeros((num_labels, num_labels)), columns=loci_2.columns[3:], index=loci_1.columns[3:])
+
+    for p in observed_overlap.keys():
+        oo_mat.loc[p.split("|")[0], p.split("|")[1]] = observed_overlap[p]
+        eo_mat.loc[p.split("|")[0], p.split("|")[1]] = expected_overlap[p]
+
+    if OE_transform:
+        epsilon = 1e-3
+
+        return np.log(
+            (oo_mat + epsilon) / (eo_mat + epsilon)
+        )
+    
+    else:
+        return oo_mat
+    
 def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, symmetric=False):
     # print('finding MAPs')
     num_labels = int(num_labels)
