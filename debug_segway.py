@@ -10,7 +10,12 @@ def run_clean_parse(param_dict):
 
     gather_results(param_dict["traindir"], param_dict['posteriordir'], param_dict["name_sig"])
     run_segtools(param_dict["name_sig"])
-    clean_up(param_dict["traindir"], param_dict['posteriordir'])
+
+    if os.path.exists(param_dict["traindir"]):
+        shutil.rmtree(param_dict["traindir"])
+    
+    if os.path.exists(param_dict["posteriordir"]):
+        shutil.rmtree(param_dict["posteriordir"])
 
     with open(param_dict["name_sig"]+"/run_parameters", 'w') as write_params:
         write_params.write(str(param_dict))
