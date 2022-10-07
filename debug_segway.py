@@ -2,8 +2,11 @@ import os
 from run import *
 
 def run_clean_parse(param_dict):
-    os.system("segway train  --num-instances=10  --resolution={} --minibatch-fraction=0.03 --num-labels=16 {} {}".format(param_dict["resolution"], param_dict["genomedata_file"], param_dict["traindir"]))
-    os.system("segway posterior {} {} {}",format(param_dict["genomedata_file"], param_dict["traindir"], param_dict["posteriordir"]))
+    if os.path.exists(param_dict["traindir"]) == False:
+        os.system("segway train  --num-instances=10  --resolution={} --minibatch-fraction=0.03 --num-labels=16 {} {}".format(param_dict["resolution"], param_dict["genomedata_file"], param_dict["traindir"]))
+    
+    if os.path.exists(param_dict["posteriordir"]) == False:
+        os.system('segway posterior {} {} {}'.format(param_dict["genomedata_file"], param_dict["traindir"], param_dict["posteriordir"]))
 
     gather_results(param_dict["traindir"], param_dict['posteriordir'], param_dict["name_sig"])
     run_segtools(param_dict["name_sig"])
