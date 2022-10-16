@@ -194,19 +194,26 @@ def plot_progression(ar, cr, ovr_rec, c):
     perfectAUC = metrics.auc(cr, perfect_agr)
     p_to_r_auc = float(realAUC/perfectAUC)
 
-    aa.plot(cr, ar, c="yellowgreen")
+    aa.plot(cr, ar, "--o" , c="grey")
     aa.set_title(
         c + str(" | Real/Perfect AUC = {:.2f}".format(p_to_r_auc)), 
         fontsize=12)
-
+    
+    aa.fill_between(cr, ar, perfect_agr, color="palevioletred", alpha=0.4)
     aa.fill_between(cr, ar, color="yellowgreen", alpha=0.4)
-    aa.fill_between(cr, perfect_agr, ar, color="palevioletred", alpha=0.4)
     aa.set_xticks(np.arange(0, 1.1, step=0.2))
     aa.set_yticks(np.arange(0, 1.1, step=0.2))
 
-    for index in range(len(ovr_rec)):
-        aa.text(cr[index+1], ar[index+1], ovr_rec[index], size=7, rotation=315)
-    
+    ovr_rec = [str(i+1)+") "+ ovr_rec[i] for i in range(len(ovr_rec))]
+    textstr = "\n".join(ovr_rec)
+    props = dict(boxstyle='round', facecolor='white', alpha=0.5)
+
+    aa.text(1.02, 0.98, textstr, transform=aa.transAxes, fontsize=10, verticalalignment='top', bbox=props)
+    print(ar)
+    print(cr)
+    print(perfect_agr)
+
+    plt.tight_layout()
     plt.show()
 
 def run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric):
@@ -333,19 +340,26 @@ def run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric):
 
         print(loci_1)
         print(loci_2)
+
+        for c in list(loci_1.columns[3:]):
+            cr, ar, ovr_rec = granularity_vs_agreement_nonsymmetric(loci_1.copy(), loci_2.copy(), k=c)
+            plot_progression(ar, cr, ovr_rec, c)
+
+        exit()
+
+
         num_labels = loci_1.shape[1]-3
         n_cols = math.floor(math.sqrt(num_labels))
         n_rows = math.ceil(num_labels / n_cols)
 
         fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)
         label_being_plotted = 0
-        
+    
+
         for i in range(n_rows):
             for j in range(n_cols):
                 c = list(loci_1.columns[3:])[label_being_plotted]
                 cr, ar, ovr_rec = granularity_vs_agreement_nonsymmetric(loci_1.copy(), loci_2.copy(), k=c)
-
-                # plot_progression(ar, cr, ovr_rec, c)
 
                 perfect_agr = [0] + [1 for i in range(len(ar) - 1)]
                 realAUC = metrics.auc(cr, ar)
@@ -374,9 +388,13 @@ if __name__=="__main__":
     mnemons = True
     symmetric = False
 
-    replicate_1_dir = "tests/segway/CD14_1/parsed_posterior.csv"
-    replicate_2_dir = "tests/segway/CD14_2/parsed_posterior.csv"
+    replicate_1_dir = "tests/chmm/GM12878_rep2/parsed_posterior.csv"
+    replicate_2_dir = "tests/chmm/GM12878_rep1/parsed_posterior.csv"
     run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric)
+
+    # replicate_1_dir = "tests/segway/CD14_1/parsed_posterior.csv"
+    # replicate_2_dir = "tests/segway/CD14_2/parsed_posterior.csv"
+    # run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric)
 
     # replicate_1_dir = "tests/segway/CD14_concat1/parsed_posterior.csv"
     # replicate_2_dir = "tests/segway/CD14_concat2/parsed_posterior.csv"
@@ -389,3 +407,20 @@ if __name__=="__main__":
     # replicate_1_dir = "tests/segway/MCF7_concat1/parsed_posterior.csv"
     # replicate_2_dir = "tests/segway/MCF7_concat2/parsed_posterior.csv"
     # run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric)
+    exit()
+    replicate_1_dir = "tests/segway/GM12878_1/parsed_posterior.csv"
+    replicate_2_dir = "tests/segway/GM12878_2/parsed_posterior.csv"
+    run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric)
+
+    replicate_1_dir = "tests/segway/GM12878_concat1/parsed_posterior.csv"
+    replicate_2_dir = "tests/segway/GM12878_concat2/parsed_posterior.csv"
+    run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric)
+
+    mnemons = False
+    replicate_1_dir = "tests/segway/defaults/res100_GM12878_1/parsed_posterior.csv"
+    replicate_2_dir = "tests/segway/defaults/res100_GM12878_2/parsed_posterior.csv"
+    run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric)
+
+    replicate_1_dir = "tests/segway/defaults/res200_GM12878_1/parsed_posterior.csv"
+    replicate_2_dir = "tests/segway/defaults/res200_GM12878_2/parsed_posterior.csv"
+    run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric)

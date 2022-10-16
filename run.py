@@ -687,7 +687,13 @@ def intersect_parsed_posteriors(parsed_df_dir_1, parsed_df_dir_2):
     df1.iloc[:, 3:] = df1.iloc[:, 3:].astype("float16")
     df2 = pd.read_csv(parsed_df_dir_2).drop("Unnamed: 0", axis=1)
     df2.iloc[:, 3:] = df2.iloc[:, 3:].astype("float16")
-    
+
+    if df1.columns[3] == "posterior0" and df2.columns[3] == "posterior1":
+        df2.columns =  list(df2.columns[:3]) + ["posterior"+str(i)for i in range(len(df2.columns)-3)]
+    elif df1.columns[3] == "posterior1" and df2.columns[3] == "posterior0":
+        df1.columns =  list(df1.columns[:3]) + ["posterior"+str(i)for i in range(len(df1.columns)-3)]
+
+        
     # to handle concat indexing
     if "_1" in df1.iloc[0, 0] or "_2" in df1.iloc[0, 0]:
         chrdf1 = list(df1.chr)
@@ -706,20 +712,6 @@ def intersect_parsed_posteriors(parsed_df_dir_1, parsed_df_dir_2):
             elif "_1" in chrdf2[i]:
                 chrdf2[i] = chrdf2[i].replace("_1", "")
         df2.chr = np.array(chrdf2)
-    
-    # if "_1" in df1.iloc[0, 0] or "_2" in df1.iloc[0, 0]:
-    #     for i in range(len(df1)):
-    #         if "_1" in df1.iloc[i, 0]:
-    #             df1.iloc[i, 0] = df1.iloc[i, 0].replace("_1","")
-    #         elif "_2" in df1.iloc[i, 0]:
-    #             df1.iloc[i, 0] = df1.iloc[i, 0].replace("_2","")
-
-    # if "_1" in df2.iloc[0, 0] or "_2" in df2.iloc[0, 0]:
-    #     for i in range(len(df2)):
-    #         if "_1" in df2.iloc[i, 0]:
-    #             df2.iloc[i, 0] = df2.iloc[i, 0].replace("_1","")
-    #         elif "_2" in df2.iloc[i, 0]:
-    #             df2.iloc[i, 0] = df2.iloc[i, 0].replace("_2","")
 
     intersect = pd.merge(
         df1, 
