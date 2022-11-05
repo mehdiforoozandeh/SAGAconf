@@ -18,7 +18,7 @@ def __feature_aggreg(exp_name, segbed, gtf):
     '''
     use segtools to run segtools feat_aggreg
     '''
-    outdir = 'label_interpretation/segwayOutput/{}'.format(exp_name)
+    outdir = 'label_interpretation/feature_files/{}'.format(exp_name)
 
     os.system('segtools-aggregation --normalize --mode=gene {} {} --outdir={}'.format(segbed, gtf, outdir))
 
@@ -26,7 +26,7 @@ def __signal_dist(exp_name, segbed, gd):
     '''
     use segtools to run segtools signal_distribution
     '''
-    outdir = 'label_interpretation/segwayOutput/{}'.format(exp_name)
+    outdir = 'label_interpretation/feature_files/{}'.format(exp_name)
 
     os.system('segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
 
@@ -129,8 +129,8 @@ def segway_get_mnem(segwayruns_dir):
         if l in ls1:
             os.system("cp biointerpret/segway_mnemons/{}/mnemonics.txt {}/{}".format(l, segwayruns_dir, l))
 
-    # print("cleaning up the segwayOutput dir...")
-    # ls3 = ["biointerpret/segwayOutput/"+i for i in os.listdir("biointerpret/segwayOutput") if os.path.isdir("biointerpret/segwayOutput/"+i)]
+    # print("cleaning up the feature_files dir...")
+    # ls3 = ["biointerpret/feature_files/"+i for i in os.listdir("biointerpret/feature_files") if os.path.isdir("biointerpret/feature_files/"+i)]
     # for l in ls3:
     #     os.system("rm -r {}".format(l))
 
@@ -320,8 +320,8 @@ def chmm_get_mnem(chmmruns_dir):
             else:
                 os.system("cp biointerpret/chmm_mnemons/{}/mnemonics.txt {}/{}".format(l, chmmruns_dir,l))
     
-    # print("cleaning up the segwayOutput dir...")
-    # ls3 = ["biointerpret/segwayOutput/"+i for i in os.listdir("biointerpret/segwayOutput") if os.path.isdir("biointerpret/segwayOutput/"+i)]
+    # print("cleaning up the feature_files dir...")
+    # ls3 = ["biointerpret/feature_files/"+i for i in os.listdir("biointerpret/feature_files") if os.path.isdir("biointerpret/feature_files/"+i)]
     # for l in ls3:
     #     os.system("rm -r {}".format(l))
 
