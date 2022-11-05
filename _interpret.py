@@ -102,9 +102,9 @@ def segway_feataggr(
 def segway_get_mnem(segwayruns_dir):
     """
     for each run:
-        mkdir(segwayoutput/runname)
-        cp run/aggre/.tab segwayoutput/runname/.tab
-        cp run/sigdist/.tab segwayoutput/runname/.tab
+        mkdir(feature_files/runname)
+        cp run/aggre/.tab feature_files/runname/.tab
+        cp run/sigdist/.tab feature_files/runname/.tab
     
     run apply.py mnems
 
@@ -117,17 +117,17 @@ def segway_get_mnem(segwayruns_dir):
             lines = file.readlines()
             lines = "".join(lines)
         if "nan" not in lines:
-            if os.path.exists("biointerpret/segwayOutput/{}".format(run))==False:
-                os.mkdir("biointerpret/segwayOutput/{}".format(run))
-            os.system("cp {}/{}/aggre/feature_aggregation.tab biointerpret/segwayOutput/{}".format(segwayruns_dir, run, run))
-            os.system("cp {}/{}/sigdist/signal_distribution.tab biointerpret/segwayOutput/{}".format(segwayruns_dir,run, run))
+            if os.path.exists("biointerpret/feature_files/{}".format(run))==False:
+                os.mkdir("biointerpret/feature_files/{}".format(run))
+            os.system("cp {}/{}/aggre/feature_aggregation.tab biointerpret/feature_files/{}".format(segwayruns_dir, run, run))
+            os.system("cp {}/{}/sigdist/signal_distribution.tab biointerpret/feature_files/{}".format(segwayruns_dir,run, run))
 
-    os.system("cd biointerpret && python apply_samples.py segway_mnemons")
-    ls2 = os.listdir("biointerpret/segway_mnemons/classification")
+    os.system("cd biointerpret && python apply_samples.py feature_files/ segway_mnemons")
+    ls2 = os.listdir("biointerpret/segway_mnemons/")
 
     for l in ls2:
         if l in ls1:
-            os.system("cp biointerpret/segway_mnemons/classification/{}/mnemonics.txt {}/{}".format(l, segwayruns_dir, l))
+            os.system("cp biointerpret/segway_mnemons/{}/mnemonics.txt {}/{}".format(l, segwayruns_dir, l))
 
     # print("cleaning up the segwayOutput dir...")
     # ls3 = ["biointerpret/segwayOutput/"+i for i in os.listdir("biointerpret/segwayOutput") if os.path.isdir("biointerpret/segwayOutput/"+i)]
@@ -258,9 +258,9 @@ def chmm_aggr(chmmruns_dir, original_files_dir, gtffile="biointerpret/gencode.v2
 def chmm_get_mnem(chmmruns_dir):
     """
     for each run:
-        mkdir(segwayoutput/runname)
-        cp run/aggre/.tab segwayoutput/runname/.tab
-        cp run/sigdist/.tab segwayoutput/runname/.tab
+        mkdir(feature_files/runname)
+        cp run/aggre/.tab feature_files/runname/.tab
+        cp run/sigdist/.tab feature_files/runname/.tab
     
     run apply.py mnems
 
@@ -274,31 +274,31 @@ def chmm_get_mnem(chmmruns_dir):
         print("copying files for {}".format(run))
         if "concat" in run:
 
-            if os.path.exists("biointerpret/segwayOutput/{}_rep1".format(run))==False:
-                os.mkdir("biointerpret/segwayOutput/{}_rep1".format(run))
+            if os.path.exists("biointerpret/feature_files/{}_rep1".format(run))==False:
+                os.mkdir("biointerpret/feature_files/{}_rep1".format(run))
 
-            os.system("cp {}/{}/aggre_rep1/feature_aggregation.tab biointerpret/segwayOutput/{}_rep1".format(chmmruns_dir, run, run))
-            os.system("cp {}/{}/sigdist_rep1/signal_distribution.tab biointerpret/segwayOutput/{}_rep1".format(chmmruns_dir, run, run))
+            os.system("cp {}/{}/aggre_rep1/feature_aggregation.tab biointerpret/feature_files/{}_rep1".format(chmmruns_dir, run, run))
+            os.system("cp {}/{}/sigdist_rep1/signal_distribution.tab biointerpret/feature_files/{}_rep1".format(chmmruns_dir, run, run))
 
-            if os.path.exists("biointerpret/segwayOutput/{}_rep2".format(run))==False:
-                os.mkdir("biointerpret/segwayOutput/{}_rep2".format(run))
+            if os.path.exists("biointerpret/feature_files/{}_rep2".format(run))==False:
+                os.mkdir("biointerpret/feature_files/{}_rep2".format(run))
 
-            os.system("cp {}/{}/aggre_rep2/feature_aggregation.tab biointerpret/segwayOutput/{}_rep2".format(chmmruns_dir, run, run))
-            os.system("cp {}/{}/sigdist_rep2/signal_distribution.tab biointerpret/segwayOutput/{}_rep2".format(chmmruns_dir, run, run))
+            os.system("cp {}/{}/aggre_rep2/feature_aggregation.tab biointerpret/feature_files/{}_rep2".format(chmmruns_dir, run, run))
+            os.system("cp {}/{}/sigdist_rep2/signal_distribution.tab biointerpret/feature_files/{}_rep2".format(chmmruns_dir, run, run))
 
 
         else:
 
-            if os.path.exists("biointerpret/segwayOutput/{}".format(run))==False:
-                os.mkdir("biointerpret/segwayOutput/{}".format(run))
-            os.system("cp {}/{}/aggre/feature_aggregation.tab biointerpret/segwayOutput/{}".format(chmmruns_dir, run, run))
-            os.system("cp {}/{}/sigdist/signal_distribution.tab biointerpret/segwayOutput/{}".format(chmmruns_dir, run, run))
+            if os.path.exists("biointerpret/feature_files/{}".format(run))==False:
+                os.mkdir("biointerpret/feature_files/{}".format(run))
+            os.system("cp {}/{}/aggre/feature_aggregation.tab biointerpret/feature_files/{}".format(chmmruns_dir, run, run))
+            os.system("cp {}/{}/sigdist/signal_distribution.tab biointerpret/feature_files/{}".format(chmmruns_dir, run, run))
 
 
-    os.system("cd biointerpret && python apply_samples.py chmm_mnemons")
+    os.system("cd biointerpret && python apply_samples.py feature_files/ chmm_mnemons")
 
 
-    ls2 = os.listdir("biointerpret/chmm_mnemons/classification")
+    ls2 = os.listdir("biointerpret/chmm_mnemons/")
 
     for l in ls2:
         if l in ls1 or l.replace("concat_rep1", "concat") in ls1 or l.replace("concat_rep2", "concat") in ls1:
@@ -307,18 +307,18 @@ def chmm_get_mnem(chmmruns_dir):
             if "concat" in l:
 
                 if "rep1" in l:
-                    os.system("cp biointerpret/chmm_mnemons/classification/{}/mnemonics.txt {}/{}".format(
+                    os.system("cp biointerpret/chmm_mnemons/{}/mnemonics.txt {}/{}".format(
                         l, chmmruns_dir,l.replace("_rep1","")))
                     os.system("mv {}/{}/mnemonics.txt {}/{}/mnemonics_rep1.txt".format(
                         chmmruns_dir,l.replace("_rep1",""), chmmruns_dir, l.replace("_rep1","")))
                         
                 elif "rep2" in l:
-                    os.system("cp biointerpret/chmm_mnemons/classification/{}/mnemonics.txt {}/{}".format(
+                    os.system("cp biointerpret/chmm_mnemons/{}/mnemonics.txt {}/{}".format(
                         l, chmmruns_dir,l.replace("_rep2","")))
                     os.system("mv {}/{}/mnemonics.txt {}/{}/mnemonics_rep2.txt".format(
                         chmmruns_dir,l.replace("_rep2",""), chmmruns_dir, l.replace("_rep2","")))
             else:
-                os.system("cp biointerpret/chmm_mnemons/classification/{}/mnemonics.txt {}/{}".format(l, chmmruns_dir,l))
+                os.system("cp biointerpret/chmm_mnemons/{}/mnemonics.txt {}/{}".format(l, chmmruns_dir,l))
     
     # print("cleaning up the segwayOutput dir...")
     # ls3 = ["biointerpret/segwayOutput/"+i for i in os.listdir("biointerpret/segwayOutput") if os.path.isdir("biointerpret/segwayOutput/"+i)]
