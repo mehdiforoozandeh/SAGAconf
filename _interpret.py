@@ -342,7 +342,7 @@ make executable bash using "chmod u+x get_mnemons.sh"
 
 def main():
     task = sys.argv[1]
-    originalfiles = "protect_files_/"
+    originalfiles = "files/"
     chmmruns = "chromhmm_runs/"
     segwayruns = "segway_runs/"
 
