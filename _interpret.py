@@ -113,14 +113,16 @@ def segway_get_mnem(segwayruns_dir):
         """
     ls1 = os.listdir(segwayruns_dir)
     for run in ls1:
-        with open("{}/{}/sigdist/signal_distribution.tab".format(segwayruns_dir, run), 'r') as file:
-            lines = file.readlines()
-            lines = "".join(lines)
-        if "nan" not in lines:
-            if os.path.exists("biointerpret/feature_files/{}".format(run))==False:
-                os.mkdir("biointerpret/feature_files/{}".format(run))
-            os.system("cp {}/{}/aggre/feature_aggregation.tab biointerpret/feature_files/{}".format(segwayruns_dir, run, run))
-            os.system("cp {}/{}/sigdist/signal_distribution.tab biointerpret/feature_files/{}".format(segwayruns_dir,run, run))
+        if os.path.exists("{}/{}/sigdist/signal_distribution.tab".format(segwayruns_dir, run)) and os.path.exists("{}/{}/aggre/feature_aggregation.tab".format(segwayruns_dir, run)):
+            with open("{}/{}/sigdist/signal_distribution.tab".format(segwayruns_dir, run), 'r') as file:
+                lines = file.readlines()
+                lines = "".join(lines)
+            if "nan" not in lines:
+                if os.path.exists("biointerpret/feature_files/{}".format(run))==False:
+                    os.mkdir("biointerpret/feature_files/{}".format(run))
+                    
+                os.system("cp {}/{}/aggre/feature_aggregation.tab biointerpret/feature_files/{}".format(segwayruns_dir, run, run))
+                os.system("cp {}/{}/sigdist/signal_distribution.tab biointerpret/feature_files/{}".format(segwayruns_dir,run, run))
 
     os.system("cd biointerpret && python apply_samples.py feature_files/ segway_mnemons")
     ls2 = os.listdir("biointerpret/segway_mnemons/")
@@ -273,26 +275,30 @@ def chmm_get_mnem(chmmruns_dir):
     for run in ls1:
         print("copying files for {}".format(run))
         if "concat" in run:
+                
+            if os.path.exists("{}/{}/aggre_rep1/feature_aggregation.tab".format(chmmruns_dir, run)) and os.path.exists("{}/{}/sigdist_rep1/signal_distribution.tab".format(chmmruns_dir, run)):
+                if os.path.exists("biointerpret/feature_files/{}_rep1".format(run))==False:
+                    os.mkdir("biointerpret/feature_files/{}_rep1".format(run))
 
-            if os.path.exists("biointerpret/feature_files/{}_rep1".format(run))==False:
-                os.mkdir("biointerpret/feature_files/{}_rep1".format(run))
+                os.system("cp {}/{}/aggre_rep1/feature_aggregation.tab biointerpret/feature_files/{}_rep1".format(chmmruns_dir, run, run))
+                os.system("cp {}/{}/sigdist_rep1/signal_distribution.tab biointerpret/feature_files/{}_rep1".format(chmmruns_dir, run, run))
 
-            os.system("cp {}/{}/aggre_rep1/feature_aggregation.tab biointerpret/feature_files/{}_rep1".format(chmmruns_dir, run, run))
-            os.system("cp {}/{}/sigdist_rep1/signal_distribution.tab biointerpret/feature_files/{}_rep1".format(chmmruns_dir, run, run))
+            if os.path.exists("{}/{}/aggre_rep2/feature_aggregation.tab".format(chmmruns_dir, run)) and os.path.exists("{}/{}/sigdist_rep2/signal_distribution.tab".format(chmmruns_dir, run)):
+                if os.path.exists("biointerpret/feature_files/{}_rep2".format(run))==False:
+                    os.mkdir("biointerpret/feature_files/{}_rep2".format(run))
 
-            if os.path.exists("biointerpret/feature_files/{}_rep2".format(run))==False:
-                os.mkdir("biointerpret/feature_files/{}_rep2".format(run))
-
-            os.system("cp {}/{}/aggre_rep2/feature_aggregation.tab biointerpret/feature_files/{}_rep2".format(chmmruns_dir, run, run))
-            os.system("cp {}/{}/sigdist_rep2/signal_distribution.tab biointerpret/feature_files/{}_rep2".format(chmmruns_dir, run, run))
+                os.system("cp {}/{}/aggre_rep2/feature_aggregation.tab biointerpret/feature_files/{}_rep2".format(chmmruns_dir, run, run))
+                os.system("cp {}/{}/sigdist_rep2/signal_distribution.tab biointerpret/feature_files/{}_rep2".format(chmmruns_dir, run, run))
 
 
         else:
 
-            if os.path.exists("biointerpret/feature_files/{}".format(run))==False:
-                os.mkdir("biointerpret/feature_files/{}".format(run))
-            os.system("cp {}/{}/aggre/feature_aggregation.tab biointerpret/feature_files/{}".format(chmmruns_dir, run, run))
-            os.system("cp {}/{}/sigdist/signal_distribution.tab biointerpret/feature_files/{}".format(chmmruns_dir, run, run))
+            if os.path.exists("{}/{}/aggre/feature_aggregation.tab".format(chmmruns_dir, run)) and os.path.exists("{}/{}/sigdist/signal_distribution.tab".format(chmmruns_dir, run)):
+                if os.path.exists("biointerpret/feature_files/{}".format(run))==False:
+                    os.mkdir("biointerpret/feature_files/{}".format(run))
+ 
+                os.system("cp {}/{}/aggre/feature_aggregation.tab biointerpret/feature_files/{}".format(chmmruns_dir, run, run))
+                os.system("cp {}/{}/sigdist/signal_distribution.tab biointerpret/feature_files/{}".format(chmmruns_dir, run, run))
 
 
     os.system("cd biointerpret && python apply_samples.py feature_files/ chmm_mnemons")
