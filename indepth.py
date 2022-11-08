@@ -1,38 +1,59 @@
 from run import *
 import seaborn as sns
+from statsmodels.distributions.empirical_distribution import ECDF
+import matplotlib.pyplot as plt
 from length_dist_analysis import *
 
-def get_ecdf_for_label(loci, label):
+def get_ecdf_for_label(loci, label, max=None):
     MAP = loci.iloc[:,3:].idxmax(axis=1)
     resolution = int(loci.iloc[0, 2] - loci.iloc[0, 1])
 
-    # lengths = pd.Series([resolution for _ in range(len(MAP))])
+    label_segments = []
 
-    # df = pd.concat([MAP, lengths], axis=1)
-    # df.columns = ["MAP", "LEN"]
+    midlabel = False
 
-    # print(df)
-    # exit()
-    
-    label_dict = {}
     for i in range(len(MAP)):
-        if MAP[i] not in label_dict.keys():
-            label_dict[MAP[i]] = []
+        if MAP[i] == label:
+            if midlabel == False:
+                label_segments.append(1)
+                midlabel = True
+            else:
+                label_segments[-1] += 1
+            
+            if i+1 < len(MAP):
+                if MAP[i+1] != label:
+                    midlabel = False
 
-        if 
-        label_dict[MAP[i]].append()
+    lendist = np.array(label_segments) * resolution
+    if max==None:
+        q = np.quantile(lendist, 0.99)
+    else:
+        q = max
+    lendist = pd.Series(lendist)
+    lendist = lendist.loc[lendist < q]
+    try:
+        return lendist
+    except:
+        pass
+    
+    # print(label, np.min(lendist), np.mean(lendist), np.max(lendist))
+    # try:
+    #     sns.ecdfplot(lendist)
+    #     # plt.show()
+    # except:
+    #     pass
 
 def length_vs_boundary(loci_1, loci_2, match_definition="BM", max_distance=50):
     """
     Here i'm gonna merge ECDF of length dist and boundary thing.
     """
 
-    bed = read_bed("tests/length_dist_anal/ENCFF194OGV.bed")
-    len_bed = get_length(bed)
-    len_bed = clean_bed(len_bed)
-    print(len_bed.loc[len_bed["length"]==np.max(len_bed.length)])
+    # bed = read_bed("tests/length_dist_anal/ENCFF194OGV.bed")
+    # len_bed = get_length(bed)
+    # len_bed = clean_bed(len_bed)
+    # print(len_bed.loc[len_bed["length"]==np.max(len_bed.length)])
 
-    ECDF(len_bed)
+    # ECDF(len_bed)
 
     resolution = int(loci_1.iloc[0, 2] - loci_1.iloc[0, 1])
     num_labels = loci_1.shape[1]-3
@@ -125,10 +146,14 @@ def length_vs_boundary(loci_1, loci_2, match_definition="BM", max_distance=50):
                     cdf.append((cdf[-1] + matched_hist[0][jb]))
 
             cdf = np.array(cdf) / (np.sum(matched_hist[0]) + count_unmatched_boundaries[k])
+            
 
-            print(list(matched_hist[1][:-1]))
-            print(list(matched_hist[1][:-1]*resolution))
-            print(cdf)
+            # print(list(matched_hist[1][:-1]))
+            # print(list(matched_hist[1][:-1]*resolution))
+            # print(cdf)
+            lendist = get_ecdf_for_label(loci_1, k, max=(max_distance+1)*resolution)
+            if len(lendist)>0:
+                sns.ecdfplot(lendist, ax=axs[i,j])
             axs[i,j].plot(list(matched_hist[1][:-1]*resolution), list(cdf))
             axs[i,j].set_xticks(np.arange(0, (max_distance+1)*resolution, step=5*resolution))
             axs[i,j].tick_params(axis='both', labelsize=7)
@@ -163,8 +188,8 @@ def run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons):
         replicate_2_dir)
 
     if run_on_subset:
-        loci_1 = loci_1.iloc[[i for i in range(0, len(loci_1), 100)], :].reset_index(drop=True)
-        loci_2 = loci_2.iloc[[i for i in range(0, len(loci_2), 100)], :].reset_index(drop=True)
+        loci_1 = loci_1.loc[loci_1["chr"]=="chr1"].reset_index(drop=True)
+        loci_2 = loci_2.loc[loci_2["chr"]=="chr1"].reset_index(drop=True)
 
     print("the shapes of the input matrices are: {}, {}".format(str(loci_1.shape), str(loci_2.shape)))
 
@@ -216,7 +241,10 @@ def run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons):
         print(loci_1)
         print(loci_2)
 
-        get_ecdf_for_label(loci_1, "--")
+        length_vs_boundary(loci_1, loci_2, match_definition="BM", max_distance=10)
+        exit()
+        for k in list(loci_1.columns[3:]):
+            get_ecdf_for_label(loci_1, k)
 
 if __name__=="__main__":
     run_on_subset = True
@@ -225,13 +253,15 @@ if __name__=="__main__":
     replicate_1_dir = "tests/DEBUGGING/CHMM/MCF7_CONCAT_R1/parsed_posterior_rep1.csv"
     replicate_2_dir = "tests/DEBUGGING/CHMM/MCF7_CONCAT_R2/parsed_posterior_rep2.csv"
     run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons)
-    exit()
 
-    replicate_1_dir = "tests/DEBUGGING/CHMM/MCF7_R1/parsed_posterior.csv"
-    replicate_2_dir = "tests/DEBUGGING/CHMM/MCF7_R2/parsed_posterior.csv"
+    # replicate_1_dir = "tests/DEBUGGING/CHMM/MCF7_R1/parsed_posterior.csv"
+    # replicate_2_dir = "tests/DEBUGGING/CHMM/MCF7_R2/parsed_posterior.csv"
+    # run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons)
 
-    replicate_1_dir = "tests/DEBUGGING/SEGWAY/MCF7_CONCAT_R1/parsed_posterior_rep1.csv"
-    replicate_2_dir = "tests/DEBUGGING/SEGWAY/MCF7_CONCAT_R2/parsed_posterior_rep2.csv"
+    # replicate_1_dir = "tests/DEBUGGING/SEGWAY/MCF7_CONCAT_R1/parsed_posterior.csv"
+    # replicate_2_dir = "tests/DEBUGGING/SEGWAY/MCF7_CONCAT_R2/parsed_posterior.csv"
+    # run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons)
 
-    replicate_1_dir = "tests/DEBUGGING/SEGWAY/MCF7_R1/parsed_posterior.csv"
-    replicate_2_dir = "tests/DEBUGGING/SEGWAY/MCF7_R2/parsed_posterior.csv"
+    # replicate_1_dir = "tests/DEBUGGING/SEGWAY/MCF7_R1/parsed_posterior.csv"
+    # replicate_2_dir = "tests/DEBUGGING/SEGWAY/MCF7_R2/parsed_posterior.csv"
+    # run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons)

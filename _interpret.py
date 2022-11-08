@@ -94,7 +94,7 @@ def segway_feataggr(
         else:
             segbed = segwayruns_dir+i+'/segway.bed'
             
-        if os.path.exists("{}/{}/aggre".format(segwayruns_dir, i)) == False:
+        if os.path.exists("{}/{}/aggre/feature_aggregation.tab".format(segwayruns_dir, i)) == False:
             os.system(
                 'segtools-aggregation --normalize --mode=gene {} {} --outdir={}'.format(
                     segbed, gtffile, "{}/{}/aggre".format(segwayruns_dir, i)))
@@ -120,7 +120,7 @@ def segway_get_mnem(segwayruns_dir):
             if "nan" not in lines:
                 if os.path.exists("biointerpret/feature_files/{}".format(run))==False:
                     os.mkdir("biointerpret/feature_files/{}".format(run))
-                    
+
                 os.system("cp {}/{}/aggre/feature_aggregation.tab biointerpret/feature_files/{}".format(segwayruns_dir, run, run))
                 os.system("cp {}/{}/sigdist/signal_distribution.tab biointerpret/feature_files/{}".format(segwayruns_dir,run, run))
 
@@ -238,13 +238,13 @@ def chmm_aggr(chmmruns_dir, original_files_dir, gtffile="biointerpret/gencode.v2
                     for ff in ls2:
                         if "dense.bed" in ff:
                             if "rep1" in ff:
-                                if os.path.exists("{}/{}/{}".format(chmmruns_dir, run, "aggre_rep1/")) == False:
+                                if os.path.exists("{}/{}/{}".format(chmmruns_dir, run, "aggre_rep1/feature_aggregation.tab")) == False:
                                     os.system('segtools-aggregation --normalize --mode=gene {} {} --outdir={}'.format(
                                     "{}/{}/{}".format(chmmruns_dir, run, ff),
                                     gtffile, "{}/{}/{}".format(chmmruns_dir, run, "aggre_rep1/")))
 
                             elif "rep2" in ff:
-                                if os.path.exists("{}/{}/{}".format(chmmruns_dir, run, "aggre_rep2/")) == False:
+                                if os.path.exists("{}/{}/{}".format(chmmruns_dir, run, "aggre_rep2/feature_aggregation.tab")) == False:
                                     os.system('segtools-aggregation --normalize --mode=gene {} {} --outdir={}'.format(
                                     "{}/{}/{}".format(chmmruns_dir, run, ff),
                                     gtffile, "{}/{}/{}".format(chmmruns_dir, run, "aggre_rep2/")))
@@ -252,7 +252,7 @@ def chmm_aggr(chmmruns_dir, original_files_dir, gtffile="biointerpret/gencode.v2
                 else:
                     for ff in ls2:
                         if "dense.bed" in ff:
-                            if os.path.exists("{}/{}/{}".format(chmmruns_dir, run, "aggre/")) == False:
+                            if os.path.exists("{}/{}/{}".format(chmmruns_dir, run, "aggre/feature_aggregation.tab")) == False:
                                 os.system('segtools-aggregation --normalize --mode=gene {} {} --outdir={}'.format(
                                     "{}/{}/{}".format(chmmruns_dir, run, ff),
                                     gtffile, "{}/{}/{}".format(chmmruns_dir, run, "aggre/")))
