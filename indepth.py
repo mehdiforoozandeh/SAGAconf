@@ -40,8 +40,6 @@ from granul import *
 
         # """
 
-
-
 def get_ecdf_for_label(loci, label, max=None):
     MAP = loci.iloc[:,3:].idxmax(axis=1)
     resolution = int(loci.iloc[0, 2] - loci.iloc[0, 1])
