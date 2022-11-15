@@ -3,6 +3,44 @@ import seaborn as sns
 from statsmodels.distributions.empirical_distribution import ECDF
 import matplotlib.pyplot as plt
 from length_dist_analysis import *
+from sklearn.metrics.pairwise import cosine_similarity
+from scipy.spatial import distance
+from granul import *
+
+# def corresp_signal_value_analysis(files_dir, loci_1, loci_2):
+#     resolution = int(loci_1.iloc[0, 2] - loci_1.iloc[0, 1])
+#     num_labels = loci_1.shape[1]-3
+#     MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
+#     MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
+    
+#     """
+#     we need to define what a "good match" is.
+#     by default, we will consider any label with log(OO/EO)>0 
+#     to be a match. this definition can be refined later.
+#     """
+
+#     confmat = enrichment_of_overlap_matrix(
+#             loci_1, loci_2, OE_transform=True)
+    
+#     # define matches
+#     per_label_matches = {}
+#     for k in list(loci_1.columns[3:]):
+#         sorted_k_vector = confmat.loc[k,:].sort_values(ascending=False)
+#         k_match = sorted_k_vector.index[0]
+
+#         """
+#         for i in range(len(MAP1)):
+#             for a in assays:
+#                 read "a"'s bedgraph file for R2
+#                 inplace_binning(a.bedgraph, resolution)
+#                 if map1[i] == k:
+                
+#                     find corresponding position to i in a.singals
+
+
+        # """
+
+
 
 def get_ecdf_for_label(loci, label, max=None):
     MAP = loci.iloc[:,3:].idxmax(axis=1)
@@ -29,7 +67,8 @@ def get_ecdf_for_label(loci, label, max=None):
         q = np.quantile(lendist, 0.99)
     else:
         q = max
-    lendist = pd.Series(lendist)
+
+    lendist = pd.Series(lendist, name="length_dist")
     lendist = lendist.loc[lendist < q]
     try:
         return lendist
@@ -43,7 +82,7 @@ def get_ecdf_for_label(loci, label, max=None):
     # except:
     #     pass
 
-def length_vs_boundary(loci_1, loci_2, match_definition="BM", max_distance=50):
+def length_vs_boundary(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
     """
     Here i'm gonna merge ECDF of length dist and boundary thing.
     """
@@ -125,56 +164,307 @@ def length_vs_boundary(loci_1, loci_2, match_definition="BM", max_distance=50):
     # plot histograms
 
     num_labels = len(boundary_distances.keys())
+    n_rows = num_labels
+    n_cols = 1
+
+    # n_cols = math.floor(math.sqrt(num_labels))
+    # n_rows = math.ceil(num_labels / n_cols)
+
+    fig, axs = plt.subplots(n_rows, n_cols, sharex="col", sharey="col", figsize=[5, 30])
+    label_being_plotted = 0
+    
+    for i in range(n_rows):
+        # for j in range(n_cols):
+
+        k = loci_1.columns[3:][label_being_plotted]
+
+        matched_hist = np.histogram(boundary_distances[k], bins=max_distance, range=(0, max_distance)) #[0]is the bin size [1] is the bin edge
+
+        cdf = []
+        for jb in range(len(matched_hist[0])):
+            if len(cdf) == 0:
+                cdf.append(matched_hist[0][jb])
+            else:
+                cdf.append((cdf[-1] + matched_hist[0][jb]))
+
+        cdf = np.array(cdf) / (np.sum(matched_hist[0]) + count_unmatched_boundaries[k])
+        
+        
+        axs[i].plot(list(matched_hist[1][:-1]*resolution), list(cdf), color="black", label="distance from boundary")
+        
+        lendist = get_ecdf_for_label(loci_1, k, max=(max_distance+1)*resolution)
+        if len(lendist)>0:
+            sns.ecdfplot(lendist, ax=axs[i], color="red")
+
+        axs[i].set_xticks(np.arange(0, (max_distance+1)*resolution, step=5*resolution))
+        axs[i].tick_params(axis='both', labelsize=7)
+        axs[i].tick_params(axis='x', rotation=90)
+        axs[i].set_yticks(np.arange(0, 1.1, step=0.2))
+        axs[i].set_xlabel('bp', fontsize=7)
+        axs[i].set_ylabel('Proportion',fontsize=7)
+        
+
+        # if len(lendist)>0:
+        #     sns.ecdfplot(lendist, ax=axs[i,1], color="red")
+        #     # axs[i, 1].get_yaxis().set_visible(False)
+        #     axs[i, 1].tick_params(axis='both', labelsize=7)
+        #     axs[i, 1].tick_params(axis='x', rotation=90)
+        #     # axs[i, 0].set_yticks(np.arange(0, 1.1, step=0.3))
+        #     axs[i, 1].set_xlabel('Length', fontsize=7)
+        #     axs[i, 1].set_ylabel('Proportion', fontsize=7)
+        
+        axs[i].set_title(k, fontsize=7)
+        # axs[i,1].set_title(k+"_Length ECDF", fontsize=7)
+
+        label_being_plotted += 1
+            
+    # fig.text(0.5, 0.005, 'Distance from boundary' , ha='center')
+    # fig.text(0.005, 0.5, 'Ratio matched boundaries', va='center', rotation='vertical')
+    plt.tight_layout()
+    plt.savefig(outdir)
+
+def read_sigdist_file(file):
+    return pd.read_csv(file, sep="\t")
+
+def compare_signal_dist(loci_1, loci_2, sigdist1_file, sigdist2_file, k):
+    """
+    read signal_dist files
+    for k in loci_1 labels:
+        get granularity_vs_agreement_nonsymmetric(loci_1.copy(), loci_2.copy(), k=c)
+        get sigdist1.k and sigdist2.k
+
+        plot side by side
+
+    """
+    sigdist1 = read_sigdist_file(sigdist1_file)
+    sigdist2 = read_sigdist_file(sigdist2_file)
+
+    if np.min(np.array(sigdist1['label'].astype("int"))) == 1:
+        for i in range(sigdist1.shape[0]):
+            sigdist1["label"][i] = str(int(sigdist1["label"][i])-1)
+
+    if np.min(np.array(sigdist2['label'].astype("int"))) == 1:
+        for i in range(sigdist2.shape[0]):
+            sigdist2["label"][i] = str(int(sigdist2["label"][i])-1)
+
+    # update sigdist label names
+
+    for i in range(sigdist1.shape[0]):
+        sigdist1["label"][i] = [x for x in loci_1.columns[3:] if str(sigdist1["label"][i])== x.split("_")[0]][0]
+
+    for i in range(sigdist2.shape[0]):
+        sigdist2["label"][i] = [x for x in loci_2.columns[3:] if str(sigdist2["label"][i])== x.split("_")[0]][0]
+
+    sigdist1 = sigdist1.drop(["sd"], axis=1)
+    sigdist2 = sigdist2.drop(["sd"], axis=1)
+
+    # print(sigdist1)
+    # print(sigdist2)
+
+    ## rescale each assay to 0-1
+    list_of_assays = np.unique(np.array(sigdist1['trackname']))
+    for a in list_of_assays:
+        min_max_1 = (
+            np.min(np.array(sigdist1.loc[sigdist1["trackname"]==a, ["mean"]])),
+            np.max(np.array(sigdist1.loc[sigdist1["trackname"]==a, ["mean"]]))
+            )
+        
+        min_max_2 = (
+            np.min(np.array(sigdist2.loc[sigdist1["trackname"]==a, ["mean"]])),
+            np.max(np.array(sigdist2.loc[sigdist1["trackname"]==a, ["mean"]]))
+            )
+
+        for i in range(len(sigdist1)):
+            if sigdist1["trackname"][i] == a:
+                sigdist1["mean"][i] = float(
+                    (float(sigdist1["mean"][i]) - min_max_1[0]) / (min_max_1[1] - min_max_1[0])
+                )
+
+                sigdist2["mean"][i] = float(
+                    (float(sigdist2["mean"][i]) - min_max_2[0]) / (min_max_2[1] - min_max_2[0])
+                )
+
+    ###
+    # print(sigdist1)
+    # print(sigdist2)
+    confmat = enrichment_of_overlap_matrix(
+            loci_1, loci_2, OE_transform=True)
+    
+    sorted_k_vector = confmat.loc[k,:].sort_values(ascending=False)
+    print(sorted_k_vector)
+
+    """
+    label k in loci_1
+    label sorted_k_vector[0] in loci_2alan 
+
+    """
+    v1 = sigdist1.loc[(sigdist1["label"] == k), ["trackname","mean"]]
+
+    v1.index = v1["trackname"].values
+    v1 = v1.drop(["trackname"], axis=1)
+
+    v2 = sigdist2.loc[(sigdist2["label"] == sorted_k_vector.index[0]), ["trackname", "mean"]]
+
+    v2.index = v2["trackname"].values
+    v2 = v2.drop(["trackname"], axis=1)
+
+    cosinesim = cosine_similarity(np.reshape(np.array(v1), (1, -1)), np.reshape(np.array(v2), (1, -1)))
+    euc_distance = distance.euclidean(np.array(v1), np.array(v2))
+
+    compar = pd.concat([v1, v2], axis=1)
+    compar.columns = ["R1: "+k, "R2: "+sorted_k_vector.index[0]]
+    compar = compar.T
+
+    return compar, cosinesim, euc_distance
+    # return compar, euc_distance
+
+def plot_sigdist_compar(loci_1, loci_2, sigdistfile1, sigdistfile2, outdir):
+    num_labels = len(loci_1.columns)-3
+
     n_cols = math.floor(math.sqrt(num_labels))
     n_rows = math.ceil(num_labels / n_cols)
 
-    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=False, sharey=False, figsize=[25, 16])
     label_being_plotted = 0
     
-
     for i in range(n_rows):
         for j in range(n_cols):
+
             k = loci_1.columns[3:][label_being_plotted]
+            compar, cosine, eucld = compare_signal_dist(loci_1, loci_2, sigdistfile1, sigdistfile2, k)
 
-            matched_hist = np.histogram(boundary_distances[k], bins=max_distance, range=(0, max_distance)) #[0]is the bin size [1] is the bin edge
+            sns.heatmap(compar, ax=axs[i, j], cmap="crest", cbar=False)
 
-            cdf = []
-            for jb in range(len(matched_hist[0])):
-                if len(cdf) == 0:
-                    cdf.append(matched_hist[0][jb])
-                else:
-                    cdf.append((cdf[-1] + matched_hist[0][jb]))
-
-            cdf = np.array(cdf) / (np.sum(matched_hist[0]) + count_unmatched_boundaries[k])
-            
-
-            # print(list(matched_hist[1][:-1]))
-            # print(list(matched_hist[1][:-1]*resolution))
-            # print(cdf)
-            lendist = get_ecdf_for_label(loci_1, k, max=(max_distance+1)*resolution)
-            if len(lendist)>0:
-                sns.ecdfplot(lendist, ax=axs[i,j])
-            axs[i,j].plot(list(matched_hist[1][:-1]*resolution), list(cdf))
-            axs[i,j].set_xticks(np.arange(0, (max_distance+1)*resolution, step=5*resolution))
-            axs[i,j].tick_params(axis='both', labelsize=7)
-            axs[i,j].tick_params(axis='x', rotation=90)
-            axs[i,j].set_yticks(np.arange(0, 1.1, step=0.2))
-            
-            axs[i,j].set_title(k, fontsize=8)
-
+            axs[i, j].tick_params(axis='both', labelsize=7)
+            axs[i, j].tick_params(axis='x', rotation=90)
+            axs[i, j].set_xlabel('Tracknames', fontsize=7)
+            axs[i,j].set_title(k +" | cos: {:.2f} | euc: {:.2f}".format(float(cosine[0]), eucld), fontsize=7)
             label_being_plotted += 1
-            
-    fig.text(0.5, 0.005, 'Distance from boundary' , ha='center')
-    fig.text(0.005, 0.5, 'Ratio matched boundaries', va='center', rotation='vertical')
+
     plt.tight_layout()
-    plt.show()
+    plt.savefig(outdir)
 
-def compare_signal_dist():
-    pass
+def sigdist_vs_overlap(sigdist1_file, sigdist2_file, loci_1, loci_2, outdir):
+    sigdist1 = read_sigdist_file(sigdist1_file)
+    sigdist2 = read_sigdist_file(sigdist2_file)
 
-def sigdist_vs_overlap():
-    pass
+    if np.min(np.array(sigdist1['label'].astype("int"))) == 1:
+        for i in range(sigdist1.shape[0]):
+            sigdist1["label"][i] = str(int(sigdist1["label"][i])-1)
 
+    if np.min(np.array(sigdist2['label'].astype("int"))) == 1:
+        for i in range(sigdist2.shape[0]):
+            sigdist2["label"][i] = str(int(sigdist2["label"][i])-1)
+
+
+    #
+    """
+    add an option to match clusters based on hungarian algorithm
+    """
+    # confmat = enrichment_of_overlap_matrix(
+    #     loci_1, loci_2, OE_transform=True)
+
+    # assignmet_pairs = Hungarian_algorithm(confmat)
+
+    # print(assignmet_pairs)
+    # loci_1, loci_2 = connect_bipartite(loci_1, loci_2, assignmet_pairs)
+    
+
+    # update sigdist label names
+    for i in range(sigdist1.shape[0]):
+        sigdist1["label"][i] = [x for x in loci_1.columns[3:] if str(sigdist1["label"][i])== x.split("_")[0]][0]
+
+    for i in range(sigdist2.shape[0]):
+        sigdist2["label"][i] = [x for x in loci_2.columns[3:] if str(sigdist2["label"][i])== x.split("_")[0]][0]
+
+    sigdist1 = sigdist1.drop(["sd"], axis=1)
+    sigdist2 = sigdist2.drop(["sd"], axis=1)
+
+    # print(sigdist1)
+    # print(sigdist2)
+
+    ## rescale each assay to 0-1
+    list_of_assays = np.unique(np.array(sigdist1['trackname']))
+    for a in list_of_assays:
+        min_max_1 = (
+            np.min(np.array(sigdist1.loc[sigdist1["trackname"]==a, ["mean"]])),
+            np.max(np.array(sigdist1.loc[sigdist1["trackname"]==a, ["mean"]]))
+            )
+        
+        min_max_2 = (
+            np.min(np.array(sigdist2.loc[sigdist1["trackname"]==a, ["mean"]])),
+            np.max(np.array(sigdist2.loc[sigdist1["trackname"]==a, ["mean"]]))
+            )
+
+        for i in range(len(sigdist1)):
+            if sigdist1["trackname"][i] == a:
+                sigdist1["mean"][i] = float(
+                    (float(sigdist1["mean"][i]) - min_max_1[0]) / (min_max_1[1] - min_max_1[0])
+                )
+
+                sigdist2["mean"][i] = float(
+                    (float(sigdist2["mean"][i]) - min_max_2[0]) / (min_max_2[1] - min_max_2[0])
+                )
+
+    ###
+
+    confmat = enrichment_of_overlap_matrix(
+        loci_1, loci_2, OE_transform=True)
+
+    eucl = pd.DataFrame(
+        np.zeros((len(loci_1.columns)-3, len(loci_2.columns)-3)),
+        columns=loci_2.columns[3:], 
+        index=loci_1.columns[3:])
+
+    cossim = pd.DataFrame(
+        np.zeros((len(loci_1.columns)-3, len(loci_2.columns)-3)),
+        columns=loci_2.columns[3:], 
+        index=loci_1.columns[3:])
+
+    for i in range(len(loci_1.columns[3:])):
+        for j in range(len(loci_2.columns[3:])):
+
+            v1 = sigdist1.loc[(sigdist1["label"] == loci_1.columns[3:][i]), ["trackname", "mean"]]
+            v1 = v1.sort_values(by=["trackname"])
+
+            v2 = sigdist2.loc[(sigdist2["label"] == loci_2.columns[3:][j]), ["trackname", "mean"]]
+            v2 = v2.sort_values(by=["trackname"])
+
+            eucl.loc[loci_1.columns[3:][i], loci_2.columns[3:][j]] = distance.euclidean(
+                np.array(v1["mean"]),
+                np.array(v2["mean"]))
+
+            cossim.loc[loci_1.columns[3:][i], loci_2.columns[3:][j]] = cosine_similarity(
+                np.reshape(np.array(v1["mean"]) ,(1,-1)), 
+                np.reshape(np.array(v2["mean"]) ,(1,-1))
+            )
+
+    # rescale euc
+    # eucl = pd.DataFrame(
+    #     (np.array(eucl) - np.min(np.array(eucl))) / (np.max(np.array(eucl)) - np.min(np.array(eucl))),
+    #     columns=loci_2.columns[3:], 
+    #     index=loci_1.columns[3:])
+
+    fig, axs = plt.subplots(1, 3, sharex=False, sharey=False, figsize=[30, 10])
+    
+    sns.heatmap(confmat, annot=True, fmt=".2f", linewidths=0.01,  cbar=False, ax=axs[0])
+    axs[0].set_title("Enrichment of Overlap")
+    axs[0].set_xlabel("R1")
+    axs[0].set_ylabel("R2")
+
+    cmap_r = sns.cm.rocket_r
+    sns.heatmap(eucl, annot=True, fmt=".2f", linewidths=0.01,  cbar=False, ax=axs[1], cmap = cmap_r)
+    axs[1].set_title("Euclidean distance of signal distribution")
+    axs[1].set_xlabel("R1")
+    axs[1].set_ylabel("R2")
+
+    sns.heatmap(cossim, annot=True, fmt=".2f", linewidths=0.01,  cbar=False, ax=axs[2])
+    axs[2].set_title("Cosine similarity of signal distribution")
+    axs[2].set_xlabel("R1")
+    axs[2].set_ylabel("R2")
+
+    plt.savefig(outdir)
+    
 def get_all_celltype():
     pass
 
@@ -184,8 +474,9 @@ def get_all_label():
 def run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons):
     print("loading and intersecting")
     loci_1, loci_2 = intersect_parsed_posteriors(
-        replicate_1_dir, 
-        replicate_2_dir)
+        replicate_1_dir+"/parsed_posterior.csv", 
+        replicate_2_dir+"/parsed_posterior.csv")
+
 
     if run_on_subset:
         loci_1 = loci_1.loc[loci_1["chr"]=="chr1"].reset_index(drop=True)
@@ -199,13 +490,13 @@ def run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons):
     
     print('generating confmat 1')
     
-    conf_mat = confusion_matrix(
-        loci_1, loci_2, num_labels, 
-        OE_transform=True, symmetric=False)
+    # conf_mat = confusion_matrix(
+    #     loci_1, loci_2, num_labels, 
+    #     OE_transform=True, symmetric=False)
 
-    assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
+    # assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
 
-    new_columns = ["{}|{}".format(c[0], c[1]) for c in assignment_pairs]
+    # new_columns = ["{}|{}".format(c[0], c[1]) for c in assignment_pairs]
 
     if mnemons:
         if os.path.exists(
@@ -241,27 +532,58 @@ def run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons):
         print(loci_1)
         print(loci_2)
 
-        length_vs_boundary(loci_1, loci_2, match_definition="BM", max_distance=10)
-        exit()
-        for k in list(loci_1.columns[3:]):
-            get_ecdf_for_label(loci_1, k)
+        # R1 vs R2
+        sigdist_vs_overlap(
+            replicate_1_dir+"/sigdist/signal_distribution.tab",
+            replicate_2_dir+"/sigdist/signal_distribution.tab", 
+            loci_1, loci_2, 
+            outdir=replicate_1_dir+"/overlap_eucd_cossim.pdf")
+        
+        # plot_sigdist_compar(
+        #             loci_1, loci_2, 
+        #             replicate_1_dir+"/sigdist/signal_distribution.tab",
+        #             replicate_2_dir+"/sigdist/signal_distribution.tab", 
+        #             outdir=replicate_1_dir+"/sigdistcompar.pdf")
+        
+        # length_vs_boundary(
+        #     loci_1, loci_2, match_definition="BM", max_distance=100, 
+        #     outdir=replicate_1_dir+"/len_bound.pdf")
+
+        # # R2 vs R1
+        # sigdist_vs_overlap(
+        #     replicate_2_dir+"/sigdist/signal_distribution.tab",
+        #     replicate_1_dir+"/sigdist/signal_distribution.tab", 
+        #     loci_2, loci_1, 
+        #     outdir=replicate_2_dir+"/overlap_vs_cosine.pdf")
+        
+        # plot_sigdist_compar(
+        #             loci_2, loci_1, 
+        #             replicate_2_dir+"/sigdist/signal_distribution.tab",
+        #             replicate_1_dir+"/sigdist/signal_distribution.tab", 
+        #             outdir=replicate_2_dir+"/sigdistcompar.pdf")
+        
+        # length_vs_boundary(
+        #     loci_2, loci_1, match_definition="BM", max_distance=50, 
+        #     outdir=replicate_2_dir+"/len_bound.pdf")
+        
+        # exit()
 
 if __name__=="__main__":
     run_on_subset = True
     mnemons = True
 
-    replicate_1_dir = "tests/DEBUGGING/CHMM/MCF7_CONCAT_R1/parsed_posterior_rep1.csv"
-    replicate_2_dir = "tests/DEBUGGING/CHMM/MCF7_CONCAT_R2/parsed_posterior_rep2.csv"
+    replicate_1_dir = "tests/cedar_runs/chmm/MCF7_R1/"
+    replicate_2_dir = "tests/cedar_runs/chmm/MCF7_R2/"
     run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons)
 
-    # replicate_1_dir = "tests/DEBUGGING/CHMM/MCF7_R1/parsed_posterior.csv"
-    # replicate_2_dir = "tests/DEBUGGING/CHMM/MCF7_R2/parsed_posterior.csv"
-    # run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons)
+    replicate_1_dir = "tests/cedar_runs/segway/MCF7_R1/"
+    replicate_2_dir = "tests/cedar_runs/segway/MCF7_R2/"
+    run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons)
 
-    # replicate_1_dir = "tests/DEBUGGING/SEGWAY/MCF7_CONCAT_R1/parsed_posterior.csv"
-    # replicate_2_dir = "tests/DEBUGGING/SEGWAY/MCF7_CONCAT_R2/parsed_posterior.csv"
-    # run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons)
+    replicate_1_dir = "tests/cedar_runs/chmm/GM12878_R1/"
+    replicate_2_dir = "tests/cedar_runs/chmm/GM12878_R2/"
+    run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons)
 
-    # replicate_1_dir = "tests/DEBUGGING/SEGWAY/MCF7_R1/parsed_posterior.csv"
-    # replicate_2_dir = "tests/DEBUGGING/SEGWAY/MCF7_R2/parsed_posterior.csv"
-    # run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons)
+    replicate_1_dir = "tests/cedar_runs/segway/GM12878_R1/"
+    replicate_2_dir = "tests/cedar_runs/segway/GM12878_R2/"
+    run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons)

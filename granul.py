@@ -345,8 +345,7 @@ def run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric):
             cr, ar, ovr_rec = granularity_vs_agreement_nonsymmetric(loci_1.copy(), loci_2.copy(), k=c)
             plot_progression(ar, cr, ovr_rec, c)
 
-        exit()
-
+        # exit()
 
         num_labels = loci_1.shape[1]-3
         n_cols = math.floor(math.sqrt(num_labels))
@@ -388,8 +387,8 @@ if __name__=="__main__":
     mnemons = True
     symmetric = False
 
-    replicate_1_dir = "tests/chmm/GM12878_rep2/parsed_posterior.csv"
-    replicate_2_dir = "tests/chmm/GM12878_rep1/parsed_posterior.csv"
+    replicate_1_dir = "tests/DEBUGGING/CHMM/MCF7_CONCAT_R1/parsed_posterior_rep1.csv"
+    replicate_2_dir = "tests/DEBUGGING/CHMM/MCF7_CONCAT_R2/parsed_posterior_rep2.csv"
     run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric)
 
     # replicate_1_dir = "tests/segway/CD14_1/parsed_posterior.csv"
