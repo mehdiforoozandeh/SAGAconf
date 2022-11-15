@@ -18,7 +18,7 @@ def CROSS_chmm_sigdist(chmmruns_dir, original_files_dir):
                 if "concat" in run:
                     for ff in ls2:
                         if "dense.bed" in ff:
-                            if "rep1" in ff:
+                            if "rep1" in ff and "psd" not in ff:
                                 segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
                                 gd = "{}/{}/rep2.genomedata".format(original_files_dir, ct)
                                 outdir = "{}/{}/{}".format(chmmruns_dir, run, 'CROSS_sigdist_rep1')
@@ -26,7 +26,7 @@ def CROSS_chmm_sigdist(chmmruns_dir, original_files_dir):
                                     os.system(
                                         'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
 
-                            elif "rep2" in ff:
+                            elif "rep2" in ff and "psd" not in ff:
                                 segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
                                 gd = "{}/{}/rep1.genomedata".format(original_files_dir, ct)
                                 outdir = "{}/{}/{}".format(chmmruns_dir, run, 'CROSS_sigdist_rep2')
@@ -37,7 +37,7 @@ def CROSS_chmm_sigdist(chmmruns_dir, original_files_dir):
                 else:
                     for ff in ls2:
                         if "dense.bed" in ff:
-                            if "rep1" in ff:
+                            if "rep1" in ff and "psd" not in ff:
                                 segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
                                 gd = "{}/{}/rep2.genomedata".format(original_files_dir, ct)
                                 outdir = "{}/{}/{}".format(chmmruns_dir, run, 'CROSS_sigdist')
@@ -45,7 +45,7 @@ def CROSS_chmm_sigdist(chmmruns_dir, original_files_dir):
                                     os.system(
                                         'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, outdir))
 
-                            elif "rep2" in ff:
+                            elif "rep2" in ff and "psd" not in ff:
                                 segbed = "{}/{}/{}".format(chmmruns_dir, run, ff)
                                 gd = "{}/{}/rep1.genomedata".format(original_files_dir, ct)
                                 outdir = "{}/{}/{}".format(chmmruns_dir, run, 'CROSS_sigdist')
@@ -62,9 +62,9 @@ def CROSS_segway_sigdist(segwayruns_dir, originalfiles_dir):
             if i in j:
                 if "concat" in j:
 
-                    if "rep1" in j:
+                    if "rep1" in j and "psd" not in j:
                         gd = originalfiles_dir+i+"/concat_rep2.genomedata"
-                    elif "rep2" in j:
+                    elif "rep2" in j and "psd" not in j:
                         gd = originalfiles_dir+i+"/concat_rep1.genomedata"
                     
                     if os.path.exists(segwayruns_dir+j+'/sigdist') == False:
@@ -72,9 +72,9 @@ def CROSS_segway_sigdist(segwayruns_dir, originalfiles_dir):
                             'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, segwayruns_dir+j+'/CROSS_sigdist'))
 
                 else:
-                    if "rep1" in j:
+                    if "rep1" in j and "psd" not in j:
                         gd = originalfiles_dir+i+"/rep2.genomedata"
-                    elif "rep2" in j:
+                    elif "rep2" in j and "psd" not in j:
                         gd = originalfiles_dir+i+"/rep1.genomedata"
 
                     if os.path.exists(segwayruns_dir+j+'/sigdist') == False:
