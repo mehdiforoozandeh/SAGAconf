@@ -61,31 +61,31 @@ def CROSS_segway_sigdist(segwayruns_dir, originalfiles_dir):
     ls1 = os.listdir(segwayruns_dir)
     for i in ls0:
         for j in ls1:
-            try:
-                segbed = segwayruns_dir+j+'/segway.bed'
-                if i in j:
-                    if "concat" in j:
+            # try:
+            segbed = segwayruns_dir+j+'/segway.bed'
+            if i in j:
+                if "concat" in j:
 
-                        if "rep1" in j and "psd" not in j:
-                            gd = originalfiles_dir+i+"/concat_rep2.genomedata"
-                        elif "rep2" in j and "psd" not in j:
-                            gd = originalfiles_dir+i+"/concat_rep1.genomedata"
-                        
-                        if os.path.exists(segwayruns_dir+j+'/sigdist') == False:
-                            os.system(
-                                'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, segwayruns_dir+j+'/CROSS_sigdist'))
+                    if "rep1" in j and "psd" not in j:
+                        gd = originalfiles_dir+i+"/concat_rep2.genomedata"
+                    elif "rep2" in j and "psd" not in j:
+                        gd = originalfiles_dir+i+"/concat_rep1.genomedata"
+                    
+                    if os.path.exists(segwayruns_dir+j+'/sigdist') == False:
+                        os.system(
+                            'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, segwayruns_dir+j+'/CROSS_sigdist'))
 
-                    else:
-                        if "rep1" in j and "psd" not in j:
-                            gd = originalfiles_dir+i+"/rep2.genomedata"
-                        elif "rep2" in j and "psd" not in j:
-                            gd = originalfiles_dir+i+"/rep1.genomedata"
+                else:
+                    if "rep1" in j and "psd" not in j:
+                        gd = originalfiles_dir+i+"/rep2.genomedata"
+                    elif "rep2" in j and "psd" not in j:
+                        gd = originalfiles_dir+i+"/rep1.genomedata"
 
-                        if os.path.exists(segwayruns_dir+j+'/sigdist') == False:
-                            os.system(
-                                'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, segwayruns_dir+j+'/CROSS_sigdist'))
-            except:
-                pass
+                    if os.path.exists(segwayruns_dir+j+'/sigdist') == False:
+                        os.system(
+                            'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, segwayruns_dir+j+'/CROSS_sigdist'))
+            # except:
+            #     pass
 
 
 if __name__=="__main__":
