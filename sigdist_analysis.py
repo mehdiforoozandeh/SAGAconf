@@ -93,8 +93,8 @@ if __name__=="__main__":
     chmmruns = "chromhmm_runs/"
     segwayruns = "segway_runs/"
 
-    print("running chromhmm signal dist")
-    CROSS_chmm_sigdist(chmmruns_dir=chmmruns, original_files_dir=originalfiles)
+    # print("running chromhmm signal dist")
+    # CROSS_chmm_sigdist(chmmruns_dir=chmmruns, original_files_dir=originalfiles)
         
     print("running segway signal dist")
     CROSS_segway_sigdist(segwayruns, originalfiles)

@@ -537,32 +537,32 @@ def run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons):
             loci_1, loci_2, 
             outdir=replicate_1_dir+"/overlap_eucd_cossim.pdf")
         
-        # plot_sigdist_compar(
-        #             loci_1, loci_2, 
-        #             replicate_1_dir+"/sigdist/signal_distribution.tab",
-        #             replicate_2_dir+"/sigdist/signal_distribution.tab", 
-        #             outdir=replicate_1_dir+"/sigdistcompar.pdf")
+        plot_sigdist_compar(
+                    loci_1, loci_2, 
+                    replicate_1_dir+"/sigdist/signal_distribution.tab",
+                    replicate_2_dir+"/sigdist/signal_distribution.tab", 
+                    outdir=replicate_1_dir+"/sigdistcompar.pdf")
         
-        # length_vs_boundary(
-        #     loci_1, loci_2, match_definition="BM", max_distance=100, 
-        #     outdir=replicate_1_dir+"/len_bound.pdf")
+        length_vs_boundary(
+            loci_1, loci_2, match_definition="BM", max_distance=100, 
+            outdir=replicate_1_dir+"/len_bound.pdf")
 
-        # # R2 vs R1
-        # sigdist_vs_overlap(
-        #     replicate_2_dir+"/sigdist/signal_distribution.tab",
-        #     replicate_1_dir+"/sigdist/signal_distribution.tab", 
-        #     loci_2, loci_1, 
-        #     outdir=replicate_2_dir+"/overlap_vs_cosine.pdf")
+        # R2 vs R1
+        sigdist_vs_overlap(
+            replicate_2_dir+"/sigdist/signal_distribution.tab",
+            replicate_1_dir+"/sigdist/signal_distribution.tab", 
+            loci_2, loci_1, 
+            outdir=replicate_2_dir+"/overlap_eucd_cossim.pdf")
         
-        # plot_sigdist_compar(
-        #             loci_2, loci_1, 
-        #             replicate_2_dir+"/sigdist/signal_distribution.tab",
-        #             replicate_1_dir+"/sigdist/signal_distribution.tab", 
-        #             outdir=replicate_2_dir+"/sigdistcompar.pdf")
+        plot_sigdist_compar(
+                    loci_2, loci_1, 
+                    replicate_2_dir+"/sigdist/signal_distribution.tab",
+                    replicate_1_dir+"/sigdist/signal_distribution.tab", 
+                    outdir=replicate_2_dir+"/sigdistcompar.pdf")
         
-        # length_vs_boundary(
-        #     loci_2, loci_1, match_definition="BM", max_distance=50, 
-        #     outdir=replicate_2_dir+"/len_bound.pdf")
+        length_vs_boundary(
+            loci_2, loci_1, match_definition="BM", max_distance=50, 
+            outdir=replicate_2_dir+"/len_bound.pdf")
         
         # exit()
 
