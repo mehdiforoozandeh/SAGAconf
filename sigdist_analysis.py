@@ -71,6 +71,8 @@ def CROSS_segway_sigdist(segwayruns_dir, originalfiles_dir):
                     elif "rep2" in j and "psd" not in j:
                         gd = originalfiles_dir+i+"/concat_rep1.genomedata"
                     
+                    print(gd)
+                    
                     if os.path.exists(segwayruns_dir+j+'/sigdist') == False:
                         os.system(
                             'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, segwayruns_dir+j+'/CROSS_sigdist'))
@@ -81,6 +83,8 @@ def CROSS_segway_sigdist(segwayruns_dir, originalfiles_dir):
                     elif "rep2" in j and "psd" not in j:
                         gd = originalfiles_dir+i+"/rep1.genomedata"
 
+                    print(gd)
+                    
                     if os.path.exists(segwayruns_dir+j+'/sigdist') == False:
                         os.system(
                             'segtools-signal-distribution {} {} --outdir={}'.format(segbed, gd, segwayruns_dir+j+'/CROSS_sigdist'))
