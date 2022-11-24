@@ -289,7 +289,7 @@ class posterior_calibration(object):
             plt.plot(
                 np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), 
                 polyreg.predict(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))])), 
-                '--', c='r', linewidth=2)
+                '--', c='r', linewidth=3)
 
         else:
             plt.plot([(bins[i,0]+bins[i,1])/2 for i in range(len(bins))], bins[:,5], label=label_name)
@@ -311,11 +311,11 @@ class posterior_calibration(object):
         plt.ylabel(ylabel)
         plt.xlabel(xlabel)
         plt.tight_layout()
-        plt.savefig('{}/caliberation_{}.pdf'.format(self.savedir, label_name), format='pdf')
-        plt.savefig('{}/caliberation_{}.svg'.format(self.savedir, label_name), format='svg')
+        plt.savefig('{}/caliberation_{}.pdf'.format(self.savedir, label_name.replace("|","")), format='pdf')
+        plt.savefig('{}/caliberation_{}.svg'.format(self.savedir, label_name.replace("|","")), format='svg')
         plt.clf()
 
-        with open("{}/caliberation_{}.txt".format(self.savedir, label_name), 'w') as pltxt:
+        with open("{}/caliberation_{}.txt".format(self.savedir, label_name.replace("|","")), 'w') as pltxt:
             """
             title, xaxis, yaxis, x, y, polyreg
             """

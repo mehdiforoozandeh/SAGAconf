@@ -7,39 +7,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 from scipy.spatial import distance
 from granul import *
 
-# def corresp_signal_value_analysis(files_dir, loci_1, loci_2):
-#     resolution = int(loci_1.iloc[0, 2] - loci_1.iloc[0, 1])
-#     num_labels = loci_1.shape[1]-3
-#     MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
-#     MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
-    
-#     """
-#     we need to define what a "good match" is.
-#     by default, we will consider any label with log(OO/EO)>0 
-#     to be a match. this definition can be refined later.
-#     """
-
-#     confmat = enrichment_of_overlap_matrix(
-#             loci_1, loci_2, OE_transform=True)
-    
-#     # define matches
-#     per_label_matches = {}
-#     for k in list(loci_1.columns[3:]):
-#         sorted_k_vector = confmat.loc[k,:].sort_values(ascending=False)
-#         k_match = sorted_k_vector.index[0]
-
-#         """
-#         for i in range(len(MAP1)):
-#             for a in assays:
-#                 read "a"'s bedgraph file for R2
-#                 inplace_binning(a.bedgraph, resolution)
-#                 if map1[i] == k:
-                
-#                     find corresponding position to i in a.singals
-
-
-        # """
-
 def get_ecdf_for_label(loci, label, max=None):
     MAP = loci.iloc[:,3:].idxmax(axis=1)
     resolution = int(loci.iloc[0, 2] - loci.iloc[0, 1])
@@ -72,25 +39,11 @@ def get_ecdf_for_label(loci, label, max=None):
         return lendist
     except:
         pass
-    
-    # print(label, np.min(lendist), np.mean(lendist), np.max(lendist))
-    # try:
-    #     sns.ecdfplot(lendist)
-    #     # plt.show()
-    # except:
-    #     pass
 
 def length_vs_boundary(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
     """
     Here i'm gonna merge ECDF of length dist and boundary thing.
     """
-
-    # bed = read_bed("tests/length_dist_anal/ENCFF194OGV.bed")
-    # len_bed = get_length(bed)
-    # len_bed = clean_bed(len_bed)
-    # print(len_bed.loc[len_bed["length"]==np.max(len_bed.length)])
-
-    # ECDF(len_bed)
 
     resolution = int(loci_1.iloc[0, 2] - loci_1.iloc[0, 1])
     num_labels = loci_1.shape[1]-3
@@ -165,9 +118,6 @@ def length_vs_boundary(loci_1, loci_2, outdir, match_definition="BM", max_distan
     n_rows = num_labels
     n_cols = 1
 
-    # n_cols = math.floor(math.sqrt(num_labels))
-    # n_rows = math.ceil(num_labels / n_cols)
-
     fig, axs = plt.subplots(n_rows, n_cols, sharex="col", sharey="col", figsize=[5, 30])
     label_being_plotted = 0
     
@@ -201,23 +151,11 @@ def length_vs_boundary(loci_1, loci_2, outdir, match_definition="BM", max_distan
         axs[i].set_xlabel('bp', fontsize=7)
         axs[i].set_ylabel('Proportion',fontsize=7)
         
-
-        # if len(lendist)>0:
-        #     sns.ecdfplot(lendist, ax=axs[i,1], color="red")
-        #     # axs[i, 1].get_yaxis().set_visible(False)
-        #     axs[i, 1].tick_params(axis='both', labelsize=7)
-        #     axs[i, 1].tick_params(axis='x', rotation=90)
-        #     # axs[i, 0].set_yticks(np.arange(0, 1.1, step=0.3))
-        #     axs[i, 1].set_xlabel('Length', fontsize=7)
-        #     axs[i, 1].set_ylabel('Proportion', fontsize=7)
         
         axs[i].set_title(k, fontsize=7)
-        # axs[i,1].set_title(k+"_Length ECDF", fontsize=7)
 
         label_being_plotted += 1
             
-    # fig.text(0.5, 0.005, 'Distance from boundary' , ha='center')
-    # fig.text(0.005, 0.5, 'Ratio matched boundaries', va='center', rotation='vertical')
     plt.tight_layout()
     plt.savefig(outdir)
 

@@ -186,7 +186,7 @@ def granularity_vs_agreement_nonsymmetric(loci_1, loci_2, k, disregard_posterior
         agreement_record.append(jth_order_agr)
     return coverage_record, agreement_record, sorted_k_vector.index
 
-def plot_progression(ar, cr, ovr_rec, c):
+def plot_progression(ar, cr, ovr_rec, c, savedir):
     ff, aa = plt.subplots(figsize=(8,5))
 
     perfect_agr = [0] + [1 for i in range(len(ar) - 1)]
@@ -209,22 +209,23 @@ def plot_progression(ar, cr, ovr_rec, c):
     props = dict(boxstyle='round', facecolor='white', alpha=0.5)
 
     aa.text(1.02, 0.98, textstr, transform=aa.transAxes, fontsize=10, verticalalignment='top', bbox=props)
-    print(ar)
-    print(cr)
-    print(perfect_agr)
 
     plt.tight_layout()
-    plt.show()
+    plt.savefig(savedir+"/prog_{}.pdf".format(c), format='pdf')
+    plt.savefig(savedir+"/prog_{}.svg".format(c), format='svg')
+
+    plt.close("all")
+    plt.style.use('default')
 
 def run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric):
     print("loading and intersecting")
     loci_1, loci_2 = intersect_parsed_posteriors(
-        replicate_1_dir, 
-        replicate_2_dir)
+        replicate_1_dir+"/parsed_posterior.csv", 
+        replicate_2_dir+"/parsed_posterior.csv")
 
     if run_on_subset:
-        loci_1 = loci_1.iloc[[i for i in range(0, len(loci_1), 100)], :].reset_index(drop=True)
-        loci_2 = loci_2.iloc[[i for i in range(0, len(loci_2), 100)], :].reset_index(drop=True)
+        loci_1 = loci_1.loc[loci_1["chr"]=="chr1"].reset_index(drop=True)
+        loci_2 = loci_2.loc[loci_2["chr"]=="chr1"].reset_index(drop=True)
 
     print("the shapes of the input matrices are: {}, {}".format(str(loci_1.shape), str(loci_2.shape)))
 
@@ -341,9 +342,9 @@ def run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric):
         print(loci_1)
         print(loci_2)
 
-        for c in list(loci_1.columns[3:]):
-            cr, ar, ovr_rec = granularity_vs_agreement_nonsymmetric(loci_1.copy(), loci_2.copy(), k=c)
-            plot_progression(ar, cr, ovr_rec, c)
+        # for c in list(loci_1.columns[3:]):
+        #     cr, ar, ovr_rec = granularity_vs_agreement_nonsymmetric(loci_1.copy(), loci_2.copy(), k=c)
+        #     plot_progression(ar, cr, ovr_rec, c)
 
         # exit()
 
@@ -351,7 +352,7 @@ def run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric):
         n_cols = math.floor(math.sqrt(num_labels))
         n_rows = math.ceil(num_labels / n_cols)
 
-        fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)
+        fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[25, 16])
         label_being_plotted = 0
     
 
@@ -368,7 +369,7 @@ def run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric):
                 axs[i,j].plot(cr, ar, c="yellowgreen")
                 axs[i,j].set_title(
                     c + str(" | Real/Perfect AUC = {:.2f}".format(p_to_r_auc)), 
-                    fontsize=8)
+                    fontsize=11)
 
                 axs[i,j].fill_between(cr, ar, color="yellowgreen", alpha=0.4)
                 axs[i,j].fill_between(cr, perfect_agr, ar, color="palevioletred", alpha=0.4)
@@ -376,50 +377,35 @@ def run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric):
                 axs[i,j].set_yticks(np.arange(0, 1.1, step=0.2))
                 label_being_plotted+=1
         
-        fig.text(0.5, 0.02, 'Coverage' , ha='center')
-        fig.text(0.02, 0.5, 'Agreement', va='center', rotation='vertical')
+        # fig.text(0.5, 0.02, 'Coverage' , ha='center')
+        # fig.text(0.02, 0.5, 'Agreement', va='center', rotation='vertical')
         plt.tight_layout()
         print(replicate_1_dir.split("/")[2]+"_"+replicate_2_dir.split("/")[2])
-        plt.show()
+
+        plt.savefig(replicate_1_dir+"/granularity.pdf")
 
 if __name__=="__main__":
     run_on_subset = True
     mnemons = True
     symmetric = False
 
-    replicate_1_dir = "tests/DEBUGGING/CHMM/MCF7_CONCAT_R1/parsed_posterior_rep1.csv"
-    replicate_2_dir = "tests/DEBUGGING/CHMM/MCF7_CONCAT_R2/parsed_posterior_rep2.csv"
+    replicate_1_dir = "tests/cedar_runs/chmm/MCF7_R1/"
+    replicate_2_dir = "tests/cedar_runs/chmm/MCF7_R2/"
     run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric)
+    run(replicate_2_dir, replicate_1_dir, run_on_subset, mnemons, symmetric)
 
-    # replicate_1_dir = "tests/segway/CD14_1/parsed_posterior.csv"
-    # replicate_2_dir = "tests/segway/CD14_2/parsed_posterior.csv"
-    # run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric)
-
-    # replicate_1_dir = "tests/segway/CD14_concat1/parsed_posterior.csv"
-    # replicate_2_dir = "tests/segway/CD14_concat2/parsed_posterior.csv"
-    # run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric)
-    
-    # replicate_1_dir = "tests/segway/MCF7_1/parsed_posterior.csv"
-    # replicate_2_dir = "tests/segway/MCF7_2/parsed_posterior.csv"
-    # run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric)
-
-    # replicate_1_dir = "tests/segway/MCF7_concat1/parsed_posterior.csv"
-    # replicate_2_dir = "tests/segway/MCF7_concat2/parsed_posterior.csv"
-    # run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric)
-    exit()
-    replicate_1_dir = "tests/segway/GM12878_1/parsed_posterior.csv"
-    replicate_2_dir = "tests/segway/GM12878_2/parsed_posterior.csv"
+    replicate_1_dir = "tests/cedar_runs/segway/MCF7_R1/"
+    replicate_2_dir = "tests/cedar_runs/segway/MCF7_R2/"
     run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric)
+    run(replicate_2_dir, replicate_1_dir, run_on_subset, mnemons, symmetric)
 
-    replicate_1_dir = "tests/segway/GM12878_concat1/parsed_posterior.csv"
-    replicate_2_dir = "tests/segway/GM12878_concat2/parsed_posterior.csv"
+    replicate_1_dir = "tests/cedar_runs/chmm/GM12878_R1/"
+    replicate_2_dir = "tests/cedar_runs/chmm/GM12878_R2/"
     run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric)
+    run(replicate_2_dir, replicate_1_dir, run_on_subset, mnemons, symmetric)
 
-    mnemons = False
-    replicate_1_dir = "tests/segway/defaults/res100_GM12878_1/parsed_posterior.csv"
-    replicate_2_dir = "tests/segway/defaults/res100_GM12878_2/parsed_posterior.csv"
+    replicate_1_dir = "tests/cedar_runs/segway/GM12878_R1/"
+    replicate_2_dir = "tests/cedar_runs/segway/GM12878_R2/"
     run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric)
+    run(replicate_2_dir, replicate_1_dir, run_on_subset, mnemons, symmetric)
 
-    replicate_1_dir = "tests/segway/defaults/res200_GM12878_1/parsed_posterior.csv"
-    replicate_2_dir = "tests/segway/defaults/res200_GM12878_2/parsed_posterior.csv"
-    run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric)

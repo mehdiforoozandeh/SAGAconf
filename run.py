@@ -1012,6 +1012,7 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
 
     return to_report
 
+
 def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir, run_on_subset=False, mnemons=True):
     """
     get full reproducibility results
