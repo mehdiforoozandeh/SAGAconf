@@ -40,11 +40,17 @@ def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True,
 
         mnemon1_dict = {}
         for i in loci_1_mnemon:
-            mnemon1_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
+            if len(i.split("_")) == 2:
+                mnemon1_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
+            if len(i.split("_")) == 3:
+                mnemon1_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4] + '_' + i.split("_")[2][:3]
 
         mnemon2_dict = {}
         for i in loci_2_mnemon:
-            mnemon2_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
+            if len(i.split("_")) == 2:
+                mnemon2_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
+            if len(i.split("_")) == 3:
+                mnemon2_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4] + '_' + i.split("_")[2][:3]
 
         #handle missing mnemonics
         for i in range(num_labels):
@@ -252,11 +258,11 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
     #========================================================================================#
     # plot histograms
 
-    num_labels = len(boundary_distances.keys())
-    n_rows = num_labels
-    n_cols = 1
+    num_labels = loci_1.shape[1]-3
+    n_cols = math.floor(math.sqrt(num_labels))
+    n_rows = math.ceil(num_labels / n_cols)
 
-    fig, axs = plt.subplots(n_rows, n_cols, sharex="col", sharey="col", figsize=[5, 30])
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[25, 16])
     label_being_plotted = 0
     
     for i in range(n_rows):
@@ -507,10 +513,10 @@ def get_all_ct(replicate_1_dir, replicate_2_dir):
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
     ct_granul(loci1, loci2, replicate_1_dir)
-    ct_boundar(loci1, loci2, replicate_1_dir, match_definition="BM", max_distance=50)
+    ct_granul(loci2, loci1, replicate_2_dir)
 
-    ct_granul(loci2, loci1, replicate_1_dir)
-    ct_boundar(loci2, loci1, replicate_1_dir, match_definition="BM", max_distance=50)
+    ct_boundar(loci1, loci2, replicate_1_dir, match_definition="BM", max_distance=50)
+    ct_boundar(loci2, loci1, replicate_2_dir, match_definition="BM", max_distance=50)
 
 def gather_labels(savedir):
     
@@ -519,10 +525,10 @@ def gather_labels(savedir):
         "/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics_rep1.txt"):
 
         print("reading concat mnemonics")
-        loci_1_mnemon = read_mnemonics("/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics_rep1.txt")
+        loci_1_mnemon = read_mnemonics("/".join(savedir.split("/")[:-1])+"/mnemonics_rep1.txt")
     else:
         print("reading mnemonics")
-        loci_1_mnemon = read_mnemonics("/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics.txt")
+        loci_1_mnemon = read_mnemonics("/".join(savedir.split("/")[:-1])+"/mnemonics.txt")
 
     mnemon1_dict = {}
     for i in loci_1_mnemon:

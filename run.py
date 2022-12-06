@@ -981,7 +981,7 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
 
             if os.path.exists(pltsavedir+"/tss_rep1") == False:
                 os.mkdir(pltsavedir+"/tss_rep1")
-            TSS_obj = TSS_enrichment(calibrated_loci_1, TSSdir="RefSeqTSS.hg38.txt", savedir=pltsavedir+"/tss_rep1")
+            TSS_obj = TSS_enrichment(calibrated_loci_1, TSSdir="biovalidation/RefSeqTSS.hg38.txt", savedir=pltsavedir+"/tss_rep1")
             TSS_obj.tss_enrich(m_p=False)
             TSS_obj.tss_enrich_vs_repr()
 
@@ -1004,7 +1004,7 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
 
         #     if os.path.exists(pltsavedir+"/tss_rep2") == False:
         #         os.mkdir(pltsavedir+"/tss_rep2")
-        #     TSS_obj = TSS_enrichment(calibrated_loci_2, TSSdir="RefSeqTSS.hg38.txt", savedir=pltsavedir+"/tss_rep2")
+        #     TSS_obj = TSS_enrichment(calibrated_loci_2, TSSdir="biovalidation/RefSeqTSS.hg38.txt", savedir=pltsavedir+"/tss_rep2")
         #     TSS_obj.tss_enrich(m_p=False)
         #     TSS_obj.tss_enrich_vs_repr()
         # except:
