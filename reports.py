@@ -2,7 +2,7 @@ from run import *
 from indepth import *
 from granul import *
 
-def load_data(posterior1_dir, posterior2_dir, subset=False):
+def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False):
     print("loading and intersecting")
     loci_1, loci_2 = intersect_parsed_posteriors(
         posterior1_dir, 
@@ -13,6 +13,10 @@ def load_data(posterior1_dir, posterior2_dir, subset=False):
         loci_2 = loci_2.loc[loci_2["chr"]=="chr21"].reset_index(drop=True)
 
     print("the shapes of the input matrices are: {}, {}".format(str(loci_1.shape), str(loci_2.shape)))
+
+    if logit_transform:
+        loci_1.iloc[:,3:] = logit_array(np.array(loci_1.iloc[:,3:]))
+        loci_2.iloc[:,3:] = logit_array(np.array(loci_2.iloc[:,3:]))
 
     return loci_1, loci_2
 

@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import shutil, os, functools, itertools
 import multiprocessing as mp
+
 def read_bedgraph(bg_file):
     df = []
     with open(bg_file, 'r') as bgf:
@@ -324,3 +325,24 @@ def mp_inplace_binning(posterior_dir, resolution, assert_coord_match=False, mp=F
         parsed_posterior = pd.concat(parsed_posterior, axis=1)
     
         return parsed_posterior
+
+
+def logit(p):
+
+    if 1e-16 < p < (1- 1e-16):
+        return np.log((p)/(1-p))
+
+    elif p < 1e-16:
+        return -36.84136
+
+    elif (1- 1e-16) < p:
+        return 36.84136
+
+def logit_array(array2D):
+    array2D = np.array(array2D)
+
+    for i in range(array2D.shape[0]):
+        for j in range(array2D.shape[1]):
+            array2D[i,j] = logit(array2D[i,j])
+
+    return array2D

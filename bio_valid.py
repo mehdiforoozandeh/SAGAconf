@@ -1,5 +1,6 @@
 from _reproducibility import *
 from reports import *
+from sklearn.linear_model import LinearRegression 
 import pickle
 
 def load_gene_coords(file, drop_negative_strand=True, drop_overlapping=True):
@@ -277,105 +278,86 @@ def posterior_transcribed_enrichment(loci, gene_coords, strat_size="def"):
 
     plt.show()
 
-def posterior_transcription_correlation(loci, trans_data, k, stratsize = "def"):
-    posterior_k = loci.loc[:, ["chr", "start", "end", k]]
-    posterior_k = condense_posterior(posterior_k)
+def posterior_transcription_correlation(loci, trans_data):
+    """
+    get the intersection of trans_data and loci
 
-    report = []
+    for k in labels:
+        for i in intersected_loci
+            for j in trans_data
 
-    for b in range(len(posterior_k)):
-        trans_data_subset = trans_data.loc[(trans_data["chr"] == posterior_k["chr"][b]),:].reset_index(drop=True)
+                what posterior corresponds to what TPM?
+    """
+    intersection = intersect(loci, trans_data)
 
-        for t in range(len(trans_data_subset)):
-            
-            o = get_overlap(
-                (posterior_k["start"][b], posterior_k["end"][b]), 
-                (trans_data_subset["start"][t], trans_data_subset["end"][t])
-            )
-    
-            if o>0:
-                report.append(
-                    [posterior_k[k][b], (float(o)/(posterior_k["end"][b] - posterior_k["start"][b]))*trans_data_subset["TPM"][t]]
-                )
-
-    report = pd.DataFrame(report, columns=["posterior", "transcription"]).sort_values(by="posterior").reset_index(drop=True)
-    
-    return report
-
-def plot_poster_transc_correl(loci, trans_data, savedir, strat_size="def"):
-    reports = {}
+    report = {}
     for k in loci.columns[3:]:
-        print(k)
-        reports[k] = posterior_transcription_correlation(loci, trans_data, k)
+        report[k] = []
+        for i in range(len(intersection)):
+            subset_trans_chr = trans_data.loc[(trans_data["chr"] == loci["chr"][i]),:].reset_index(drop=True)
 
-    for k, report in reports.items():
-        print(k, len(report))
-        if strat_size == "def":
-            strat_size = int(len(report)/40)
+            for j in range(len(subset_trans_chr)):
+                o = get_overlap(
+                    (subset_trans_chr["start"][j], subset_trans_chr["end"][j]), 
+                    (intersection["start"][i], intersection["end"][i])
+                )
+                if o > 0:
+                    report[k].append(
+                        [intersection[k][i], subset_trans_chr["TPM"][j]]
+                    )
+    
+    for k in loci.columns[3:]:
+        report[k] = pd.DataFrame(report[k], columns=["posterior","TPM"]).sort_values(by="posterior").reset_index(drop=True)
 
-        binned_data = []
-        for i in range(0, len(report), strat_size):
-            report_subset = report.iloc[i:i+strat_size, :].reset_index(drop=True)
-            bin_range = (report_subset["posterior"][0], list(report_subset["posterior"])[-1])
-            mean_p = np.mean(report_subset["posterior"])
-            mean_transc = np.mean(report_subset["transcription"])
-            std_transc = np.std(report_subset["transcription"])
+    num_labels = len(loci.columns[3:])
+    n_cols = math.floor(math.sqrt(num_labels))
+    n_rows = math.ceil(num_labels / n_cols)
 
-            binned_data.append([
-                bin_range[0], bin_range[1], mean_p, mean_transc, std_transc
-                ])
-        
-        # binned_data = pd.DataFrame(binned_data, columns=["start", "end", "mean_p", "mean_transc", "std_transc"])
-        print(binned_data)
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)
+    colors = [i for i in get_cmap('tab20').colors]
+    label_being_plotted = 0
+    
+    for i in range(n_rows):
+        for j in range(n_cols):
+            k = loci.columns[3:][label_being_plotted]
+            x = np.reshape(np.array(report[k]["posterior"]), (-1, 1))
+            y = np.reshape(np.array(report[k]["TPM"]), (-1, 1))
 
-        #######################################################################################
-        colors = [i for i in get_cmap('tab20').colors]
-        list_binsdict = list(binned_data.keys())
-        num_labels = len(list_binsdict)
-        n_cols = math.floor(math.sqrt(num_labels))
-        n_rows = math.ceil(num_labels / n_cols)
+            regressor = LinearRegression() 
 
-        fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)
-        label_being_plotted = 0
-        ci = 0
-        for i in range(n_rows):
-            for j in range(n_cols):
-                k = list_binsdict[label_being_plotted]
-                x = [(kk[0]+kk[1])/2 for kk in binned_data[k]]
-                y = [kk[3] for kk in binned_data[k]]
-                
-                suggested_width = float(np.array(x).max() - np.array(x).min()) / len(x)
+            regressor.fit(x, y) 
 
-                axs[i,j].bar(
-                    x, y,  
-                    width=0.05,
-                    color=colors[ci],
-                    alpha=0.5)
-                
-                try:
-                    if len(x)<=3:
-                        f = UnivariateSpline(x= np.array(x), y=y, k=1)
-                    else:
-                        f = UnivariateSpline(x= np.array(x), y=y, k=3)
+            y_pred = regressor.predict(x)
 
-                    axs[i,j].plot(
-                        x, 
-                        f(x),
-                        label=k, c=colors[ci], 
-                        linewidth=1)
-                except:
-                    pass
+            axs[i,j].plot(x, y_pred, color=colors[label_being_plotted]) 
 
-                axs[i,j].set_title(k, fontsize=7)
-                ci += 1
-                label_being_plotted += 1
-                
-        
-        # plt.savefig('{}/rep_vs_TSS_enrichment_bars.pdf'.format(savedir), format='pdf')
-        # plt.savefig('{}/rep_vs_TSS_enrichment_bars.svg'.format(savedir), format='svg')
-        # plt.clf()
-        plt.tight_layout()
-        plt.show()
+            # axs[i,j].scatter(
+            #     report[k]["posterior"],
+            #     report[k]["TPM"], 
+            #     color=colors[label_being_plotted], s=2)
+
+            # b, a = np.polyfit(
+            #     np.array(report[k]["posterior"]), 
+            #     np.array(report[k]["TPM"]), 
+            #     deg=1)
+
+            # # Plot regression line
+            # axs[i,j].plot(
+            #     report[k]["posterior"], a + (b * report[k]["posterior"]),
+            #     color=colors[label_being_plotted], lw=3)
+
+            # f = UnivariateSpline(x= np.array(report[k]["posterior"]), y=report[k]["TPM"], k=1)
+
+            # axs[i,j].plot(
+            #     report[k]["posterior"], 
+            #     f(report[k]["posterior"]),
+            #     label=k, c=colors[label_being_plotted], 
+            #     linewidth=1)
+
+            label_being_plotted += 1
+            axs[i,j].set_title(k, fontsize=7)
+
+    plt.show()
 
 def overal_TSS_enrichment(loci, pltsavedir):
     if os.path.exists(pltsavedir) == False:
@@ -392,7 +374,7 @@ if __name__=="__main__":
     loci1, loci2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
         replicate_2_dir+"/parsed_posterior.csv",
-        subset=True)
+        subset=True, logit_transform=True)
 
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
@@ -400,28 +382,29 @@ if __name__=="__main__":
     gene_coords = load_gene_coords("biovalidation/parsed_genecode_data_hg38_release42.csv")
     trans_data = load_transcription_data("biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", gene_coords)
 
-    # trans_data = trans_data.drop(trans_data[trans_data.TPM==0].index).reset_index(drop=True)
-
-    # print(np.sum(trans_data.TPM))
-    # plt.hist(np.log10(trans_data.TPM+1), bins=100)
-    # plt.show()
+    trans_data = trans_data.drop(trans_data[trans_data.TPM==0].index).reset_index(drop=True)
 
     trans_data_exp = trans_data[np.log10(trans_data.TPM) > 2]#trans_data.TPM.quantile(.75)]
     trans_data_notexp = trans_data[np.log10(trans_data.TPM) < 0.5]#trans_data.TPM.quantile(.75)]
 
+    trans_data_exp.TPM = np.log10(trans_data_exp.TPM)
+    trans_data_notexp.TPM = np.log10(trans_data_notexp.TPM)
+    trans_data.TPM = np.log10(trans_data.TPM)
+
     # plt.hist(np.log10(trans_data_exp.TPM), bins=100)
     # plt.hist(np.log10(trans_data_notexp.TPM), bins=100)
 
-    plot_general_transc(loci1, gene_coords, "--")
-    plot_general_transc(loci1, trans_data_exp, "--")
-    plot_general_transc(loci1, trans_data_notexp, "--")
+    # plot_general_transc(loci1, gene_coords, "--")
+    # plot_general_transc(loci1, trans_data_exp, "--")
+    # plot_general_transc(loci1, trans_data_notexp, "--")
 
-    posterior_transcribed_enrichment(loci1, gene_coords)
+
+    # posterior_transcribed_enrichment(loci1, gene_coords)
     posterior_transcribed_enrichment(loci1, trans_data_exp)
-    posterior_transcribed_enrichment(loci1, trans_data_notexp)
+    # posterior_transcribed_enrichment(loci1, trans_data_notexp)
 
     # overal_TSS_enrichment(loci1, replicate_1_dir+"/tss_enr")
 
-    # plot_poster_transc_correl(loci1, trans_data, "--")
-    # plot_general_transc(loci2, gene_coords, "--")
-    # plot_poster_transc_correl(loci2, trans_data, "--")
+    # posterior_transcription_correlation(loci1, trans_data_exp)
+    # posterior_transcription_correlation(loci1, trans_data_notexp)
+    # posterior_transcription_correlation(loci1, trans_data)
