@@ -1,6 +1,7 @@
 from _reproducibility import *
 from reports import *
 from sklearn.linear_model import LinearRegression 
+import scipy
 import pickle
 
 def load_gene_coords(file, drop_negative_strand=True, drop_overlapping=True):
@@ -127,6 +128,7 @@ def get_overlap(tup1, tup2):
     return len( range(max(x[0], y[0]), min(x[-1], y[-1])+1))        
 
 def general_transcribed_enrich(loci, k, gene_coords):
+    
     """
     label k
         e = what percentage of k overlaps with known gene-body regions (+- 5kb)
@@ -172,7 +174,10 @@ def general_transcribed_enrich(loci, k, gene_coords):
 
     return new_report
 
-def plot_general_transc(loci, gene_coords, savedir):
+def plot_general_transc(loci, gene_coords, savedir, exp=True):
+    if os.path.exists(savedir) == False:
+        os.mkdir(savedir)
+
     transc_reports = {}
     for k in loci.columns[3:]:
         trans_enr_k = general_transcribed_enrich(loci, k, gene_coords)
@@ -189,10 +194,23 @@ def plot_general_transc(loci, gene_coords, savedir):
     # Put a legend to the right of the current axis
     # ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.25),
     #     ncol=4, fancybox=True, shadow=True, fontsize=9)
-    plt.tight_layout()
-    plt.show()
 
-def posterior_transcribed_enrichment(loci, gene_coords, strat_size="def"):
+    plt.tight_layout()
+
+    if exp:
+        plt.savefig(savedir+"/general_transc_expressed.pdf", format='pdf')
+        plt.savefig(savedir+"/general_transc_expressed.svg", format='svg')
+    else:
+        plt.savefig(savedir+"/general_transc_not_expressed.pdf", format='pdf')
+        plt.savefig(savedir+"/general_transc_not_expressed.svg", format='svg')
+    
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+
+def posterior_transcribed_enrichment(loci, gene_coords, savedir, num_bins="def"):
+    if os.path.exists(savedir) == False:
+        os.mkdir(savedir)
     """
     define bins of size B for posterior
 
@@ -203,17 +221,22 @@ def posterior_transcribed_enrichment(loci, gene_coords, strat_size="def"):
                 t = number of intersected regions with posterior in range B
                 e = number of all regions with posterior in range B
     """
+    cv = get_coverage(loci)
 
     print(loci)
     print(gene_coords)
     print("intersecting")
     intersection = intersect(loci, gene_coords)
 
-    if strat_size=="def":
-        strat_size = int(len(loci)/40)
-
     reports = {}
     for k in loci.columns[3:]:
+        if num_bins=="dynamic":
+            strat_size = int(len(loci)/(cv[k]*1000))
+        
+        else:
+            strat_size = int(len(loci)/40)
+        
+        
         reports[k] = []
         posterior_vector = loci.loc[:, ["chr","start","end",k]]
         posterior_vector = posterior_vector.sort_values(by=k).reset_index(drop=True)
@@ -233,16 +256,19 @@ def posterior_transcribed_enrichment(loci, gene_coords, strat_size="def"):
                 (bin_range[0]<=posterior_vector[k])&
                 (posterior_vector[k]<=bin_range[1])  ,:])
 
-            if e != 0 and t != 0:
+            epsilon = 1e-3
+
+            if t != 0:
+                epsilon = 0
                 obs = float(t) / len(intersection)
                 exp = float(e) / len(posterior_vector)
-                reports[k].append([bin_range, np.log(float(obs/exp))])
+                reports[k].append([bin_range, np.log(float((obs+epsilon)/(exp+epsilon)))])
     
     num_labels = len(loci.columns[3:])
     n_cols = math.floor(math.sqrt(num_labels))
     n_rows = math.ceil(num_labels / n_cols)
 
-    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=(10,8))
     colors = [i for i in get_cmap('tab20').colors]
     label_being_plotted = 0
     
@@ -255,7 +281,7 @@ def posterior_transcribed_enrichment(loci, gene_coords, strat_size="def"):
 
             axs[i,j].bar(
                 x, y,  
-                width=0.05,
+                width=(np.max(loci[k].values)-np.min(loci[k].values))/len(reports[k]),
                 color=colors[label_being_plotted],
                 alpha=0.5)
             
@@ -276,9 +302,18 @@ def posterior_transcribed_enrichment(loci, gene_coords, strat_size="def"):
             axs[i,j].set_title(k, fontsize=7)
             label_being_plotted += 1
 
-    plt.show()
+    plt.tight_layout()
 
-def posterior_transcription_correlation(loci, trans_data):
+    plt.savefig(savedir+"/transc_enrich.pdf", format='pdf')
+    plt.savefig(savedir+"/transc_enrich.svg", format='svg')
+    
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+
+def posterior_transcription_correlation(loci, trans_data, savedir):
+    if os.path.exists(savedir) == False:
+        os.mkdir(savedir)
     """
     get the intersection of trans_data and loci
 
@@ -310,55 +345,43 @@ def posterior_transcription_correlation(loci, trans_data):
         report[k] = pd.DataFrame(report[k], columns=["posterior","TPM"]).sort_values(by="posterior").reset_index(drop=True)
 
     num_labels = len(loci.columns[3:])
-    n_cols = math.floor(math.sqrt(num_labels))
-    n_rows = math.ceil(num_labels / n_cols)
+    P_correlations = {}
+    S_correlations = {}
+    for k in loci.columns[3:]:
+        x = np.array(report[k]["posterior"])
+        y = np.array(report[k]["TPM"]) 
+        P_correlations[k] = scipy.stats.pearsonr(x, y)[0]
+        S_correlations[k] = scipy.stats.spearmanr(x, y)[0]
 
-    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)
-    colors = [i for i in get_cmap('tab20').colors]
-    label_being_plotted = 0
+    ##########################################################################################
+
+    plt.bar(P_correlations.keys(), P_correlations.values(), color="black", alpha=0.5)
+    plt.ylabel("Pearson's Correlation")
+    plt.xticks(rotation=45, fontsize=8)
+    plt.tight_layout()
+
+    plt.savefig(savedir+"/poster_trans_pearson_correl.pdf", format='pdf')
+    plt.savefig(savedir+"/poster_trans_pearson_correl.svg", format='svg')
     
-    for i in range(n_rows):
-        for j in range(n_cols):
-            k = loci.columns[3:][label_being_plotted]
-            x = np.reshape(np.array(report[k]["posterior"]), (-1, 1))
-            y = np.reshape(np.array(report[k]["TPM"]), (-1, 1))
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
 
-            regressor = LinearRegression() 
+    ##########################################################################################
 
-            regressor.fit(x, y) 
+    plt.bar(S_correlations.keys(), S_correlations.values(), color="black", alpha=0.5)
+    plt.ylabel("Spearman's Correlation")
+    plt.xticks(rotation=45, fontsize=8)
+    plt.tight_layout()
+    plt.tight_layout()
 
-            y_pred = regressor.predict(x)
-
-            axs[i,j].plot(x, y_pred, color=colors[label_being_plotted]) 
-
-            # axs[i,j].scatter(
-            #     report[k]["posterior"],
-            #     report[k]["TPM"], 
-            #     color=colors[label_being_plotted], s=2)
-
-            # b, a = np.polyfit(
-            #     np.array(report[k]["posterior"]), 
-            #     np.array(report[k]["TPM"]), 
-            #     deg=1)
-
-            # # Plot regression line
-            # axs[i,j].plot(
-            #     report[k]["posterior"], a + (b * report[k]["posterior"]),
-            #     color=colors[label_being_plotted], lw=3)
-
-            # f = UnivariateSpline(x= np.array(report[k]["posterior"]), y=report[k]["TPM"], k=1)
-
-            # axs[i,j].plot(
-            #     report[k]["posterior"], 
-            #     f(report[k]["posterior"]),
-            #     label=k, c=colors[label_being_plotted], 
-            #     linewidth=1)
-
-            label_being_plotted += 1
-            axs[i,j].set_title(k, fontsize=7)
-
-    plt.show()
-
+    plt.savefig(savedir+"/poster_trans_spearman_correl.pdf", format='pdf')
+    plt.savefig(savedir+"/poster_trans_spearman_correl.svg", format='svg')
+    
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+        
 def overal_TSS_enrichment(loci, pltsavedir):
     if os.path.exists(pltsavedir) == False:
         os.mkdir(pltsavedir)
@@ -366,30 +389,67 @@ def overal_TSS_enrichment(loci, pltsavedir):
     TSS_obj.tss_enrich(m_p=False)
     TSS_obj.tss_enrich_vs_repr()
 
+def get_all_bioval(replicate_1_dir, replicate_2_dir, genecode_dir, rnaseq=None):
+    loci1, loci2 = load_data(
+        replicate_1_dir+"/parsed_posterior.csv",
+        replicate_2_dir+"/parsed_posterior.csv",
+        subset=True, logit_transform=False)
+
+    loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+
+    gene_coords = load_gene_coords(genecode_dir)
+    if rnaseq != None:
+        trans_data = load_transcription_data(rnaseq, gene_coords)
+
+        trans_data = trans_data.drop(trans_data[trans_data.TPM==0].index).reset_index(drop=True)
+
+        trans_data_exp = trans_data[np.log10(trans_data.TPM) > 2]
+        trans_data_notexp = trans_data[np.log10(trans_data.TPM) < 0.5]
+
+        trans_data_exp.TPM = np.log10(trans_data_exp.TPM)
+        trans_data_notexp.TPM = np.log10(trans_data_notexp.TPM)
+        trans_data.TPM = np.log10(trans_data.TPM)
+
+        plot_general_transc(loci1, trans_data_exp, savedir=replicate_1_dir+"/general_transc_exp", exp=True)
+        plot_general_transc(loci1, trans_data_notexp, savedir=replicate_1_dir+"/general_transc_notexp", exp=False)
+
+        plot_general_transc(loci2, trans_data_exp, savedir=replicate_2_dir+"/general_transc_exp", exp=True)
+        plot_general_transc(loci2, trans_data_notexp, savedir=replicate_2_dir+"/general_transc_notexp", exp=False)
+
+        posterior_transcription_correlation(loci1, trans_data, savedir=replicate_1_dir+"/trans_post_correl")
+        posterior_transcription_correlation(loci2, trans_data, savedir=replicate_2_dir+"/trans_post_correl")
+
+    overal_TSS_enrichment(loci1, replicate_1_dir+"/tss_enr")
+    overal_TSS_enrichment(loci2, replicate_2_dir+"/tss_enr")
 
 if __name__=="__main__":
     replicate_1_dir = "tests/cedar_runs/chmm/GM12878_R1/"
     replicate_2_dir = "tests/cedar_runs/chmm/GM12878_R2/"
+
+    get_all_bioval(
+        replicate_1_dir, replicate_2_dir, 
+        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+        rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv")
     
-    loci1, loci2 = load_data(
-        replicate_1_dir+"/parsed_posterior.csv",
-        replicate_2_dir+"/parsed_posterior.csv",
-        subset=True, logit_transform=True)
+    # loci1, loci2 = load_data(
+    #     replicate_1_dir+"/parsed_posterior.csv",
+    #     replicate_2_dir+"/parsed_posterior.csv",
+    #     subset=True, logit_transform=False)
 
-    loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+    # loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
-    tss_coords = load_TSS("biovalidation/RefSeqTSS.hg38.txt")
-    gene_coords = load_gene_coords("biovalidation/parsed_genecode_data_hg38_release42.csv")
-    trans_data = load_transcription_data("biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", gene_coords)
+    # tss_coords = load_TSS("biovalidation/RefSeqTSS.hg38.txt")
+    # gene_coords = load_gene_coords("biovalidation/parsed_genecode_data_hg38_release42.csv")
+    # trans_data = load_transcription_data("biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", gene_coords)
 
-    trans_data = trans_data.drop(trans_data[trans_data.TPM==0].index).reset_index(drop=True)
+    # trans_data = trans_data.drop(trans_data[trans_data.TPM==0].index).reset_index(drop=True)
 
-    trans_data_exp = trans_data[np.log10(trans_data.TPM) > 2]#trans_data.TPM.quantile(.75)]
-    trans_data_notexp = trans_data[np.log10(trans_data.TPM) < 0.5]#trans_data.TPM.quantile(.75)]
+    # trans_data_exp = trans_data[np.log10(trans_data.TPM) > 2]#trans_data.TPM.quantile(.75)]
+    # trans_data_notexp = trans_data[np.log10(trans_data.TPM) < 0.5]#trans_data.TPM.quantile(.75)]
 
-    trans_data_exp.TPM = np.log10(trans_data_exp.TPM)
-    trans_data_notexp.TPM = np.log10(trans_data_notexp.TPM)
-    trans_data.TPM = np.log10(trans_data.TPM)
+    # trans_data_exp.TPM = np.log10(trans_data_exp.TPM)
+    # trans_data_notexp.TPM = np.log10(trans_data_notexp.TPM)
+    # trans_data.TPM = np.log10(trans_data.TPM)
 
     # plt.hist(np.log10(trans_data_exp.TPM), bins=100)
     # plt.hist(np.log10(trans_data_notexp.TPM), bins=100)
@@ -400,7 +460,7 @@ if __name__=="__main__":
 
 
     # posterior_transcribed_enrichment(loci1, gene_coords)
-    posterior_transcribed_enrichment(loci1, trans_data_exp)
+    # posterior_transcribed_enrichment(loci1, trans_data_exp)
     # posterior_transcribed_enrichment(loci1, trans_data_notexp)
 
     # overal_TSS_enrichment(loci1, replicate_1_dir+"/tss_enr")
