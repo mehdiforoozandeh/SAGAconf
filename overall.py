@@ -58,8 +58,32 @@ def is_reproduced(loci_1, loci_2, enr_threshold=3, window_bp=500):
     return reprod_report
             
 
-def reprod_score(loci_1, loci_2):
-    pass
+def reprod_score_posterior_agnostic(loci_1, loci_2):
+    """
+    get enr_ovr matrix
+    get MAPs
+
+    for t in map1:
+        in a window of size w 
+            BMS = what is the best match score (BMS) -> max of enr_ovr[R2] within that window
+            d_BMS = what is the distance to BMS
+
+            Score_t = BMS/d_BMS 
+    """
+    # can we do the exact same thing but instead of MAPs, on all of logit(p) values
+    # we know that for any label in R1, there is score (enr_ovr) connecting it to any label in R2
+    # so for each position i and each clusterID j across R1 and R2, we can get the following:
+        # score_ij = p_1_ij * p_2_ij * enr_ovr[R1j, R2j]  
+    # this score can act as the BMS
+    # but, what about the distance parameter???
+
+
+# now, what if we form a mapping from logit(p) to reprod_score_posterior_agnostic ?
+# mapping = {k:[] for k in labels}
+# for t in loci:
+#     if max(loci[t]) == k:
+#         mapping[k].append(tuple(loci[t], score_t))
+
 
 if __name__=="__main__":
     replicate_1_dir = "tests/cedar_runs/segway/MCF7_R1/"
