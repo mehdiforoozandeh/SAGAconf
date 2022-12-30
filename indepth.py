@@ -252,7 +252,6 @@ def compare_signal_dist(loci_1, loci_2, sigdist1_file, sigdist2_file, k):
     compar = compar.T
 
     return compar, cosinesim, euc_distance
-    # return compar, euc_distance
 
 def plot_sigdist_compar(loci_1, loci_2, sigdistfile1, sigdistfile2, outdir):
     num_labels = len(loci_1.columns)-3
@@ -400,12 +399,6 @@ def sigdist_vs_overlap(sigdist1_file, sigdist2_file, loci_1, loci_2, outdir):
     axs[2].set_ylabel("R2")
 
     plt.savefig(outdir)
-    
-def get_all_celltype():
-    pass
-
-def get_all_label():
-    pass
 
 def run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons):
     print("loading and intersecting")
