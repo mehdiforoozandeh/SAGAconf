@@ -1,5 +1,5 @@
-from reports import *
-import math
+from _cluster_matching import *
+import math, scipy
 
 def is_reproduced(loci_1, loci_2, enr_threshold=3, window_bp=500):
     """
@@ -58,7 +58,7 @@ def is_reproduced(loci_1, loci_2, enr_threshold=3, window_bp=500):
     return reprod_report
             
 
-def reprod_score_posterior_agnostic(loci_1, loci_2):
+def reprod_score(loci_1, loci_2, window_bp=500):
     """
     get enr_ovr matrix
     get MAPs
@@ -70,37 +70,96 @@ def reprod_score_posterior_agnostic(loci_1, loci_2):
 
             Score_t = BMS/d_BMS 
     """
-    # can we do the exact same thing but instead of MAPs, on all of logit(p) values
-    # we know that for any label in R1, there is score (enr_ovr) connecting it to any label in R2
-    # so for each position i and each clusterID j across R1 and R2, we can get the following:
-        # score_ij = p_1_ij * p_2_ij * enr_ovr[R1j, R2j]  
-    # this score can act as the BMS
-    # but, what about the distance parameter???
+
+    resolution = loci_1["end"][0] - loci_1["start"][0]
+    window_bin = math.ceil(window_bp/resolution)
+
+    enr_ovr = enrichment_of_overlap_matrix(loci_1, loci_2, OE_transform=True)
+
+    MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
+    MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
+
+    reprod_report = loci_1.loc[:, ["chr", "start", "end"]]
+    reprod_report["repr_score"] = np.zeros((len(MAP1)))
+    reprod_report = reprod_report.values.tolist()
+
+    for t in range(len(MAP1)):
+        in_window = {}
+        in_window[0] = enr_ovr.loc[MAP1[t], MAP2[t]]
+
+        for w in range(1, window_bin+1):
+            if (t - w) >= 0 and (t + w) <= len(MAP1)-1 :
+                in_window[-1 * w] = enr_ovr.loc[MAP1[t], MAP2[t-w]]
+                in_window[w] = enr_ovr.loc[MAP1[t], MAP2[t+w]]
+        
+        d_BMS = max(in_window, key=in_window.get)
+        BMS = max(in_window.values())
+
+        reprod_report[t][3] = (BMS) / ((abs(d_BMS))+1)
+    
+    reprod_report = pd.DataFrame(reprod_report, columns=["chr", "start", "end", "repr_score"])
+    return reprod_report
+
+def max_posterior_to_repr_score(loci_1, reprod_report):
+    MP1 = loci_1.iloc[:,3:].max(axis=1)
+
+    pcorrel = scipy.stats.pearsonr(MP1, reprod_report["repr_score"])[0]
+    scorrel = scipy.stats.spearmanr(MP1, reprod_report["repr_score"])[0]
+
+    return pcorrel, scorrel
+
+def contour_isrep(loci1, loci2, savedir):
+    rec = []
+    for w in range(100, 3000, 100):
+        for t in range(0, 50, 5):
+            thresh = float(t)/10
+            reprod_report = is_reproduced(loci1, loci2, enr_threshold=thresh, window_bp=w)
+
+            score = len(reprod_report.loc[reprod_report["is_repr"]==True])/ len(reprod_report)
+
+            rec.append([w, thresh, score])
+
+    rec = np.array(rec)
+    x, y, z = rec[:,0], rec[:,1], rec[:,2]
+    X, Y = np.meshgrid(x, y)
+
+    rec_df = pd.DataFrame(rec, columns=["w", "t", "s"])
+
+    Z = np.zeros(X.shape)
+    
+    for i in range(Z.shape[0]):
+        for j in range(Z.shape[1]):
+            corresponding_line = rec_df.loc[(rec_df["w"] == X[i,j]) & (rec_df["t"]== Y[i,j]), :]
+            Z[i, j] = float(corresponding_line["s"])
+
+    plt.contourf(X, Y, Z, cmap='RdGy_r')
+    plt.colorbar()
+
+    plt.ylabel("Enrichment of Overlap threshold")
+    plt.xlabel("Window")
+    plt.xticks(rotation=45, fontsize=7)
+    plt.tight_layout()
+
+    plt.savefig('{}/reprod_contour.pdf'.format(savedir), format='pdf')
+    plt.savefig('{}/reprod_contour.svg'.format(savedir), format='svg')
+    plt.clf()
 
 
-# now, what if we form a mapping from logit(p) to reprod_score_posterior_agnostic ?
-# mapping = {k:[] for k in labels}
-# for t in loci:
-#     if max(loci[t]) == k:
-#         mapping[k].append(tuple(loci[t], score_t))
+# if __name__=="__main__":
+#     replicate_1_dir = "tests/cedar_runs/segway/GM12878_R1/"
+#     replicate_2_dir = "tests/cedar_runs/segway/GM12878_R2/"
 
+#     loci1, loci2 = load_data(
+#         replicate_1_dir+"/parsed_posterior.csv",
+#         replicate_2_dir+"/parsed_posterior.csv",
+#         subset=True, logit_transform=True)
 
-if __name__=="__main__":
-    replicate_1_dir = "tests/cedar_runs/segway/MCF7_R1/"
-    replicate_2_dir = "tests/cedar_runs/segway/MCF7_R2/"
+#     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
-    loci1, loci2 = load_data(
-        replicate_1_dir+"/parsed_posterior.csv",
-        replicate_2_dir+"/parsed_posterior.csv",
-        subset=True, logit_transform=False)
+#     contour_isrep(loci1, loci2)
 
-    loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+#     reprep = reprod_score(loci1, loci2, window_bp=500)
+#     max_posterior_to_repr_score(loci1, loci2, reprep)
 
-    # is_reproduced(loci1, loci2, enr_threshold=10)
-    # is_reproduced(loci1, loci2, enr_threshold=5)
-    is_reproduced(loci1, loci2, enr_threshold=2, window_bp=500)
-    is_reproduced(loci1, loci2, enr_threshold=2, window_bp=1000)
-    is_reproduced(loci1, loci2, enr_threshold=2, window_bp=2000)
-    # is_reproduced(loci1, loci2, enr_threshold=1)
-    # is_reproduced(loci1, loci2, enr_threshold=0)
+    # is_reproduced(loci1, loci2, enr_threshold=2, window_bp=500)
 

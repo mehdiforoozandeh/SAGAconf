@@ -1,8 +1,8 @@
 from _reproducibility import *
-from reports import *
+# from reports import *
 from sklearn.linear_model import LinearRegression 
 import scipy
-import pickle
+import os
 
 def load_gene_coords(file, drop_negative_strand=True, drop_overlapping=True):
     gene_coords = pd.read_csv(file)
@@ -389,47 +389,47 @@ def overal_TSS_enrichment(loci, pltsavedir):
     TSS_obj.tss_enrich(m_p=False)
     TSS_obj.tss_enrich_vs_repr()
 
-def get_all_bioval(replicate_1_dir, replicate_2_dir, genecode_dir, rnaseq=None):
-    loci1, loci2 = load_data(
-        replicate_1_dir+"/parsed_posterior.csv",
-        replicate_2_dir+"/parsed_posterior.csv",
-        subset=True, logit_transform=False)
+# def get_all_bioval(replicate_1_dir, replicate_2_dir, genecode_dir, rnaseq=None):
+#     loci1, loci2 = load_data(
+#         replicate_1_dir+"/parsed_posterior.csv",
+#         replicate_2_dir+"/parsed_posterior.csv",
+#         subset=True, logit_transform=False)
 
-    loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+#     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
-    gene_coords = load_gene_coords(genecode_dir)
-    if rnaseq != None:
-        trans_data = load_transcription_data(rnaseq, gene_coords)
+#     gene_coords = load_gene_coords(genecode_dir)
+#     if rnaseq != None:
+#         trans_data = load_transcription_data(rnaseq, gene_coords)
 
-        trans_data = trans_data.drop(trans_data[trans_data.TPM==0].index).reset_index(drop=True)
+#         trans_data = trans_data.drop(trans_data[trans_data.TPM==0].index).reset_index(drop=True)
 
-        trans_data_exp = trans_data[np.log10(trans_data.TPM) > 2]
-        trans_data_notexp = trans_data[np.log10(trans_data.TPM) < 0.5]
+#         trans_data_exp = trans_data[np.log10(trans_data.TPM) > 2]
+#         trans_data_notexp = trans_data[np.log10(trans_data.TPM) < 0.5]
 
-        trans_data_exp.TPM = np.log10(trans_data_exp.TPM)
-        trans_data_notexp.TPM = np.log10(trans_data_notexp.TPM)
-        trans_data.TPM = np.log10(trans_data.TPM)
+#         trans_data_exp.TPM = np.log10(trans_data_exp.TPM)
+#         trans_data_notexp.TPM = np.log10(trans_data_notexp.TPM)
+#         trans_data.TPM = np.log10(trans_data.TPM)
 
-        plot_general_transc(loci1, trans_data_exp, savedir=replicate_1_dir+"/general_transc_exp", exp=True)
-        plot_general_transc(loci1, trans_data_notexp, savedir=replicate_1_dir+"/general_transc_notexp", exp=False)
+#         plot_general_transc(loci1, trans_data_exp, savedir=replicate_1_dir+"/general_transc_exp", exp=True)
+#         plot_general_transc(loci1, trans_data_notexp, savedir=replicate_1_dir+"/general_transc_notexp", exp=False)
 
-        plot_general_transc(loci2, trans_data_exp, savedir=replicate_2_dir+"/general_transc_exp", exp=True)
-        plot_general_transc(loci2, trans_data_notexp, savedir=replicate_2_dir+"/general_transc_notexp", exp=False)
+#         plot_general_transc(loci2, trans_data_exp, savedir=replicate_2_dir+"/general_transc_exp", exp=True)
+#         plot_general_transc(loci2, trans_data_notexp, savedir=replicate_2_dir+"/general_transc_notexp", exp=False)
 
-        posterior_transcription_correlation(loci1, trans_data, savedir=replicate_1_dir+"/trans_post_correl")
-        posterior_transcription_correlation(loci2, trans_data, savedir=replicate_2_dir+"/trans_post_correl")
+#         posterior_transcription_correlation(loci1, trans_data, savedir=replicate_1_dir+"/trans_post_correl")
+#         posterior_transcription_correlation(loci2, trans_data, savedir=replicate_2_dir+"/trans_post_correl")
 
-    overal_TSS_enrichment(loci1, replicate_1_dir+"/tss_enr")
-    overal_TSS_enrichment(loci2, replicate_2_dir+"/tss_enr")
+#     overal_TSS_enrichment(loci1, replicate_1_dir+"/tss_enr")
+#     overal_TSS_enrichment(loci2, replicate_2_dir+"/tss_enr")
 
-if __name__=="__main__":
-    replicate_1_dir = "tests/cedar_runs/chmm/GM12878_R1/"
-    replicate_2_dir = "tests/cedar_runs/chmm/GM12878_R2/"
+# if __name__=="__main__":
+#     replicate_1_dir = "tests/cedar_runs/chmm/GM12878_R1/"
+#     replicate_2_dir = "tests/cedar_runs/chmm/GM12878_R2/"
 
-    get_all_bioval(
-        replicate_1_dir, replicate_2_dir, 
-        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
-        rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv")
+    # get_all_bioval(
+    #     replicate_1_dir, replicate_2_dir, 
+    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+    #     rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv")
     
     # loci1, loci2 = load_data(
     #     replicate_1_dir+"/parsed_posterior.csv",

@@ -1,6 +1,8 @@
 from run import *
 from indepth import *
 from granul import *
+from bio_valid import *
+from overall import *
 
 def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False):
     print("loading and intersecting")
@@ -266,43 +268,43 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
     n_cols = math.floor(math.sqrt(num_labels))
     n_rows = math.ceil(num_labels / n_cols)
 
-    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[25, 16])
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[16, 9])
     label_being_plotted = 0
     
     for i in range(n_rows):
-        # for j in range(n_cols):
+        for j in range(n_cols):
 
-        k = loci_1.columns[3:][label_being_plotted]
+            k = loci_1.columns[3:][label_being_plotted]
 
-        matched_hist = np.histogram(boundary_distances[k], bins=max_distance, range=(0, max_distance)) #[0]is the bin size [1] is the bin edge
+            matched_hist = np.histogram(boundary_distances[k], bins=max_distance, range=(0, max_distance)) #[0]is the bin size [1] is the bin edge
 
-        cdf = []
-        for jb in range(len(matched_hist[0])):
-            if len(cdf) == 0:
-                cdf.append(matched_hist[0][jb])
-            else:
-                cdf.append((cdf[-1] + matched_hist[0][jb]))
+            cdf = []
+            for jb in range(len(matched_hist[0])):
+                if len(cdf) == 0:
+                    cdf.append(matched_hist[0][jb])
+                else:
+                    cdf.append((cdf[-1] + matched_hist[0][jb]))
 
-        cdf = np.array(cdf) / (np.sum(matched_hist[0]) + count_unmatched_boundaries[k])
-        
-        
-        axs[i].plot(list(matched_hist[1][:-1]*resolution), list(cdf), color="black", label="distance from boundary")
-        
-        lendist = get_ecdf_for_label(loci_1, k, max=(max_distance+1)*resolution)
-        if len(lendist)>0:
-            sns.ecdfplot(lendist, ax=axs[i], color="red")
+            cdf = np.array(cdf) / (np.sum(matched_hist[0]) + count_unmatched_boundaries[k])
+            
+            
+            axs[i, j].plot(list(matched_hist[1][:-1]*resolution), list(cdf), color="black", label="distance from boundary")
+            
+            lendist = get_ecdf_for_label(loci_1, k, max=(max_distance+1)*resolution)
+            if len(lendist)>0:
+                sns.ecdfplot(lendist, ax=axs[i, j], color="red")
 
-        axs[i].set_xticks(np.arange(0, (max_distance+1)*resolution, step=5*resolution))
-        axs[i].tick_params(axis='both', labelsize=7)
-        axs[i].tick_params(axis='x', rotation=90)
-        axs[i].set_yticks(np.arange(0, 1.1, step=0.2))
-        axs[i].set_xlabel('bp', fontsize=7)
-        axs[i].set_ylabel('Proportion',fontsize=7)
-        
-        
-        axs[i].set_title(k, fontsize=7)
+            axs[i, j].set_xticks(np.arange(0, (max_distance+1)*resolution, step=5*resolution))
+            axs[i, j].tick_params(axis='both', labelsize=7)
+            axs[i, j].tick_params(axis='x', rotation=90)
+            axs[i, j].set_yticks(np.arange(0, 1.1, step=0.2))
+            axs[i, j].set_xlabel('bp', fontsize=7)
+            axs[i, j].set_ylabel('Proportion',fontsize=7)
+            
+            
+            axs[i, j].set_title(k, fontsize=7)
 
-        label_being_plotted += 1
+            label_being_plotted += 1
             
     plt.tight_layout()
     plt.savefig(outdir+"/len_bound.pdf", format='pdf')
@@ -526,7 +528,7 @@ def gather_labels(savedir):
     
     print("loading mnemonics...")
     if os.path.exists(
-        "/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics_rep1.txt"):
+        "/".join(savedir.split("/")[:-1])+"/mnemonics_rep1.txt"):
 
         print("reading concat mnemonics")
         loci_1_mnemon = read_mnemonics("/".join(savedir.split("/")[:-1])+"/mnemonics_rep1.txt")
@@ -573,33 +575,127 @@ def gather_labels(savedir):
                 os.system(
                     "cp {} {}".format(savedir+"/prog/"+f, savedir+"/labels/"+k)
                     )
-        
+
+def get_all_bioval(replicate_1_dir, replicate_2_dir, genecode_dir, rnaseq=None):
+    loci1, loci2 = load_data(
+        replicate_1_dir+"/parsed_posterior.csv",
+        replicate_2_dir+"/parsed_posterior.csv",
+        subset=True, logit_transform=False)
+
+    loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+
+    gene_coords = load_gene_coords(genecode_dir)
+    if rnaseq != None:
+        trans_data = load_transcription_data(rnaseq, gene_coords)
+
+        trans_data = trans_data.drop(trans_data[trans_data.TPM==0].index).reset_index(drop=True)
+
+        trans_data_exp = trans_data[np.log10(trans_data.TPM) > 2]
+        trans_data_notexp = trans_data[np.log10(trans_data.TPM) < 0.5]
+
+        trans_data_exp.TPM = np.log10(trans_data_exp.TPM)
+        trans_data_notexp.TPM = np.log10(trans_data_notexp.TPM)
+        trans_data.TPM = np.log10(trans_data.TPM)
+
+        plot_general_transc(loci1, trans_data_exp, savedir=replicate_1_dir+"/general_transc_exp", exp=True)
+        plot_general_transc(loci1, trans_data_notexp, savedir=replicate_1_dir+"/general_transc_notexp", exp=False)
+
+        plot_general_transc(loci2, trans_data_exp, savedir=replicate_2_dir+"/general_transc_exp", exp=True)
+        plot_general_transc(loci2, trans_data_notexp, savedir=replicate_2_dir+"/general_transc_notexp", exp=False)
+
+        posterior_transcription_correlation(loci1, trans_data, savedir=replicate_1_dir+"/trans_post_correl")
+        posterior_transcription_correlation(loci2, trans_data, savedir=replicate_2_dir+"/trans_post_correl")
+
+    overal_TSS_enrichment(loci1, replicate_1_dir+"/tss_enr")
+    overal_TSS_enrichment(loci2, replicate_2_dir+"/tss_enr")
+
+def get_overalls(replicate_1_dir, replicate_2_dir):
+    loci1, loci2 = load_data(
+        replicate_1_dir+"/parsed_posterior.csv",
+        replicate_2_dir+"/parsed_posterior.csv",
+        subset=True, logit_transform=True)
+
+    loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+    
+    bool_reprod_report = is_reproduced(loci1, loci2, enr_threshold=2, window_bp=1000)
+    bool_reprod_report.to_csv(replicate_1_dir+"/boolean_reproducibility_report.csv")
+
+    bool_reprod_report = is_reproduced(loci2, loci1, enr_threshold=2, window_bp=1000)
+    bool_reprod_report.to_csv(replicate_2_dir+"/boolean_reproducibility_report.csv")
+
+    reprep = reprod_score(loci1, loci2, window_bp=1000)
+    pcorrel, scorrel = max_posterior_to_repr_score(loci1, reprep)
+    print(pcorrel, scorrel)
+
+    reprep = reprod_score(loci2, loci1, window_bp=1000)
+    pcorrel, scorrel = max_posterior_to_repr_score(loci2, reprep)
+    print(pcorrel, scorrel)
+
+def get_contour(replicate_1_dir, replicate_2_dir):
+    loci1, loci2 = load_data(
+        replicate_1_dir+"/parsed_posterior.csv",
+        replicate_2_dir+"/parsed_posterior.csv",
+        subset=True, logit_transform=True)
+
+    loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+    contour_isrep(loci1, loci2, replicate_1_dir)
+    contour_isrep(loci2, loci1, replicate_2_dir)
+
+def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, rnaseq=None):
+    get_all_ct(replicate_1_dir, replicate_2_dir)
+    get_all_labels(replicate_1_dir, replicate_2_dir)
+
+    gather_labels(replicate_1_dir)
+    gather_labels(replicate_2_dir)
+
+    get_all_bioval(
+        replicate_1_dir, replicate_2_dir, 
+        genecode_dir=genecode_dir, 
+        rnaseq=rnaseq)
+    
+    get_overalls(replicate_1_dir, replicate_2_dir)
 
 if __name__=="__main__":
     replicate_1_dir = "tests/cedar_runs/chmm/MCF7_R1/"
     replicate_2_dir = "tests/cedar_runs/chmm/MCF7_R2/"
-    get_all_ct(replicate_1_dir, replicate_2_dir)
-    get_all_labels(replicate_1_dir, replicate_2_dir)
-    gather_labels(replicate_1_dir)
-    gather_labels(replicate_2_dir)
+    get_contour(replicate_1_dir, replicate_2_dir)
+    exit()
 
-    replicate_1_dir = "tests/cedar_runs/segway/MCF7_R1/"
-    replicate_2_dir = "tests/cedar_runs/segway/MCF7_R2/"
-    get_all_ct(replicate_1_dir, replicate_2_dir)
-    get_all_labels(replicate_1_dir, replicate_2_dir)
-    gather_labels(replicate_1_dir)
-    gather_labels(replicate_2_dir)
+    GET_ALL(
+        replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
+        replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
+        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+        rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv")
 
-    replicate_1_dir = "tests/cedar_runs/chmm/GM12878_R1/"
-    replicate_2_dir = "tests/cedar_runs/chmm/GM12878_R2/"
-    get_all_ct(replicate_1_dir, replicate_2_dir)
-    get_all_labels(replicate_1_dir, replicate_2_dir)
-    gather_labels(replicate_1_dir)
-    gather_labels(replicate_2_dir)
+    # replicate_1_dir = "tests/cedar_runs/chmm/MCF7_R1/"
+    # replicate_2_dir = "tests/cedar_runs/chmm/MCF7_R2/"
+    # get_all_ct(replicate_1_dir, replicate_2_dir)
+    # get_all_labels(replicate_1_dir, replicate_2_dir)
+    # gather_labels(replicate_1_dir)
+    # gather_labels(replicate_2_dir)
 
-    replicate_1_dir = "tests/cedar_runs/segway/GM12878_R1/"
-    replicate_2_dir = "tests/cedar_runs/segway/GM12878_R2/"
-    get_all_ct(replicate_1_dir, replicate_2_dir)
-    get_all_labels(replicate_1_dir, replicate_2_dir)
-    gather_labels(replicate_1_dir)
-    gather_labels(replicate_2_dir)
+    # get_all_bioval(
+    #     replicate_1_dir, replicate_2_dir, 
+    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+    #     rnaseq=None)
+
+    # replicate_1_dir = "tests/cedar_runs/segway/MCF7_R1/"
+    # replicate_2_dir = "tests/cedar_runs/segway/MCF7_R2/"
+    # get_all_ct(replicate_1_dir, replicate_2_dir)
+    # get_all_labels(replicate_1_dir, replicate_2_dir)
+    # gather_labels(replicate_1_dir)
+    # gather_labels(replicate_2_dir)
+
+    # replicate_1_dir = "tests/cedar_runs/chmm/GM12878_R1/"
+    # replicate_2_dir = "tests/cedar_runs/chmm/GM12878_R2/"
+    # get_all_ct(replicate_1_dir, replicate_2_dir)
+    # get_all_labels(replicate_1_dir, replicate_2_dir)
+    # gather_labels(replicate_1_dir)
+    # gather_labels(replicate_2_dir)
+
+    # replicate_1_dir = "tests/cedar_runs/segway/GM12878_R1/"
+    # replicate_2_dir = "tests/cedar_runs/segway/GM12878_R2/"
+    # get_all_ct(replicate_1_dir, replicate_2_dir)
+    # get_all_labels(replicate_1_dir, replicate_2_dir)
+    # gather_labels(replicate_1_dir)
+    # gather_labels(replicate_2_dir)
