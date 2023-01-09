@@ -620,16 +620,22 @@ def get_overalls(replicate_1_dir, replicate_2_dir):
     bool_reprod_report = is_reproduced(loci1, loci2, enr_threshold=2, window_bp=1000)
     bool_reprod_report.to_csv(replicate_1_dir+"/boolean_reproducibility_report.csv")
 
+    general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
+    print("rep1v2 reprod score = ", general_rep_score)
+
     bool_reprod_report = is_reproduced(loci2, loci1, enr_threshold=2, window_bp=1000)
     bool_reprod_report.to_csv(replicate_2_dir+"/boolean_reproducibility_report.csv")
 
+    general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
+    print("rep2v1 reprod score = ", general_rep_score)
+
     reprep = reprod_score(loci1, loci2, window_bp=1000)
     pcorrel, scorrel = max_posterior_to_repr_score(loci1, reprep)
-    print(pcorrel, scorrel)
+    print("rep1v2 reprod-posterior correlation = ", pcorrel, scorrel)
 
     reprep = reprod_score(loci2, loci1, window_bp=1000)
     pcorrel, scorrel = max_posterior_to_repr_score(loci2, reprep)
-    print(pcorrel, scorrel)
+    print("rep2v1 reprod-posterior correlation = ", pcorrel, scorrel)
 
 def get_contour(replicate_1_dir, replicate_2_dir):
     loci1, loci2 = load_data(
@@ -641,7 +647,7 @@ def get_contour(replicate_1_dir, replicate_2_dir):
     contour_isrep(loci1, loci2, replicate_1_dir)
     contour_isrep(loci2, loci1, replicate_2_dir)
 
-def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, rnaseq=None):
+def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, rnaseq=None, contour=False):
     get_all_ct(replicate_1_dir, replicate_2_dir)
     get_all_labels(replicate_1_dir, replicate_2_dir)
 
@@ -655,10 +661,15 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, rnaseq=None):
     
     get_overalls(replicate_1_dir, replicate_2_dir)
 
+    if contour:
+        get_contour(replicate_1_dir, replicate_2_dir)
+
 if __name__=="__main__":
-    replicate_1_dir = "tests/cedar_runs/chmm/MCF7_R1/"
-    replicate_2_dir = "tests/cedar_runs/chmm/MCF7_R2/"
-    get_contour(replicate_1_dir, replicate_2_dir)
+    replicate_1_dir = "tests/cedar_runs/segway/MCF7_R1/"
+    replicate_2_dir = "tests/cedar_runs/segway/MCF7_R2/"
+    get_overalls(replicate_1_dir, replicate_2_dir)
+    get_overalls(replicate_1_dir.replace("segway","chmm"), replicate_2_dir.replace("segway","chmm"))
+    # get_contour(replicate_1_dir, replicate_2_dir)
     exit()
 
     GET_ALL(
