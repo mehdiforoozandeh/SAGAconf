@@ -3,6 +3,7 @@ from _reproducibility import *
 from sklearn.linear_model import LinearRegression 
 import scipy
 import os
+import pickle
 
 def load_gene_coords(file, drop_negative_strand=True, drop_overlapping=True):
     gene_coords = pd.read_csv(file)
@@ -40,28 +41,53 @@ def get_coverage(loci):
 
     return coverage
 
-def load_transcription_data(file, gene_coord):
+def load_transcription_data(file, gene_coord, csv=True):
 
-    trn_data = pd.read_csv(file, sep="\t")
+    if csv:
+        trn_data = pd.read_csv(file, sep="\t")
 
-    for j in range(len(trn_data)):
-        trn_data.at[j, "gene_id"] = trn_data["gene_id"][j].split(".")[0]
-    
-    for i in range(len(gene_coord)):
-        gene_coord.at[i, "gene_id"] = gene_coord["gene_id"][i].split(".")[0]
+        for j in range(len(trn_data)):
+            trn_data.at[j, "gene_id"] = trn_data["gene_id"][j].split(".")[0]
+        
+        for i in range(len(gene_coord)):
+            gene_coord.at[i, "gene_id"] = gene_coord["gene_id"][i].split(".")[0]
 
-    mapped_trn_data = []
-    for i in range(len(gene_coord)):
-        geneID = gene_coord["gene_id"][i]
-        subset = trn_data.loc[trn_data["gene_id"] == geneID, :].reset_index(drop=True)
+        mapped_trn_data = []
+        for i in range(len(gene_coord)):
+            geneID = gene_coord["gene_id"][i]
+            subset = trn_data.loc[trn_data["gene_id"] == geneID, :].reset_index(drop=True)
 
-        if len(subset) > 0:
-            mapped_trn_data.append([
-                gene_coord["chr"][i], gene_coord["start"][i], gene_coord["end"][i], geneID, subset["length"][0], subset["TPM"][0], subset["FPKM"][0]
-            ])
+            if len(subset) > 0:
+                mapped_trn_data.append([
+                    gene_coord["chr"][i], gene_coord["start"][i], gene_coord["end"][i], geneID, subset["length"][0], subset["TPM"][0], subset["FPKM"][0]
+                ])
 
-    mapped_trn_data = pd.DataFrame(mapped_trn_data, columns=["chr", "start", "end", "geneID", "length", "TPM", "FPKM"])
-    return mapped_trn_data
+        mapped_trn_data = pd.DataFrame(mapped_trn_data, columns=["chr", "start", "end", "geneID", "length", "TPM", "FPKM"])
+        return mapped_trn_data
+
+    else:
+        with open(file, "rb") as f:
+            trn_data = pickle.load(f)
+
+        trn_data = pd.DataFrame([[k, v] for k,v in trn_data.items()], columns=["gene_id", "TPM"])
+
+        for j in range(len(trn_data)):
+            trn_data.at[j, "gene_id"] = trn_data["gene_id"][j].split(".")[0]
+
+        for i in range(len(gene_coord)):
+            gene_coord.at[i, "gene_id"] = gene_coord["gene_id"][i].split(".")[0]
+        
+        mapped_trn_data = []
+        for i in range(len(gene_coord)):
+            geneID = gene_coord["gene_id"][i]
+            subset = trn_data.loc[trn_data["gene_id"] == geneID, :].reset_index(drop=True)
+
+            if len(subset) > 0:
+                mapped_trn_data.append([
+                    gene_coord["chr"][i], gene_coord["start"][i], gene_coord["end"][i], geneID, "-", 10**(subset["TPM"][0]), "-"])
+        
+        mapped_trn_data = pd.DataFrame(mapped_trn_data, columns=["chr", "start", "end", "geneID", "length", "TPM", "FPKM"])
+        return mapped_trn_data
 
 def intersect(loci, gene_coord):
     cols = loci.columns
@@ -422,7 +448,25 @@ def overal_TSS_enrichment(loci, pltsavedir):
 #     overal_TSS_enrichment(loci1, replicate_1_dir+"/tss_enr")
 #     overal_TSS_enrichment(loci2, replicate_2_dir+"/tss_enr")
 
-# if __name__=="__main__":
+if __name__=="__main__":
+    gene_coords = load_gene_coords("biovalidation/parsed_genecode_data_hg38_release42.csv")
+    for f in os.listdir("biovalidation/RNA_seq/MCF-7/"):
+        filename = "biovalidation/RNA_seq/MCF-7/" + f
+        print(filename)
+
+        if "tsv" in filename:
+            data = load_transcription_data(
+                filename, 
+                gene_coords, csv=True)
+
+        elif "pkl" in filename:
+            data = load_transcription_data(
+                filename, 
+                gene_coords, csv=False)
+
+        print(data)
+
+
 #     replicate_1_dir = "tests/cedar_runs/chmm/GM12878_R1/"
 #     replicate_2_dir = "tests/cedar_runs/chmm/GM12878_R2/"
 

@@ -180,10 +180,8 @@ def ct_lable_calib(loci_1, loci_2, pltsavedir):
     if os.path.exists(pltsavedir+"/calib") == False:
         os.mkdir(pltsavedir+"/calib")
     calb = posterior_calibration(
-        loci_1, loci_2, log_transform=False, ignore_overconf=False, filter_nan=True, 
-        oe_transform=True, savedir=pltsavedir+"/calib")
-    calibrated_loci_1 = calb.perlabel_calibration_function(
-        degree=5, num_bins=25, return_caliberated_matrix=True, scale_columnwise=True)
+        loci_1, loci_2, savedir=pltsavedir+"/calib")
+    calibrated_loci_1 = calb.perlabel_calibration_function()
     
     plt.close("all")
     plt.style.use('default')
@@ -503,7 +501,7 @@ def get_all_ct(replicate_1_dir, replicate_2_dir):
     loci1, loci2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
         replicate_2_dir+"/parsed_posterior.csv",
-        subset=True)
+        subset=True, logit_transform=True)
 
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=True)
     ct_confus(loci1, loci2, replicate_1_dir)
@@ -575,12 +573,18 @@ def gather_labels(savedir):
                 os.system(
                     "cp {} {}".format(savedir+"/prog/"+f, savedir+"/labels/"+k)
                     )
+        
+        for f in os.listdir(savedir+"/contours/"):
+            if "reprod_contour_"+k in f:
+                os.system(
+                    "cp {} {}".format(savedir+"/contours/"+f, savedir+"/labels/"+k)
+                    )
 
 def get_all_bioval(replicate_1_dir, replicate_2_dir, genecode_dir, rnaseq=None):
     loci1, loci2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
         replicate_2_dir+"/parsed_posterior.csv",
-        subset=True, logit_transform=False)
+        subset=True, logit_transform=True)
 
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
@@ -617,26 +621,64 @@ def get_overalls(replicate_1_dir, replicate_2_dir):
 
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
     
+    ###################################################################################################################
     bool_reprod_report = is_reproduced(loci1, loci2, enr_threshold=2, window_bp=1000)
     bool_reprod_report.to_csv(replicate_1_dir+"/boolean_reproducibility_report.csv")
 
     general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
-    print("rep1v2 reprod score = ", general_rep_score)
+    perlabel_rec = {}
+    lab_rep = perlabel_is_reproduced(bool_reprod_report, loci1)
+    for k, v in lab_rep.items():
+        perlabel_rec[k] = v[0]/ (v[0]+v[1])
 
+    with open(replicate_1_dir+"/general_reproducibility_score.txt", "w") as scorefile:
+        scorefile.write("general reprod score = ".format(general_rep_score))
+        for k, v in perlabel_rec.items():
+             scorefile.write("{} reprod score = {}".format(k, str(v)))
+
+    bool_reprod_report = is_reproduced_posterior(loci1, loci2, enr_threshold=2, window_bp=1000)
+    bool_reprod_report.to_csv(replicate_1_dir+"/boolean_reproducibility_report_POSTERIOR.csv")
+
+    general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
+    perlabel_rec = {}
+    lab_rep = perlabel_is_reproduced(bool_reprod_report, loci1)
+    for k, v in lab_rep.items():
+        perlabel_rec[k] = v[0]/ (v[0]+v[1])
+
+    with open(replicate_1_dir+"/general_reproducibility_score_POSTERIOR.txt", "w") as scorefile:
+        scorefile.write("general reprod score = ".format(general_rep_score))
+        for k, v in perlabel_rec.items():
+             scorefile.write("{} reprod score = {}".format(k, str(v)))
+
+    ###################################################################################################################
     bool_reprod_report = is_reproduced(loci2, loci1, enr_threshold=2, window_bp=1000)
     bool_reprod_report.to_csv(replicate_2_dir+"/boolean_reproducibility_report.csv")
 
     general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
-    print("rep2v1 reprod score = ", general_rep_score)
+    perlabel_rec = {}
+    lab_rep = perlabel_is_reproduced(bool_reprod_report, loci1)
+    for k, v in lab_rep.items():
+        perlabel_rec[k] = v[0]/ (v[0]+v[1])
 
-    reprep = reprod_score(loci1, loci2, window_bp=1000)
-    pcorrel, scorrel = max_posterior_to_repr_score(loci1, reprep)
-    print("rep1v2 reprod-posterior correlation = ", pcorrel, scorrel)
+    with open(replicate_2_dir+"/general_reproducibility_score.txt", "w") as scorefile:
+        scorefile.write("general reprod score = ".format(general_rep_score))
+        for k, v in perlabel_rec.items():
+             scorefile.write("{} reprod score = {}".format(k, str(v)))
 
-    reprep = reprod_score(loci2, loci1, window_bp=1000)
-    pcorrel, scorrel = max_posterior_to_repr_score(loci2, reprep)
-    print("rep2v1 reprod-posterior correlation = ", pcorrel, scorrel)
+    bool_reprod_report = is_reproduced_posterior(loci2, loci1, enr_threshold=2, window_bp=1000)
+    bool_reprod_report.to_csv(replicate_2_dir+"/boolean_reproducibility_report_POSTERIOR.csv")
 
+    general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
+    perlabel_rec = {}
+    lab_rep = perlabel_is_reproduced(bool_reprod_report, loci1)
+    for k, v in lab_rep.items():
+        perlabel_rec[k] = v[0]/ (v[0]+v[1])
+
+    with open(replicate_2_dir+"/general_reproducibility_score_POSTERIOR.txt", "w") as scorefile:
+        scorefile.write("general reprod score = ".format(general_rep_score))
+        for k, v in perlabel_rec.items():
+             scorefile.write("{} reprod score = {}".format(k, str(v)))
+    
 def get_contour(replicate_1_dir, replicate_2_dir):
     loci1, loci2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
@@ -644,15 +686,12 @@ def get_contour(replicate_1_dir, replicate_2_dir):
         subset=True, logit_transform=True)
 
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
-    contour_isrep(loci1, loci2, replicate_1_dir)
-    contour_isrep(loci2, loci1, replicate_2_dir)
+    contour_isrep(loci1, loci2, replicate_1_dir, posterior=True, raw_overlap_axis=False)
+    contour_isrep(loci2, loci1, replicate_2_dir, posterior=True, raw_overlap_axis=False)
 
-def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, rnaseq=None, contour=False):
+def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, rnaseq=None, contour=True):
     get_all_ct(replicate_1_dir, replicate_2_dir)
     get_all_labels(replicate_1_dir, replicate_2_dir)
-
-    gather_labels(replicate_1_dir)
-    gather_labels(replicate_2_dir)
 
     get_all_bioval(
         replicate_1_dir, replicate_2_dir, 
@@ -664,49 +703,13 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, rnaseq=None, contour
     if contour:
         get_contour(replicate_1_dir, replicate_2_dir)
 
-if __name__=="__main__":
-    replicate_1_dir = "tests/cedar_runs/segway/MCF7_R1/"
-    replicate_2_dir = "tests/cedar_runs/segway/MCF7_R2/"
-    get_overalls(replicate_1_dir, replicate_2_dir)
-    get_overalls(replicate_1_dir.replace("segway","chmm"), replicate_2_dir.replace("segway","chmm"))
-    # get_contour(replicate_1_dir, replicate_2_dir)
-    exit()
+    gather_labels(replicate_1_dir)
+    gather_labels(replicate_2_dir)
+
+if __name__=="__main__":    
 
     GET_ALL(
-        replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
-        replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
+        replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
+        replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
         genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
         rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv")
-
-    # replicate_1_dir = "tests/cedar_runs/chmm/MCF7_R1/"
-    # replicate_2_dir = "tests/cedar_runs/chmm/MCF7_R2/"
-    # get_all_ct(replicate_1_dir, replicate_2_dir)
-    # get_all_labels(replicate_1_dir, replicate_2_dir)
-    # gather_labels(replicate_1_dir)
-    # gather_labels(replicate_2_dir)
-
-    # get_all_bioval(
-    #     replicate_1_dir, replicate_2_dir, 
-    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
-    #     rnaseq=None)
-
-    # replicate_1_dir = "tests/cedar_runs/segway/MCF7_R1/"
-    # replicate_2_dir = "tests/cedar_runs/segway/MCF7_R2/"
-    # get_all_ct(replicate_1_dir, replicate_2_dir)
-    # get_all_labels(replicate_1_dir, replicate_2_dir)
-    # gather_labels(replicate_1_dir)
-    # gather_labels(replicate_2_dir)
-
-    # replicate_1_dir = "tests/cedar_runs/chmm/GM12878_R1/"
-    # replicate_2_dir = "tests/cedar_runs/chmm/GM12878_R2/"
-    # get_all_ct(replicate_1_dir, replicate_2_dir)
-    # get_all_labels(replicate_1_dir, replicate_2_dir)
-    # gather_labels(replicate_1_dir)
-    # gather_labels(replicate_2_dir)
-
-    # replicate_1_dir = "tests/cedar_runs/segway/GM12878_R1/"
-    # replicate_2_dir = "tests/cedar_runs/segway/GM12878_R2/"
-    # get_all_ct(replicate_1_dir, replicate_2_dir)
-    # get_all_labels(replicate_1_dir, replicate_2_dir)
-    # gather_labels(replicate_1_dir)
-    # gather_labels(replicate_2_dir)
