@@ -1,7 +1,7 @@
 from reports import *
 import multiprocessing as mp
 
-def r1vsr2(maindir="runs012023"):
+def r1vsr2(maindir="runs012023_subset"):
     ################### Rep1 vs Rep2 ###################
         ######## GM12878 ########
     
@@ -92,7 +92,7 @@ def r1vsr2(maindir="runs012023"):
         ]
     return listofruns
 
-def concat(maindir="runs012023"):
+def concat(maindir="runs012023_subset"):
     if os.path.exists(maindir)==False:
         os.mkdir(maindir)
     
@@ -178,7 +178,7 @@ def concat(maindir="runs012023"):
     ]
     return listofruns
 
-def paraminit(maindir="runs012023"):
+def paraminit(maindir="runs012023_subset"):
     if os.path.exists(maindir)==False:
         os.mkdir(maindir)
     
@@ -281,7 +281,7 @@ def run(param_dict):
     )
     print("\n")
 
-def m_p(nt=7):
+def m_p(nt=10):
     pool = mp.Pool(nt)
     _ = pool.map(run, r1vsr2())
     _ = pool.map(run, concat())
