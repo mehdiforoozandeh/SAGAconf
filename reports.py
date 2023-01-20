@@ -652,21 +652,21 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     if os.path.exists(savedir)==False:
         os.mkdir(savedir)
 
-    # get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
-    # get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
+    get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
+    get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
 
-    # get_all_bioval(
-    #     replicate_1_dir, replicate_2_dir, 
-    #     savedir,
-    #     genecode_dir=genecode_dir, 
-    #     rnaseq=rnaseq)
+    get_all_bioval(
+        replicate_1_dir, replicate_2_dir, 
+        savedir,
+        genecode_dir=genecode_dir, 
+        rnaseq=rnaseq)
     
-    # get_overalls(replicate_1_dir, replicate_2_dir, savedir)
+    get_overalls(replicate_1_dir, replicate_2_dir, savedir)
 
-    # if contour:
-    #     get_contour(replicate_1_dir, replicate_2_dir, savedir=replicate_1_dir)
+    if contour:
+        get_contour(replicate_1_dir, replicate_2_dir, savedir=replicate_1_dir)
 
-    # gather_labels(replicate_1_dir, savedir)
+    gather_labels(replicate_1_dir, savedir)
 
 if __name__=="__main__":    
 
