@@ -476,7 +476,7 @@ def label_merging_progression(loci_1, loci_2, savedir):
         plt.close("all")
         plt.style.use('default')
 
-def get_all_labels(replicate_1_dir, replicate_2_dir):
+def get_all_labels(replicate_1_dir, replicate_2_dir, savedir):
     """
     -single granularity
     -single prog
@@ -489,26 +489,20 @@ def get_all_labels(replicate_1_dir, replicate_2_dir):
 
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
-    label_granularity(loci1, loci2, replicate_1_dir)
-    label_merging_progression(loci1, loci2, replicate_1_dir)
-    label_boundary(loci1, loci2, replicate_1_dir, match_definition="BM", max_distance=50)
+    label_granularity(loci1, loci2, savedir)
+    label_merging_progression(loci1, loci2, savedir)
+    label_boundary(loci1, loci2, savedir, match_definition="BM", max_distance=50)
 
-    label_granularity(loci2, loci1, replicate_2_dir)
-    label_merging_progression(loci2, loci1, replicate_2_dir)
-    label_boundary(loci2, loci1, replicate_2_dir, match_definition="BM", max_distance=50)
-
-def get_all_ct(replicate_1_dir, replicate_2_dir):
+def get_all_ct(replicate_1_dir, replicate_2_dir, savedir):
     loci1, loci2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
         replicate_2_dir+"/parsed_posterior.csv",
         subset=True, logit_transform=True)
 
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=True)
-    ct_confus(loci1, loci2, replicate_1_dir)
-    ct_confus(loci2, loci1, replicate_2_dir)
+    ct_confus(loci1, loci2, savedir)
 
-    ct_lable_calib(loci1, loci2, replicate_1_dir)
-    ct_lable_calib(loci2, loci1, replicate_2_dir)
+    ct_lable_calib(loci1, loci2, savedir)
 
     loci1, loci2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
@@ -516,23 +510,21 @@ def get_all_ct(replicate_1_dir, replicate_2_dir):
         subset=True)
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
-    ct_granul(loci1, loci2, replicate_1_dir)
-    ct_granul(loci2, loci1, replicate_2_dir)
+    ct_granul(loci1, loci2, savedir)
 
-    ct_boundar(loci1, loci2, replicate_1_dir, match_definition="BM", max_distance=50)
-    ct_boundar(loci2, loci1, replicate_2_dir, match_definition="BM", max_distance=50)
+    ct_boundar(loci1, loci2, savedir, match_definition="BM", max_distance=30)
 
-def gather_labels(savedir):
+def gather_labels(original_ct_dir, savedir):
     
     print("loading mnemonics...")
     if os.path.exists(
-        "/".join(savedir.split("/")[:-1])+"/mnemonics_rep1.txt"):
+        "/".join(original_ct_dir.split("/")[:-1])+"/mnemonics_rep1.txt"):
 
         print("reading concat mnemonics")
-        loci_1_mnemon = read_mnemonics("/".join(savedir.split("/")[:-1])+"/mnemonics_rep1.txt")
+        loci_1_mnemon = read_mnemonics("/".join(original_ct_dir.split("/")[:-1])+"/mnemonics_rep1.txt")
     else:
         print("reading mnemonics")
-        loci_1_mnemon = read_mnemonics("/".join(savedir.split("/")[:-1])+"/mnemonics.txt")
+        loci_1_mnemon = read_mnemonics("/".join(original_ct_dir.split("/")[:-1])+"/mnemonics.txt")
 
     mnemon1_dict = {}
     for i in loci_1_mnemon:
@@ -580,7 +572,7 @@ def gather_labels(savedir):
                     "cp {} {}".format(savedir+"/contours/"+f, savedir+"/labels/"+k)
                     )
 
-def get_all_bioval(replicate_1_dir, replicate_2_dir, genecode_dir, rnaseq=None):
+def get_all_bioval(replicate_1_dir, replicate_2_dir, savedir, genecode_dir, rnaseq=None):
     loci1, loci2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
         replicate_2_dir+"/parsed_posterior.csv",
@@ -601,19 +593,14 @@ def get_all_bioval(replicate_1_dir, replicate_2_dir, genecode_dir, rnaseq=None):
         trans_data_notexp.TPM = np.log10(trans_data_notexp.TPM)
         trans_data.TPM = np.log10(trans_data.TPM)
 
-        plot_general_transc(loci1, trans_data_exp, savedir=replicate_1_dir+"/general_transc_exp", exp=True)
-        plot_general_transc(loci1, trans_data_notexp, savedir=replicate_1_dir+"/general_transc_notexp", exp=False)
+        plot_general_transc(loci1, trans_data_exp, savedir=savedir+"/general_transc_exp", exp=True)
+        plot_general_transc(loci1, trans_data_notexp, savedir=savedir+"/general_transc_notexp", exp=False)
 
-        plot_general_transc(loci2, trans_data_exp, savedir=replicate_2_dir+"/general_transc_exp", exp=True)
-        plot_general_transc(loci2, trans_data_notexp, savedir=replicate_2_dir+"/general_transc_notexp", exp=False)
+        posterior_transcription_correlation(loci1, trans_data, savedir=savedir+"/trans_post_correl")
 
-        posterior_transcription_correlation(loci1, trans_data, savedir=replicate_1_dir+"/trans_post_correl")
-        posterior_transcription_correlation(loci2, trans_data, savedir=replicate_2_dir+"/trans_post_correl")
+    overal_TSS_enrichment(loci1, savedir+"/tss_enr")
 
-    overal_TSS_enrichment(loci1, replicate_1_dir+"/tss_enr")
-    overal_TSS_enrichment(loci2, replicate_2_dir+"/tss_enr")
-
-def get_overalls(replicate_1_dir, replicate_2_dir):
+def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
     loci1, loci2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
         replicate_2_dir+"/parsed_posterior.csv",
@@ -623,7 +610,7 @@ def get_overalls(replicate_1_dir, replicate_2_dir):
     
     ###################################################################################################################
     bool_reprod_report = is_reproduced(loci1, loci2, enr_threshold=2, window_bp=1000)
-    bool_reprod_report.to_csv(replicate_1_dir+"/boolean_reproducibility_report.csv")
+    bool_reprod_report.to_csv(savedir+"/boolean_reproducibility_report.csv")
 
     general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
     perlabel_rec = {}
@@ -631,13 +618,13 @@ def get_overalls(replicate_1_dir, replicate_2_dir):
     for k, v in lab_rep.items():
         perlabel_rec[k] = v[0]/ (v[0]+v[1])
 
-    with open(replicate_1_dir+"/general_reproducibility_score.txt", "w") as scorefile:
+    with open(savedir+"/general_reproducibility_score.txt", "w") as scorefile:
         scorefile.write("general reprod score = ".format(general_rep_score))
         for k, v in perlabel_rec.items():
              scorefile.write("{} reprod score = {}".format(k, str(v)))
 
     bool_reprod_report = is_reproduced_posterior(loci1, loci2, enr_threshold=2, window_bp=1000)
-    bool_reprod_report.to_csv(replicate_1_dir+"/boolean_reproducibility_report_POSTERIOR.csv")
+    bool_reprod_report.to_csv(savedir+"/boolean_reproducibility_report_POSTERIOR.csv")
 
     general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
     perlabel_rec = {}
@@ -645,66 +632,41 @@ def get_overalls(replicate_1_dir, replicate_2_dir):
     for k, v in lab_rep.items():
         perlabel_rec[k] = v[0]/ (v[0]+v[1])
 
-    with open(replicate_1_dir+"/general_reproducibility_score_POSTERIOR.txt", "w") as scorefile:
-        scorefile.write("general reprod score = ".format(general_rep_score))
-        for k, v in perlabel_rec.items():
-             scorefile.write("{} reprod score = {}".format(k, str(v)))
-
-    ###################################################################################################################
-    bool_reprod_report = is_reproduced(loci2, loci1, enr_threshold=2, window_bp=1000)
-    bool_reprod_report.to_csv(replicate_2_dir+"/boolean_reproducibility_report.csv")
-
-    general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
-    perlabel_rec = {}
-    lab_rep = perlabel_is_reproduced(bool_reprod_report, loci1)
-    for k, v in lab_rep.items():
-        perlabel_rec[k] = v[0]/ (v[0]+v[1])
-
-    with open(replicate_2_dir+"/general_reproducibility_score.txt", "w") as scorefile:
-        scorefile.write("general reprod score = ".format(general_rep_score))
-        for k, v in perlabel_rec.items():
-             scorefile.write("{} reprod score = {}".format(k, str(v)))
-
-    bool_reprod_report = is_reproduced_posterior(loci2, loci1, enr_threshold=2, window_bp=1000)
-    bool_reprod_report.to_csv(replicate_2_dir+"/boolean_reproducibility_report_POSTERIOR.csv")
-
-    general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
-    perlabel_rec = {}
-    lab_rep = perlabel_is_reproduced(bool_reprod_report, loci1)
-    for k, v in lab_rep.items():
-        perlabel_rec[k] = v[0]/ (v[0]+v[1])
-
-    with open(replicate_2_dir+"/general_reproducibility_score_POSTERIOR.txt", "w") as scorefile:
+    with open(savedir+"/general_reproducibility_score_POSTERIOR.txt", "w") as scorefile:
         scorefile.write("general reprod score = ".format(general_rep_score))
         for k, v in perlabel_rec.items():
              scorefile.write("{} reprod score = {}".format(k, str(v)))
     
-def get_contour(replicate_1_dir, replicate_2_dir):
+def get_contour(replicate_1_dir, replicate_2_dir, savedir):
     loci1, loci2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
         replicate_2_dir+"/parsed_posterior.csv",
         subset=True, logit_transform=True)
 
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
-    contour_isrep(loci1, loci2, replicate_1_dir, posterior=True, raw_overlap_axis=False)
-    contour_isrep(loci2, loci1, replicate_2_dir, posterior=True, raw_overlap_axis=False)
+    contour_isrep(loci1, loci2, savedir, posterior=True, raw_overlap_axis=True)
+    contour_isrep(loci2, loci1, savedir, posterior=True, raw_overlap_axis=True)
 
-def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, rnaseq=None, contour=True):
-    get_all_ct(replicate_1_dir, replicate_2_dir)
-    get_all_labels(replicate_1_dir, replicate_2_dir)
+def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, contour=True):
+    print(replicate_1_dir, replicate_2_dir, genecode_dir, savedir)
+    if os.path.exists(savedir)==False:
+        os.mkdir(savedir)
 
-    get_all_bioval(
-        replicate_1_dir, replicate_2_dir, 
-        genecode_dir=genecode_dir, 
-        rnaseq=rnaseq)
+    # get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
+    # get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
+
+    # get_all_bioval(
+    #     replicate_1_dir, replicate_2_dir, 
+    #     savedir,
+    #     genecode_dir=genecode_dir, 
+    #     rnaseq=rnaseq)
     
-    get_overalls(replicate_1_dir, replicate_2_dir)
+    # get_overalls(replicate_1_dir, replicate_2_dir, savedir)
 
-    if contour:
-        get_contour(replicate_1_dir, replicate_2_dir)
+    # if contour:
+    #     get_contour(replicate_1_dir, replicate_2_dir, savedir=replicate_1_dir)
 
-    gather_labels(replicate_1_dir)
-    gather_labels(replicate_2_dir)
+    # gather_labels(replicate_1_dir, savedir)
 
 if __name__=="__main__":    
 

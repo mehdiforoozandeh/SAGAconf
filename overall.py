@@ -63,29 +63,51 @@ def is_reproduced(loci_1, loci_2, enr_threshold=3, window_bp=500, raw_overlap_ax
     # print(len(reprod_report.loc[reprod_report["is_repr"]==True])/ len(reprod_report))
     return reprod_report
 
-def calibrate(vector_1, MAP2, k, strat_size="def"):
+def calibrate(vector_1, MAP2, k, window_bin, strat_size="def", num_bins=500, allow_w=True):
     """
     sort based on v1
     for t in range(len(v1)):
         if map2[t] 
     """
+
     if strat_size == "def":
-        strat_size = int(len(vector_1)/500)
+        strat_size = int(len(vector_1)/num_bins)
 
     coverage_2 = len(MAP2.loc[MAP2 == k]) / len(MAP2)
     vector_pair = pd.concat([vector_1, MAP2], axis=1)
 
     vector_pair.columns=["pv1", "map2"]
-    vector_pair = vector_pair.sort_values("pv1").reset_index(drop=True)
+    MAP2 = list(MAP2)
+    
+    if allow_w:
+        vector_pair = vector_pair.sort_values("pv1").reset_index()
 
-    vector_1 = vector_pair.loc[:, "pv1"]
-    MAP2 = vector_pair.loc[:, "map2"]
-
+    else:
+        vector_pair = vector_pair.sort_values("pv1").reset_index(drop=True)
+    
     bins = []
     for b in range(0, vector_pair.shape[0], strat_size):
-        subset_vector_pair = vector_pair.iloc[b:b+strat_size, :]
         # [bin_start, bin_end, num_values_in_bin, num_agreement, num_mislabeled, ratio_agreement]
-        observed = len(subset_vector_pair.loc[subset_vector_pair["map2"] == k])
+
+        if allow_w:
+            subset_vector_pair = vector_pair.iloc[b:b+strat_size, :]
+            subset_vector_pair = subset_vector_pair.reset_index(drop=True)
+            
+            observed = 0
+            for i in range(len(subset_vector_pair)):
+      
+                leftmost = max(0, subset_vector_pair["index"][i] - window_bin)
+                rightmost = min(len(MAP2), subset_vector_pair["index"][i] + window_bin)
+
+                neighbors_i = MAP2[leftmost:rightmost]
+
+                if k in neighbors_i:
+                    observed += 1
+
+        else:
+            subset_vector_pair = vector_pair.iloc[b:b+strat_size, :]
+            observed = len(subset_vector_pair.loc[subset_vector_pair["map2"] == k])
+
         expected = (coverage_2 * len(subset_vector_pair))
 
         if observed!=0:
@@ -124,7 +146,7 @@ def calibrate(vector_1, MAP2, k, strat_size="def"):
     # plt.show()
     return polyreg
         
-def is_reproduced_posterior(loci_1, loci_2, enr_threshold=2, window_bp=500):
+def is_reproduced_posterior(loci_1, loci_2, enr_threshold=2, window_bp=500, raw_overlap_axis=False, numbins=100, allow_w=True):
     """
     get enr_ovr matrix
     get MAPs
@@ -149,6 +171,7 @@ def is_reproduced_posterior(loci_1, loci_2, enr_threshold=2, window_bp=500):
     MAP1 = loci_1.iloc[:,3:].idxmax(axis=1) # MAP label 1
     
     MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
+    
 
     calibration_funcs = {}
     for i in range(len(loci_1.columns[3:])):
@@ -162,15 +185,27 @@ def is_reproduced_posterior(loci_1, loci_2, enr_threshold=2, window_bp=500):
 
                 calibration_funcs[loci_1.columns[3:][i]][loci_2.columns[3:][j]] = \
                     calibrate(
-                        loci_1.loc[:, loci_1.columns[3:][i]], MAP2, 
-                        k=loci_2.columns[3:][j])
+                        loci_1.loc[:, loci_1.columns[3:][i]], MAP2,
+                        k=loci_2.columns[3:][j], num_bins=numbins, allow_w=allow_w, window_bin=window_bin)
 
     posterior_enrichment = []
+    # coverage_1 = {k:float(len(MAP1.loc[MAP1 == k]) / len(MAP2)) for k in MAP1.unique()}
+    coverage_2 = {k:float(len(MAP2.loc[MAP2 == k]) / len(MAP2)) for k in MAP2.unique()}
 
-    for t in range(len(loci_1)):
-        posterior_enrichment.append(
-            calibration_funcs[MAP1[t]][MAP2[t]].predict(
-                np.reshape(np.array(MP1[t]), (1,1)))[0])
+
+    for t in range(len(loci_1)): 
+        enr_val =calibration_funcs[MAP1[t]][MAP2[t]].predict(np.reshape(np.array(MP1[t]), (1,1)))[0]
+
+        if raw_overlap_axis:
+            batchsize = int(len(loci_1)/numbins)
+            e = coverage_2[MAP2[t]] * batchsize
+
+            overlap_ratio = (np.exp(enr_val)*e) / batchsize
+            
+            posterior_enrichment.append(overlap_ratio)
+
+        else:
+            posterior_enrichment.append(enr_val)
             
     posterior_enrichment = np.array(posterior_enrichment)
     # print(posterior_enrichment)
@@ -262,17 +297,27 @@ def max_posterior_to_repr_score(loci_1, reprod_report):
 
     return pcorrel, scorrel
 
-def contour_isrep(loci1, loci2, savedir, posterior=True, raw_overlap_axis=False):
+def contour_isrep(loci1, loci2, savedir, posterior=True, raw_overlap_axis=True):
     rec = []
     perlabel_rec = {k:[] for k in loci1.columns[3:]}
 
-    for w in range(100, 3000, 150):
-        for t in range(0, 225, 15):
-            thresh = float(t)/100
+    if raw_overlap_axis:
+        t_range = [0, 120, 20]
+    else:
+        t_range = [0, 300, 50]
+
+    for w in range(100, 3100, 600):
+        for t in range(t_range[0], t_range[1], t_range[2]):
+
+            thresh = float(t)/100   
             if posterior:
-                reprod_report = is_reproduced_posterior(loci1, loci2, enr_threshold=thresh, window_bp=w)
+                reprod_report = is_reproduced_posterior(
+                    loci1, loci2, enr_threshold=thresh, window_bp=w, 
+                    raw_overlap_axis=raw_overlap_axis, allow_w=True)
             else:
-                reprod_report = is_reproduced(loci1, loci2, enr_threshold=thresh, window_bp=w, raw_overlap_axis=raw_overlap_axis)
+                reprod_report = is_reproduced(
+                    loci1, loci2, enr_threshold=thresh, window_bp=w, 
+                    raw_overlap_axis=raw_overlap_axis)
 
             score = len(reprod_report.loc[reprod_report["is_repr"]==True])/ len(reprod_report)
             rec.append([w, thresh, score])
@@ -297,7 +342,11 @@ def contour_isrep(loci1, loci2, savedir, posterior=True, raw_overlap_axis=False)
     plt.contourf(X, Y, Z, cmap='RdGy_r')
     plt.colorbar()
 
-    plt.ylabel("Enrichment of Overlap threshold")
+    if raw_overlap_axis:
+        plt.ylabel("Overlap threshold")
+    else:
+        plt.ylabel("Enrichment of Overlap threshold")
+
     plt.xlabel("Window")
     plt.xticks(rotation=45, fontsize=7)
     plt.title("Reproducibility Contour -- General")
@@ -327,7 +376,11 @@ def contour_isrep(loci1, loci2, savedir, posterior=True, raw_overlap_axis=False)
         plt.contourf(X, Y, Z, cmap='RdGy_r')
         plt.colorbar()
 
-        plt.ylabel("Enrichment of Overlap threshold")
+        if raw_overlap_axis:
+            plt.ylabel("Overlap threshold")
+        else:
+            plt.ylabel("Enrichment of Overlap threshold")
+
         plt.xlabel("Window")
         plt.xticks(rotation=45, fontsize=7)
         plt.title("Reproducibility Contour -- {}".format(k))
@@ -335,27 +388,3 @@ def contour_isrep(loci1, loci2, savedir, posterior=True, raw_overlap_axis=False)
         plt.savefig('{}/reprod_contour_{}.pdf'.format(savedir+"/contours", k), format='pdf')
         plt.savefig('{}/reprod_contour_{}.svg'.format(savedir+"/contours", k), format='svg')
         plt.clf()
-
-# if __name__=="__main__":
-#     replicate_1_dir = "tests/cedar_runs/segway/GM12878_R1/"
-#     replicate_2_dir = "tests/cedar_runs/segway/GM12878_R2/"
-
-#     loci1, loci2 = load_data(
-#         replicate_1_dir+"/parsed_posterior.csv",
-#         replicate_2_dir+"/parsed_posterior.csv",
-#         subset=True, logit_transform=True)
-
-#     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
-#     # reprep = is_reproduced_posterior(loci1, loci2, enr_threshold=2, window_bp=500)
-#     # lab_rep = perlabel_is_reproduced(reprep, loci1)
-
-#     # for k,v in lab_rep.items():
-#     #     print(k, v[0]/ (v[0]+v[1]))
-
-#     contour_isrep(loci1, loci2, replicate_1_dir, posterior=False)
-
-#     reprep = reprod_score(loci1, loci2, window_bp=500)
-#     max_posterior_to_repr_score(loci1, loci2, reprep)
-
-    # is_reproduced(loci1, loci2, enr_threshold=2, window_bp=500)
-
