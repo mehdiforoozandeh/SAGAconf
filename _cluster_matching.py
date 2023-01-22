@@ -87,6 +87,8 @@ def enrichment_of_overlap_matrix(loci_1, loci_2, OE_transform=True):
         )
     
     else:
+        for k in oo_mat.index:
+            oo_mat.loc[k, :] = oo_mat.loc[k, :] / (coverage1[k]*len(loci_1))
         return oo_mat
     
 def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, symmetric=False):
