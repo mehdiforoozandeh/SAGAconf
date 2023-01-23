@@ -21,7 +21,8 @@ def is_reproduced(loci_1, loci_2, enr_threshold=3, window_bp=500, raw_overlap_ax
     window_bin = math.ceil(window_bp/resolution)
 
     if raw_overlap_axis:
-        enr_ovr = enrichment_of_overlap_matrix(loci_1, loci_2, OE_transform=False) / len(loci_1)
+        enr_ovr = enrichment_of_overlap_matrix(loci_1, loci_2, OE_transform=False)
+
     else:
         enr_ovr = enrichment_of_overlap_matrix(loci_1, loci_2, OE_transform=True)
 
@@ -41,16 +42,19 @@ def is_reproduced(loci_1, loci_2, enr_threshold=3, window_bp=500, raw_overlap_ax
         statement2 = bool(MAP2[t] in above_threshold_match[MAP1[t]])
         statement3 = False
         
-        for w in range(1, window_bin+1):
-            if (t - w) >= 0 and (t + w) <= len(MAP1)-1 :
+        leftmost = max(0, (t - window_bin))
+        rightmost = min(len(MAP1), (t + window_bin))
 
-                if MAP2[t-w] == best_match[MAP1[t]] or \
-                    MAP2[t-w] in above_threshold_match[MAP1[t]] or \
-                        MAP2[t+w] == best_match[MAP1[t]] or \
-                            MAP2[t+w] in above_threshold_match[MAP1[t]]:
+        window_around_t = MAP2[leftmost:rightmost]
 
-                                statement3 = True
-
+        if best_match[MAP1[t]] in list(window_around_t):
+            reprod_report[t][3] = True
+            
+        elif len(list(set(list(window_around_t)) & set(above_threshold_match[MAP1[t]]))) > 0:
+            statement3 = True
+        
+        else:
+            statement3 = False
 
         if statement1 or statement2 or statement3:
             reprod_report[t][3] = True
@@ -304,7 +308,7 @@ def contour_isrep(loci1, loci2, savedir, posterior=True, raw_overlap_axis=True):
     if raw_overlap_axis:
         t_range = [0, 120, 20]
     else:
-        t_range = [0, 300, 50]
+        t_range = [0, 400, 80]
 
     for w in range(100, 3100, 600):
         for t in range(t_range[0], t_range[1], t_range[2]):
@@ -361,6 +365,7 @@ def contour_isrep(loci1, loci2, savedir, posterior=True, raw_overlap_axis=True):
 
     for k in perlabel_rec.keys():
         rec = np.array(perlabel_rec[k])
+
         x, y, z = rec[:,0], rec[:,1], rec[:,2]
         X, Y = np.meshgrid(x, y)
 

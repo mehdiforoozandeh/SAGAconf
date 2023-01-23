@@ -644,8 +644,9 @@ def get_contour(replicate_1_dir, replicate_2_dir, savedir):
         subset=True, logit_transform=True)
 
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+
     contour_isrep(loci1, loci2, savedir, posterior=True, raw_overlap_axis=True)
-    contour_isrep(loci2, loci1, savedir, posterior=True, raw_overlap_axis=True)
+
 
 def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, contour=True):
     print(replicate_1_dir, replicate_2_dir, genecode_dir, savedir)
@@ -664,7 +665,7 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     get_overalls(replicate_1_dir, replicate_2_dir, savedir)
 
     if contour:
-        get_contour(replicate_1_dir, replicate_2_dir, savedir=replicate_1_dir)
+        get_contour(replicate_1_dir, replicate_2_dir, savedir)
 
     gather_labels(replicate_1_dir, savedir)
 
@@ -674,4 +675,5 @@ if __name__=="__main__":
         replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
         replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
         genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
-        rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv")
+        rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
+        savedir="tests/cedar_runs/chmm/GM12878_R1/")
