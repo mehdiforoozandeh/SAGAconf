@@ -647,26 +647,27 @@ def get_contour(replicate_1_dir, replicate_2_dir, savedir):
 
     contour_isrep(loci1, loci2, savedir, posterior=True, raw_overlap_axis=True)
 
+
 def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, contour=True):
-    # print(replicate_1_dir, replicate_2_dir, genecode_dir, savedir)
-    # if os.path.exists(savedir)==False:
-    #     os.mkdir(savedir)
+    print(replicate_1_dir, replicate_2_dir, genecode_dir, savedir)
+    if os.path.exists(savedir)==False:
+        os.mkdir(savedir)
 
-    # get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
-    # get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
+    get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
+    get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
 
-    # get_all_bioval(
-    #     replicate_1_dir, replicate_2_dir, 
-    #     savedir,
-    #     genecode_dir=genecode_dir, 
-    #     rnaseq=rnaseq)
+    get_all_bioval(
+        replicate_1_dir, replicate_2_dir, 
+        savedir,
+        genecode_dir=genecode_dir, 
+        rnaseq=rnaseq)
     
-    # get_overalls(replicate_1_dir, replicate_2_dir, savedir)
+    get_overalls(replicate_1_dir, replicate_2_dir, savedir)
 
     if contour:
         get_contour(replicate_1_dir, replicate_2_dir, savedir)
 
-    # gather_labels(replicate_1_dir, savedir)
+    gather_labels(replicate_1_dir, savedir)
 
 if __name__=="__main__":    
 
