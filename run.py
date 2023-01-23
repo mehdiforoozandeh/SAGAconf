@@ -1,4 +1,4 @@
-from signal import SIG_DFL
+
 from _utils import *
 from _pipeline import *
 from _reproducibility import *
@@ -13,7 +13,7 @@ import glob, os
 import multiprocessing as mp
 from functools import partial
 import matplotlib
-from pseudoreplicate import *
+
 '''
 
 In this file, the step-by-step execution of analysis-funcitons will be managed.
@@ -192,20 +192,20 @@ def bamtobed(download_dir):
                     )
                     print("converted ", ct+"/"+ass+'/'+bm, "->", ct+"/"+ass+'/'+bm.replace(".bam", '.bed'))
 
-def make_pseudo_replicates(celltype_dir, m_p=True, num_threads=4):
-    to_do_bams = []
-    tracks = [tr for tr in os.listdir(celltype_dir) if os.path.isdir(celltype_dir+'/'+tr)]
-    for tr in tracks:
-        bams = [celltype_dir+'/'+tr+"/"+bm for bm in os.listdir(celltype_dir+'/'+tr) if ".bam" in bm]
-        to_do_bams = to_do_bams + bams
+# def make_pseudo_replicates(celltype_dir, m_p=True, num_threads=4):
+#     to_do_bams = []
+#     tracks = [tr for tr in os.listdir(celltype_dir) if os.path.isdir(celltype_dir+'/'+tr)]
+#     for tr in tracks:
+#         bams = [celltype_dir+'/'+tr+"/"+bm for bm in os.listdir(celltype_dir+'/'+tr) if ".bam" in bm]
+#         to_do_bams = to_do_bams + bams
 
-    print(to_do_bams)
-    if m_p:
-        p_obj = mp.Pool(num_threads)
-        p_obj.map(psdrep_pipeline, to_do_bams)
-    else:
-        for bm in to_do_bams:
-            psdrep_pipeline(bm)
+#     print(to_do_bams)
+#     if m_p:
+#         p_obj = mp.Pool(num_threads)
+#         p_obj.map(psdrep_pipeline, to_do_bams)
+#     else:
+#         for bm in to_do_bams:
+#             psdrep_pipeline(bm)
 
 
 def create_genomedata(celltype_dir, sequence_file):
@@ -810,12 +810,12 @@ def get_short_report(replicate_1_dir, replicate_2_dir, outdir, type="chmm", mnem
     confmat_raw = confusion_matrix(
         loci_1, loci_2, num_labels, 
         OE_transform=False, symmetric=False)
-    plot_heatmap(confmat_raw, outdir, type="RawOverlapMatrix", columns=[list(loci_1.columns[3:]), list(loci_2.columns[3:])])
+    # plot_heatmap(confmat_raw, outdir, type="RawOverlapMatrix", columns=[list(loci_1.columns[3:]), list(loci_2.columns[3:])])
 
     confmat_OE = confusion_matrix(
         loci_1, loci_2, num_labels, 
         OE_transform=True, symmetric=False)    
-    plot_heatmap(confmat_OE, outdir, type="log_OE_OverlapMatrix", columns=[list(loci_1.columns[3:]), list(loci_2.columns[3:])])
+    # plot_heatmap(confmat_OE, outdir, type="log_OE_OverlapMatrix", columns=[list(loci_1.columns[3:]), list(loci_2.columns[3:])])
 
     assignment_pairs = Hungarian_algorithm(confmat_OE, conf_or_dis='conf')
     new_columns = ["{}|{}".format(c[0], c[1]) for c in assignment_pairs]
@@ -871,8 +871,8 @@ def get_short_report(replicate_1_dir, replicate_2_dir, outdir, type="chmm", mnem
         OE_transform=False, symmetric=False)  
 
     
-    plot_heatmap(confmat_raw_matched, outdir, type="RawOverlapMatrix_matched", columns=[new_columns,new_columns])
-    plot_heatmap(confmat_OE_matched, outdir, type="logOEOverlapMatrix_matched", columns=[new_columns,new_columns])
+    # plot_heatmap(confmat_raw_matched, outdir, type="RawOverlapMatrix_matched", columns=[new_columns,new_columns])
+    # plot_heatmap(confmat_OE_matched, outdir, type="logOEOverlapMatrix_matched", columns=[new_columns,new_columns])
 
     agreement_report_1 = {}
     agreement_report_2 = {}
