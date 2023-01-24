@@ -229,35 +229,35 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
         count_unmatched_boundaries[k] = 0
 
     for i in range(len(MAP1)-1):
-        if MAP1[i] != MAP1[i+1]: 
-            #this means transition
-            """
-            now check how far should we go from point i in the other replicate to see a good match.
-            """
-            if MAP2[i] not in per_label_matches[MAP1[i]]:
-                matched = False
-                dist = 0
-                while matched == False and dist<max_distance:
-                    if i + (-1*dist) >= 0:
-                        if MAP2[i + (-1*dist)] in per_label_matches[MAP1[i]]:
-                            matched = True
+        # if MAP1[i] != MAP1[i+1]: 
+        #this means transition
+        """
+        now check how far should we go from point i in the other replicate to see a good match.
+        """
+        if MAP2[i] not in per_label_matches[MAP1[i]]:
+            matched = False
+            dist = 0
+            while matched == False and dist<max_distance:
+                if i + (-1*dist) >= 0:
+                    if MAP2[i + (-1*dist)] in per_label_matches[MAP1[i]]:
+                        matched = True
 
-                    if i + dist < len(MAP2):
-                        if MAP2[i + dist] in per_label_matches[MAP1[i]]:
-                            matched = True
+                if i + dist < len(MAP2):
+                    if MAP2[i + dist] in per_label_matches[MAP1[i]]:
+                        matched = True
 
-                    if matched==False:
-                        dist += 1
+                if matched==False:
+                    dist += 1
 
-                if matched==True:
-                    boundary_distances[MAP1[i]].append(dist)
+            if matched==True:
+                boundary_distances[MAP1[i]].append(dist)
 
-                else:  
-                    count_unmatched_boundaries[MAP1[i]] += 1
+            else:  
+                count_unmatched_boundaries[MAP1[i]] += 1
 
-        
-            else:
-                boundary_distances[MAP1[i]].append(0)
+    
+        else:
+            boundary_distances[MAP1[i]].append(0)
 
     #========================================================================================#
     # plot histograms
@@ -288,9 +288,9 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
             
             axs[i, j].plot(list(matched_hist[1][:-1]*resolution), list(cdf), color="black", label="distance from boundary")
             
-            lendist = get_ecdf_for_label(loci_1, k, max=(max_distance+1)*resolution)
-            if len(lendist)>0:
-                sns.ecdfplot(lendist, ax=axs[i, j], color="red")
+            # lendist = get_ecdf_for_label(loci_1, k, max=(max_distance+1)*resolution)
+            # if len(lendist)>0:
+            #     sns.ecdfplot(lendist, ax=axs[i, j], color="red")
 
             axs[i, j].set_xticks(np.arange(0, (max_distance+1)*resolution, step=5*resolution))
             axs[i, j].tick_params(axis='both', labelsize=7)
@@ -393,35 +393,36 @@ def label_boundary(loci_1, loci_2, savedir, match_definition="BM", max_distance=
         count_unmatched_boundaries[k] = 0
 
     for i in range(len(MAP1)-1):
-        if MAP1[i] != MAP1[i+1]: 
-            #this means transition
-            """
-            now check how far should we go from point i in the other replicate to see a good match.
-            """
-            if MAP2[i] not in per_label_matches[MAP1[i]]:
-                matched = False
-                dist = 0
-                while matched == False and dist<max_distance:
-                    if i + (-1*dist) >= 0:
-                        if MAP2[i + (-1*dist)] in per_label_matches[MAP1[i]]:
-                            matched = True
+        # if MAP1[i] != MAP1[i+1]: 
 
-                    if i + dist < len(MAP2):
-                        if MAP2[i + dist] in per_label_matches[MAP1[i]]:
-                            matched = True
+        #this means transition
+        """
+        now check how far should we go from point i in the other replicate to see a good match.
+        """
+        if MAP2[i] not in per_label_matches[MAP1[i]]:
+            matched = False
+            dist = 0
+            while matched == False and dist<max_distance:
+                if i + (-1*dist) >= 0:
+                    if MAP2[i + (-1*dist)] in per_label_matches[MAP1[i]]:
+                        matched = True
 
-                    if matched==False:
-                        dist += 1
+                if i + dist < len(MAP2):
+                    if MAP2[i + dist] in per_label_matches[MAP1[i]]:
+                        matched = True
 
-                if matched==True:
-                    boundary_distances[MAP1[i]].append(dist)
+                if matched==False:
+                    dist += 1
 
-                else:  
-                    count_unmatched_boundaries[MAP1[i]] += 1
+            if matched==True:
+                boundary_distances[MAP1[i]].append(dist)
 
-        
-            else:
-                boundary_distances[MAP1[i]].append(0)
+            else:  
+                count_unmatched_boundaries[MAP1[i]] += 1
+
+    
+        else:
+            boundary_distances[MAP1[i]].append(0)
 
     #========================================================================================#
     # plot histograms
@@ -442,9 +443,9 @@ def label_boundary(loci_1, loci_2, savedir, match_definition="BM", max_distance=
         
         plt.plot(list(matched_hist[1][:-1]*resolution), list(cdf), color="black", label="distance from boundary")
         
-        lendist = get_ecdf_for_label(loci_1, k, max=(max_distance+1)*resolution)
-        if len(lendist)>0:
-            sns.ecdfplot(lendist, color="red")
+        # lendist = get_ecdf_for_label(loci_1, k, max=(max_distance+1)*resolution)
+        # if len(lendist)>0:
+        #     sns.ecdfplot(lendist, color="red")
 
         plt.xticks(np.arange(0, (max_distance+1)*resolution, step=5*resolution))
         plt.tick_params(axis='both', labelsize=7)
@@ -647,7 +648,6 @@ def get_contour(replicate_1_dir, replicate_2_dir, savedir):
 
     contour_isrep(loci1, loci2, savedir, posterior=True, raw_overlap_axis=True)
 
-
 def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, contour=True):
     print(replicate_1_dir, replicate_2_dir, genecode_dir, savedir)
     if os.path.exists(savedir)==False:
@@ -672,8 +672,8 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
 if __name__=="__main__":    
 
     GET_ALL(
-        replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
-        replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
+        replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
+        replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
         genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
         rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
         savedir="tests/cedar_runs/chmm/GM12878_R1/")
