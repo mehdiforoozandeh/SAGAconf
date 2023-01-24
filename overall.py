@@ -2,7 +2,7 @@ from _cluster_matching import *
 import math, scipy
 import os
 from _reproducibility import *
-# from reports import *
+
 
 def is_reproduced(loci_1, loci_2, enr_threshold=3, window_bp=500, raw_overlap_axis=False):
     """
@@ -332,9 +332,36 @@ def contour_isrep(loci1, loci2, savedir, posterior=True, raw_overlap_axis=True):
 
     rec = np.array(rec)
     x, y, z = rec[:,0], rec[:,1], rec[:,2]
-    X, Y = np.meshgrid(x, y)
-
     rec_df = pd.DataFrame(rec, columns=["w", "t", "s"])
+    list_of_ws = np.unique(rec[:, 0])
+    cmap = get_cmap('inferno')
+    gradients = np.linspace(0, 1, len(list_of_ws))
+
+    for i in range(len(list_of_ws)):
+        w = int(list_of_ws[i])
+        subset_runs = rec_df.loc[rec_df["w"] == w, :].sort_values(by="t", ascending=False).reset_index(drop=True)
+        
+        plt.plot(subset_runs.t, subset_runs.s, color=cmap(gradients[i]), label="w = {} bp".format(w))
+
+    if raw_overlap_axis:
+        plt.xlabel("Overlap threshold")
+    else:
+        plt.xlabel("Enrichment of Overlap threshold")
+
+    plt.ylabel("Reproducibility")
+    plt.xticks(rotation=45, fontsize=7)
+    plt.title("Reproducibility -- General")
+    plt.legend()
+    plt.tight_layout()
+    
+    if os.path.exists(savedir+"/contours/") == False:
+        os.mkdir(savedir+"/contours/")
+
+    plt.savefig('{}/reprod_lines_general.pdf'.format(savedir+"/contours"), format='pdf')
+    plt.savefig('{}/reprod_lines_general.svg'.format(savedir+"/contours"), format='svg')
+    plt.clf()
+
+    X, Y = np.meshgrid(x, y)
 
     Z = np.zeros(X.shape)
     
@@ -345,31 +372,50 @@ def contour_isrep(loci1, loci2, savedir, posterior=True, raw_overlap_axis=True):
 
     plt.contourf(X, Y, Z, cmap='RdGy_r')
     plt.colorbar()
-
     if raw_overlap_axis:
         plt.ylabel("Overlap threshold")
     else:
         plt.ylabel("Enrichment of Overlap threshold")
 
-    plt.xlabel("Window")
+    plt.xlabel("Window size")
     plt.xticks(rotation=45, fontsize=7)
-    plt.title("Reproducibility Contour -- General")
+    plt.title("Reproducibility -- {}".format(k))
     plt.tight_layout()
-    
-    if os.path.exists(savedir+"/contours/") == False:
-        os.mkdir(savedir+"/contours/")
-
-    plt.savefig('{}/reprod_contour_general.pdf'.format(savedir+"/contours"), format='pdf')
-    plt.savefig('{}/reprod_contour_general.svg'.format(savedir+"/contours"), format='svg')
+    plt.savefig('{}/reprod_contour_{}.pdf'.format(savedir+"/contours", k), format='pdf')
+    plt.savefig('{}/reprod_contour_{}.svg'.format(savedir+"/contours", k), format='svg')
     plt.clf()
 
     for k in perlabel_rec.keys():
         rec = np.array(perlabel_rec[k])
 
         x, y, z = rec[:,0], rec[:,1], rec[:,2]
-        X, Y = np.meshgrid(x, y)
-
         rec_df = pd.DataFrame(rec, columns=["w", "t", "s"])
+
+        list_of_ws = np.unique(rec[:, 0])
+        cmap = get_cmap('inferno')
+        gradients = np.linspace(0, 1, len(list_of_ws))
+
+        for i in range(len(list_of_ws)):
+            w = int(list_of_ws[i])
+            subset_runs = rec_df.loc[rec_df["w"] == w, :].sort_values(by="t", ascending=False).reset_index(drop=True)
+            
+            plt.plot(subset_runs.t, subset_runs.s, color=cmap(gradients[i]), label="w = {} bp".format(w))
+
+        if raw_overlap_axis:
+            plt.xlabel("Overlap threshold")
+        else:
+            plt.xlabel("Enrichment of Overlap threshold")
+
+        plt.ylabel("Reproducibility")
+        plt.xticks(rotation=45, fontsize=7)
+        plt.title("Reproducibility -- {}".format(k))
+        plt.tight_layout()
+        plt.legend()
+        plt.savefig('{}/reprod_lines_{}.pdf'.format(savedir+"/contours", k), format='pdf')
+        plt.savefig('{}/reprod_lines_{}.svg'.format(savedir+"/contours", k), format='svg')
+        plt.clf()
+
+        X, Y = np.meshgrid(x, y)
 
         Z = np.zeros(X.shape)
         
@@ -380,15 +426,14 @@ def contour_isrep(loci1, loci2, savedir, posterior=True, raw_overlap_axis=True):
 
         plt.contourf(X, Y, Z, cmap='RdGy_r')
         plt.colorbar()
-
         if raw_overlap_axis:
             plt.ylabel("Overlap threshold")
         else:
             plt.ylabel("Enrichment of Overlap threshold")
 
-        plt.xlabel("Window")
+        plt.xlabel("Window size")
         plt.xticks(rotation=45, fontsize=7)
-        plt.title("Reproducibility Contour -- {}".format(k))
+        plt.title("Reproducibility -- {}".format(k))
         plt.tight_layout()
         plt.savefig('{}/reprod_contour_{}.pdf'.format(savedir+"/contours", k), format='pdf')
         plt.savefig('{}/reprod_contour_{}.svg'.format(savedir+"/contours", k), format='svg')
