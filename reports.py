@@ -180,7 +180,13 @@ def ct_lable_calib(loci_1, loci_2, pltsavedir):
     if os.path.exists(pltsavedir+"/calib") == False:
         os.mkdir(pltsavedir+"/calib")
     calb = posterior_calibration(
-        loci_1, loci_2, savedir=pltsavedir+"/calib")
+        loci_1, loci_2, window_size=1000, savedir=pltsavedir+"/calib")
+    calibrated_loci_1 = calb.perlabel_calibration_function()
+
+    if os.path.exists(pltsavedir+"/calib_logit_enr") == False:
+        os.mkdir(pltsavedir+"/calib_logit_enr")
+    calb = posterior_calibration(
+        loci_1, loci_2, plot_raw=False, window_size=1000, savedir=pltsavedir+"/calib_logit_enr")
     calibrated_loci_1 = calb.perlabel_calibration_function()
     
     plt.close("all")
@@ -503,13 +509,13 @@ def get_all_ct(replicate_1_dir, replicate_2_dir, savedir):
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=True)
     ct_confus(loci1, loci2, savedir)
 
-    ct_lable_calib(loci1, loci2, savedir)
-
     loci1, loci2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
         replicate_2_dir+"/parsed_posterior.csv",
-        subset=True)
+        subset=True, logit_transform=True)
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+
+    ct_lable_calib(loci1, loci2, savedir)
 
     ct_granul(loci1, loci2, savedir)
 
@@ -672,8 +678,8 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
 if __name__=="__main__":    
 
     GET_ALL(
-        replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
-        replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
+        replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
+        replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
         genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
         rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
         savedir="tests/cedar_runs/chmm/GM12878_R1/")

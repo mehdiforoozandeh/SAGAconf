@@ -21,6 +21,7 @@ from sklearn.linear_model import LinearRegression
 from datetime import datetime
 from scipy.stats import norm
 import math
+from scipy.special import expit
 
 
 class Agreement(object):
@@ -224,7 +225,7 @@ class Agreement(object):
             )
         
 class posterior_calibration(object):
-    def __init__(self, loci_1, loci_2, savedir, filter_nan=True, oe_transform=True):
+    def __init__(self, loci_1, loci_2, window_size, savedir, plot_raw=True, allow_w=True, filter_nan=True, oe_transform=True):
         if filter_nan:
             loci_1 = loci_1.dropna()
             loci_1 = loci_1.reset_index(drop=True)
@@ -235,6 +236,21 @@ class posterior_calibration(object):
         self.loci_2 = loci_2
         self.num_labels = len(self.loci_1.columns)-3
 
+        self.resolution = loci_1["end"][0] - loci_1["start"][0]
+
+        self.window_bin = math.ceil(window_size/self.resolution)
+
+        self.enr_ovr = enrichment_of_overlap_matrix(loci_1, loci_2, OE_transform=True)
+
+        self.per_label_matches = {}
+        for k in list(loci_1.columns[3:]):
+            sorted_k_vector = self.enr_ovr.loc[k,:].sort_values(ascending=False)
+
+            good_matches = [sorted_k_vector.index[0]]
+            self.per_label_matches[k] = good_matches[0]
+
+        self.plot_raw = plot_raw
+        self.allow_w = allow_w
         self.savedir = savedir
         del loci_1
         del loci_2
@@ -243,12 +259,13 @@ class posterior_calibration(object):
 
         self.MAPestimate1 = self.loci_1.iloc[:,3:].idxmax(axis=1)
         self.MAPestimate2 = self.loci_2.iloc[:,3:].idxmax(axis=1)
+        self.coverage_1 = {k:len(self.MAPestimate1.loc[self.MAPestimate1 == k]) / len(self.MAPestimate1) for k in self.loci_1.columns[3:]}
+        self.coverage_2 = {k:len(self.MAPestimate2.loc[self.MAPestimate2 == k]) / len(self.MAPestimate2) for k in self.loci_2.columns[3:]}
 
-    def perlabel_visualize_calibration(self, bins, label_name, scatter=False):
+    def perlabel_visualize_calibration(self, bins, label_name, strat_size, scatter=False):
+        
+
         if scatter:
-            plt.scatter(
-                x=np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), 
-                y=bins[:,5], c='black', s=10000/len(bins))
             
             polyreg = IsotonicRegression(
                     y_min=float(np.array(bins[:, 5]).min()), y_max=float(np.array(bins[:, 5]).max()), 
@@ -258,20 +275,28 @@ class posterior_calibration(object):
                 np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), 
                 bins[:, 5])
             
-            plt.plot(
-                np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), 
-                polyreg.predict(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))])), 
-                '--', c='r', linewidth=3)
+            x = np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))])
+            y = polyreg.predict(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]))
+
+            if self.plot_raw:
+                expected = strat_size * self.coverage_2[self.per_label_matches[label_name]]
+                y = (np.exp(y) * expected) / strat_size
+                bins[:,5] = (np.exp(bins[:,5]) * expected) / strat_size
+                x = expit(x) #sigmoid back from logit
+                plt.plot(x, [float(expected/strat_size) for i in range(len(x))], '--', c= "green", linewidth=3)
+
+            plt.scatter(
+                x=x, 
+                y=bins[:,5], c='black', s=10000/len(bins))
+            plt.plot(x, y, '--', c='r', linewidth=3)
 
         else:
             plt.plot([(bins[i,0]+bins[i,1])/2 for i in range(len(bins))], bins[:,5], label=label_name)
 
         plt.title("Reproduciblity Plot {}".format(label_name))
         xlabel = "posterior in Replicate 1"
-        if self.oe_transform:
-            ylabel = "log(O/E) of Similarly Labeled Bins in replicate 2"
-        else:
-            ylabel = "log(Ratio) of Similarly Labeled Bins in replicate 2"
+
+        ylabel = "Similarly Labeled Bins in replicate 2"
        
         plt.ylabel(ylabel)
         plt.xlabel(xlabel)
@@ -301,7 +326,7 @@ class posterior_calibration(object):
                 )
             )
 
-    def general_visualize_calibration(self, bins_dict, subplot=True):
+    def general_visualize_calibration(self, bins_dict, strat_size, subplot=True):
         if subplot:
             list_binsdict = list(bins_dict.keys())
             num_labels = self.num_labels
@@ -314,7 +339,7 @@ class posterior_calibration(object):
             for i in range(n_rows):
                 for j in range(n_cols):
                     label_name = list_binsdict[label_being_plotted]
-                    bins = bins_dict[label_name]
+                    bins = bins_dict[label_name].copy()
 
                     polyreg = IsotonicRegression(
                         y_min=float(np.array(bins[:, 5]).min()), y_max=float(np.array(bins[:, 5]).max()), 
@@ -324,14 +349,24 @@ class posterior_calibration(object):
                         np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), 
                         bins[:, 5])
                     
-                    r2 = r2_score(
-                        bins[:, 5], 
-                        polyreg.predict(
-                            np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))))
-                    
-                    axs[i,j].plot(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), 
-                        polyreg.predict(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))])),
-                        c="black")
+                    x = np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))])
+                    y = polyreg.predict(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]))
+                    r2_y =polyreg.predict(np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)))
+                    if self.plot_raw:
+                        expected = strat_size * self.coverage_2[self.per_label_matches[label_name]]
+                        
+
+                        y = (np.exp(y) * expected ) / strat_size
+                        r2_y = (np.exp(r2_y) * expected ) / strat_size
+                        bins[:, 5] = (np.exp(bins[:, 5]) * expected ) / strat_size
+
+                        x = expit(x)
+                        axs[i,j].plot(x, [float(expected/strat_size) for i in range(len(x))], '--', c="r")
+
+
+                    r2 = r2_score(bins[:, 5], r2_y)
+                        
+                    axs[i,j].plot(x, y,c="black")
 
                     axs[i,j].set_title("{}_r2={:.2f}".format(label_name, float(r2)), fontsize=7)
 
@@ -417,37 +452,66 @@ class posterior_calibration(object):
         perlabel_function = {}
         bins_dict = {}
         new_matrix = [self.loci_1.iloc[:,:3]]
+        strat_size = int(len(self.loci_1)/num_bins)
+
         for k in range(self.num_labels):
             kth_label = self.loci_1.iloc[:,3:].columns[k]
+            match_label = self.per_label_matches[kth_label]
             bins = []
-            if strat_size == "def":
-                strat_size = int(len(self.loci_1)/num_bins)
-
+                
             posterior_vector_1 = self.loci_1.iloc[:,3:][kth_label]
 
             vector_pair = pd.concat([posterior_vector_1, self.MAPestimate2], axis=1)
 
             vector_pair.columns=["pv1", "map2"]
-            vector_pair = vector_pair.sort_values("pv1").reset_index(drop=True)
 
+            if self.allow_w:
+                vector_pair = vector_pair.sort_values("pv1").reset_index()
+
+            else:
+                vector_pair = vector_pair.sort_values("pv1").reset_index(drop=True)
+
+            MAP2 = list(self.MAPestimate2)
             for b in range(0, vector_pair.shape[0], strat_size):
-                subset_vector_pair = vector_pair.iloc[b:b+strat_size, :]
                 # [bin_start, bin_end, num_values_in_bin, num_agreement, num_mislabeled, ratio_agreement]
-                observed = len(subset_vector_pair.loc[subset_vector_pair["map2"] == kth_label])
+                if self.allow_w:
+                    subset_vector_pair = vector_pair.iloc[b:b+strat_size, :]
+                    subset_vector_pair = subset_vector_pair.reset_index(drop=True)
+                    
+                    observed = 0
+                    for i in range(len(subset_vector_pair)):
+            
+                        leftmost = max(0, subset_vector_pair["index"][i] - self.window_bin)
+                        rightmost = min(len(MAP2), subset_vector_pair["index"][i] + self.window_bin)
+
+                        neighbors_i = MAP2[leftmost:rightmost]
+
+                        if match_label in neighbors_i:
+                            observed += 1
+                    
+                else:
+                    subset_vector_pair = vector_pair.iloc[b:b+strat_size, :]
+                    observed = len(subset_vector_pair.loc[subset_vector_pair["map2"] == match_label])
+                    
                 
                 if self.oe_transform:
-                    expected = ((1/self.num_labels) * len(subset_vector_pair))
+                    expected = self.coverage_2[match_label] * len(subset_vector_pair)
 
-                    if observed!=0:
+                    if observed==0:
+                        oe = np.log(
+                            (observed + 1)/
+                            (expected + 1))
+
+                    else:
                         oe = np.log((observed)/(expected))
 
-                        bins.append([
-                            float(subset_vector_pair["pv1"][subset_vector_pair.index[0]]), 
-                            float(subset_vector_pair["pv1"][subset_vector_pair.index[-1]]),
-                            len(subset_vector_pair),
-                            len(subset_vector_pair.loc[subset_vector_pair["map2"] == kth_label]),
-                            len(subset_vector_pair) - len(subset_vector_pair.loc[subset_vector_pair["map2"] == kth_label]),
-                            oe])
+                    bins.append([
+                        float(subset_vector_pair["pv1"][subset_vector_pair.index[0]]), 
+                        float(subset_vector_pair["pv1"][subset_vector_pair.index[-1]]),
+                        len(subset_vector_pair),
+                        len(subset_vector_pair.loc[subset_vector_pair["map2"] == kth_label]),
+                        len(subset_vector_pair) - len(subset_vector_pair.loc[subset_vector_pair["map2"] == kth_label]),
+                        oe])
                 else:
                     bins.append([
                         float(subset_vector_pair["pv1"][subset_vector_pair.index[0]]), 
@@ -459,7 +523,7 @@ class posterior_calibration(object):
 
             bins = np.array(bins)
             bins_dict[kth_label] = bins
-            self.perlabel_visualize_calibration(bins, kth_label, scatter=True)
+            self.perlabel_visualize_calibration(bins.copy(), kth_label, strat_size, scatter=True)
 
             if method=="spline":
                 f = UnivariateSpline(
@@ -511,7 +575,7 @@ class posterior_calibration(object):
                 else:
                     perlabel_function[k] = [polyreg, r2]
 
-        self.general_visualize_calibration(bins_dict)
+        self.general_visualize_calibration(bins_dict, strat_size)
 
         if return_caliberated_matrix:
             new_matrix = pd.concat(new_matrix, axis=1)
