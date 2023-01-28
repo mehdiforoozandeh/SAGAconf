@@ -89,8 +89,8 @@ def load_transcription_data(file, gene_coord, csv=True):
         mapped_trn_data = pd.DataFrame(mapped_trn_data, columns=["chr", "start", "end", "geneID", "length", "TPM", "FPKM"])
         return mapped_trn_data
 
-def intersect(loci, gene_coord):
-    cols = loci.columns
+def intersect(loci, gene_coord, add_expression=True):
+    cols = list(loci.columns)
     
     loci = loci.values.tolist()
 
@@ -100,6 +100,7 @@ def intersect(loci, gene_coord):
         gene_coord_chr = gene_coord.loc[gene_coord["chr"] == loci[i][0], :]
         gene_coord_chr = gene_coord_chr.values.tolist()
         o = False
+        tpm = 0
         for j in range(len(gene_coord_chr)):
             statement = bool(
                     bool(gene_coord_chr[j][1] <= loci[i][1] <= gene_coord_chr[j][2]) or
@@ -107,12 +108,20 @@ def intersect(loci, gene_coord):
 
             if statement:
                 o = True
+                if add_expression:
+                    tpm = float(gene_coord_chr[j][5])
                 continue
         
         if o:
-            intersect.append(loci[i])
+            if add_expression:
+                intersect.append([tpm] + loci[i])
+            else:
+                intersect.append(loci[i])
     
-    intersect = pd.DataFrame(intersect, columns=cols)
+    if add_expression:
+        intersect = pd.DataFrame(intersect, columns=["TPM"]+cols)
+    else:
+        pd.DataFrame(intersect, columns=cols)
     return intersect
 
 def condense_MAP(coordMAP):
@@ -399,7 +408,6 @@ def posterior_transcription_correlation(loci, trans_data, savedir):
     plt.ylabel("Spearman's Correlation")
     plt.xticks(rotation=45, fontsize=8)
     plt.tight_layout()
-    plt.tight_layout()
 
     plt.savefig(savedir+"/poster_trans_spearman_correl.pdf", format='pdf')
     plt.savefig(savedir+"/poster_trans_spearman_correl.svg", format='svg')
@@ -407,13 +415,113 @@ def posterior_transcription_correlation(loci, trans_data, savedir):
     sns.reset_orig
     plt.close("all")
     plt.style.use('default')
+
+def posterior_transcription_enrichment(loci, trans_data, savedir, num_bins=30):
+    if os.path.exists(savedir) == False:
+        os.mkdir(savedir)
+    """
+    get the intersection of trans_data and loci
+
+    for k in labels:
+        sort intersect based on posteriors of k
+        break it down into chunks
+        for each bin in chnks
+            find overlap with transdata
+    """
+    MAPestimate = list(loci.iloc[:,3:].idxmax(axis=1))
+    intersection = intersect(loci, trans_data, add_expression=True)
+
+    labels = loci.columns[3:]
+
+    enr_dict = {}
+
+    strat_size = int(len(intersection) / num_bins)
+    for l in labels:
         
+        enr_l = []
+        posterior_vector = intersection[l].astype("float").sort_values().reset_index(drop=True)
+        for b in range(0, posterior_vector.shape[0], strat_size):
+
+            subset_vector_pair = posterior_vector.iloc[b:b+strat_size].reset_index(drop=True)
+            bin_range = [
+                float(subset_vector_pair.iloc[subset_vector_pair.index[0]]), 
+                float(subset_vector_pair.iloc[subset_vector_pair.index[-1]])
+            ]
+
+            c = loci.loc[
+                (bin_range[0] <= loci[l].astype("float"))&
+                (loci[l].astype("float") <= bin_range[1]), ["chr", "start", "end", l]]
+
+            t = intersection.loc[
+                (bin_range[0] <= intersection[l].astype("float"))&
+                (intersection[l].astype("float") <= bin_range[1]), :]
+            
+            MAP_frac = len([m for m in c.index if MAPestimate[m] == l]) / len(c)
+
+            if len(t) > 0:
+                enr_l.append([bin_range[0], bin_range[1], np.mean(t["TPM"]), MAP_frac])
+        
+        enr_dict[l] = pd.DataFrame(enr_l, columns=["left", "right", "TPM", "map_frac"])
+
+    list_binsdict = list(enr_dict.keys())
+    num_labels = len(list_binsdict)
+    n_cols = math.floor(math.sqrt(num_labels))
+    n_rows = math.ceil(num_labels / n_cols)
+
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=(15,10))
+    label_being_plotted = 0
+
+    for i in range(n_rows):
+        for j in range(n_cols):
+
+            l = list_binsdict[label_being_plotted]
+            enr = enr_dict[l]
+            print(enr)
+
+            enr_to_plot_MAP = enr.loc[
+                enr["map_frac"]>0, :] # removing bins where MAP != l
+            
+            enr_to_plot_notMAP = enr.loc[(enr["map_frac"]==0), :]
+
+            axs[i,j].bar(
+                [i for i in enr_to_plot_notMAP.index], enr_to_plot_notMAP.TPM, 
+                align='center', width=1, edgecolor='red', color='red', alpha=0.5)
+
+            axs[i,j].bar(
+                [i for i in enr_to_plot_MAP.index], enr_to_plot_MAP.TPM, 
+                align='center', width=1, edgecolor='green', color='green', alpha=0.5)
+
+            f = UnivariateSpline(x= np.array([i for i in range(len(enr))]), y=enr.TPM, k=3, s=1000)
+
+            axs[i,j].plot(
+                [i for i in range(len(enr))], 
+                f([i for i in range(len(enr))]),
+                c="black", linewidth=1.5)
+
+            axs[i,j].plot(
+                [i for i in range(len(enr))], [0 for i in range(len(enr))], 
+                color='black', linewidth=0.5)
+                
+            axs[i,j].set_xticks([])
+
+            axs[i,j].set_title(l, fontsize=6)
+            label_being_plotted +=1
+    
+    plt.tight_layout()
+    plt.savefig(savedir+"/posterior_transcription_enrichment.pdf", format='pdf')
+    plt.savefig(savedir+"/posterior_transcription_enrichment.svg", format='svg')
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')    
+
+                    
 def overal_TSS_enrichment(loci, pltsavedir):
     if os.path.exists(pltsavedir) == False:
         os.mkdir(pltsavedir)
     TSS_obj = TSS_enrichment(loci, TSSdir="biovalidation/RefSeqTSS.hg38.txt", savedir=pltsavedir)
     TSS_obj.tss_enrich(m_p=False)
-    TSS_obj.tss_enrich_vs_repr()
+    # TSS_obj.tss_enrich_vs_repr()
+    TSS_obj.tss_enr_vs_posterior_rank()
 
 # def get_all_bioval(replicate_1_dir, replicate_2_dir, genecode_dir, rnaseq=None):
 #     loci1, loci2 = load_data(

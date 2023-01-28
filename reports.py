@@ -593,16 +593,14 @@ def get_all_bioval(replicate_1_dir, replicate_2_dir, savedir, genecode_dir, rnas
 
         trans_data = trans_data.drop(trans_data[trans_data.TPM==0].index).reset_index(drop=True)
 
-        trans_data_exp = trans_data[np.log10(trans_data.TPM) > 2]
-        trans_data_notexp = trans_data[np.log10(trans_data.TPM) < 0.5]
+    #     trans_data_exp = trans_data[np.log10(trans_data.TPM) > 2]
+    #     trans_data_notexp = trans_data[np.log10(trans_data.TPM) < 0.5]
 
-        trans_data_exp.TPM = np.log10(trans_data_exp.TPM)
-        trans_data_notexp.TPM = np.log10(trans_data_notexp.TPM)
-        trans_data.TPM = np.log10(trans_data.TPM)
+    #     trans_data_exp.TPM = np.log10(trans_data_exp.TPM)
+    #     trans_data_notexp.TPM = np.log10(trans_data_notexp.TPM)
+    #     trans_data.TPM = np.log10(trans_data.TPM)
 
-        plot_general_transc(loci1, trans_data_exp, savedir=savedir+"/general_transc_exp", exp=True)
-        plot_general_transc(loci1, trans_data_notexp, savedir=savedir+"/general_transc_notexp", exp=False)
-
+        posterior_transcription_enrichment(loci1, trans_data, savedir+"/trans_post_enr")
         posterior_transcription_correlation(loci1, trans_data, savedir=savedir+"/trans_post_correl")
 
     overal_TSS_enrichment(loci1, savedir+"/tss_enr")
@@ -678,8 +676,8 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
 if __name__=="__main__":    
 
     GET_ALL(
-        replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
-        replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
+        replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
+        replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
         genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
         rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
         savedir="tests/cedar_runs/chmm/GM12878_R1/")

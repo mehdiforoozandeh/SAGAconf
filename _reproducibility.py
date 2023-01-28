@@ -1,9 +1,4 @@
 
-import collections
-from turtle import color, width
-from scipy.ndimage import gaussian_filter1d
-from statistics import mean
-import functools
 import multiprocessing as mp
 from matplotlib.cm import get_cmap
 import numpy as np
@@ -21,6 +16,7 @@ from sklearn.linear_model import LinearRegression
 from datetime import datetime
 from scipy.stats import norm
 import math
+import scipy
 from scipy.special import expit
 
 
@@ -1017,7 +1013,9 @@ class TSS_enrichment(object):
         self.TSSs = pd.read_csv(TSSdir, sep="\t", header=None)
         self.TSSs.columns = ["chr", "coord", "strand"]
         self.loci = loci
+        self.resolution = int(loci["end"][0]) - int(loci["start"][0])
         self.savedir = savedir
+        self.MAPestimate = list(self.loci.iloc[:,3:].idxmax(axis=1))
 
     def get_coverage(self):
         MAP = self.loci.iloc[:,3:].idxmax(axis=1)
@@ -1027,6 +1025,7 @@ class TSS_enrichment(object):
             self.coverage[c] = len(MAP.loc[MAP == c]) / len(MAP)
 
     def calculate_overlap_with_tss(self, loci):
+        
         overlaps = []
         for i in range(int(len(self.TSSs))):
             loci_subset = loci.loc[
@@ -1050,24 +1049,30 @@ class TSS_enrichment(object):
             pobj = mp.Pool(n_p)
             overlaps = pobj.map(self.calculate_overlap_with_tss, locis)
 
-                # functools.partial(, 
-                # TSSs=self.TSSs), )
-
             self.overlaps = pd.concat(overlaps, axis=0).reset_index(drop=True)
 
         else:
+            nploci_chr = np.array(self.loci["chr"])
+            nploci_start = np.array(self.loci["start"])
             overlaps = []
+            t0 = datetime.now()
+            nptss = np.array(self.TSSs)
             
             for i in range(int(len(self.TSSs))):
-                loci_subset = self.loci.loc[
-                    (self.loci["chr"] == self.TSSs["chr"][i]) &
-                    (self.loci["start"] <= int(self.TSSs["coord"][i])) &
-                    (int(self.TSSs["coord"][i]) <= self.loci["end"]), :
-                ]
+                loci_subset_chr = np.where(nploci_chr == nptss[i, 0])
+                loci_subset_start = np.where(
+                    (0 <(nploci_start - nptss[i, 1])) &
+                     ((nploci_start - nptss[i, 1]) < self.resolution))
 
-                if len(loci_subset) > 0:
+                ind_both_conds = np.intersect1d(loci_subset_chr, loci_subset_start)
+
+                if len(ind_both_conds) > 0:
+                    loci_subset = self.loci.iloc[ind_both_conds, :]
                     overlaps.append(loci_subset)
+
             self.overlaps = pd.concat(overlaps, axis=0).reset_index(drop=True)
+            print(self.overlaps)
+            print("taking the TSS overlap took: ", datetime.now() - t0)
 
         self.overlaps.iloc[:,3:] = self.overlaps.iloc[:,3:].astype("float16")
 
@@ -1314,3 +1319,144 @@ class TSS_enrichment(object):
             plt.savefig('{}/rep_vs_TSS_enrichment.pdf'.format(self.savedir), format='pdf')
             plt.savefig('{}/rep_vs_TSS_enrichment.svg'.format(self.savedir), format='svg')
             plt.clf()
+    
+    def tss_enr_vs_posterior_rank(self, num_bins=100):
+        enr_dict = {}       
+        print(self.overlaps)
+
+        strat_size = int(len(self.overlaps) / num_bins)
+        for l in self.loci.columns[3:]:
+            
+            enr_l = []
+            
+            """
+            split the loci into subsets
+            find highest and lowest p values of each subset
+
+            _clb would be the number of bins in that subset
+            _tlb would be the number of intersecting bins between that subset and self.overlap
+            MAP_frac would be the fraction of bins in the subset for which MAP == l
+            
+            expected value for all subsets is constant and is len(self.overlap) / len(loci)
+            observed is the _tlb / _clb
+            """
+
+            posterior_vector = self.overlaps[l].astype("float").sort_values().reset_index(drop=True)
+            for b in range(0, posterior_vector.shape[0], strat_size):
+
+                subset_vector_pair = posterior_vector.iloc[b:b+strat_size].reset_index(drop=True)
+                bin_range = [
+                    float(subset_vector_pair.iloc[subset_vector_pair.index[0]]), 
+                    float(subset_vector_pair.iloc[subset_vector_pair.index[-1]])
+                ]
+                c = self.loci.loc[
+                    (bin_range[0] <= self.loci[l].astype("float"))&
+                    (self.loci[l].astype("float") <= bin_range[1]), ["chr", "start", "end", l]]
+
+                _clb = float(len(c))
+
+                t = self.overlaps.loc[
+                    (bin_range[0] <= self.overlaps[l].astype("float"))&
+                    (self.overlaps[l].astype("float") <= bin_range[1]), :]
+                
+                _tlb = float(len(t))
+                
+                MAP_frac = len([m for m in c.index if self.MAPestimate[m] == l]) / len(c)
+                
+                if _tlb != 0 and _clb != 0:
+                    coverage_l_b = float(_clb / (len(self.loci)))
+                    tss_l_b = float(_tlb / (len(self.overlaps)))
+                    
+                    enr_l.append([
+                        bin_range[0], bin_range[1], 
+                        np.log(tss_l_b/coverage_l_b), 
+                        MAP_frac])
+
+            enr_dict[l] = pd.DataFrame(enr_l, columns=["left", "right", "enr", "map_frac"])
+
+        list_binsdict = list(enr_dict.keys())
+        num_labels = len(list_binsdict)
+        n_cols = math.floor(math.sqrt(num_labels))
+        n_rows = math.ceil(num_labels / n_cols)
+
+        fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=(15,10))
+        label_being_plotted = 0
+
+        for i in range(n_rows):
+            for j in range(n_cols):
+
+                l = list_binsdict[label_being_plotted]
+                enr = enr_dict[l]
+                # enr =  enr.drop_duplicates(subset=['enr'], keep=False).reset_index(drop=True)
+
+                enr_to_plot_MAP = enr.loc[
+                    enr["map_frac"]>0, :] # removing bins where MAP != l
+                
+                enr_to_plot_notMAP = enr.loc[(enr["map_frac"]==0), :]
+
+                axs[i,j].bar(
+                    [i for i in enr_to_plot_notMAP.index], enr_to_plot_notMAP.enr, 
+                    align='center', width=1, edgecolor='red', color='red', alpha=0.5)
+
+                axs[i,j].bar(
+                    [i for i in enr_to_plot_MAP.index], enr_to_plot_MAP.enr, 
+                    align='center', width=1, edgecolor='green', color='green', alpha=0.5)
+
+                f = UnivariateSpline(x= np.array([i for i in range(len(enr))]), y=enr.enr, k=3)
+
+                axs[i,j].plot(
+                    [i for i in range(len(enr))], 
+                    f([i for i in range(len(enr))]),
+                    c="black", linewidth=1.5)
+
+                axs[i,j].plot(
+                    [i for i in range(len(enr))], [0 for i in range(len(enr))], 
+                    color='black', linewidth=0.5)
+                
+                axs[i,j].set_xticks([])
+                axs[i,j].set_title(l, fontsize=7)
+                label_being_plotted +=1
+
+        plt.tight_layout()
+        plt.savefig('{}/rep_vs_TSS_enr_posterior_rank.pdf'.format(self.savedir), format='pdf')
+        plt.savefig('{}/rep_vs_TSS_enr_posterior_rank.svg'.format(self.savedir), format='svg')
+        plt.clf()
+
+        P_correlations = {}
+        S_correlations = {}
+        for k in list_binsdict:
+            x = np.array([i for i in enr_dict[k].index])
+            y = np.array(enr_dict[k]["enr"]) 
+            P_correlations[k] = scipy.stats.pearsonr(x, y)[0]
+            S_correlations[k] = scipy.stats.spearmanr(x, y)[0]
+
+        ##########################################################################################
+
+        plt.bar(P_correlations.keys(), P_correlations.values(), color="black", alpha=0.5)
+        plt.ylabel("Pearson's Correlation")
+        plt.xticks(rotation=45, fontsize=8)
+        plt.tight_layout()
+
+        plt.savefig(self.savedir+"/poster_tss_pearson_correl.pdf", format='pdf')
+        plt.savefig(self.savedir+"/poster_tss_pearson_correl.svg", format='svg')
+        
+        sns.reset_orig
+        plt.close("all")
+        plt.style.use('default')
+
+        ##########################################################################################
+
+        plt.bar(S_correlations.keys(), S_correlations.values(), color="black", alpha=0.5)
+        plt.ylabel("Spearman's Correlation")
+        plt.xticks(rotation=45, fontsize=8)
+        plt.tight_layout()
+
+        plt.savefig(self.savedir+"/poster_tss_spearman_correl.pdf", format='pdf')
+        plt.savefig(self.savedir+"/poster_tss_spearman_correl.svg", format='svg')
+        
+        sns.reset_orig
+        plt.close("all")
+        plt.style.use('default')
+
+
+            
