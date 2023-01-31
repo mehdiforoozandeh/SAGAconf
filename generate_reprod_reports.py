@@ -271,21 +271,35 @@ def paraminit(maindir="runs012023_subset"):
     return listofruns
 
 def run(param_dict):
-    GET_ALL(
-        replicate_1_dir=param_dict["replicate_1_dir"], 
-        replicate_2_dir=param_dict["replicate_2_dir"], 
-        genecode_dir=param_dict["genecode_dir"], 
-        savedir=param_dict["savedir"], 
-        rnaseq=param_dict["rnaseq"], 
-        contour=True
-    )
-    print("\n")
+    with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
+        f.write(str(param_dict))
+
+    print("RUNNING {} VS {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
+    try:
+        GET_ALL(
+            replicate_1_dir=param_dict["replicate_1_dir"], 
+            replicate_2_dir=param_dict["replicate_2_dir"], 
+            genecode_dir=param_dict["genecode_dir"], 
+            savedir=param_dict["savedir"], 
+            rnaseq=param_dict["rnaseq"], 
+            contour=True
+        )
+        print("RUNNING {} VS {} is OVER!".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
+        print("\n")
+        
+    except:
+        print("failed at running {} VS {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
+        with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
+            f.write(str(param_dict))
+            f.write("FAILED!")
 
 def m_p(nt=10):
-    pool = mp.Pool(nt)
-    _ = pool.map(run, r1vsr2())
-    _ = pool.map(run, concat())
-    _ = pool.map(run, paraminit())
+    with mp.Pool(nt) as pool:
+        c = pool.map(run, concat())
+    with mp.Pool(nt) as pool:
+        p = pool.map(run, paraminit())
+    with mp.Pool(nt) as pool:
+        r_ = pool.map(run, r1vsr2())
 
 if __name__=="__main__":
     m_p()

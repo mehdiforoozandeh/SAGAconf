@@ -767,7 +767,7 @@ class correspondence_curve(object):
                             (k_sorted_loci_2["index"] ==  subset1[i]),k
                         ]))
 
-                print(len(x), len(subset1))
+                # print(len(x), len(subset1))
                 plt.scatter(x, y, s=5, alpha=1-float(b/5), c="black", label = 'top {} percent'.format(float((b+1)/5)*100))
 
             plt.legend()
@@ -1071,7 +1071,7 @@ class TSS_enrichment(object):
                     overlaps.append(loci_subset)
 
             self.overlaps = pd.concat(overlaps, axis=0).reset_index(drop=True)
-            print(self.overlaps)
+            # print(self.overlaps)
             print("taking the TSS overlap took: ", datetime.now() - t0)
 
         self.overlaps.iloc[:,3:] = self.overlaps.iloc[:,3:].astype("float16")
@@ -1322,7 +1322,7 @@ class TSS_enrichment(object):
     
     def tss_enr_vs_posterior_rank(self, num_bins=100):
         enr_dict = {}       
-        print(self.overlaps)
+        # print(self.overlaps)
 
         strat_size = int(len(self.overlaps) / num_bins)
         for l in self.loci.columns[3:]:

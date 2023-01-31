@@ -42,6 +42,11 @@ def get_coverage(loci):
     return coverage
 
 def load_transcription_data(file, gene_coord, csv=True):
+    if "csv" in file:
+        csv==True
+        
+    elif "pkl" in file:
+        csv==False
 
     if csv:
         trn_data = pd.read_csv(file, sep="\t")
@@ -258,8 +263,8 @@ def posterior_transcribed_enrichment(loci, gene_coords, savedir, num_bins="def")
     """
     cv = get_coverage(loci)
 
-    print(loci)
-    print(gene_coords)
+    # print(loci)
+    # print(gene_coords)
     print("intersecting")
     intersection = intersect(loci, gene_coords)
 
@@ -476,7 +481,7 @@ def posterior_transcription_enrichment(loci, trans_data, savedir, num_bins=30):
 
             l = list_binsdict[label_being_plotted]
             enr = enr_dict[l]
-            print(enr)
+            # print(enr)
 
             enr_to_plot_MAP = enr.loc[
                 enr["map_frac"]>0, :] # removing bins where MAP != l
@@ -572,7 +577,7 @@ if __name__=="__main__":
                 filename, 
                 gene_coords, csv=False)
 
-        print(data)
+        # print(data)
 
 
 #     replicate_1_dir = "tests/cedar_runs/chmm/GM12878_R1/"

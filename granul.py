@@ -97,7 +97,7 @@ def granularity_vs_agreement_symmetric(loci_1, loci_2, query_label, disregard_po
 
     confmat = confusion_matrix(loci_1, loci_2, num_labels=int(loci_1.shape[1]-3), OE_transform=True, symmetric=False)
     sorted_k_vector = confmat.loc[k,:].sort_values(ascending=False)
-    print(sorted_k_vector)
+    # print(sorted_k_vector)
 
     pre_merge_agr = get_agr_symmetric(MAP1, MAP2, query_label=k)
     pre_merge_coverage = get_coverage(loci_1, query_label=k)
@@ -159,7 +159,7 @@ def granularity_vs_agreement_nonsymmetric(loci_1, loci_2, k, disregard_posterior
             loci_1, loci_2, OE_transform=True)
     
     sorted_k_vector = confmat.loc[k,:].sort_values(ascending=False)
-    print(k, sorted_k_vector)
+    # print(k, sorted_k_vector)
 
     query_label = str(sorted_k_vector.index[0])
     coverage_record = [0]
@@ -339,8 +339,8 @@ def run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric):
             loci_2.columns = list(loci_2.columns[:3]) + [mnemon2_dict[c.replace("posterior","")] for c in loci_2.columns[3:]]
 
 
-        print(loci_1)
-        print(loci_2)
+        # print(loci_1)
+        # print(loci_2)
 
         # for c in list(loci_1.columns[3:]):
         #     cr, ar, ovr_rec = granularity_vs_agreement_nonsymmetric(loci_1.copy(), loci_2.copy(), k=c)
