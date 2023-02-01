@@ -271,9 +271,6 @@ def paraminit(maindir="runs012023_subset"):
     return listofruns
 
 def run(param_dict):
-    with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
-        f.write(str(param_dict))
-
     print("RUNNING {} VS {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
     try:
         GET_ALL(
@@ -284,6 +281,8 @@ def run(param_dict):
             rnaseq=param_dict["rnaseq"], 
             contour=True
         )
+        with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
+            f.write(str(param_dict))
         print("RUNNING {} VS {} is OVER!".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
         print("\n")
         
