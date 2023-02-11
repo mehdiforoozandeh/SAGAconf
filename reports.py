@@ -180,13 +180,13 @@ def ct_lable_calib(loci_1, loci_2, pltsavedir):
     if os.path.exists(pltsavedir+"/calib") == False:
         os.mkdir(pltsavedir+"/calib")
     calb = posterior_calibration(
-        loci_1, loci_2, window_size=1000, savedir=pltsavedir+"/calib")
+        loci_1, loci_2, window_size=1000, savedir=pltsavedir+"/calib", allow_w=False)
     calibrated_loci_1 = calb.perlabel_calibration_function()
 
     if os.path.exists(pltsavedir+"/calib_logit_enr") == False:
         os.mkdir(pltsavedir+"/calib_logit_enr")
     calb = posterior_calibration(
-        loci_1, loci_2, plot_raw=False, window_size=1000, savedir=pltsavedir+"/calib_logit_enr")
+        loci_1, loci_2, plot_raw=False, window_size=1000, savedir=pltsavedir+"/calib_logit_enr", allow_w=False)
     calibrated_loci_1 = calb.perlabel_calibration_function()
     
     plt.close("all")
@@ -591,17 +591,12 @@ def get_all_bioval(replicate_1_dir, replicate_2_dir, savedir, genecode_dir, rnas
     if rnaseq != None:
         trans_data = load_transcription_data(rnaseq, gene_coords)
 
-        trans_data = trans_data.drop(trans_data[trans_data.TPM==0].index).reset_index(drop=True)
-
-    #     trans_data_exp = trans_data[np.log10(trans_data.TPM) > 2]
-    #     trans_data_notexp = trans_data[np.log10(trans_data.TPM) < 0.5]
-
-    #     trans_data_exp.TPM = np.log10(trans_data_exp.TPM)
-    #     trans_data_notexp.TPM = np.log10(trans_data_notexp.TPM)
-    #     trans_data.TPM = np.log10(trans_data.TPM)
+        # trans_data = trans_data.drop(trans_data[trans_data.TPM==0].index).reset_index(drop=True)
 
         posterior_transcription_enrichment(loci1, trans_data, savedir+"/trans_post_enr")
         posterior_transcription_correlation(loci1, trans_data, savedir=savedir+"/trans_post_correl")
+
+        posterior_transcription_enrichment(loci1, trans_data, TSS=True, savedir=savedir+"/trans_post_enr_aroundTSS")
 
     overal_TSS_enrichment(loci1, savedir+"/tss_enr")
 
@@ -614,7 +609,17 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
     
     ###################################################################################################################
-    bool_reprod_report = is_reproduced(loci1, loci2, enr_threshold=2, window_bp=1000)
+    # bool_reprod_report = is_reproduced(loci1, loci2, enr_threshold=2, window_bp=1000)
+    bool_reprod_report = single_point_repr(loci1, loci2, enr_threshold=0.9, window_bp=1000, raw_overlap_axis=True, posterior=False)
+
+    bool_reprod_report = pd.concat(
+        [np.array(loci1["chr"]), np.array(loci1["start"]), np.array(loci1["end"]), np.array(bool_reprod_report)], axis=1)
+    bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
+
+    # pd.DataFrame(
+    #     [np.array(loci1["chr"]), np.array(loci1["start"]), np.array(loci1["end"]), np.array(bool_reprod_report)], 
+    #     columns=["chr", "start", "end", "is_repr"])
+
     bool_reprod_report.to_csv(savedir+"/boolean_reproducibility_report.csv")
 
     general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
@@ -628,7 +633,17 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
         for k, v in perlabel_rec.items():
              scorefile.write("{} reprod score = {}".format(k, str(v)))
 
-    bool_reprod_report = is_reproduced_posterior(loci1, loci2, enr_threshold=2, window_bp=1000)
+    # bool_reprod_report = is_reproduced_posterior(loci1, loci2, enr_threshold=2, window_bp=1000)
+    bool_reprod_report = single_point_repr(loci1, loci2, enr_threshold=0.9, window_bp=1000, raw_overlap_axis=True, posterior=True)
+
+    bool_reprod_report = pd.concat(
+        [np.array(loci1["chr"]), np.array(loci1["start"]), np.array(loci1["end"]), np.array(bool_reprod_report)], axis=1)
+    bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
+
+    # bool_reprod_report = pd.DataFrame(
+    #     [np.array(loci1["chr"]), np.array(loci1["start"]), np.array(loci1["end"]), np.array(bool_reprod_report)], 
+    #     columns=["chr", "start", "end", "is_repr"])
+        
     bool_reprod_report.to_csv(savedir+"/boolean_reproducibility_report_POSTERIOR.csv")
 
     general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
@@ -650,7 +665,7 @@ def get_contour(replicate_1_dir, replicate_2_dir, savedir):
 
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
-    contour_isrep(loci1, loci2, savedir, posterior=True, raw_overlap_axis=True)
+    fast_contour(loci1, loci2, savedir, w_range=[0, 4000, 400], t_range=[0, 11, 1], posterior=True, raw_overlap_axis=True)
 
 def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, contour=True):
     print(replicate_1_dir, replicate_2_dir, genecode_dir, savedir)
@@ -676,8 +691,8 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
 if __name__=="__main__":    
 
     GET_ALL(
-        replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
-        replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
+        replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
+        replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
         genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
         rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
         savedir="tests/cedar_runs/chmm/GM12878_R1/")

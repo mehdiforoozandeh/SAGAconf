@@ -421,7 +421,36 @@ def posterior_transcription_correlation(loci, trans_data, savedir):
     plt.close("all")
     plt.style.use('default')
 
-def posterior_transcription_enrichment(loci, trans_data, savedir, num_bins=30):
+def transcription_around_TSS(TSSdir, trans_data):
+    TSSs = load_TSS(TSSdir)
+    cols = trans_data.columns
+
+    # TSSs = TSSs.values.tolist()
+    trans_data = trans_data.values.tolist()
+
+    intersect = []
+    for i in range(len(trans_data)):
+        gene_coord_chr = TSSs.loc[TSSs["chr"] == trans_data[i][0], :]
+        gene_coord_chr = gene_coord_chr.values.tolist()
+        # print(gene_coord_chr)
+        # print(trans_data)
+
+        for j in range(len(gene_coord_chr)):
+            statement = bool(
+                    bool(int(gene_coord_chr[j][1])-1000 <= int(trans_data[i][1]) <= int(gene_coord_chr[j][1])+1000) or
+                    bool(int(gene_coord_chr[j][1])-1000 <= int(trans_data[i][2]) <= int(gene_coord_chr[j][1])+1000))
+
+            if statement:
+                # o = True
+                intersect.append([
+                    gene_coord_chr[j][0], gene_coord_chr[j][1]-1000, gene_coord_chr[j][1]+1000, 
+                    trans_data[i][3],  trans_data[i][4],  trans_data[i][5],  trans_data[i][6]])
+
+
+    intersect = pd.DataFrame(intersect, columns=cols)
+    return intersect
+    
+def posterior_transcription_enrichment(loci, trans_data, savedir, TSS=False, num_bins=30):
     if os.path.exists(savedir) == False:
         os.mkdir(savedir)
     """
@@ -433,6 +462,10 @@ def posterior_transcription_enrichment(loci, trans_data, savedir, num_bins=30):
         for each bin in chnks
             find overlap with transdata
     """
+    if TSS:
+        # update trans_data with the ones around TSS
+        trans_data = transcription_around_TSS("biovalidation/RefSeqTSS.hg38.txt", trans_data)
+
     MAPestimate = list(loci.iloc[:,3:].idxmax(axis=1))
     intersection = intersect(loci, trans_data, add_expression=True)
 
@@ -512,13 +545,21 @@ def posterior_transcription_enrichment(loci, trans_data, savedir, num_bins=30):
             axs[i,j].set_title(l, fontsize=6)
             label_being_plotted +=1
     
-    plt.tight_layout()
-    plt.savefig(savedir+"/posterior_transcription_enrichment.pdf", format='pdf')
-    plt.savefig(savedir+"/posterior_transcription_enrichment.svg", format='svg')
-    sns.reset_orig
-    plt.close("all")
-    plt.style.use('default')    
+    if TSS:
+        plt.tight_layout()
+        plt.savefig(savedir+"/posterior_transcription_enrichment_aroundTSS.pdf", format='pdf')
+        plt.savefig(savedir+"/posterior_transcription_enrichment_aroundTSS.svg", format='svg')
+        sns.reset_orig
+        plt.close("all")
+        plt.style.use('default')  
 
+    else:
+        plt.tight_layout()
+        plt.savefig(savedir+"/posterior_transcription_enrichment.pdf", format='pdf')
+        plt.savefig(savedir+"/posterior_transcription_enrichment.svg", format='svg')
+        sns.reset_orig
+        plt.close("all")
+        plt.style.use('default')        
                     
 def overal_TSS_enrichment(loci, pltsavedir):
     if os.path.exists(pltsavedir) == False:

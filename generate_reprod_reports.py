@@ -1,7 +1,7 @@
 from reports import *
 import multiprocessing as mp
 
-def r1vsr2(maindir="runs012023_subset"):
+def r1vsr2(maindir="runs022023_subset"):
     ################### Rep1 vs Rep2 ###################
         ######## GM12878 ########
     
@@ -92,7 +92,7 @@ def r1vsr2(maindir="runs012023_subset"):
         ]
     return listofruns
 
-def concat(maindir="runs012023_subset"):
+def concat(maindir="runs022023_subset"):
     if os.path.exists(maindir)==False:
         os.mkdir(maindir)
     
@@ -178,7 +178,7 @@ def concat(maindir="runs012023_subset"):
     ]
     return listofruns
 
-def paraminit(maindir="runs012023_subset"):
+def paraminit(maindir="runs022023_subset"):
     if os.path.exists(maindir)==False:
         os.mkdir(maindir)
     
@@ -283,7 +283,7 @@ def run(param_dict):
         )
         with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
             f.write(str(param_dict))
-            
+
         print("RUNNING {} VS {} is OVER!".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
         print("\n")
         
@@ -295,11 +295,12 @@ def run(param_dict):
 
 def m_p(nt=10):
     with mp.Pool(nt) as pool:
+        r_ = pool.map(run, r1vsr2())
+    with mp.Pool(nt) as pool:
         c = pool.map(run, concat())
     with mp.Pool(nt) as pool:
         p = pool.map(run, paraminit())
-    with mp.Pool(nt) as pool:
-        r_ = pool.map(run, r1vsr2())
+
 
 if __name__=="__main__":
     m_p()

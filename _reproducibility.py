@@ -221,7 +221,7 @@ class Agreement(object):
             )
         
 class posterior_calibration(object):
-    def __init__(self, loci_1, loci_2, window_size, savedir, plot_raw=True, allow_w=True, filter_nan=True, oe_transform=True):
+    def __init__(self, loci_1, loci_2, window_size, savedir, allow_w=False, plot_raw=True, filter_nan=True, oe_transform=True):
         if filter_nan:
             loci_1 = loci_1.dropna()
             loci_1 = loci_1.reset_index(drop=True)

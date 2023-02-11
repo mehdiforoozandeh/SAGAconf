@@ -2,6 +2,7 @@ from _cluster_matching import *
 import math, scipy
 import os
 from _reproducibility import *
+from datetime import datetime
 
 
 def is_reproduced(loci_1, loci_2, enr_threshold=3, window_bp=500, raw_overlap_axis=False):
@@ -77,7 +78,7 @@ def calibrate(vector_1, MAP2, k, window_bin, strat_size="def", num_bins=500, all
     if strat_size == "def":
         strat_size = int(len(vector_1)/num_bins)
 
-    coverage_2 = len(MAP2.loc[MAP2 == k]) / len(MAP2)
+    coverage_2 = sum([len(MAP2.loc[MAP2 == j]) for j in k]) / len(MAP2)
     vector_pair = pd.concat([vector_1, MAP2], axis=1)
 
     vector_pair.columns=["pv1", "map2"]
@@ -105,18 +106,16 @@ def calibrate(vector_1, MAP2, k, window_bin, strat_size="def", num_bins=500, all
 
                 neighbors_i = MAP2[leftmost:rightmost]
 
-                if k in neighbors_i:
+                if (set(k) & set(neighbors_i)): #if k in neighbors_i:
                     observed += 1
 
         else:
             subset_vector_pair = vector_pair.iloc[b:b+strat_size, :]
-            observed = len(subset_vector_pair.loc[subset_vector_pair["map2"] == k])
+            observed = len(subset_vector_pair.loc[subset_vector_pair["map2"] in k])
 
         expected = (coverage_2 * len(subset_vector_pair))
 
         if observed!=0:
-            # observed += len(subset_vector_pair)*1e-3
-            # expected += len(subset_vector_pair)*1e-3
 
             oe = np.log((observed)/(expected))
             
@@ -129,26 +128,19 @@ def calibrate(vector_1, MAP2, k, window_bin, strat_size="def", num_bins=500, all
                 oe])
 
     bins = np.array(bins)
-
-    # plt.scatter(
-    #     x=np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), 
-    #     y=bins[:,5], c='black', s=10000/len(bins))
     
-    polyreg = IsotonicRegression(
-            y_min=float(np.array(bins[:, 5]).min()), y_max=float(np.array(bins[:, 5]).max()), 
-            out_of_bounds="clip", increasing="auto")
+    try:
+        polyreg = IsotonicRegression(
+                y_min=float(np.array(bins[:, 5]).min()), y_max=float(np.array(bins[:, 5]).max()), 
+                out_of_bounds="clip", increasing="auto")
+        
+        polyreg.fit(
+            np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), 
+            bins[:, 5])
+    except:
+        print(vector_1, MAP2, k, window_bin)
     
-    polyreg.fit(
-        np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), 
-        bins[:, 5])
-    
-    # plt.plot(
-    #     np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), 
-    #     polyreg.predict(np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))), 
-    #     '--', c='r', linewidth=3)
-
-    # plt.show()
-    return polyreg
+    return polyreg, coverage_2 # coverage 2 indicates the expected overlap which is used later in the pipeline
         
 def is_reproduced_posterior(loci_1, loci_2, enr_threshold=2, window_bp=500, raw_overlap_axis=False, numbins=100, allow_w=True):
     """
@@ -170,46 +162,63 @@ def is_reproduced_posterior(loci_1, loci_2, enr_threshold=2, window_bp=500, raw_
     resolution = loci_1["end"][0] - loci_1["start"][0]
     window_bin = math.ceil(window_bp/resolution)
 
-    # enr_ovr = enrichment_of_overlap_matrix(loci_1, loci_2, OE_transform=True)
+    enr_ovr = enrichment_of_overlap_matrix(loci_1, loci_2, OE_transform=True)
     MP1 = loci_1.iloc[:,3:].max(axis=1) #posterior values 1
     MAP1 = loci_1.iloc[:,3:].idxmax(axis=1) # MAP label 1
     
     MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
     
-
+    above_threshold_coverage = {}
     calibration_funcs = {}
     for i in range(len(loci_1.columns[3:])):
-        if loci_1.columns[3:][i] not in calibration_funcs.keys():
+        if loci_1.columns[3:][i] not in calibration_funcs.keys() and loci_1.columns[3:][i] not in above_threshold_coverage.keys():
             calibration_funcs[loci_1.columns[3:][i]] = {}
 
-        for j in range(len(loci_2.columns[3:])):
-            if loci_2.columns[3:][j] not in calibration_funcs[loci_1.columns[3:][i]].keys():
+            best_match = enr_ovr.loc[loci_1.columns[3:][i], :].idxmax() #{j:enr_ovr.loc[j, :].idxmax() for j in enr_ovr.index} 
+            above_threshold_match = list(enr_ovr.loc[loci_1.columns[3:][i], enr_ovr.loc[loci_1.columns[3:][i], :]>enr_threshold].index) #{i: list(enr_ovr.loc[i, enr_ovr.loc[i, :]>enr_threshold].index) for i in enr_ovr.index}
+            if len(above_threshold_match) == 0:
+                above_threshold_match = [best_match]
 
-                # print(loci_1.columns[3:][i], loci_2.columns[3:][j])
+            print(loci_1.columns[3:][i], above_threshold_match, window_bin)
 
-                calibration_funcs[loci_1.columns[3:][i]][loci_2.columns[3:][j]] = \
+            calibration_funcs[loci_1.columns[3:][i]],  above_threshold_coverage[loci_1.columns[3:][i]]= \
                     calibrate(
                         loci_1.loc[:, loci_1.columns[3:][i]], MAP2,
-                        k=loci_2.columns[3:][j], num_bins=numbins, allow_w=allow_w, window_bin=window_bin)
+                        k=above_threshold_match, 
+                        num_bins=numbins, 
+                        allow_w=allow_w, 
+                        window_bin=window_bin)
+
+        # for j in range(len(loci_2.columns[3:])):
+        #     if loci_2.columns[3:][j] not in calibration_funcs[loci_1.columns[3:][i]].keys():
+                
+
+        #         # print(loci_1.columns[3:][i], loci_2.columns[3:][j])
+
+        #         calibration_funcs[loci_1.columns[3:][i]][loci_2.columns[3:][j]] = \
+        #             calibrate(
+        #                 loci_1.loc[:, loci_1.columns[3:][i]], MAP2,
+        #                 k=loci_2.columns[3:][j], 
+        #                 num_bins=numbins, 
+        #                 allow_w=allow_w, 
+        #                 window_bin=window_bin)
 
     posterior_enrichment = []
     # coverage_1 = {k:float(len(MAP1.loc[MAP1 == k]) / len(MAP2)) for k in MAP1.unique()}
-    coverage_2 = {k:float(len(MAP2.loc[MAP2 == k]) / len(MAP2)) for k in MAP2.unique()}
+    coverage_2 = above_threshold_coverage #{k:float(len(MAP2.loc[MAP2 == k]) / len(MAP2)) for k in MAP2.unique()}
 
-
-    for t in range(len(loci_1)): 
-        enr_val =calibration_funcs[MAP1[t]][MAP2[t]].predict(np.reshape(np.array(MP1[t]), (1,1)))[0]
-
-        if raw_overlap_axis:
+    if raw_overlap_axis:
+        for t in range(len(loci_1)): 
+            enr_val =calibration_funcs[MAP1[t]].predict(np.reshape(np.array(MP1[t]), (1,1)))[0]
             batchsize = int(len(loci_1)/numbins)
-            e = coverage_2[MAP2[t]] * batchsize
+            e = coverage_2[MAP1[t]] * batchsize
 
             overlap_ratio = (np.exp(enr_val)*e) / batchsize
             
             posterior_enrichment.append(overlap_ratio)
 
-        else:
-            posterior_enrichment.append(enr_val)
+    else:
+        posterior_enrichment = calibration_funcs[MAP1[t]].predict(np.reshape(np.array(MP1), (-1,1)))
             
     posterior_enrichment = np.array(posterior_enrichment)
     # print(posterior_enrichment)
@@ -310,7 +319,7 @@ def contour_isrep(loci1, loci2, savedir, posterior=True, raw_overlap_axis=True):
     else:
         t_range = [0, 400, 80]
 
-    for w in range(100, 3100, 600):
+    for w in range(100, 3100, 500):
         for t in range(t_range[0], t_range[1], t_range[2]):
 
             thresh = float(t)/100   
@@ -438,3 +447,331 @@ def contour_isrep(loci1, loci2, savedir, posterior=True, raw_overlap_axis=True):
         plt.savefig('{}/reprod_contour_{}.pdf'.format(savedir+"/contours", k), format='pdf')
         plt.savefig('{}/reprod_contour_{}.svg'.format(savedir+"/contours", k), format='svg')
         plt.clf()
+
+##########################################################################################################################################
+################################################################ MODIFIED ################################################################
+##########################################################################################################################################
+
+def is_repr_MAP_with_prior(prior, loci_1, loci_2, enr_threshold, window_bp, raw_overlap_axis):
+    resolution = loci_1["end"][0] - loci_1["start"][0]
+    window_bin = math.ceil(window_bp/resolution)
+
+    if raw_overlap_axis:
+        enr_ovr = enrichment_of_overlap_matrix(loci_1, loci_2, OE_transform=False)
+
+    else:
+        enr_ovr = enrichment_of_overlap_matrix(loci_1, loci_2, OE_transform=True)
+
+    best_match = {i:enr_ovr.loc[i, :].idxmax() for i in enr_ovr.index} 
+    above_threshold_match = {i: list(enr_ovr.loc[i, enr_ovr.loc[i, :]>enr_threshold].index) for i in enr_ovr.index}
+
+    for k in above_threshold_match.keys():
+        if len(above_threshold_match[k]) == 0:
+            above_threshold_match[k] = [best_match[k]]
+
+
+    MAP1 = list(loci_1.iloc[:,3:].idxmax(axis=1))
+    MAP2 = list(loci_2.iloc[:,3:].idxmax(axis=1))
+
+    # reprod_report = loci_1.loc[:, ["chr", "start", "end"]]
+    rep_rec = []
+    for i in range(len(MAP1)):
+        if prior[i] == True:
+            rep_rec.append(True)
+
+        else:
+            if window_bin > 0:
+                neighbor_i = MAP2[max(0, (i-window_bin)) : min((i+window_bin), (len(MAP2)-1))]
+            else:
+                neighbor_i = [MAP2[i]]
+
+            if (set(above_threshold_match[MAP1[i]]) & set(neighbor_i)):
+                rep_rec.append(True)
+
+            else:
+                rep_rec.append(False)
+    
+    return rep_rec
+
+def is_repr_posterior(loci_1, loci_2, enr_threshold, window_bp, numbins=1000):
+    resolution = loci_1["end"][0] - loci_1["start"][0]
+    window_bin = math.ceil(window_bp/resolution)
+
+    enr_ovr = enrichment_of_overlap_matrix(loci_1, loci_2, OE_transform=False)
+    MP1 = list(loci_1.iloc[:,3:].max(axis=1)) #posterior values 1
+    MAP1 = list(loci_1.iloc[:,3:].idxmax(axis=1)) # MAP label 1
+    
+    MAP2 = list(loci_2.iloc[:,3:].idxmax(axis=1))
+    strat_size = int(len(loci_1)/numbins)
+
+    ################# GETTING CALIBRATIONS #################
+    calibrations = {}
+
+    for k in loci_1.columns[3:]:
+        ####################### DEFINE MATCHES #######################
+        best_match = [enr_ovr.loc[k, :].idxmax()]
+        above_threshold_match = list(enr_ovr.loc[k, enr_ovr.loc[k, :]>enr_threshold].index)
+        if len(above_threshold_match) == 0:
+            above_threshold_match = [best_match[0]]
+        ##############################################################
+
+        vector_pair = pd.concat([loci_1[k], pd.Series(MAP2)], axis=1)
+        vector_pair.columns=["pv1", "map2"]
+        vector_pair = vector_pair.sort_values("pv1").reset_index()
+        
+        bins = []
+        for b in range(0, vector_pair.shape[0], strat_size):
+            # [bin_start, bin_end, num_values_in_bin, ratio_matched]
+
+            subset_vector_pair = vector_pair.iloc[b:b+strat_size, :]
+            subset_vector_pair = subset_vector_pair.reset_index(drop=True)
+            
+            matched = 0
+            ####################### CHECK WINDOW #######################
+            for i in range(len(subset_vector_pair)):
+                if window_bin > 0 :
+                    leftmost = max(0, (subset_vector_pair["index"][i] - window_bin))
+                    rightmost = min((len(MAP2)-1), (subset_vector_pair["index"][i] + window_bin))
+
+                    neighbors_i = MAP2[leftmost:rightmost]
+
+                else:
+                    neighbors_i = [MAP2[subset_vector_pair["index"][i]]]
+
+                if (set(above_threshold_match) & set(neighbors_i)):
+                    matched += 1
+            #############################################################
+            bins.append([
+                float(subset_vector_pair["pv1"][subset_vector_pair.index[0]]), 
+                float(subset_vector_pair["pv1"][subset_vector_pair.index[-1]]),
+                len(subset_vector_pair),
+                float(matched/len(subset_vector_pair))])
+        
+        bins = np.array(bins)
+        polyreg = IsotonicRegression(
+            y_min=float(np.array(bins[:, 3]).min()), y_max=float(np.array(bins[:, 3]).max()), 
+            out_of_bounds="clip", increasing=True)
+        
+        polyreg.fit(
+            np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), 
+            bins[:, 3])
+         
+        calibrations[k] = polyreg
+    ########################################################
+    # print("got the calibrations")
+    calibrated_loci1 = [loci_1.loc[:, "chr"] ,loci_1.loc[:, "start"] ,loci_1.loc[:, "end"]]
+
+    for k in loci_1.columns[3:]:
+        calibrated_loci1.append(pd.Series(calibrations[k].predict(np.reshape(np.array(loci_1.loc[:, k]), (-1,1)))))
+
+    calibrated_loci1 = pd.concat(calibrated_loci1, axis=1)
+    calibrated_loci1.columns = loci_1.columns
+
+    calibrated_reproducibility = []
+    for i in range(len(MAP1)):
+        calibrated_reproducibility.append(calibrated_loci1.loc[i, MAP1[i]])
+    
+    binary_isrep = []
+    for t in calibrated_reproducibility:
+        if t>enr_threshold:
+            binary_isrep.append(True)
+        else:
+            binary_isrep.append(False)
+
+    return binary_isrep
+
+def single_point_repr(loci_1, loci_2, enr_threshold, window_bp, raw_overlap_axis, posterior=False):
+    if posterior:
+        """
+        for all labels in R1:
+            creat a calibration curve according to t, w
+        
+        according to the calibrated p, 
+        """
+        return is_repr_posterior(loci_1, loci_2, enr_threshold, window_bp, numbins=1000)
+
+    else:
+        return is_repr_MAP_with_prior(
+            [False for _ in range(len(loci_1))], 
+            loci_1, loci_2, enr_threshold, window_bp, raw_overlap_axis)
+
+def fast_contour(loci1, loci2, savedir, w_range=[0, 4000, 200], t_range=[0, 11, 1], posterior=True, raw_overlap_axis=True):
+    """
+    initialize wrange and trange and reverse trange to start from the most strict to easiest
+    initialize a matrix of size #t * #w and put a vector of [False for i in range len(loci1)] as each element
+
+    for t in trange
+        for w in wrange
+            get_reproducibility of A[t, w] for all positions where rep is still False 
+            for all reproducibile positions:
+                change that position to True if that cell in A has bigger window or lower threshold
+    
+    after going through A once, return A[t,w] = len(A[t,w]==True) / len(loci1)
+    """
+
+    t_range = [i/10 for i in range(t_range[0], t_range[1], t_range[2])]
+    t_range = t_range[::-1]
+
+    w_range = list(range(w_range[0], w_range[1], w_range[2]))
+
+    # initialize A
+    A = {}
+    for t in t_range:
+        for w in w_range:
+            if t in A.keys():
+                A[t][w] = [False for i in range(len(loci1))]
+            else:
+                A[t] = {}
+                A[t][w] = [False for i in range(len(loci1))]
+    
+    for t in t_range:
+        for w in w_range:
+            """
+            get a subset of loci1 where A[t,w] == False
+            run reproducibility_test on the subset of loci1
+            update A[t,w] with new reprod_results
+            """
+            t0 = datetime.now()
+
+            if posterior:
+                updated_repr = is_repr_posterior(loci1, loci2, t, w, numbins=1000)
+
+            else:
+                updated_repr = is_repr_MAP_with_prior(A[t][w], loci1, loci2, t, w, raw_overlap_axis=True)
+
+            print(datetime.now() - t0)
+            
+            # now update all of A with new info
+            for tt in t_range:
+                for ww in w_range:
+                    if tt <= t and ww >= w:
+                        A[tt][ww] = updated_repr
+            
+            # all_scores = pd.DataFrame(np.zeros((len(t_range), len(w_range))), index=t_range, columns=w_range)
+            # for ttt in t_range:
+            #     for www in w_range:
+            #         all_scores.loc[ttt, www] = sum(A[ttt][www]) / len(A[ttt][www])
+            # print(all_scores)
+    
+    rec = []
+    perlabel_rec = {k:[] for k in loci1.columns[3:]}
+    for thresh in A.keys():
+        for w in A[thresh].keys():
+            reprod_report = pd.DataFrame(A[thresh][w], columns=["is_repr"])
+
+            score = len(reprod_report.loc[reprod_report["is_repr"]==True])/ len(reprod_report)
+            rec.append([w, thresh, score])
+
+            lab_rep = perlabel_is_reproduced(reprod_report, loci1)
+            for k, v in lab_rep.items():
+                perlabel_rec[k].append([w, thresh, v[0]/ (v[0]+v[1])])
+    
+    rec = np.array(rec)
+    x, y, z = rec[:,0], rec[:,1], rec[:,2]
+    rec_df = pd.DataFrame(rec, columns=["w", "t", "s"])
+    list_of_ws = np.unique(rec[:, 0])
+    cmap = get_cmap('inferno')
+    gradients = np.linspace(0, 1, len(list_of_ws))
+
+    for i in range(len(list_of_ws)):
+        w = int(list_of_ws[i])
+        subset_runs = rec_df.loc[rec_df["w"] == w, :].sort_values(by="t", ascending=False).reset_index(drop=True)
+        
+        plt.plot(subset_runs.t, subset_runs.s, color=cmap(gradients[i]), label="w = {} bp".format(w))
+
+    if raw_overlap_axis:
+        plt.xlabel("Overlap threshold")
+    else:
+        plt.xlabel("Enrichment of Overlap threshold")
+
+    plt.ylabel("Reproducibility")
+    plt.xticks(rotation=45, fontsize=7)
+    plt.title("Reproducibility -- General")
+    plt.legend()
+    plt.tight_layout()
+    
+    if os.path.exists(savedir+"/contours/") == False:
+        os.mkdir(savedir+"/contours/")
+
+    plt.savefig('{}/reprod_lines_general.pdf'.format(savedir+"/contours"), format='pdf')
+    plt.savefig('{}/reprod_lines_general.svg'.format(savedir+"/contours"), format='svg')
+    plt.clf()
+
+    X, Y = np.meshgrid(x, y)
+
+    Z = np.zeros(X.shape)
+    
+    for i in range(Z.shape[0]):
+        for j in range(Z.shape[1]):
+            corresponding_line = rec_df.loc[(rec_df["w"] == X[i,j]) & (rec_df["t"]== Y[i,j]), :]
+            Z[i, j] = float(corresponding_line["s"])
+
+    plt.contourf(X, Y, Z, cmap='RdGy_r')
+    plt.colorbar()
+    if raw_overlap_axis:
+        plt.ylabel("Overlap threshold")
+    else:
+        plt.ylabel("Enrichment of Overlap threshold")
+
+    plt.xlabel("Window size")
+    plt.xticks(rotation=45, fontsize=7)
+    plt.title("Reproducibility -- {}".format(k))
+    plt.tight_layout()
+    plt.savefig('{}/reprod_contour_{}.pdf'.format(savedir+"/contours", k), format='pdf')
+    plt.savefig('{}/reprod_contour_{}.svg'.format(savedir+"/contours", k), format='svg')
+    plt.clf()
+
+    for k in perlabel_rec.keys():
+        rec = np.array(perlabel_rec[k])
+
+        x, y, z = rec[:,0], rec[:,1], rec[:,2]
+        rec_df = pd.DataFrame(rec, columns=["w", "t", "s"])
+
+        list_of_ws = np.unique(rec[:, 0])
+        cmap = get_cmap('inferno')
+        gradients = np.linspace(0, 1, len(list_of_ws))
+
+        for i in range(len(list_of_ws)):
+            w = int(list_of_ws[i])
+            subset_runs = rec_df.loc[rec_df["w"] == w, :].sort_values(by="t", ascending=False).reset_index(drop=True)
+            
+            plt.plot(subset_runs.t, subset_runs.s, color=cmap(gradients[i]), label="w = {} bp".format(w))
+
+        if raw_overlap_axis:
+            plt.xlabel("Overlap threshold")
+        else:
+            plt.xlabel("Enrichment of Overlap threshold")
+
+        plt.ylabel("Reproducibility")
+        plt.xticks(rotation=45, fontsize=7)
+        plt.title("Reproducibility -- {}".format(k))
+        plt.tight_layout()
+        plt.legend()
+        plt.savefig('{}/reprod_lines_{}.pdf'.format(savedir+"/contours", k), format='pdf')
+        plt.savefig('{}/reprod_lines_{}.svg'.format(savedir+"/contours", k), format='svg')
+        plt.clf()
+
+        X, Y = np.meshgrid(x, y)
+
+        Z = np.zeros(X.shape)
+        
+        for i in range(Z.shape[0]):
+            for j in range(Z.shape[1]):
+                corresponding_line = rec_df.loc[(rec_df["w"] == X[i,j]) & (rec_df["t"]== Y[i,j]), :]
+                Z[i, j] = float(corresponding_line["s"])
+
+        plt.contourf(X, Y, Z, cmap='RdGy_r')
+        plt.colorbar()
+        if raw_overlap_axis:
+            plt.ylabel("Overlap threshold")
+        else:
+            plt.ylabel("Enrichment of Overlap threshold")
+
+        plt.xlabel("Window size")
+        plt.xticks(rotation=45, fontsize=7)
+        plt.title("Reproducibility -- {}".format(k))
+        plt.tight_layout()
+        plt.savefig('{}/reprod_contour_{}.pdf'.format(savedir+"/contours", k), format='pdf')
+        plt.savefig('{}/reprod_contour_{}.svg'.format(savedir+"/contours", k), format='svg')
+        plt.clf()
+
