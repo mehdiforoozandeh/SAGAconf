@@ -19,7 +19,6 @@ import math
 import scipy
 from scipy.special import expit
 
-
 class Agreement(object):
     def __init__(self, loci_1, loci_2, savedir, filter_nan=True, assume_uniform_coverage=True):
         if filter_nan:
@@ -236,7 +235,7 @@ class posterior_calibration(object):
 
         self.window_bin = math.ceil(window_size/self.resolution)
 
-        self.enr_ovr = enrichment_of_overlap_matrix(loci_1, loci_2, OE_transform=True)
+        self.enr_ovr = overlap_matrix(loci_1, loci_2, type="IoU")
 
         self.per_label_matches = {}
         for k in list(loci_1.columns[3:]):
@@ -931,83 +930,6 @@ def plot_bidir_bar_chart(metr1, metr2, type, savedir):
     sns.reset_orig
     plt.style.use('default')
 
-class sankey(object):
-    def __init__(self, loci_1, corrected_loci_2, savedir):
-        self.loci_1 = loci_1
-        self.loci_2 = corrected_loci_2
-        self.num_labels = len(self.loci_1.columns)-3
-        self.savedir = savedir
-
-    def sankey_diag(self):
-        print('creating sankey diag')
-        confmat = confusion_matrix(self.loci_1, self.loci_2, self.num_labels, OE_transform=False)
-        label_1 = [i.replace('posterior','replicate1_label') for i in confmat.columns]
-        label_2 = [i.replace('posterior','replicate2_label') for i in confmat.columns]
-        label = label_1 + label_2
-
-        source = []
-        target = []
-        value = []  
-        for i in range(confmat.shape[0]):
-            for j in range(confmat.shape[1]):
-                source.append(i)
-                target.append(confmat.shape[0] + j)
-                value.append(confmat.iloc[i,j])
-
-        color_list = []
-        opacity = 0.7
-        for i in range(len(confmat.columns)):
-            clist = px.colors.qualitative.Prism
-            color_list.append(clist[i%len(clist)].replace("rgb","rgba").replace(")", ", {})".format(opacity)))
-
-        color_link = []
-        for i in range(len(confmat.columns)):
-             color_link = color_link + color_list
-
-        # print(color_link)
-        link = dict(source = source, target=target, value=value, color=color_link)
-        node = dict(label = label, pad = 10, thickness = 20)
-        data = go.Sankey(link=link, node=node)
-
-        fig = go.Figure(data)
-        fig.update_layout(
-            hovermode = 'y', title = "Agreement Sankey", 
-            font=dict(size = 10))
-        fig.write_image("{}/sankey.pdf".format(self.savedir))
-        fig.write_image("{}/sankey.svg".format(self.savedir))
-        fig.write_html("{}/sankey.html".format(self.savedir))
-    
-    def heatmap(self, new_column=None):
-        if new_column != None:
-            pass
-        else:
-            new_column = self.loci_1.columns[3:]
-            new_column = self.loci_2.columns[3:]
-        confmat = confusion_matrix(self.loci_1, self.loci_2, self.num_labels, OE_transform=True)
-        p = sns.heatmap(
-            confmat.astype(int), annot=True, fmt="d",
-            linewidths=0.01,  cbar=False,
-            yticklabels=new_column,
-            xticklabels=new_column,
-            # vmin=confmat.min().min(),
-            # vmax=confmat.max().max()
-            )
-        sns.set(rc={'figure.figsize':(15,20)})
-        p.tick_params(axis='x', rotation=30, labelsize=7)
-        p.tick_params(axis='y', rotation=45, labelsize=7)
-
-        plt.title('Label Matching Heatmap (log(O/E) overlap)')
-        plt.xlabel('Replicate 1 Labels')
-        plt.ylabel("Replicate 2 Labels")
-        plt.tight_layout()
-        plt.savefig('{}/heatmap.pdf'.format(self.savedir), format='pdf')
-        plt.savefig('{}/heatmap.svg'.format(self.savedir), format='svg')
-        plt.clf()
-        sns.reset_orig
-        plt.style.use('default')
-
-        confmat.to_csv("{}/heatmap.csv".format(self.savedir))
- 
 class TSS_enrichment(object):
     def __init__(self, loci, TSSdir, savedir):
         self.TSSs = pd.read_csv(TSSdir, sep="\t", header=None)
@@ -1458,5 +1380,54 @@ class TSS_enrichment(object):
         plt.close("all")
         plt.style.use('default')
 
+def best_match_overlap(loci1, loci2):
+    enr_ovr = overlap_matrix(loci1, loci2, type="IoU")
+    best_match_overlap = {i:enr_ovr.loc[i, :].max() for i in enr_ovr.index}
+    return best_match_overlap
 
-            
+
+def normalized_mutual_information(loci_1, loci_2, w=0, soft=True):
+    """
+    get raw overlaps  ->  P(A,B) JOINT
+    get coverages     ->  P(A), P(B)
+    """
+
+    if w == 0:
+        "soft joint prob"
+        "soft coverage"
+        if soft:
+            joint = soft_joint_prob(loci_1, loci_2)
+            coverage1, coverage2 = soft_coverage(loci_1, loci_2)
+        else:
+            joint = joint_overlap_prob(loci_1, loci_2, w=0, symmetric=False)
+            MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
+            MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
+            coverage1 = {k:len(MAP1.loc[MAP1 == k])/len(loci_1) for k in loci_1.columns[3:]}
+            coverage2 = {k:len(MAP2.loc[MAP2 == k])/len(loci_2) for k in loci_2.columns[3:]}
+    
+    # entropies
+    H_A = 0
+    for a in coverage1.keys():
+        H_A += coverage1[a] * np.log(coverage1[a])
+
+    H_A = -1 * H_A
+
+    H_B = 0
+    for b in coverage2.keys():
+        H_B += coverage2[b] * np.log(coverage2[b])
+        
+    H_B = -1 * H_B
+
+    # mutual information
+    MI = 0
+    for a in coverage1.keys():
+        for b in coverage2.keys(): 
+            if (joint.loc[a, b]) != 0:
+                MI += joint.loc[a, b] * np.log(
+                    (joint.loc[a, b]) / 
+                    (coverage1[a] * coverage2[b])
+                    )
+
+    NMI = (2*MI)/(H_A + H_B)
+
+    return NMI

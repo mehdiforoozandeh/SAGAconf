@@ -807,14 +807,10 @@ def get_short_report(replicate_1_dir, replicate_2_dir, outdir, type="chmm", mnem
     loci_1.columns = ["chr", "start", "end"]+["posterior{}".format(i) for i in range(num_labels)]
     loci_2.columns = ["chr", "start", "end"]+["posterior{}".format(i) for i in range(num_labels)]
 
-    confmat_raw = confusion_matrix(
-        loci_1, loci_2, num_labels, 
-        OE_transform=False, symmetric=False)
+    confmat_raw =  overlap_matrix(loci_1, loci_2, type="IoU")
     # plot_heatmap(confmat_raw, outdir, type="RawOverlapMatrix", columns=[list(loci_1.columns[3:]), list(loci_2.columns[3:])])
 
-    confmat_OE = confusion_matrix(
-        loci_1, loci_2, num_labels, 
-        OE_transform=True, symmetric=False)    
+    confmat_OE =  overlap_matrix(loci_1, loci_2, type="IoU")
     # plot_heatmap(confmat_OE, outdir, type="log_OE_OverlapMatrix", columns=[list(loci_1.columns[3:]), list(loci_2.columns[3:])])
 
     assignment_pairs = Hungarian_algorithm(confmat_OE, conf_or_dis='conf')
@@ -862,13 +858,9 @@ def get_short_report(replicate_1_dir, replicate_2_dir, outdir, type="chmm", mnem
     print('connected barpartite')
 
     print('generating confmat 2')
-    confmat_OE_matched = confusion_matrix(
-        loci_1, loci_2, num_labels, 
-        OE_transform=True, symmetric=False) 
+    confmat_OE_matched = overlap_matrix(loci_1, loci_2, type="IoU")
 
-    confmat_raw_matched = confusion_matrix(
-        loci_1, loci_2, num_labels, 
-        OE_transform=False, symmetric=False)  
+    confmat_raw_matched = overlap_matrix(loci_1, loci_2, type="IoU")
 
     
     # plot_heatmap(confmat_raw_matched, outdir, type="RawOverlapMatrix_matched", columns=[new_columns,new_columns])
@@ -935,10 +927,6 @@ def report_reproducibility(loci_1, loci_2, pltsavedir, cc_calb=True):
     plt.close("all")
     plt.style.use('default')   
 
-    vis = sankey(loci_1, loci_2, pltsavedir+"/snk")
-    vis.sankey_diag()
-    vis.heatmap()
-    del vis
 
     plt.close('all')
     plt.style.use('default')
@@ -1045,9 +1033,7 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir, ru
     
     print('generating confmat 1')
     
-    conf_mat = confusion_matrix(
-        loci_1, loci_2, num_labels, 
-        OE_transform=True, symmetric=False)
+    conf_mat = overlap_matrix(loci_1, loci_2, type="IoU")
 
     assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
 
@@ -1095,9 +1081,7 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir, ru
     print('connected barpartite')
 
     print('generating confmat 2')
-    conf_mat = confusion_matrix(
-        loci_1, loci_2, num_labels, 
-        OE_transform=True, symmetric=True)  
+    conf_mat = overlap_matrix(loci_1, loci_2, type="IoU")
 
     mat_max = conf_mat.max(axis=1).max(axis=0)
     mat_min = conf_mat.min(axis=1).min(axis=0)
@@ -1122,9 +1106,6 @@ def full_reproducibility_report(replicate_1_dir, replicate_2_dir, pltsavedir, ru
     sns.reset_orig
     plt.close("all")
     plt.style.use('default')
-
-    vis = sankey(loci_1, loci_2, pltsavedir)
-    vis.heatmap(new_columns)
      
     reports = {}
     reports[str(num_labels)] = report_reproducibility(

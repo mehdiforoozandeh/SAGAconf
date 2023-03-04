@@ -301,6 +301,5 @@ def m_p(nt=10):
     with mp.Pool(nt) as pool:
         p = pool.map(run, paraminit())
 
-
 if __name__=="__main__":
     m_p()

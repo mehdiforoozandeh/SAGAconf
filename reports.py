@@ -66,9 +66,7 @@ def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True,
                 mnemon2_dict[str(i)] = str(i)
         
         if match:
-            conf_mat = confusion_matrix(
-                loci_1, loci_2, num_labels, 
-                OE_transform=True, symmetric=False)
+            conf_mat = overlap_matrix(loci_1, loci_2, type="IoU")
 
             assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
             for i in range(len(assignment_pairs)):
@@ -88,9 +86,7 @@ def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True,
 
     else:
         if match:
-            conf_mat = confusion_matrix(
-                loci_1, loci_2, num_labels, 
-                OE_transform=True, symmetric=False)
+            conf_mat = overlap_matrix(loci_1, loci_2, type="IoU")
 
             assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
             loci_1, loci_2 = \
@@ -106,9 +102,7 @@ def ct_confus(loci_1, loci_2, savedir):
     """
     num_labels = loci_1.shape[1]-3
         
-    confmat = confusion_matrix(
-        loci_1, loci_2, num_labels, 
-        OE_transform=True, symmetric=False)
+    confmat = overlap_matrix(loci_1, loci_2, type="IoU")
 
     p = sns.heatmap(
         confmat.astype(int), annot=True, fmt="d",
@@ -210,8 +204,7 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
     to be a match. this definition can be refined later.
     """
 
-    confmat = enrichment_of_overlap_matrix(
-            loci_1, loci_2, OE_transform=True)
+    confmat = overlap_matrix(loci_1, loci_2, type="IoU")
     
     # define matches
     per_label_matches = {}
@@ -374,8 +367,7 @@ def label_boundary(loci_1, loci_2, savedir, match_definition="BM", max_distance=
     to be a match. this definition can be refined later.
     """
 
-    confmat = enrichment_of_overlap_matrix(
-            loci_1, loci_2, OE_transform=True)
+    confmat = overlap_matrix(loci_1, loci_2, type="IoU")
     
     # define matches
     per_label_matches = {}
@@ -613,7 +605,7 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
     bool_reprod_report = single_point_repr(loci1, loci2, enr_threshold=0.9, window_bp=1000, raw_overlap_axis=True, posterior=False)
 
     bool_reprod_report = pd.concat(
-        [np.array(loci1["chr"]), np.array(loci1["start"]), np.array(loci1["end"]), np.array(bool_reprod_report)], axis=1)
+        [loci1["chr"], loci1["start"], loci1["end"], pd.Series(bool_reprod_report)], axis=1)
     bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
 
     # pd.DataFrame(
@@ -637,7 +629,7 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
     bool_reprod_report = single_point_repr(loci1, loci2, enr_threshold=0.9, window_bp=1000, raw_overlap_axis=True, posterior=True)
 
     bool_reprod_report = pd.concat(
-        [np.array(loci1["chr"]), np.array(loci1["start"]), np.array(loci1["end"]), np.array(bool_reprod_report)], axis=1)
+        [loci1["chr"], loci1["start"], loci1["end"], pd.Series(bool_reprod_report)], axis=1)
     bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
 
     # bool_reprod_report = pd.DataFrame(
@@ -661,38 +653,60 @@ def get_contour(replicate_1_dir, replicate_2_dir, savedir):
     loci1, loci2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
         replicate_2_dir+"/parsed_posterior.csv",
-        subset=True, logit_transform=True)
+        subset=True, logit_transform=False)
 
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+    print(normalized_mutual_information(loci1, loci2, soft=True))
+    print(normalized_mutual_information(loci1, loci2, soft=False))
 
-    fast_contour(loci1, loci2, savedir, w_range=[0, 4000, 400], t_range=[0, 11, 1], posterior=True, raw_overlap_axis=True)
+    # confmat = IoU_overlap(loci1, loci2, w=0, soft=True)
+
+    # p = sns.heatmap(
+    #     confmat.astype(float), annot=True, fmt=".2f",
+    #     linewidths=0.01,  cbar=False)
+
+    # sns.set(rc={'figure.figsize':(15,20)})
+    # p.tick_params(axis='x', rotation=30, labelsize=7)
+    # p.tick_params(axis='y', rotation=30, labelsize=7)
+
+    # plt.title('IoU overlap')
+    # plt.xlabel('Replicate 2 Labels')
+    # plt.ylabel("Replicate 1 Labels")
+    # plt.tight_layout()
+    # plt.show()
+    # plt.clf()
+    # sns.reset_orig
+    # plt.style.use('default')
+
+    # fast_contour(loci1, loci2, savedir, w_range=[0, 4000, 400], t_range=[0, 11, 1], posterior=True, raw_overlap_axis=True)
 
 def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, contour=True):
-    print(replicate_1_dir, replicate_2_dir, genecode_dir, savedir)
-    if os.path.exists(savedir)==False:
-        os.mkdir(savedir)
+    # print(replicate_1_dir, replicate_2_dir, genecode_dir, savedir)
+    # if os.path.exists(savedir)==False:
+    #     os.mkdir(savedir)
 
-    get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
-    get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
+    # get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
+    # get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
 
-    get_all_bioval(
-        replicate_1_dir, replicate_2_dir, 
-        savedir,
-        genecode_dir=genecode_dir, 
-        rnaseq=rnaseq)
+    # get_all_bioval(
+    #     replicate_1_dir, replicate_2_dir, 
+    #     savedir,
+    #     genecode_dir=genecode_dir, 
+    #     rnaseq=rnaseq)
     
-    get_overalls(replicate_1_dir, replicate_2_dir, savedir)
+    # get_overalls(replicate_1_dir, replicate_2_dir, savedir)
 
     if contour:
         get_contour(replicate_1_dir, replicate_2_dir, savedir)
 
-    gather_labels(replicate_1_dir, savedir)
+    # gather_labels(replicate_1_dir, savedir)
 
 if __name__=="__main__":    
 
     GET_ALL(
-        replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
-        replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
+        replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
+        replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
         genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
         rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
         savedir="tests/cedar_runs/chmm/GM12878_R1/")
+    

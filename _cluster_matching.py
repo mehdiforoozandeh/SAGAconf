@@ -1,7 +1,3 @@
-from cmath import exp
-from math import log
-from traceback import print_tb
-from unittest import expectedFailure
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
@@ -14,7 +10,126 @@ from sklearn.manifold import TSNE
 from sklearn import preprocessing
 from sklearn.cluster import KMeans
 from scipy.spatial.distance import pdist
+from sklearn.metrics import cohen_kappa_score
+import math 
 
+def overlap_matrix(loci_1, loci_2, type="IoU"):
+    if type == "IoU":
+        return IoU_overlap(loci_1, loci_2)
+    elif type == "ck":
+        return Cohens_Kappa_matrix(loci_1, loci_2)
+    elif type == "enr":
+        return enrichment_of_overlap_matrix(loci_1, loci_2, OE_transform=True)
+    elif type == "conditional":
+        return enrichment_of_overlap_matrix(loci_1, loci_2, OE_transform=False)
+    elif type == "hard_joint":
+        return joint_overlap_prob(loci_1, loci_2, w=0)
+    elif type == "soft_joint":
+        return soft_joint_prob(loci_1, loci_2)
+    
+def soft_joint_prob(loci_1, loci_2):
+    """
+    this kind of overlap, takes the posterior prob into account. 
+    the posterior prob should not be in logit form.
+        if 0<p<1:
+            pass
+        else:
+            p = sigmoid(p)
+    """
+
+    num_labels = len(loci_1.columns) -3
+    joint = pd.DataFrame(np.zeros((num_labels, num_labels)), columns=loci_2.columns[3:], index=loci_1.columns[3:])
+
+    for k in loci_1.columns[3:]:
+        for j in loci_2.columns[3:]:
+            soft_overlap = sum(np.array(loci_1.loc[:, k]) * np.array(loci_2.loc[:, j])) / len(loci_1)
+            joint.loc[k, j] = soft_overlap
+    
+    return joint
+
+def soft_coverage(loci_1, loci_2):
+    coverage1 = {k:sum(loci_1.loc[:,k])/len(loci_1) for k in loci_1.columns[3:]}
+    coverage2 = {k:sum(loci_2.loc[:,k])/len(loci_2) for k in loci_2.columns[3:]}
+    return coverage1, coverage2
+
+def joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True):
+    num_labels = len(loci_1.columns) -3
+    resolution = loci_1["end"][0] - loci_1["start"][0] 
+    w = math.ceil(w/resolution)
+
+    MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
+    MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
+
+    observed_overlap = {} 
+
+    for k in loci_1.columns[3:]:
+        for j in loci_2.columns[3:]:
+            observed_overlap[str(k + "|" + j)] = 0
+
+    oo_mat = pd.DataFrame(np.zeros((num_labels, num_labels)), columns=loci_2.columns[3:], index=loci_1.columns[3:])
+
+    MAP1 = list(MAP1)
+    MAP2 = list(MAP2)
+                
+    if w == 0:
+        for i in range(len(MAP1)):
+            k = MAP1[i]
+            j = MAP2[i]
+            observed_overlap[str(k + "|" + j)] += 1
+
+    elif symmetric==False:
+    ############################### NON-SYMMETRIC ##################################
+        for i in range(len(MAP1)):
+            k = MAP1[i]
+            i_neighbors = MAP2[max(0, i-w) : min(i+w, len(MAP2)-1)]
+            for j in set(i_neighbors):
+                observed_overlap[str(k + "|" + j)] += 1
+        
+    else:
+    ################################# SYMMETRIC ####################################
+        for i in range(len(MAP1)):
+            R1_window =  MAP1[max(0, i-w) : min(i+w, len(MAP1)-1)]
+            R2_window =  MAP2[max(0, i-w) : min(i+w, len(MAP2)-1)]
+            for k in R1_window:
+                for j in R2_window:
+                    observed_overlap[str(k + "|" + j)] += float(1/(len(R1_window)*len(R2_window)))
+
+    for p in observed_overlap.keys():
+        oo_mat.loc[p.split("|")[0], p.split("|")[1]] = observed_overlap[p]
+    
+    return oo_mat / len(loci_1)
+
+def IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False):
+    num_labels = len(loci_1.columns) - 3
+    
+    IoU = pd.DataFrame(np.zeros((num_labels, num_labels)), columns=loci_2.columns[3:], index=loci_1.columns[3:])
+
+    if soft and w == 0:
+        joint = soft_joint_prob(loci_1, loci_2)
+        coverage1, coverage2 = soft_coverage(loci_1, loci_2)
+
+    else:
+        joint = joint_overlap_prob(loci_1, loci_2, w=w, symmetric=symmetric)
+
+        MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
+        MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
+
+        coverage1 = {k:len(MAP1.loc[MAP1 == k])/len(loci_1) for k in loci_1.columns[3:]}
+        coverage2 = {k:len(MAP2.loc[MAP2 == k])/len(loci_2) for k in loci_2.columns[3:]}
+
+        # coverage1 = {k: joint.loc[k,:].sum() for k in joint.index}
+        # coverage2 = {k: joint.loc[:,k].sum() for k in joint.columns}
+
+    for A in loci_1.columns[3:]:
+        for B in loci_2.columns[3:]:
+            IoU.loc[A, B] = (joint.loc[A, B])/(coverage1[A] + coverage2[B] - ((joint.loc[A, B])))
+
+    return IoU
+
+################################################################################################################
+################################################################################################################
+################################################################################################################
+################################################################################################################
 
 def find_max_posteri(loci):
     # loci_posteri =  loci.iloc[:, 3:]
@@ -50,6 +165,32 @@ def make_symmetric_matrix(matrix0):
     
     return matrix1
 
+def Cohens_Kappa_matrix(loci_1, loci_2):
+    num_labels = len(loci_1.columns) -3
+    MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
+    MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
+
+    coverage1 = {k:len(MAP1.loc[MAP1 == k])/len(loci_1) for k in loci_1.columns[3:]}
+    coverage2 = {k:len(MAP2.loc[MAP2 == k])/len(loci_2) for k in loci_2.columns[3:]}
+
+    ck_mat = pd.DataFrame(
+        np.zeros((num_labels, num_labels)), 
+        columns=loci_2.columns[3:], index=loci_1.columns[3:])
+
+    for k in loci_1.columns[3:]:
+        for l in loci_2.columns[3:]:
+            o = 0
+            for i in range(len(MAP1)):
+                if MAP1[i] == k and MAP2[i] == l:
+                    o+=1
+            
+            ck_mat.loc[k, l] = cohen_kappa_score( 
+                list(MAP1 == k),
+                list(MAP2 == l)
+            )
+
+    return ck_mat
+
 def enrichment_of_overlap_matrix(loci_1, loci_2, OE_transform=True):
     num_labels = len(loci_1.columns) -3
     MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
@@ -78,7 +219,7 @@ def enrichment_of_overlap_matrix(loci_1, loci_2, OE_transform=True):
     for p in observed_overlap.keys():
         oo_mat.loc[p.split("|")[0], p.split("|")[1]] = observed_overlap[p]
         eo_mat.loc[p.split("|")[0], p.split("|")[1]] = expected_overlap[p]
-
+    
     if OE_transform:
         epsilon = 1e-3
 
@@ -90,79 +231,6 @@ def enrichment_of_overlap_matrix(loci_1, loci_2, OE_transform=True):
         for k in oo_mat.index:
             oo_mat.loc[k, :] = oo_mat.loc[k, :] / (coverage1[k]*len(loci_1))
         return oo_mat
-    
-def confusion_matrix(loci_1, loci_2, num_labels, OE_transform=True, symmetric=False):
-    # print('finding MAPs')
-    num_labels = int(num_labels)
-    max_1posteri = list(find_max_posteri(loci_1))
-    max_2posteri = list(find_max_posteri(loci_2))
-
-    observed_overlap = np.zeros((num_labels, num_labels))
-    expected_overlap = np.zeros((num_labels, num_labels))
-
-    columnnames = list(loci_1.columns)[3:]
-    r1_label_bin_count = {}
-    r2_label_bin_count = {}
-    
-    '''
-    expected overlap of label x = fraction of genome with label x 
-    in rep1 * fraction of genome with label x in rep2
-    '''
-    for i in columnnames:
-        r1_label_bin_count[i] = 0
-        r2_label_bin_count[i] = 0
-
-    # print('creating observed and expected matrix')
-    for i in range(len(loci_1)):
-        try:
-            r1_label_bin_count[max_1posteri[i]] += 1
-            r2_label_bin_count[max_2posteri[i]] += 1
-            observed_overlap[columnnames.index(max_1posteri[i]), columnnames.index(max_2posteri[i])] += 1
-        except:
-            pass
-    
-    observed_overlap = pd.DataFrame(observed_overlap,
-        columns=columnnames,
-        index=columnnames)
-    
-    if OE_transform:
-        epsilon = 1e-3
-        
-        # calculate ratio of coverage for each label
-        for k, v in r1_label_bin_count.items():
-            r1_label_bin_count[k] = float(v) /  loci_1.shape[0]
-
-        for k, v in r2_label_bin_count.items():
-            r2_label_bin_count[k] = float(v) /  loci_2.shape[0]
-
-        for i in range(len(columnnames)):
-            for j in range(len(columnnames)):
-
-                expected_overlap[i, j] = (r1_label_bin_count[columnnames[i]] * r2_label_bin_count[columnnames[j]]) * loci_1.shape[0]
-
-        expected_overlap = pd.DataFrame(
-            expected_overlap, 
-            columns=columnnames, 
-            index=columnnames)
-
-        if symmetric:
-            print('creating symmetric matrix')
-            # print('OO_0\n', observed_overlap)
-            observed_overlap = make_symmetric_matrix(observed_overlap)
-            # print('OO_1\n', observed_overlap)
-            # print('EO_0\n', expected_overlap)
-            expected_overlap = make_symmetric_matrix(expected_overlap)
-            # print('EO_1\n', expected_overlap)
-            
-        oe_overlap = (observed_overlap + epsilon) / (expected_overlap + epsilon)
-        oe_overlap = np.log(oe_overlap)
-        
-        return oe_overlap
-
-    else:
-        if symmetric:
-            observed_overlap = make_symmetric_matrix(observed_overlap)
-        return observed_overlap
 
 def Hungarian_algorithm(matrix, conf_or_dis='conf'):
 
@@ -200,7 +268,6 @@ def connect_bipartite(loci_1, loci_2, assignment_matching, mnemon=True):
     
     return corrected_loci_1, corrected_loci_2
             
-
 def read_length_dist_files(len_file_1, len_file_2):
     length_dist_1 = pd.read_csv(len_file_1, sep='\t')
     length_dist_1 = length_dist_1.loc[1:, ('mean.len', 'stdev.len')]
@@ -392,7 +459,6 @@ class Clusterer(object):
         self.predicted_labels = self.model.predict(self.X)
         return self.model
 
-
 def update_labels_by_cluster(unclustered_loci, clustering_obj): 
     '''
     merges clusters and their corresponding posterior value in 
@@ -468,4 +534,3 @@ def match_evaluation(matrix, assignment_pairs):
 
     probability_array['all'] = matched_sum / np.array(matrix).sum()
     return pd.Series(probability_array)
-

@@ -95,7 +95,7 @@ def granularity_vs_agreement_symmetric(loci_1, loci_2, query_label, disregard_po
     
     k = query_label 
 
-    confmat = confusion_matrix(loci_1, loci_2, num_labels=int(loci_1.shape[1]-3), OE_transform=True, symmetric=False)
+    confmat = overlap_matrix(loci_1, loci_2, type="IoU")
     sorted_k_vector = confmat.loc[k,:].sort_values(ascending=False)
     # print(sorted_k_vector)
 
@@ -135,7 +135,6 @@ def granularity_vs_agreement_symmetric(loci_1, loci_2, query_label, disregard_po
 
     return coverage_record, agreement_record
     
-
 def granularity_vs_agreement_nonsymmetric(loci_1, loci_2, k, disregard_posterior=True):
     '''
     input locis must NOT be matched -- optionally with updated mnemonics
@@ -155,8 +154,7 @@ def granularity_vs_agreement_nonsymmetric(loci_1, loci_2, k, disregard_posterior
             loci_2.loc[MAP2==c, c] = 1
             loci_2.loc[MAP2!=c, c] = 0
 
-    confmat = enrichment_of_overlap_matrix(
-            loci_1, loci_2, OE_transform=True)
+    confmat = overlap_matrix(loci_1, loci_2, type="IoU")
     
     sorted_k_vector = confmat.loc[k,:].sort_values(ascending=False)
     # print(k, sorted_k_vector)
@@ -236,9 +234,7 @@ def run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric):
     if symmetric:
         print('generating confmat 1')
         
-        conf_mat = confusion_matrix(
-            loci_1, loci_2, num_labels, 
-            OE_transform=True, symmetric=False)
+        conf_mat = overlap_matrix(loci_1, loci_2, type="IoU")
 
         assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
 
