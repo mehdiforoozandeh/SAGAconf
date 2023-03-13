@@ -13,6 +13,7 @@ def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=Fals
     if subset:
         loci_1 = loci_1.loc[loci_1["chr"]=="chr21"].reset_index(drop=True)
         loci_2 = loci_2.loc[loci_2["chr"]=="chr21"].reset_index(drop=True)
+        loci_1, loci_2 = loci_1.iloc[:int(len(loci_1)/3), :], loci_2.iloc[:int(len(loci_2)/3), :]
 
     print("the shapes of the input matrices are: {}, {}".format(str(loci_1.shape), str(loci_2.shape)))
 
@@ -601,16 +602,12 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
     
     ###################################################################################################################
-    # bool_reprod_report = is_reproduced(loci1, loci2, enr_threshold=2, window_bp=1000)
-    bool_reprod_report = single_point_repr(loci1, loci2, enr_threshold=0.9, window_bp=1000, raw_overlap_axis=True, posterior=False)
+    bool_reprod_report = single_point_repr(
+        loci1, loci2, enr_threshold=0.5, window_bp=1000, posterior=False, reproducibility_threshold=0.9)
 
     bool_reprod_report = pd.concat(
         [loci1["chr"], loci1["start"], loci1["end"], pd.Series(bool_reprod_report)], axis=1)
     bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
-
-    # pd.DataFrame(
-    #     [np.array(loci1["chr"]), np.array(loci1["start"]), np.array(loci1["end"]), np.array(bool_reprod_report)], 
-    #     columns=["chr", "start", "end", "is_repr"])
 
     bool_reprod_report.to_csv(savedir+"/boolean_reproducibility_report.csv")
 
@@ -625,16 +622,12 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
         for k, v in perlabel_rec.items():
              scorefile.write("{} reprod score = {}".format(k, str(v)))
 
-    # bool_reprod_report = is_reproduced_posterior(loci1, loci2, enr_threshold=2, window_bp=1000)
-    bool_reprod_report = single_point_repr(loci1, loci2, enr_threshold=0.9, window_bp=1000, raw_overlap_axis=True, posterior=True)
+    bool_reprod_report = single_point_repr(
+        loci1, loci2, enr_threshold=0.5, window_bp=1000, posterior=True, reproducibility_threshold=0.9)
 
     bool_reprod_report = pd.concat(
         [loci1["chr"], loci1["start"], loci1["end"], pd.Series(bool_reprod_report)], axis=1)
     bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
-
-    # bool_reprod_report = pd.DataFrame(
-    #     [np.array(loci1["chr"]), np.array(loci1["start"]), np.array(loci1["end"]), np.array(bool_reprod_report)], 
-    #     columns=["chr", "start", "end", "is_repr"])
         
     bool_reprod_report.to_csv(savedir+"/boolean_reproducibility_report_POSTERIOR.csv")
 
@@ -656,29 +649,22 @@ def get_contour(replicate_1_dir, replicate_2_dir, savedir):
         subset=True, logit_transform=False)
 
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
-    print(normalized_mutual_information(loci1, loci2, soft=True))
-    print(normalized_mutual_information(loci1, loci2, soft=False))
 
-    # confmat = IoU_overlap(loci1, loci2, w=0, soft=True)
-
-    # p = sns.heatmap(
-    #     confmat.astype(float), annot=True, fmt=".2f",
-    #     linewidths=0.01,  cbar=False)
-
-    # sns.set(rc={'figure.figsize':(15,20)})
-    # p.tick_params(axis='x', rotation=30, labelsize=7)
-    # p.tick_params(axis='y', rotation=30, labelsize=7)
-
-    # plt.title('IoU overlap')
-    # plt.xlabel('Replicate 2 Labels')
-    # plt.ylabel("Replicate 1 Labels")
-    # plt.tight_layout()
-    # plt.show()
-    # plt.clf()
-    # sns.reset_orig
-    # plt.style.use('default')
-
-    # fast_contour(loci1, loci2, savedir, w_range=[0, 4000, 400], t_range=[0, 11, 1], posterior=True, raw_overlap_axis=True)
+    print("getting contours 1 : overlapT-window-repr")
+    OvrWind_contour(
+        loci1, loci2, savedir, w_range=[0, 3000, 500], t_range=[0, 11, 2], posterior=True, repr_threshold=0.75)
+    
+    print("getting contours 2 : reprT-window-repr")
+    ReprThresWind_contour(
+        loci1, loci2, savedir, w_range=[0, 3000, 500], t_range=[50, 100, 15], posterior=True, matching="static")
+    
+    # print("getting contours 3 : overlapT-window-deltaNMI")
+    # OvrWind_delta_NMI_contour(
+    #     loci1, loci2, savedir, w_range=[0, 3000, 500], t_range=[0, 11, 2], posterior=True, repr_threshold=0.75)
+    
+    # print("getting contours 4 : reprT-window-deltaNMI")
+    # ReprThresWind_delta_NMI_contour(
+    #     loci1, loci2, savedir, w_range=[0, 3000, 500], t_range=[50, 100, 15], posterior=True, matching="static")
 
 def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, contour=True):
     # print(replicate_1_dir, replicate_2_dir, genecode_dir, savedir)
@@ -701,12 +687,18 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
 
     # gather_labels(replicate_1_dir, savedir)
 
-if __name__=="__main__":    
-
+if __name__=="__main__":  
+    GET_ALL(
+        replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
+        replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
+        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+        rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
+        savedir="tests/cedar_runs/chmm/GM12878_R1/")
+    
     GET_ALL(
         replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
         replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
         genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
         rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
-        savedir="tests/cedar_runs/chmm/GM12878_R1/")
+        savedir="tests/cedar_runs/segway/GM12878_R1/")
     

@@ -1385,36 +1385,138 @@ def best_match_overlap(loci1, loci2):
     best_match_overlap = {i:enr_ovr.loc[i, :].max() for i in enr_ovr.index}
     return best_match_overlap
 
+def nbyn_joint_prob_with_binned_posterior(loci1, loci2, n_bins=10, IoU=False):
+    num_labels = len(loci1.columns[3:])
 
-def normalized_mutual_information(loci_1, loci_2, w=0, soft=True):
+    p_min, p_max = loci1.iloc[:,3:].min().min(), loci1.iloc[:,3:].max().max()
+    step_size = float((p_max - p_min)/n_bins)
+
+    p_arange = np.arange(p_min, p_max, step_size)
+
+    xlabels = []
+    for i in loci1.columns[3:]:
+        for j in p_arange:
+            xlabels.append(i + "|" + "{:.2f}".format(j) + "|" + "{:.2f}".format(j+step_size))
+
+    ylabels = []
+    for i in loci2.columns[3:]:
+        for j in range(n_bins):
+            ylabels.append(i + "|" + "{:.2f}".format(j) + "|" + "{:.2f}".format(j+step_size))
+
+    joint = np.zeros((len(xlabels), len(ylabels))) #pd.DataFrame(np.zeros((len(xlabels), len(ylabels))), columns=ylabels, index=xlabels)
+
+    for i in range(joint.shape[0]):
+        parsed_i = xlabels[i].split("|")
+        r1_label, r1_bin_start, r1_bin_end = parsed_i[0], float(parsed_i[1]), float(parsed_i[2])
+
+        r1_bin_subset = loci1.loc[
+            (r1_bin_start <= loci1[r1_label]) & (loci1[r1_label] < r1_bin_end)
+            , :]
+        
+                
+        for j in range(joint.shape[1]):
+            parsed_j = ylabels[j].split("|")
+            r2_label, r2_bin_start, r2_bin_end = parsed_j[0], float(parsed_j[1]), float(parsed_j[2])
+
+            r2_bin_subset = loci2.loc[
+                (r2_bin_start <= loci2[r2_label]) & (loci2[r2_label] < r2_bin_end)
+                , :]
+            
+            r1_inds = list(r1_bin_subset.index)
+            r2_inds = list(r2_bin_subset.index)
+
+            overlap = len(set(r1_inds).intersection(r2_inds)) / len(loci1)
+            
+            if IoU:
+                if overlap * len(r1_bin_subset) * len(r2_bin_subset) != 0:
+                    joint[i, j] = overlap / ((len(r1_bin_subset)/len(loci1)) + (len(r2_bin_subset)/len(loci1)) - overlap)
+                else:
+                    joint[i, j] = 0
+
+            else:
+                joint[i, j] = len(overlap) 
+
+    joint = pd.DataFrame(joint/(num_labels*num_labels), columns=ylabels, index=xlabels)
+    
+    return joint
+
+def joint_prob_with_binned_posterior(loci1, loci2, n_bins=50, conditional=False):
+    num_labels = len(loci1.columns[3:])
+    MAP2 = loci2.iloc[:,3:].idxmax(axis=1)
+    # coverage2 = {k:len(MAP2.loc[MAP2==k])/len(loci2) for k in loci2.columns[3:]}
+
+    p_min, p_max = loci1.iloc[:,3:].min().min(), loci1.iloc[:,3:].max().max()
+    step_size = float((p_max - p_min)/n_bins)
+
+    p_arange = np.arange(p_min, p_max, step_size)
+
+    xlabels = []
+    for i in loci1.columns[3:]:
+        for j in p_arange:
+            xlabels.append(i + "|" + "{:.2f}".format(j) + "|" + "{:.2f}".format(j+step_size))
+
+    ylabels = []
+    for i in loci2.columns[3:]:
+        ylabels.append(i)
+
+    joint = np.zeros((len(xlabels), len(ylabels)))
+
+    for i in range(joint.shape[0]):
+        parsed_i = xlabels[i].split("|")
+        r1_label, r1_bin_start, r1_bin_end = parsed_i[0], float(parsed_i[1]), float(parsed_i[2])
+
+        r1_bin_subset = loci1.loc[(r1_bin_start <= loci1[r1_label]) & (loci1[r1_label] < r1_bin_end), :] 
+        r1_bin_subset_MAP2 = MAP2.loc[r1_bin_subset.index].reset_index(drop=True)
+
+        for j in range(joint.shape[1]):
+            r2_label = ylabels[j] 
+            P_r = (len(r1_bin_subset) / len(loci1))
+            # P_l = coverage2[r2_label]
+            intersection_l_r = len(r1_bin_subset_MAP2.loc[r1_bin_subset_MAP2 == r2_label]) / (len(loci1) * num_labels)
+            
+            if conditional:
+                if intersection_l_r * P_r > 0:
+                    joint[i,j] = intersection_l_r / P_r
+                else:
+                    joint[i,j] = 0
+                
+            else:
+                joint[i,j] = intersection_l_r 
+        
+    joint = pd.DataFrame(joint, columns=ylabels, index=xlabels)
+    
+    return joint
+
+def normalized_mutual_information(loci_1, loci_2, soft=True):
     """
     get raw overlaps  ->  P(A,B) JOINT
     get coverages     ->  P(A), P(B)
     """
 
-    if w == 0:
-        "soft joint prob"
-        "soft coverage"
-        if soft:
-            joint = soft_joint_prob(loci_1, loci_2)
-            coverage1, coverage2 = soft_coverage(loci_1, loci_2)
-        else:
-            joint = joint_overlap_prob(loci_1, loci_2, w=0, symmetric=False)
-            MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
-            MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
-            coverage1 = {k:len(MAP1.loc[MAP1 == k])/len(loci_1) for k in loci_1.columns[3:]}
-            coverage2 = {k:len(MAP2.loc[MAP2 == k])/len(loci_2) for k in loci_2.columns[3:]}
+    "soft joint prob"
+    "soft coverage"
+    if soft:
+        joint = soft_joint_prob(loci_1, loci_2)
+        coverage1, coverage2 = soft_coverage(loci_1, loci_2)
+    else:
+        joint = joint_overlap_prob(loci_1, loci_2, w=0, symmetric=False)
+        MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
+        MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
+        coverage1 = {k:len(MAP1.loc[MAP1 == k])/len(loci_1) for k in loci_1.columns[3:]}
+        coverage2 = {k:len(MAP2.loc[MAP2 == k])/len(loci_2) for k in loci_2.columns[3:]}
     
     # entropies
     H_A = 0
     for a in coverage1.keys():
-        H_A += coverage1[a] * np.log(coverage1[a])
+        if coverage1[a] > 0:
+            H_A += coverage1[a] * np.log(coverage1[a])
 
     H_A = -1 * H_A
 
     H_B = 0
     for b in coverage2.keys():
-        H_B += coverage2[b] * np.log(coverage2[b])
+        if coverage2[b] > 0:
+            H_B += coverage2[b] * np.log(coverage2[b])
         
     H_B = -1 * H_B
 
@@ -1422,6 +1524,7 @@ def normalized_mutual_information(loci_1, loci_2, w=0, soft=True):
     MI = 0
     for a in coverage1.keys():
         for b in coverage2.keys(): 
+            
             if (joint.loc[a, b]) != 0:
                 MI += joint.loc[a, b] * np.log(
                     (joint.loc[a, b]) / 
@@ -1431,3 +1534,71 @@ def normalized_mutual_information(loci_1, loci_2, w=0, soft=True):
     NMI = (2*MI)/(H_A + H_B)
 
     return NMI
+
+def NMI_from_matrix(joint):
+    coverage1 = {k:sum(joint.loc[k,:]) for k in joint.index}
+    coverage2 = {k:sum(joint.loc[:,k]) for k in joint.columns}
+
+    # entropies
+    H_A = 0
+    for a in coverage1.keys():
+        if coverage1[a] > 0:
+            H_A += coverage1[a] * np.log(coverage1[a])
+
+    H_A = -1 * H_A
+
+    H_B = 0
+    for b in coverage2.keys():
+        if coverage2[b] > 0:
+            H_B += coverage2[b] * np.log(coverage2[b])
+        
+    H_B = -1 * H_B
+
+    # mutual information
+    MI = 0
+    for a in coverage1.keys():
+        for b in coverage2.keys(): 
+            
+            if (joint.loc[a, b]) != 0:
+                MI += joint.loc[a, b] * np.log(
+                    (joint.loc[a, b]) / 
+                    (coverage1[a] * coverage2[b])
+                    )
+
+    NMI = (2*MI)/(H_A + H_B)
+
+    return NMI
+
+def overlap_heatmap(matrix):
+    if matrix.shape[0] <20:
+        p = sns.heatmap(
+            matrix.astype(float), annot=True, fmt=".2f",
+            linewidths=0.01,  cbar=False)
+
+        sns.set(rc={'figure.figsize':(15,20)})
+        p.tick_params(axis='x', rotation=30, labelsize=7)
+        p.tick_params(axis='y', rotation=30, labelsize=7)
+
+        # plt.title('Overlap Metric')
+        plt.xlabel('Replicate 2 Labels')
+        plt.ylabel("Replicate 1 Labels")
+        plt.tight_layout()
+        plt.show()
+        plt.clf()
+        sns.reset_orig
+        plt.style.use('default')
+
+    else:
+        p = sns.heatmap(
+            matrix.astype(float), annot=False,
+            linewidths=0.001,  cbar=True)
+
+        sns.set(rc={'figure.figsize':(20,15)})
+        p.tick_params(axis='x', rotation=90, labelsize=7)
+        p.tick_params(axis='y', rotation=0, labelsize=7)
+
+        plt.tight_layout()
+        plt.show()
+        plt.clf()
+        sns.reset_orig
+        plt.style.use('default')

@@ -21,9 +21,9 @@ def is_reproduced(loci_1, loci_2, enr_threshold=3, window_bp=500, raw_overlap_ax
     window_bin = math.ceil(window_bp/resolution)
 
     if raw_overlap_axis:
-        enr_ovr = overlap_matrix(loci_1, loci_2, type="IoU")
+        enr_ovr = IoU_overlap(loci_1, loci_2, w=window_bp, symmetric=False, soft=False)
     else:
-        enr_ovr = overlap_matrix(loci_1, loci_2, type="IoU")
+        enr_ovr = IoU_overlap(loci_1, loci_2, w=window_bp, symmetric=False, soft=False)
 
     best_match = {i:enr_ovr.loc[i, :].idxmax() for i in enr_ovr.index} 
     above_threshold_match = {i: list(enr_ovr.loc[i, enr_ovr.loc[i, :]>enr_threshold].index) for i in enr_ovr.index}
@@ -86,7 +86,7 @@ def is_reproduced_posterior(loci_1, loci_2, enr_threshold=2, window_bp=500, raw_
     resolution = loci_1["end"][0] - loci_1["start"][0]
     window_bin = math.ceil(window_bp/resolution)
 
-    enr_ovr = overlap_matrix(loci_1, loci_2, type="IoU")
+    enr_ovr = IoU_overlap(loci_1, loci_2, w=window_bp, symmetric=False, soft=False)
     MP1 = loci_1.iloc[:,3:].max(axis=1) #posterior values 1
     MAP1 = loci_1.iloc[:,3:].idxmax(axis=1) # MAP label 1
     
@@ -200,7 +200,7 @@ def reprod_score(loci_1, loci_2, window_bp=500):
     resolution = loci_1["end"][0] - loci_1["start"][0]
     window_bin = math.ceil(window_bp/resolution)
 
-    enr_ovr = overlap_matrix(loci_1, loci_2, type="IoU")
+    enr_ovr = IoU_overlap(loci_1, loci_2, w=window_bp, symmetric=False, soft=False)
 
     MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
     MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
@@ -233,75 +233,7 @@ def max_posterior_to_repr_score(loci_1, reprod_report):
     scorrel = scipy.stats.spearmanr(MP1, reprod_report["repr_score"])[0]
 
     return pcorrel, scorrel
-
-def define_matches(loci1, loci2):
-    """
-    first we get the enrichment of overlap matrix 
-
-    using the overlap matrix, for each R2 label, sort R1 labels 
-    as done for granularity matrix, start merging R1 labels recursively 
     
-    at each merging step, plot the ck vs genome coverage
-    find max ck in the plot
-    
-    return list of R1 labels that need to be merged in order to get max ck
-    then for each R1 label look at the previously calculated correspondences of R2 and find best ones
-    """
-    # enr_ovr = enrichment_of_overlap_matrix(loci1, loci2, OE_transform=True)
-    enr_ovr = Cohens_Kappa_matrix(loci1, loci2)
-    MAP1 = loci1.iloc[:,3:].idxmax(axis=1)
-    MAP2 = loci2.iloc[:,3:].idxmax(axis=1)
-
-    corresp = {}
-
-    for l in loci2.columns[3:]:
-        loci_1 = loci1.copy()
-
-        coverage_record = []
-        ck_record = []
-        progression = []
-
-        sorted_l_vector = enr_ovr.loc[:, l].sort_values(ascending=False)
-        query_label = str(sorted_l_vector.index[0])
-
-        for j in range(0, len(sorted_l_vector)):
-            if j>0:
-                loci_1[query_label + "+" + str(sorted_l_vector.index[j])] = \
-                    loci_1[query_label] + loci_1[str(sorted_l_vector.index[j])]
-
-                loci_1 = loci_1.drop([query_label, str(sorted_l_vector.index[j])], axis=1)
-
-                query_label = query_label + "+" + str(sorted_l_vector.index[j])
-
-            MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
-            coverage_query = len(MAP1.loc[MAP1 == query_label])/len(loci_1)
-            coverage_record.append(coverage_query)
-            progression.append(query_label)
-
-            ck =  cohen_kappa_score(
-                list(MAP1 == query_label),
-                list(MAP2 == l)
-            )
-            ck_record.append(ck)
-
-        corresp[l] = [
-            progression[ck_record.index(max(ck_record))], 
-            ck_record[ck_record.index(max(ck_record))], 
-            coverage_record[ck_record.index(max(ck_record))]] # best_set_of_labels, best_CK, best_coverage
-        
-        if "+" in corresp[l][0]:
-            corresp[l][0] = corresp[l][0].split("+")
-        else:
-            corresp[l][0] = [corresp[l][0]]
-
-        # plt.plot(coverage_record, ck_record)
-        # plt.title(l + " | maxCK in : " + str(ck_record.index(max(ck_record))))
-        # plt.xlabel("coverage")
-        # plt.ylabel("Cohen's Kappa")
-        # plt.show()
-    print(corresp)
-    return corresp   
-
 def contour_isrep(loci1, loci2, savedir, posterior=True, raw_overlap_axis=True):
     rec = []
     perlabel_rec = {k:[] for k in loci1.columns[3:]}
@@ -439,23 +371,110 @@ def contour_isrep(loci1, loci2, savedir, posterior=True, raw_overlap_axis=True):
         plt.savefig('{}/reprod_contour_{}.pdf'.format(savedir+"/contours", k), format='pdf')
         plt.savefig('{}/reprod_contour_{}.svg'.format(savedir+"/contours", k), format='svg')
         plt.clf()
-
+ 
 ##########################################################################################################################################
 ################################################################ MODIFIED ################################################################
 ##########################################################################################################################################
 
-def is_repr_MAP_with_prior(prior, loci_1, loci_2, enr_threshold, window_bp):
+def get_match(loci1, loci2, w):
+    joint_overlap = joint_overlap_prob(loci1, loci2, w=w, symmetric=True)
+    MAP1 = loci1.iloc[:,3:].idxmax(axis=1)
+    MAP2 = loci2.iloc[:,3:].idxmax(axis=1)
+    coverage1 = {k:len(MAP1.loc[MAP1 == k])/len(loci1) for k in loci1.columns[3:]}
+    coverage2 = {k:len(MAP2.loc[MAP2 == k])/len(loci2) for k in loci2.columns[3:]}
+    IoU = IoU_overlap(loci1, loci2, w=w, symmetric=False, soft=False)
+
+    F1_rec = {}
+    label_rec = {}
+    coverage_rec = {}
+    for k in IoU.index:
+        F1_rec[k] = []
+        label_rec[k] = []
+        coverage_rec[k] = []
+
+        sorted_k_vectors = IoU.loc[k,:].sort_values(ascending=False)
+        i = 0
+        while i < len(IoU.columns)-1:
+            if i == 0:
+                F1_rec[k].append(IoU.loc[k, sorted_k_vectors.index[i]])
+                label_rec[k].append(sorted_k_vectors.index[i])
+                coverage_rec[k].append(coverage2[sorted_k_vectors.index[i]])
+
+            else:
+                irange = list(range(i+1))
+                merged_labels = "+".join([sorted_k_vectors.index[j] for j in irange])
+                merged_joint = sum([joint_overlap.loc[k, sorted_k_vectors.index[j]] for j in irange])
+                merged_coverage = sum([coverage2[sorted_k_vectors.index[j]] for j in irange])
+                merged_IoU = (merged_joint) / (coverage1[k] + merged_coverage - merged_joint)
+
+                F1_rec[k].append(merged_IoU)
+                label_rec[k].append(merged_labels)
+                coverage_rec[k].append(merged_coverage)
+
+            i+=1
+
+    corresp = {}
+    for k in F1_rec.keys():
+        corresp[k] = label_rec[k][F1_rec[k].index(max(F1_rec[k]))]
+
+        if "+" in corresp[k]:
+            corresp[k] = corresp[k].split("+")
+        else:
+            corresp[k] = [corresp[k]]
+    
+    return corresp
+
+def dynamic_matches(loci1, loci2, w):
+    r1vr2 = get_match(loci1, loci2, w)
+    r2vr1 = get_match(loci2, loci1, w)
+    
+    num_labels = len(loci1.columns) - 3
+    bidir_match = pd.DataFrame(np.zeros((num_labels, num_labels)), columns=loci2.columns[3:], index=loci1.columns[3:])
+
+    for k in r1vr2.keys():
+        for v in r1vr2[k]:
+            bidir_match.loc[k, v] += 1
+
+    for k in r2vr1.keys():
+        for v in r2vr1[k]:
+            bidir_match.loc[v, k] += 1
+
+    overlap_heatmap(bidir_match)
+
+    corresp = {}
+    for k in r1vr2.keys():
+        if k not in corresp.keys():
+            corresp[k] = []
+
+        for j in r2vr1.keys():
+
+            if bidir_match.loc[k,j] == 2:
+                corresp[k].append(j)
+        
+        if len(corresp[k]) == 0:
+            for j in r2vr1.keys():
+
+                if bidir_match.loc[k,j] == 1:
+                    corresp[k].append(j)
+    
+    return corresp
+
+def is_repr_MAP_with_prior(prior, loci_1, loci_2, ovr_threshold, window_bp, matching="static"):
     resolution = loci_1["end"][0] - loci_1["start"][0]
     window_bin = math.ceil(window_bp/resolution)
 
-    enr_ovr = overlap_matrix(loci_1, loci_2, type="IoU")
+    enr_ovr = IoU_overlap(loci_1, loci_2, w=window_bp, symmetric=False, soft=False)
+    
+    if matching == "static":
+        best_match = {i:enr_ovr.loc[i, :].idxmax() for i in enr_ovr.index} 
+        above_threshold_match = {i: list(enr_ovr.loc[i, enr_ovr.loc[i, :]>ovr_threshold].index) for i in enr_ovr.index}
 
-    best_match = {i:enr_ovr.loc[i, :].idxmax() for i in enr_ovr.index} 
-    above_threshold_match = {i: list(enr_ovr.loc[i, enr_ovr.loc[i, :]>enr_threshold].index) for i in enr_ovr.index}
+        for k in above_threshold_match.keys():
+            if len(above_threshold_match[k]) == 0:
+                above_threshold_match[k] = [best_match[k]]
 
-    for k in above_threshold_match.keys():
-        if len(above_threshold_match[k]) == 0:
-            above_threshold_match[k] = [best_match[k]]
+    elif matching == "dynamic":
+        above_threshold_match = dynamic_matches(loci_1, loci_2, w=window_bp)
 
     MAP1 = list(loci_1.iloc[:,3:].idxmax(axis=1))
     MAP2 = list(loci_2.iloc[:,3:].idxmax(axis=1))
@@ -480,14 +499,18 @@ def is_repr_MAP_with_prior(prior, loci_1, loci_2, enr_threshold, window_bp):
     
     return rep_rec
 
-def is_repr_posterior(loci_1, loci_2, enr_threshold, window_bp, numbins=1000):
+def calibrate(loci_1, loci_2, ovr_threshold, window_bp, numbins=500, matching="static"):
     # based on the resolution determine the number of bins for w
     resolution = loci_1["end"][0] - loci_1["start"][0] 
     window_bin = math.ceil(window_bp/resolution)
 
-    # get the overlap ratio
-    enr_ovr = overlap_matrix(loci_1, loci_2, type="IoU")
-    MAP1 = list(loci_1.iloc[:,3:].idxmax(axis=1)) 
+    # get the overlap
+    if matching == "static":
+        enr_ovr = IoU_overlap(loci_1, loci_2, w=window_bp, symmetric=False, soft=False)
+
+    elif matching == "dynamic":
+        dyn_matching_map = dynamic_matches(loci_1, loci_2, w=window_bp)
+        
     MAP2 = list(loci_2.iloc[:,3:].idxmax(axis=1))
 
     # determine the number of positions at each posterior bin
@@ -499,11 +522,17 @@ def is_repr_posterior(loci_1, loci_2, enr_threshold, window_bp, numbins=1000):
     for k in loci_1.columns[3:]:
 
         ####################### DEFINE MATCHES #######################
-        best_match = [enr_ovr.loc[k, :].idxmax()]
-        above_threshold_match = list(enr_ovr.loc[k, enr_ovr.loc[k, :]>enr_threshold].index)
+        if matching == "static":
 
-        if len(above_threshold_match) == 0:
-            above_threshold_match = [best_match[0]]
+            best_match = [enr_ovr.loc[k, :].idxmax()]
+            above_threshold_match = list(enr_ovr.loc[k, enr_ovr.loc[k, :] > ovr_threshold].index)
+
+            if len(above_threshold_match) == 0:
+                above_threshold_match = [best_match[0]]
+
+        elif matching == "dynamic":
+            above_threshold_match = dyn_matching_map[k]
+
         ##############################################################
 
         vector_pair = pd.concat([loci_1[k], pd.Series(MAP2)], axis=1)
@@ -559,7 +588,12 @@ def is_repr_posterior(loci_1, loci_2, enr_threshold, window_bp, numbins=1000):
 
     calibrated_loci1 = pd.concat(calibrated_loci1, axis=1)
     calibrated_loci1.columns = loci_1.columns
+    return calibrated_loci1
 
+def is_repr_posterior(loci_1, loci_2, ovr_threshold, window_bp, reproducibility_threshold=0.9, matching="static"):
+    MAP1 = list(loci_1.iloc[:,3:].idxmax(axis=1)) 
+
+    calibrated_loci1 = calibrate(loci_1, loci_2, ovr_threshold, window_bp, matching=matching)
     # here I'm just looking at the calibrated score that is assigned to the MAP1 of each position (~>.9)
     calibrated_reproducibility = []
     for i in range(len(MAP1)):
@@ -568,14 +602,45 @@ def is_repr_posterior(loci_1, loci_2, enr_threshold, window_bp, numbins=1000):
     # then based on the initial threshold that we had, we say a position is reproduced if it has a calibrated score of >threshold
     binary_isrep = []
     for t in calibrated_reproducibility:
-        if t>=enr_threshold:
+        if t>=reproducibility_threshold:
             binary_isrep.append(True)
         else:
             binary_isrep.append(False)
 
     return binary_isrep
 
-def single_point_repr(loci_1, loci_2, enr_threshold, window_bp, posterior=False):
+def single_point_delta_NMI_repr(loci_1, loci_2, ovr_threshold, window_bp, repr_threshold, posterior=True, matching="static"):
+
+    if posterior:
+        isrep1 = is_repr_posterior(loci_1, loci_2, ovr_threshold, window_bp, reproducibility_threshold=repr_threshold, matching=matching)
+        isrep2 = is_repr_posterior(loci_2, loci_1, ovr_threshold, window_bp, reproducibility_threshold=repr_threshold, matching=matching)
+    else:
+        isrep1 = is_repr_MAP_with_prior(
+            [False for _ in range(len(loci_1))], 
+            loci_1, loci_2, ovr_threshold, window_bp, matching="static")
+        
+        isrep2 = is_repr_MAP_with_prior(
+            [False for _ in range(len(loci_1))], 
+            loci_2, loci_1, ovr_threshold, window_bp, matching="static")
+
+    # at this point we can get the intersection of isrep1 and isrep2 as the positions that are considered 
+    is_rep_intersec = []
+
+    for i in range(len(isrep1)):
+        if isrep1[i]==isrep2[i]==1:
+            is_rep_intersec.append(True)
+        else:
+            is_rep_intersec.append(False)
+
+    calibrated_loci1 = keep_reproducible_annotations(loci_1, is_rep_intersec) 
+    calibrated_loci2 = keep_reproducible_annotations(loci_2, is_rep_intersec) 
+
+    pre_calib_NMI = normalized_mutual_information(loci_1, loci_2, soft=False)
+    post_calib_NMI = normalized_mutual_information(calibrated_loci1, calibrated_loci2, soft=False)
+
+    return float(post_calib_NMI - pre_calib_NMI)
+
+def single_point_repr(loci_1, loci_2, ovr_threshold, window_bp, posterior=False, reproducibility_threshold=0.9):
     if posterior:
         """
         for all labels in R1:
@@ -583,14 +648,32 @@ def single_point_repr(loci_1, loci_2, enr_threshold, window_bp, posterior=False)
         
         according to the calibrated p, 
         """
-        return is_repr_posterior(loci_1, loci_2, enr_threshold, window_bp, numbins=1000)
+        return is_repr_posterior(
+            loci_1, loci_2, ovr_threshold, window_bp, numbins=1000, reproducibility_threshold=reproducibility_threshold)
 
     else:
         return is_repr_MAP_with_prior(
             [False for _ in range(len(loci_1))], 
-            loci_1, loci_2, enr_threshold, window_bp)
+            loci_1, loci_2, ovr_threshold, window_bp)
 
-def fast_contour(loci1, loci2, savedir, w_range=[0, 4000, 200], t_range=[0, 11, 1], posterior=True, raw_overlap_axis=True):
+def rescale_calibrated_loci_to_prob(calibrated_loci):
+    calloci_array = np.array(calibrated_loci.iloc[:,3:])
+
+    for i in range(calloci_array.shape[0]):
+        calloci_array[i,:] = calloci_array[i,:] / np.sum(calloci_array[i,:])
+
+    calibrated_loci.iloc[:,3:] = calloci_array
+    return calibrated_loci
+
+def keep_reproducible_annotations(loci, bool_reprod_report):
+    bool_reprod_report = pd.concat(
+        [loci["chr"], loci["start"], loci["end"], pd.Series(bool_reprod_report)], axis=1)
+    bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
+
+    return loci.loc[(bool_reprod_report["is_repr"] == True), :].reset_index(drop=True)
+
+def OvrWind_contour(loci1, loci2, savedir, w_range=[0, 4000, 200], t_range=[0, 11, 1], posterior=True, repr_threshold=0.9):
+    # t is the overlap threshold (used to define matches)
     """
     initialize wrange and trange and reverse trange to start from the most strict to easiest
     initialize a matrix of size #t * #w and put a vector of [False for i in range len(loci1)] as each element
@@ -629,10 +712,10 @@ def fast_contour(loci1, loci2, savedir, w_range=[0, 4000, 200], t_range=[0, 11, 
             t0 = datetime.now()
 
             if posterior:
-                updated_repr = is_repr_posterior(loci1, loci2, t, w, numbins=1000)
+                updated_repr = is_repr_posterior(loci1, loci2, t, w, reproducibility_threshold=repr_threshold, matching="static")
 
             else:
-                updated_repr = is_repr_MAP_with_prior(A[t][w], loci1, loci2, t, w, raw_overlap_axis=True)
+                updated_repr = is_repr_MAP_with_prior(A[t][w], loci1, loci2, t, w, matching="static")
 
             print(datetime.now() - t0)
             
@@ -641,12 +724,6 @@ def fast_contour(loci1, loci2, savedir, w_range=[0, 4000, 200], t_range=[0, 11, 
                 for ww in w_range:
                     if tt <= t and ww >= w:
                         A[tt][ww] = updated_repr
-            
-            # all_scores = pd.DataFrame(np.zeros((len(t_range), len(w_range))), index=t_range, columns=w_range)
-            # for ttt in t_range:
-            #     for www in w_range:
-            #         all_scores.loc[ttt, www] = sum(A[ttt][www]) / len(A[ttt][www])
-            # print(all_scores)
     
     rec = []
     perlabel_rec = {k:[] for k in loci1.columns[3:]}
@@ -683,22 +760,18 @@ def fast_contour(loci1, loci2, savedir, w_range=[0, 4000, 200], t_range=[0, 11, 
         previous_line = subset_runs
         first_line=False
 
-    if raw_overlap_axis:
-        plt.xlabel("Overlap threshold")
-    else:
-        plt.xlabel("Enrichment of Overlap threshold")
-
+    plt.xlabel("Overlap threshold")
     plt.ylabel("Reproducibility")
     plt.xticks(rotation=45, fontsize=7)
     plt.title("Reproducibility -- General")
     plt.legend()
     plt.tight_layout()
     
-    if os.path.exists(savedir+"/contours/") == False:
-        os.mkdir(savedir+"/contours/")
+    if os.path.exists(savedir+"/contours_OvrWind/") == False:
+        os.mkdir(savedir+"/contours_OvrWind/")
 
-    plt.savefig('{}/reprod_lines_general.pdf'.format(savedir+"/contours"), format='pdf')
-    plt.savefig('{}/reprod_lines_general.svg'.format(savedir+"/contours"), format='svg')
+    plt.savefig('{}/reprod_lines_general.pdf'.format(savedir+"/contours_OvrWind"), format='pdf')
+    plt.savefig('{}/reprod_lines_general.svg'.format(savedir+"/contours_OvrWind"), format='svg')
     plt.clf()
 
     X, Y = np.meshgrid(x, y)
@@ -712,17 +785,15 @@ def fast_contour(loci1, loci2, savedir, w_range=[0, 4000, 200], t_range=[0, 11, 
 
     plt.contourf(X, Y, Z, cmap='RdGy_r')
     plt.colorbar()
-    if raw_overlap_axis:
-        plt.ylabel("Overlap threshold")
-    else:
-        plt.ylabel("Enrichment of Overlap threshold")
+
+    plt.ylabel("Overlap threshold")
 
     plt.xlabel("Window size")
     plt.xticks(rotation=45, fontsize=7)
-    plt.title("Reproducibility -- {}".format(k))
+    plt.title("Reproducibility -- General")
     plt.tight_layout()
-    plt.savefig('{}/reprod_contour_{}.pdf'.format(savedir+"/contours", k), format='pdf')
-    plt.savefig('{}/reprod_contour_{}.svg'.format(savedir+"/contours", k), format='svg')
+    plt.savefig('{}/reprod_contour_general.pdf'.format(savedir+"/contours_OvrWind"), format='pdf')
+    plt.savefig('{}/reprod_contour_general.svg'.format(savedir+"/contours_OvrWind"), format='svg')
     plt.clf()
 
     for k in perlabel_rec.keys():
@@ -750,18 +821,15 @@ def fast_contour(loci1, loci2, savedir, w_range=[0, 4000, 200], t_range=[0, 11, 
             previous_line = subset_runs
             first_line=False
 
-        if raw_overlap_axis:
-            plt.xlabel("Overlap threshold")
-        else:
-            plt.xlabel("Enrichment of Overlap threshold")
+        plt.xlabel("Overlap threshold")
 
         plt.ylabel("Reproducibility")
         plt.xticks(rotation=45, fontsize=7)
         plt.title("Reproducibility -- {}".format(k))
         plt.tight_layout()
         plt.legend()
-        plt.savefig('{}/reprod_lines_{}.pdf'.format(savedir+"/contours", k), format='pdf')
-        plt.savefig('{}/reprod_lines_{}.svg'.format(savedir+"/contours", k), format='svg')
+        plt.savefig('{}/reprod_lines_{}.pdf'.format(savedir+"/contours_OvrWind", k), format='pdf')
+        plt.savefig('{}/reprod_lines_{}.svg'.format(savedir+"/contours_OvrWind", k), format='svg')
         plt.clf()
 
         X, Y = np.meshgrid(x, y)
@@ -775,16 +843,404 @@ def fast_contour(loci1, loci2, savedir, w_range=[0, 4000, 200], t_range=[0, 11, 
 
         plt.contourf(X, Y, Z, cmap='RdGy_r')
         plt.colorbar()
-        if raw_overlap_axis:
-            plt.ylabel("Overlap threshold")
-        else:
-            plt.ylabel("Enrichment of Overlap threshold")
+        plt.ylabel("Overlap threshold")
 
         plt.xlabel("Window size")
         plt.xticks(rotation=45, fontsize=7)
         plt.title("Reproducibility -- {}".format(k))
         plt.tight_layout()
-        plt.savefig('{}/reprod_contour_{}.pdf'.format(savedir+"/contours", k), format='pdf')
-        plt.savefig('{}/reprod_contour_{}.svg'.format(savedir+"/contours", k), format='svg')
+        plt.savefig('{}/reprod_contour_{}.pdf'.format(savedir+"/contours_OvrWind", k), format='pdf')
+        plt.savefig('{}/reprod_contour_{}.svg'.format(savedir+"/contours_OvrWind", k), format='svg')
         plt.clf()
+
+def ReprThresWind_contour(
+        loci1, loci2, savedir, w_range=[0, 4000, 200], t_range=[50, 100, 5], posterior=True, 
+        matching="static", static_thres = 0.75):
+    # t is the reproducibility threshold
+    """
+    initialize wrange and trange and reverse trange to start from the most strict to easiest
+    initialize a matrix of size #t * #w and put a vector of [False for i in range len(loci1)] as each element
+
+    for t in trange
+        for w in wrange
+            get_reproducibility of A[t, w] for all positions where rep is still False 
+            for all reproducibile positions:
+                change that position to True if that cell in A has bigger window or lower threshold
+    
+    after going through A once, return A[t,w] = len(A[t,w]==True) / len(loci1)
+    """
+
+    t_range = [i/100 for i in range(t_range[0], t_range[1], t_range[2])]
+    t_range = t_range[::-1]
+
+    w_range = list(range(w_range[0], w_range[1], w_range[2]))
+
+    # initialize A
+    A = {}
+    for t in t_range:
+        for w in w_range:
+            if t in A.keys():
+                A[t][w] = [False for i in range(len(loci1))]
+            else:
+                A[t] = {}
+                A[t][w] = [False for i in range(len(loci1))]
+    
+    for t in t_range:
+        for w in w_range:
+            """
+            get a subset of loci1 where A[t,w] == False
+            run reproducibility_test on the subset of loci1
+            update A[t,w] with new reprod_results
+            """
+            t0 = datetime.now()
+
+            if posterior:
+                updated_repr = is_repr_posterior(loci1, loci2, static_thres, w, reproducibility_threshold=t, matching=matching)
+
+            else:
+                updated_repr = is_repr_MAP_with_prior(A[t][w], loci1, loci2, static_thres, w, matching=matching)
+
+            print(datetime.now() - t0)
+            
+            # now update all of A with new info
+            for tt in t_range:
+                for ww in w_range:
+                    if tt <= t and ww >= w:
+                        A[tt][ww] = updated_repr
+    
+    rec = []
+    perlabel_rec = {k:[] for k in loci1.columns[3:]}
+    for thresh in A.keys():
+        for w in A[thresh].keys():
+            reprod_report = pd.DataFrame(A[thresh][w], columns=["is_repr"])
+
+            score = len(reprod_report.loc[reprod_report["is_repr"]==True])/ len(reprod_report)
+            rec.append([w, thresh, score])
+
+            lab_rep = perlabel_is_reproduced(reprod_report, loci1)
+            for k, v in lab_rep.items():
+                perlabel_rec[k].append([w, thresh, v[0]/ (v[0]+v[1])])
+    
+    rec = np.array(rec)
+    x, y, z = rec[:,0], rec[:,1], rec[:,2]
+    rec_df = pd.DataFrame(rec, columns=["w", "t", "s"])
+    list_of_ws = np.unique(rec[:, 0])
+    cmap = get_cmap('inferno')
+    gradients = np.linspace(0, 1, len(list_of_ws))
+
+    first_line=True
+    for i in range(len(list_of_ws)):
+        w = int(list_of_ws[i])
+        subset_runs = rec_df.loc[rec_df["w"] == w, :].sort_values(by="t", ascending=False).reset_index(drop=True)
+        
+        plt.plot(subset_runs.t, subset_runs.s, color=cmap(gradients[i]), label="w = {} bp".format(w))
+
+        if first_line:
+            plt.fill_between(subset_runs.t, subset_runs.s, color=cmap(gradients[i]), alpha=0.6)
+        else:
+            plt.fill_between(subset_runs.t, previous_line.s, subset_runs.s, color=cmap(gradients[i]), alpha=0.75)
+            
+        previous_line = subset_runs
+        first_line=False
+
+    plt.xlabel("Reproducibility score threshold")
+    plt.ylabel("Reproducibility")
+    plt.xticks(rotation=45, fontsize=7)
+    plt.title("Reproducibility -- General")
+    plt.legend()
+    plt.tight_layout()
+    
+    if os.path.exists(savedir+"/contours_ReprThresWind/") == False:
+        os.mkdir(savedir+"/contours_ReprThresWind/")
+
+    plt.savefig('{}/reprod_lines_general.pdf'.format(savedir+"/contours_ReprThresWind"), format='pdf')
+    plt.savefig('{}/reprod_lines_general.svg'.format(savedir+"/contours_ReprThresWind"), format='svg')
+    plt.clf()
+
+    X, Y = np.meshgrid(x, y)
+
+    Z = np.zeros(X.shape)
+    
+    for i in range(Z.shape[0]):
+        for j in range(Z.shape[1]):
+            corresponding_line = rec_df.loc[(rec_df["w"] == X[i,j]) & (rec_df["t"]== Y[i,j]), :]
+            Z[i, j] = float(corresponding_line["s"])
+
+    plt.contourf(X, Y, Z, cmap='RdGy_r')
+    plt.colorbar()
+
+    plt.ylabel("Reproducibility score threshold")
+
+    plt.xlabel("Window size")
+    plt.xticks(rotation=45, fontsize=7)
+    plt.title("Reproducibility -- General")
+    plt.tight_layout()
+    plt.savefig('{}/reprod_contour_general.pdf'.format(savedir+"/contours_ReprThresWind"), format='pdf')
+    plt.savefig('{}/reprod_contour_general.svg'.format(savedir+"/contours_ReprThresWind"), format='svg')
+    plt.clf()
+
+    for k in perlabel_rec.keys():
+        rec = np.array(perlabel_rec[k])
+
+        x, y, z = rec[:,0], rec[:,1], rec[:,2]
+        rec_df = pd.DataFrame(rec, columns=["w", "t", "s"])
+
+        list_of_ws = np.unique(rec[:, 0])
+        cmap = get_cmap('inferno')
+        gradients = np.linspace(0, 1, len(list_of_ws))
+
+        first_line = True
+        for i in range(len(list_of_ws)):
+            w = int(list_of_ws[i])
+            subset_runs = rec_df.loc[rec_df["w"] == w, :].sort_values(by="t", ascending=False).reset_index(drop=True)
+            
+            plt.plot(subset_runs.t, subset_runs.s, color=cmap(gradients[i]), label="w = {} bp".format(w))
+
+            if first_line:
+                plt.fill_between(subset_runs.t, subset_runs.s, color=cmap(gradients[i]), alpha=0.6)
+            else:
+                plt.fill_between(subset_runs.t, previous_line.s, subset_runs.s, color=cmap(gradients[i]), alpha=0.75)
+                
+            previous_line = subset_runs
+            first_line=False
+
+        plt.xlabel("Reproducibility score threshold")
+
+        plt.ylabel("Reproducibility")
+        plt.xticks(rotation=45, fontsize=7)
+        plt.title("Reproducibility -- {}".format(k))
+        plt.tight_layout()
+        plt.legend()
+        plt.savefig('{}/reprod_lines_{}.pdf'.format(savedir+"/contours_ReprThresWind", k), format='pdf')
+        plt.savefig('{}/reprod_lines_{}.svg'.format(savedir+"/contours_ReprThresWind", k), format='svg')
+        plt.clf()
+
+        X, Y = np.meshgrid(x, y)
+
+        Z = np.zeros(X.shape)
+        
+        for i in range(Z.shape[0]):
+            for j in range(Z.shape[1]):
+                corresponding_line = rec_df.loc[(rec_df["w"] == X[i,j]) & (rec_df["t"]== Y[i,j]), :]
+                Z[i, j] = float(corresponding_line["s"])
+
+        plt.contourf(X, Y, Z, cmap='RdGy_r')
+        plt.colorbar()
+        plt.ylabel("Reproducibility score threshold")
+
+        plt.xlabel("Window size")
+        plt.xticks(rotation=45, fontsize=7)
+        plt.title("Reproducibility -- {}".format(k))
+        plt.tight_layout()
+        plt.savefig('{}/reprod_contour_{}.pdf'.format(savedir+"/contours_ReprThresWind", k), format='pdf')
+        plt.savefig('{}/reprod_contour_{}.svg'.format(savedir+"/contours_ReprThresWind", k), format='svg')
+        plt.clf()
+
+def __OvrWind_delta_NMI_contour(loci1, loci2, savedir, w_range=[0, 4000, 200], t_range=[0, 11, 1], posterior=True, repr_threshold=0.9):
+    # NMI is defined for whole annotations. it cannot be used for individal labels
+    t_range = [i/10 for i in range(t_range[0], t_range[1], t_range[2])]
+    t_range = t_range[::-1]
+
+    w_range = list(range(w_range[0], w_range[1], w_range[2]))
+
+    # initialize A
+    A = {}
+    for t in t_range:
+        for w in w_range:
+            if t in A.keys():
+                A[t][w] = 0
+            else:
+                A[t] = {}
+                A[t][w] = 0
+    
+    for t in t_range:
+        for w in w_range:
+            """
+            get a subset of loci1 where A[t,w] == False
+            run reproducibility_test on the subset of loci1
+            update A[t,w] with new reprod_results
+            """
+            t0 = datetime.now()
+
+            if posterior:
+                delta_NMI = single_point_delta_NMI_repr(
+                    loci1, loci2, ovr_threshold=t, window_bp=w, repr_threshold= repr_threshold, posterior=True, matching="static")
+
+            else:
+                delta_NMI = single_point_delta_NMI_repr(
+                    loci1, loci2, ovr_threshold=t, window_bp=w, repr_threshold= repr_threshold, posterior=False, matching="static")
+
+            print(datetime.now() - t0)
+            A[t][w] = delta_NMI
+
+    rec = []
+    for thresh in A.keys():
+        for w in A[thresh].keys():
+
+            deltaNMI_score = A[thresh][w]
+            rec.append([w, thresh, deltaNMI_score])
+
+    rec = np.array(rec)
+    x, y, z = rec[:,0], rec[:,1], rec[:,2]
+    rec_df = pd.DataFrame(rec, columns=["w", "t", "s"])
+    list_of_ws = np.unique(rec[:, 0])
+    list_of_ws = np.sort(list_of_ws)[::-1]
+    cmap = get_cmap('inferno')
+    gradients = np.linspace(0, 1, len(list_of_ws))
+
+    first_line=True
+    for i in range(len(list_of_ws)):
+        w = int(list_of_ws[i])
+        subset_runs = rec_df.loc[rec_df["w"] == w, :].sort_values(by="t", ascending=False).reset_index(drop=True)
+        
+        plt.plot(subset_runs.t, subset_runs.s, color=cmap(gradients[i]), label="w = {} bp".format(w))
+
+        if first_line:
+            plt.fill_between(subset_runs.t, subset_runs.s, color=cmap(gradients[i]), alpha=0.6)
+        else:
+            plt.fill_between(subset_runs.t, previous_line.s, subset_runs.s, color=cmap(gradients[i]), alpha=0.75)
+            
+        previous_line = subset_runs
+        first_line=False
+
+    plt.xlabel("Overlap threshold")
+    plt.ylabel("Delta_NMI")
+    plt.xticks(rotation=45, fontsize=7)
+    plt.title("Delta_NMI -- General")
+    plt.legend()
+    plt.tight_layout()
+    
+    if os.path.exists(savedir+"/contours_OvrWind_deltaNMI/") == False:
+        os.mkdir(savedir+"/contours_OvrWind_deltaNMI/")
+
+    plt.savefig('{}/deltaNMI_lines_general.pdf'.format(savedir+"/contours_OvrWind_deltaNMI"), format='pdf')
+    plt.savefig('{}/deltaNMI_lines_general.svg'.format(savedir+"/contours_OvrWind_deltaNMI"), format='svg')
+    plt.clf()
+
+    X, Y = np.meshgrid(x, y)
+
+    Z = np.zeros(X.shape)
+    
+    for i in range(Z.shape[0]):
+        for j in range(Z.shape[1]):
+            corresponding_line = rec_df.loc[(rec_df["w"] == X[i,j]) & (rec_df["t"]== Y[i,j]), :]
+            Z[i, j] = float(corresponding_line["s"])
+
+    plt.contourf(X, Y, Z, cmap='RdGy_r')
+    plt.colorbar()
+
+    plt.ylabel("Overlap threshold")
+
+    plt.xlabel("Window size")
+    plt.xticks(rotation=45, fontsize=7)
+    plt.title("Delta_NMI -- General")
+    plt.tight_layout()
+    plt.savefig('{}/deltaNMI_contour_general.pdf'.format(savedir+"/contours_OvrWind_deltaNMI"), format='pdf')
+    plt.savefig('{}/deltaNMI_contour_general.svg'.format(savedir+"/contours_OvrWind_deltaNMI"), format='svg')
+    plt.clf()
+
+def __ReprThresWind_delta_NMI_contour(
+        loci1, loci2, savedir, w_range=[0, 4000, 200], 
+        t_range=[50, 100, 5], posterior=True, matching="static", static_thres=0.75):
+    # NMI is defined for whole annotations. it cannot be used for individal labels
+    t_range = [i/100 for i in range(t_range[0], t_range[1], t_range[2])]
+    t_range = t_range[::-1]
+
+    w_range = list(range(w_range[0], w_range[1], w_range[2]))
+
+    # initialize A
+    A = {}
+    for t in t_range:
+        for w in w_range:
+            if t in A.keys():
+                A[t][w] = 0
+            else:
+                A[t] = {}
+                A[t][w] = 0
+    
+    for t in t_range:
+        for w in w_range:
+            """
+            get a subset of loci1 where A[t,w] == False
+            run reproducibility_test on the subset of loci1
+            update A[t,w] with new reprod_results
+            """
+            t0 = datetime.now()
+
+            if posterior:
+                delta_NMI = single_point_delta_NMI_repr(
+                    loci1, loci2, ovr_threshold=static_thres, window_bp=w, repr_threshold=t, posterior=True, matching=matching)
+
+            else:
+                delta_NMI = single_point_delta_NMI_repr(
+                    loci1, loci2, ovr_threshold=static_thres, window_bp=w, repr_threshold=t, posterior=False, matching=matching)
+
+            print(datetime.now() - t0)
+            A[t][w] = delta_NMI
+
+    rec = []
+    for thresh in A.keys():
+        for w in A[thresh].keys():
+
+            deltaNMI_score = A[thresh][w]
+            rec.append([w, thresh, deltaNMI_score])
+
+    rec = np.array(rec)
+    x, y, z = rec[:,0], rec[:,1], rec[:,2]
+    rec_df = pd.DataFrame(rec, columns=["w", "t", "s"])
+    list_of_ws = np.unique(rec[:, 0])
+    list_of_ws = np.sort(list_of_ws)[::-1]
+    cmap = get_cmap('inferno')
+    gradients = np.linspace(0, 1, len(list_of_ws))
+
+    first_line=True
+    for i in range(len(list_of_ws)):
+        w = int(list_of_ws[i])
+        subset_runs = rec_df.loc[rec_df["w"] == w, :].sort_values(by="t", ascending=False).reset_index(drop=True)
+        
+        plt.plot(subset_runs.t, subset_runs.s, color=cmap(gradients[i]), label="w = {} bp".format(w))
+
+        if first_line:
+            plt.fill_between(subset_runs.t, subset_runs.s, color=cmap(gradients[i]), alpha=0.6)
+        else:
+            plt.fill_between(subset_runs.t, previous_line.s, subset_runs.s, color=cmap(gradients[i]), alpha=0.75)
+            
+        previous_line = subset_runs
+        first_line=False
+
+    plt.xlabel("Reproducibility score threshold")
+    plt.ylabel("Delta_NMI")
+    plt.xticks(rotation=45, fontsize=7)
+    plt.title("Delta_NMI -- General")
+    plt.legend()
+    plt.tight_layout()
+    
+    if os.path.exists(savedir+"/contours_ReprThresWind_deltaNMI/") == False:
+        os.mkdir(savedir+"/contours_ReprThresWind_deltaNMI/")
+
+    plt.savefig('{}/deltaNMI_lines_general.pdf'.format(savedir+"/contours_ReprThresWind_deltaNMI"), format='pdf')
+    plt.savefig('{}/deltaNMI_lines_general.svg'.format(savedir+"/contours_ReprThresWind_deltaNMI"), format='svg')
+    plt.clf()
+
+    X, Y = np.meshgrid(x, y)
+
+    Z = np.zeros(X.shape)
+    
+    for i in range(Z.shape[0]):
+        for j in range(Z.shape[1]):
+            corresponding_line = rec_df.loc[(rec_df["w"] == X[i,j]) & (rec_df["t"]== Y[i,j]), :]
+            Z[i, j] = float(corresponding_line["s"])
+
+    plt.contourf(X, Y, Z, cmap='RdGy_r')
+    plt.colorbar()
+
+    plt.ylabel("Reproducibility score threshold")
+
+    plt.xlabel("Window size")
+    plt.xticks(rotation=45, fontsize=7)
+    plt.title("Delta_NMI -- General")
+    plt.tight_layout()
+    plt.savefig('{}/deltaNMI_contour_general.pdf'.format(savedir+"/contours_ReprThresWind_deltaNMI"), format='pdf')
+    plt.savefig('{}/deltaNMI_contour_general.svg'.format(savedir+"/contours_ReprThresWind_deltaNMI"), format='svg')
+    plt.clf()
 
