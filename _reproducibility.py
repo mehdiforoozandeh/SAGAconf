@@ -1440,50 +1440,108 @@ def nbyn_joint_prob_with_binned_posterior(loci1, loci2, n_bins=10, IoU=False):
     
     return joint
 
-def joint_prob_with_binned_posterior(loci1, loci2, n_bins=50, conditional=False):
+def joint_prob_with_binned_posterior(loci1, loci2, n_bins=50, conditional=False, stratified=True):
     num_labels = len(loci1.columns[3:])
     MAP2 = loci2.iloc[:,3:].idxmax(axis=1)
     # coverage2 = {k:len(MAP2.loc[MAP2==k])/len(loci2) for k in loci2.columns[3:]}
 
-    p_min, p_max = loci1.iloc[:,3:].min().min(), loci1.iloc[:,3:].max().max()
-    step_size = float((p_max - p_min)/n_bins)
+    if stratified:
+        joint = np.zeros((((n_bins+1) * num_labels), num_labels))
+        xlabels = []
+        ylabels = list(loci2.columns[3:])
 
-    p_arange = np.arange(p_min, p_max, step_size)
+        bi = 0
+        strat_size = int(len(loci1)/n_bins)
+        for r1_label in loci1.columns[3:]:
+            for n in range(n_bins+1):
+                xlabels.append("{} - bin #{}".format(r1_label, n+1))
 
-    xlabels = []
-    for i in loci1.columns[3:]:
-        for j in p_arange:
-            xlabels.append(i + "|" + "{:.2f}".format(j) + "|" + "{:.2f}".format(j+step_size))
+            posterior_vector_1 = loci1.loc[:, r1_label]
 
-    ylabels = []
-    for i in loci2.columns[3:]:
-        ylabels.append(i)
+            vector_pair = pd.concat([posterior_vector_1, MAP2], axis=1)
 
-    joint = np.zeros((len(xlabels), len(ylabels)))
+            vector_pair.columns=["pv1", "map2"]
 
-    for i in range(joint.shape[0]):
-        parsed_i = xlabels[i].split("|")
-        r1_label, r1_bin_start, r1_bin_end = parsed_i[0], float(parsed_i[1]), float(parsed_i[2])
+            vector_pair = vector_pair.sort_values("pv1").reset_index(drop=True)
 
-        r1_bin_subset = loci1.loc[(r1_bin_start <= loci1[r1_label]) & (loci1[r1_label] < r1_bin_end), :] 
-        r1_bin_subset_MAP2 = MAP2.loc[r1_bin_subset.index].reset_index(drop=True)
-
-        for j in range(joint.shape[1]):
-            r2_label = ylabels[j] 
-            P_r = (len(r1_bin_subset) / len(loci1))
-            # P_l = coverage2[r2_label]
-            intersection_l_r = len(r1_bin_subset_MAP2.loc[r1_bin_subset_MAP2 == r2_label]) / (len(loci1) * num_labels)
-            
-            if conditional:
-                if intersection_l_r * P_r > 0:
-                    joint[i,j] = intersection_l_r / P_r
-                else:
-                    joint[i,j] = 0
+            for b in range(0, vector_pair.shape[0], strat_size):
+                subset_pair_vector = vector_pair.iloc[b:b+strat_size,:]
                 
-            else:
-                joint[i,j] = intersection_l_r 
+                for r2_label in range(len(loci2.columns[3:])):
+                    intersection_l_r = len(
+                        subset_pair_vector.loc[
+                        subset_pair_vector["map2"]==loci2.columns[3:][r2_label],:
+                        ]) / (len(loci1) * num_labels)
+                    
+                    P_r = (len(subset_pair_vector) / len(loci1))
+
+                    if conditional:
+                        if intersection_l_r * P_r > 0:
+                            joint[bi, r2_label] =  intersection_l_r / P_r
+
+                        else:
+                            joint[bi, r2_label] =  0
+                        
+                    else:
+                        joint[bi, r2_label] =  intersection_l_r 
+
+                bi +=1
         
-    joint = pd.DataFrame(joint, columns=ylabels, index=xlabels)
+        joint = pd.DataFrame(joint, columns=ylabels, index=xlabels)
+        for ii in range((n_bins * num_labels)+1):
+            i = joint.index[ii]
+            binnumber = int(i.split("-")[1].replace(" bin #", ""))
+            if binnumber > n_bins:
+                joint.iloc[ii-1, :] = joint.iloc[ii-1, :] + joint.iloc[ii, :]
+                joint = joint.drop(i)
+
+
+    else:
+        p_min, p_max = loci1.iloc[:,3:].min().min(), loci1.iloc[:,3:].max().max()
+        step_size = float((p_max - p_min)/n_bins)
+
+        p_arange = np.arange(p_min, p_max, step_size)
+
+        xlabels = []
+        for i in loci1.columns[3:]:
+            for j in p_arange:
+                xlabels.append(i + "|" + str(j) + "|" + str(j+step_size))
+
+        ylabels = []
+        for i in loci2.columns[3:]:
+            ylabels.append(i)
+
+        joint = np.zeros((len(xlabels), len(ylabels)))
+
+        for i in range(joint.shape[0]):
+            parsed_i = xlabels[i].split("|")
+            r1_label, r1_bin_start, r1_bin_end = parsed_i[0], float(parsed_i[1]), float(parsed_i[2])
+
+            r1_bin_subset = loci1.loc[(r1_bin_start <= loci1[r1_label]) & (loci1[r1_label] < r1_bin_end), :] 
+            r1_bin_subset_MAP2 = MAP2.loc[r1_bin_subset.index].reset_index(drop=True)
+
+            for j in range(joint.shape[1]):
+                r2_label = ylabels[j] 
+                P_r = (len(r1_bin_subset) / len(loci1))
+                # P_l = coverage2[r2_label]
+                intersection_l_r = len(r1_bin_subset_MAP2.loc[r1_bin_subset_MAP2 == r2_label]) / (len(loci1) * num_labels)
+                
+                if conditional:
+                    if intersection_l_r * P_r > 0:
+                        joint[i,j] = intersection_l_r / P_r
+
+                    else:
+                        joint[i,j] = 0
+                    
+                else:
+                    joint[i,j] = intersection_l_r 
+    
+        xlabels = []
+        for i in loci1.columns[3:]:
+            for j in p_arange:
+                xlabels.append(i + "|" + "{:.2f}".format(j) + "|" + "{:.2f}".format(j+step_size))
+            
+        joint = pd.DataFrame(joint, columns=ylabels, index=xlabels)
     
     return joint
 
@@ -1565,7 +1623,10 @@ def NMI_from_matrix(joint):
                     (coverage1[a] * coverage2[b])
                     )
 
-    NMI = (2*MI)/(H_A + H_B)
+    # NMI = (2*MI)/(H_A + H_B)
+
+    print(MI, H_A, H_B)
+    NMI = (MI)/(H_B)
 
     return NMI
 

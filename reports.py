@@ -13,7 +13,7 @@ def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=Fals
     if subset:
         loci_1 = loci_1.loc[loci_1["chr"]=="chr21"].reset_index(drop=True)
         loci_2 = loci_2.loc[loci_2["chr"]=="chr21"].reset_index(drop=True)
-        loci_1, loci_2 = loci_1.iloc[:int(len(loci_1)/3), :], loci_2.iloc[:int(len(loci_2)/3), :]
+        # loci_1, loci_2 = loci_1.iloc[:int(len(loci_1)/3), :], loci_2.iloc[:int(len(loci_2)/3), :]
 
     print("the shapes of the input matrices are: {}, {}".format(str(loci_1.shape), str(loci_2.shape)))
 
@@ -23,7 +23,7 @@ def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=Fals
 
     return loci_1, loci_2
 
-def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False):
+def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False, custom_order=True):
     print('generating confmat 1 ...')
     num_labels = loci_1.shape[1]-3
 
@@ -94,6 +94,34 @@ def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True,
                 connect_bipartite(loci_1, loci_2, assignment_pairs, mnemon=False)
 
             print('connected barpartite')
+    
+    if mnemons and custom_order:
+        SORT_ORDER = {"Prom": 0, "Prom_fla":1, "Enha":2, "Enha_low":3, "Biva":4, "Tran":5, "Cons":6, "Facu":7, "Quie":8}
+
+        new_columns = []
+        for c in loci_1.columns[3:]:
+            l = "_".join(c.split("_")[1:])
+            new_columns.append(str(SORT_ORDER[l])+"_"+c)
+            
+        new_columns.sort()
+        for i in range(len(new_columns)):
+            new_columns[i] = new_columns[i][2:]
+
+        loci_1 = loci_1[["chr", "start", "end"] + new_columns]
+
+        ##########################################################################################
+        ##########################################################################################
+
+        new_columns = []
+        for c in loci_2.columns[3:]:
+            l = "_".join(c.split("_")[1:])
+            new_columns.append(str(SORT_ORDER[l])+"_"+c)
+            
+        new_columns.sort()
+        for i in range(len(new_columns)):
+            new_columns[i] = new_columns[i][2:]
+
+        loci_2 = loci_2[["chr", "start", "end"] + new_columns]
 
     return loci_1, loci_2
 
@@ -650,13 +678,18 @@ def get_contour(replicate_1_dir, replicate_2_dir, savedir):
 
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
-    print("getting contours 1 : overlapT-window-repr")
-    OvrWind_contour(
-        loci1, loci2, savedir, w_range=[0, 3000, 500], t_range=[0, 11, 2], posterior=True, repr_threshold=0.75)
+    print(loci1, loci2)
+
+    # a = joint_prob_with_binned_posterior(loci1, loci2, n_bins=20, conditional=False, stratified=True)
+    # print(NMI_from_matrix(a))
+
+    # print("getting contours 1 : overlapT-window-repr")
+    # OvrWind_contour(
+    #     loci1, loci2, savedir, w_range=[0, 3000, 500], t_range=[0, 11, 2], posterior=True, repr_threshold=0.75)
     
-    print("getting contours 2 : reprT-window-repr")
-    ReprThresWind_contour(
-        loci1, loci2, savedir, w_range=[0, 3000, 500], t_range=[50, 100, 15], posterior=True, matching="static")
+    # print("getting contours 2 : reprT-window-repr")
+    # ReprThresWind_contour(
+    #     loci1, loci2, savedir, w_range=[0, 3000, 500], t_range=[50, 100, 15], posterior=True, matching="static")
     
     # print("getting contours 3 : overlapT-window-deltaNMI")
     # OvrWind_delta_NMI_contour(
@@ -694,11 +727,11 @@ if __name__=="__main__":
         genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
         rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
         savedir="tests/cedar_runs/chmm/GM12878_R1/")
-    
-    GET_ALL(
-        replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
-        replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
-        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
-        rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
-        savedir="tests/cedar_runs/segway/GM12878_R1/")
+    # print("\n")
+    # GET_ALL(
+    #     replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
+    #     replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
+    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+    #     rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
+    #     savedir="tests/cedar_runs/segway/GM12878_R1/")
     
