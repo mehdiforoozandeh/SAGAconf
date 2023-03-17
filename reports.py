@@ -678,18 +678,13 @@ def get_contour(replicate_1_dir, replicate_2_dir, savedir):
 
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
-    print(loci1, loci2)
-
-    # a = joint_prob_with_binned_posterior(loci1, loci2, n_bins=20, conditional=False, stratified=True)
-    # print(NMI_from_matrix(a))
-
-    # print("getting contours 1 : overlapT-window-repr")
-    # OvrWind_contour(
-    #     loci1, loci2, savedir, w_range=[0, 3000, 500], t_range=[0, 11, 2], posterior=True, repr_threshold=0.75)
+    print("getting contours 1 : overlapT-window-repr")
+    OvrWind_contour(
+        loci1, loci2, savedir, w_range=[0, 4000, 600], t_range=[0, 11, 1], posterior=True, repr_threshold=0.75)
     
-    # print("getting contours 2 : reprT-window-repr")
-    # ReprThresWind_contour(
-    #     loci1, loci2, savedir, w_range=[0, 3000, 500], t_range=[50, 100, 15], posterior=True, matching="static")
+    print("getting contours 2 : reprT-window-repr")
+    ReprThresWind_contour(
+        loci1, loci2, savedir, w_range=[0, 4000, 600], t_range=[50, 100, 5], posterior=True, matching="static")
     
     # print("getting contours 3 : overlapT-window-deltaNMI")
     # OvrWind_delta_NMI_contour(
@@ -700,25 +695,25 @@ def get_contour(replicate_1_dir, replicate_2_dir, savedir):
     #     loci1, loci2, savedir, w_range=[0, 3000, 500], t_range=[50, 100, 15], posterior=True, matching="static")
 
 def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, contour=True):
-    # print(replicate_1_dir, replicate_2_dir, genecode_dir, savedir)
-    # if os.path.exists(savedir)==False:
-    #     os.mkdir(savedir)
+    print(replicate_1_dir, replicate_2_dir, genecode_dir, savedir)
+    if os.path.exists(savedir)==False:
+        os.mkdir(savedir)
 
-    # get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
-    # get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
+    get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
+    get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
 
-    # get_all_bioval(
-    #     replicate_1_dir, replicate_2_dir, 
-    #     savedir,
-    #     genecode_dir=genecode_dir, 
-    #     rnaseq=rnaseq)
+    get_all_bioval(
+        replicate_1_dir, replicate_2_dir, 
+        savedir,
+        genecode_dir=genecode_dir, 
+        rnaseq=rnaseq)
     
-    # get_overalls(replicate_1_dir, replicate_2_dir, savedir)
+    get_overalls(replicate_1_dir, replicate_2_dir, savedir)
 
     if contour:
         get_contour(replicate_1_dir, replicate_2_dir, savedir)
 
-    # gather_labels(replicate_1_dir, savedir)
+    gather_labels(replicate_1_dir, savedir)
 
 if __name__=="__main__":  
     GET_ALL(
@@ -727,7 +722,7 @@ if __name__=="__main__":
         genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
         rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
         savedir="tests/cedar_runs/chmm/GM12878_R1/")
-    # print("\n")
+
     # GET_ALL(
     #     replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
     #     replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 

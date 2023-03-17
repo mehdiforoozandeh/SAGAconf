@@ -150,10 +150,10 @@ def parse_posterior_results(posterior_dir, resolution, mp=True):
 match labels using hungarian algorithms & return corrected labels
 '''
 
-def Hungarian_label_matching(loci_1, loci_2, num_labels):
-    conf_mat = confusion_matrix(loci_1, loci_2, num_labels)
-    assignment_pairs = Hungarian_algorithm(conf_mat, verbose=True)
-    print("label_mapping:\t", assignment_pairs)
-    loci_1, corrected_loci_2 = connect_bipartite(loci_1, loci_2, assignment_pairs)
+# def Hungarian_label_matching(loci_1, loci_2, num_labels):
+#     conf_mat = confusion_matrix(loci_1, loci_2, num_labels)
+#     assignment_pairs = Hungarian_algorithm(conf_mat, verbose=True)
+#     print("label_mapping:\t", assignment_pairs)
+#     loci_1, corrected_loci_2 = connect_bipartite(loci_1, loci_2, assignment_pairs)
 
-    return loci_1, corrected_loci_2
+#     return loci_1, corrected_loci_2
