@@ -24,7 +24,7 @@ def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=Fals
     return loci_1, loci_2
 
 def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False, custom_order=True):
-    print('generating confmat 1 ...')
+    # print('generating confmat 1 ...')
     num_labels = loci_1.shape[1]-3
 
     loci_1.columns = ["chr", "start", "end"]+["posterior{}".format(i) for i in range(num_labels)]
@@ -129,21 +129,21 @@ def ct_confus(loci_1, loci_2, savedir):
     """
     labels can be matched or not
     """
-    num_labels = loci_1.shape[1]-3
+    # num_labels = loci_1.shape[1]-3
         
-    confmat = overlap_matrix(loci_1, loci_2, type="IoU")
+    confmat =  IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False)
 
     p = sns.heatmap(
-        confmat.astype(int), annot=True, fmt="d",
+        confmat.astype(float), annot=True, fmt=".2f",
         linewidths=0.01,  cbar=False)
 
     sns.set(rc={'figure.figsize':(15,20)})
     p.tick_params(axis='x', rotation=30, labelsize=7)
     p.tick_params(axis='y', rotation=30, labelsize=7)
 
-    plt.title('Label Matching Heatmap (log(O/E) overlap)')
-    plt.xlabel('Replicate 1 Labels')
-    plt.ylabel("Replicate 2 Labels")
+    plt.title('IoU Overlap')
+    plt.xlabel('Replicate 2 Labels')
+    plt.ylabel("Replicate 1 Labels")
     plt.tight_layout()
     plt.savefig('{}/heatmap.pdf'.format(savedir), format='pdf')
     plt.savefig('{}/heatmap.svg'.format(savedir), format='svg')
@@ -527,20 +527,18 @@ def get_all_ct(replicate_1_dir, replicate_2_dir, savedir):
         replicate_2_dir+"/parsed_posterior.csv",
         subset=True, logit_transform=True)
 
-    loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=True)
+    # loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=True)
     ct_confus(loci1, loci2, savedir)
 
-    loci1, loci2 = load_data(
-        replicate_1_dir+"/parsed_posterior.csv",
-        replicate_2_dir+"/parsed_posterior.csv",
-        subset=True, logit_transform=True)
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+
+    ct_confus(loci1, loci2, savedir)
 
     ct_lable_calib(loci1, loci2, savedir)
 
     ct_granul(loci1, loci2, savedir)
 
-    ct_boundar(loci1, loci2, savedir, match_definition="BM", max_distance=30)
+    ct_boundar(loci1, loci2, savedir, match_definition="BM", max_distance=50)
 
 def gather_labels(original_ct_dir, savedir):
     
@@ -631,7 +629,7 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
     
     ###################################################################################################################
     bool_reprod_report = single_point_repr(
-        loci1, loci2, enr_threshold=0.5, window_bp=1000, posterior=False, reproducibility_threshold=0.9)
+        loci1, loci2, enr_threshold=0.75, window_bp=1000, posterior=False, reproducibility_threshold=0.8)
 
     bool_reprod_report = pd.concat(
         [loci1["chr"], loci1["start"], loci1["end"], pd.Series(bool_reprod_report)], axis=1)
@@ -651,7 +649,7 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
              scorefile.write("{} reprod score = {}".format(k, str(v)))
 
     bool_reprod_report = single_point_repr(
-        loci1, loci2, enr_threshold=0.5, window_bp=1000, posterior=True, reproducibility_threshold=0.9)
+        loci1, loci2, enr_threshold=0.75, window_bp=1000, posterior=True, reproducibility_threshold=0.8)
 
     bool_reprod_report = pd.concat(
         [loci1["chr"], loci1["start"], loci1["end"], pd.Series(bool_reprod_report)], axis=1)
@@ -680,11 +678,11 @@ def get_contour(replicate_1_dir, replicate_2_dir, savedir):
 
     print("getting contours 1 : overlapT-window-repr")
     OvrWind_contour(
-        loci1, loci2, savedir, w_range=[0, 4000, 600], t_range=[0, 11, 1], posterior=True, repr_threshold=0.75)
+        loci1, loci2, savedir, w_range=[0, 4000, 600], t_range=[0, 11, 1], posterior=True, repr_threshold=0.8)
     
     print("getting contours 2 : reprT-window-repr")
     ReprThresWind_contour(
-        loci1, loci2, savedir, w_range=[0, 4000, 600], t_range=[50, 100, 5], posterior=True, matching="static")
+        loci1, loci2, savedir, w_range=[0, 4000, 600], t_range=[50, 100, 5], posterior=True, matching="static", static_thres=0.75)
     
     # print("getting contours 3 : overlapT-window-deltaNMI")
     # OvrWind_delta_NMI_contour(

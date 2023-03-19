@@ -154,7 +154,7 @@ def granularity_vs_agreement_nonsymmetric(loci_1, loci_2, k, disregard_posterior
             loci_2.loc[MAP2==c, c] = 1
             loci_2.loc[MAP2!=c, c] = 0
 
-    confmat = overlap_matrix(loci_1, loci_2, type="IoU")
+    confmat = IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False)
     
     sorted_k_vector = confmat.loc[k,:].sort_values(ascending=False)
     # print(k, sorted_k_vector)
