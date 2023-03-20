@@ -667,7 +667,14 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
         scorefile.write("general reprod score = ".format(general_rep_score))
         for k, v in perlabel_rec.items():
              scorefile.write("{} reprod score = {}".format(k, str(v)))
-    
+
+    MAP_NMI =  NMI_from_matrix(joint_overlap_prob(loci1, loci2, w=0, symmetric=True))
+    POST_NMI = NMI_from_matrix(joint_prob_with_binned_posterior(loci1, loci2, n_bins=200, conditional=False, stratified=True))
+
+    with open(savedir+"/NMI.txt", "w") as scorefile:
+        scorefile.write("NMI with MAP = ".format(MAP_NMI))
+        scorefile.write("NMI with binned posterior of R1 (n_bins=200) = ".format(POST_NMI))
+
 def get_contour(replicate_1_dir, replicate_2_dir, savedir):
     loci1, loci2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
