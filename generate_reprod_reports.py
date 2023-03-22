@@ -202,7 +202,7 @@ def paraminit(maindir="runs032023_subset"):
         "savedir":"{}/paraminit/chmm/GM12878/".format(maindir)},
 
 
-        {"replicate_1_dir":"segway_runs/GM12878_rep1_rs5/", 
+        {"replicate_1_dir":"segway_runs/GM12878_rep1/", 
         "replicate_2_dir":"segway_runs/GM12878_rep1_rs7/", 
         "genecode_dir":"biovalidation/parsed_genecode_data_hg38_release42.csv", 
         "rnaseq":"biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv",
@@ -247,7 +247,7 @@ def paraminit(maindir="runs032023_subset"):
         "savedir":"{}/paraminit/chmm/K562/".format(maindir)},
 
 
-        {"replicate_1_dir":"segway_runs/K562_rep1_rs5/", 
+        {"replicate_1_dir":"segway_runs/K562_rep1/", 
         "replicate_2_dir":"segway_runs/K562_rep1_rs7/", 
         "genecode_dir":"biovalidation/parsed_genecode_data_hg38_release42.csv", 
         "rnaseq":"biovalidation/RNA_seq/K562/preferred_default_ENCFF840UYD.tsv",
@@ -262,7 +262,7 @@ def paraminit(maindir="runs032023_subset"):
         "savedir":"{}/paraminit/chmm/HeLa-S3/".format(maindir)},
 
 
-        {"replicate_1_dir":"segway_runs/HeLa-S3_rep1_rs5/", 
+        {"replicate_1_dir":"segway_runs/HeLa-S3_rep1/", 
         "replicate_2_dir":"segway_runs/HeLa-S3_rep1_rs7/", 
         "genecode_dir":"biovalidation/parsed_genecode_data_hg38_release42.csv", 
         "rnaseq":None,
@@ -287,11 +287,16 @@ def run(param_dict):
         print("RUNNING {} VS {} is OVER!".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
         print("\n")
         
-    except:
+    except Exception as e:
         print("failed at running {} VS {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
+
         with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
             f.write(str(param_dict))
-            f.write("FAILED!")
+            f.write("\nFAILED!")
+            f.write("\n\n", str(e))
+            
+    finally:
+        pass
 
 def m_p(nt=10):
     with mp.Pool(nt) as pool:

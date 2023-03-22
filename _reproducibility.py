@@ -1477,7 +1477,7 @@ def joint_prob_with_binned_posterior(loci1, loci2, n_bins=50, conditional=False,
 
                     if conditional:
                         if intersection_l_r * P_r > 0:
-                            joint[bi, r2_label] =  intersection_l_r / P_r
+                            joint[bi, r2_label] =  (intersection_l_r / P_r ) * num_labels
 
                         else:
                             joint[bi, r2_label] =  0
@@ -1528,7 +1528,7 @@ def joint_prob_with_binned_posterior(loci1, loci2, n_bins=50, conditional=False,
                 
                 if conditional:
                     if intersection_l_r * P_r > 0:
-                        joint[i,j] = intersection_l_r / P_r
+                        joint[i,j] = (intersection_l_r / P_r) * num_labels
 
                     else:
                         joint[i,j] = 0

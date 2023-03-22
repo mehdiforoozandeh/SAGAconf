@@ -3,6 +3,8 @@ from indepth import *
 from granul import *
 from bio_valid import *
 from overall import *
+from matplotlib.colors import LinearSegmentedColormap
+
 
 def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False):
     print("loading and intersecting")
@@ -125,21 +127,61 @@ def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True,
 
     return loci_1, loci_2
 
+def ct_binned_posterior_heatmap(loci_1, loci_2, savedir):
+    matrix = joint_prob_with_binned_posterior(loci_1, loci_2, n_bins=20, conditional=True, stratified=False)
+
+    #create custom colormap
+    boundaries = [0.0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0] # custom boundaries
+    hex_colors = sns.light_palette('navy', n_colors=len(boundaries) * 2 + 2, as_cmap=False).as_hex()
+    hex_colors = [hex_colors[i] for i in range(0, len(hex_colors), 2)]
+    colors=list(zip(boundaries, hex_colors))
+    custom_color_map = LinearSegmentedColormap.from_list(
+        name='custom_navy',
+        colors=colors,
+    )
+    
+    p = sns.heatmap(
+            matrix.astype(float), annot=False,
+            linewidths=0.001,  cbar=True, cmap=custom_color_map)
+
+    sns.set(rc={'figure.figsize':(20,15)})
+    p.tick_params(axis='x', rotation=90, labelsize=7)
+    p.tick_params(axis='y', rotation=0, labelsize=7)
+
+    # plt.title('Overlap Ratio')
+    plt.xlabel('Replicate 2 Labels')
+    plt.ylabel("Replicate 1 Labels")
+    plt.tight_layout()
+    plt.savefig('{}/binned_posterior_heatmap.pdf'.format(savedir), format='pdf')
+    plt.savefig('{}/binned_posterior_heatmap.svg'.format(savedir), format='svg')
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
 def ct_confus(loci_1, loci_2, savedir):
     """
     labels can be matched or not
     """
-    # num_labels = loci_1.shape[1]-3
+    #create custom colormap
+    boundaries = [0.0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0] # custom boundaries
+    hex_colors = sns.light_palette('navy', n_colors=len(boundaries) * 2 + 2, as_cmap=False).as_hex()
+    hex_colors = [hex_colors[i] for i in range(0, len(hex_colors), 2)]
+    colors=list(zip(boundaries, hex_colors))
+    custom_color_map = LinearSegmentedColormap.from_list(
+        name='custom_navy',
+        colors=colors,
+    )
         
-    confmat =  IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False)
+    confmat = IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False)
 
     p = sns.heatmap(
         confmat.astype(float), annot=True, fmt=".2f",
-        linewidths=0.01,  cbar=False)
+        linewidths=0.01,  cbar=False, annot_kws={"size": 8}, 
+        vmin=0, vmax=1, cmap=custom_color_map)
 
-    sns.set(rc={'figure.figsize':(15,20)})
-    p.tick_params(axis='x', rotation=30, labelsize=7)
-    p.tick_params(axis='y', rotation=30, labelsize=7)
+    sns.set(rc={'figure.figsize':(20,15)})
+    p.tick_params(axis='x', rotation=90, labelsize=8)
+    p.tick_params(axis='y', rotation=0, labelsize=8)
 
     plt.title('IoU Overlap')
     plt.xlabel('Replicate 2 Labels')
@@ -527,10 +569,9 @@ def get_all_ct(replicate_1_dir, replicate_2_dir, savedir):
         replicate_2_dir+"/parsed_posterior.csv",
         subset=True, logit_transform=True)
 
-    # loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=True)
-    ct_confus(loci1, loci2, savedir)
-
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+
+    ct_binned_posterior_heatmap(loci1, loci2, savedir)
 
     ct_confus(loci1, loci2, savedir)
 
@@ -592,12 +633,28 @@ def gather_labels(original_ct_dir, savedir):
                     "cp {} {}".format(savedir+"/prog/"+f, savedir+"/labels/"+k)
                     )
         
-        for f in os.listdir(savedir+"/contours/"):
+        for f in os.listdir(savedir+"/contours_OvrWind/"):
+            if "reprod_lines_"+k in f:
+                os.system(
+                    "cp {} {}".format(savedir+"/contours_OvrWind/"+f, savedir+"/labels/"+k)
+                    )
+            
             if "reprod_contour_"+k in f:
                 os.system(
-                    "cp {} {}".format(savedir+"/contours/"+f, savedir+"/labels/"+k)
+                    "cp {} {}".format(savedir+"/contours_OvrWind/"+f, savedir+"/labels/"+k)
                     )
-
+                
+        for f in os.listdir(savedir+"/contours_ReprThresWind/"):
+            if "reprod_lines_"+k in f:
+                os.system(
+                    "cp {} {}".format(savedir+"/contours_ReprThresWind/"+f, savedir+"/labels/"+k)
+                    )
+                
+            if "reprod_contour_"+k in f:
+                os.system(
+                    "cp {} {}".format(savedir+"/contours_ReprThresWind/"+f, savedir+"/labels/"+k)
+                    )
+                
 def get_all_bioval(replicate_1_dir, replicate_2_dir, savedir, genecode_dir, rnaseq=None):
     loci1, loci2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
@@ -629,7 +686,7 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
     
     ###################################################################################################################
     bool_reprod_report = single_point_repr(
-        loci1, loci2, enr_threshold=0.75, window_bp=1000, posterior=False, reproducibility_threshold=0.8)
+        loci1, loci2, ovr_threshold=0.75, window_bp=1000, posterior=False, reproducibility_threshold=0.8)
 
     bool_reprod_report = pd.concat(
         [loci1["chr"], loci1["start"], loci1["end"], pd.Series(bool_reprod_report)], axis=1)
@@ -649,7 +706,7 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
              scorefile.write("{} reprod score = {}".format(k, str(v)))
 
     bool_reprod_report = single_point_repr(
-        loci1, loci2, enr_threshold=0.75, window_bp=1000, posterior=True, reproducibility_threshold=0.8)
+        loci1, loci2, ovr_threshold=0.75, window_bp=1000, posterior=True, reproducibility_threshold=0.8)
 
     bool_reprod_report = pd.concat(
         [loci1["chr"], loci1["start"], loci1["end"], pd.Series(bool_reprod_report)], axis=1)
@@ -672,8 +729,8 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
     POST_NMI = NMI_from_matrix(joint_prob_with_binned_posterior(loci1, loci2, n_bins=200, conditional=False, stratified=True))
 
     with open(savedir+"/NMI.txt", "w") as scorefile:
-        scorefile.write("NMI with MAP = ".format(MAP_NMI))
-        scorefile.write("NMI with binned posterior of R1 (n_bins=200) = ".format(POST_NMI))
+        scorefile.write("NMI with MAP = {}".format(MAP_NMI))
+        scorefile.write("NMI with binned posterior of R1 (n_bins=200) = {}".format(POST_NMI))
 
 def get_contour(replicate_1_dir, replicate_2_dir, savedir):
     loci1, loci2 = load_data(
@@ -728,10 +785,24 @@ if __name__=="__main__":
         rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
         savedir="tests/cedar_runs/chmm/GM12878_R1/")
 
-    # GET_ALL(
-    #     replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
-    #     replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
-    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
-    #     rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
-    #     savedir="tests/cedar_runs/segway/GM12878_R1/")
+    GET_ALL(
+        replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
+        replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
+        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+        rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
+        savedir="tests/cedar_runs/segway/GM12878_R1/")
+    
+    GET_ALL(
+        replicate_1_dir="tests/cedar_runs/chmm/GM12878_R2/", 
+        replicate_2_dir="tests/cedar_runs/chmm/GM12878_R1/", 
+        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+        rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
+        savedir="tests/cedar_runs/chmm/GM12878_R2/")
+
+    GET_ALL(
+        replicate_1_dir="tests/cedar_runs/segway/GM12878_R2/", 
+        replicate_2_dir="tests/cedar_runs/segway/GM12878_R1/", 
+        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+        rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
+        savedir="tests/cedar_runs/segway/GM12878_R2/")
     

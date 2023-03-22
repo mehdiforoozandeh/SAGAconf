@@ -649,7 +649,7 @@ def single_point_repr(loci_1, loci_2, ovr_threshold, window_bp, posterior=False,
         according to the calibrated p, 
         """
         return is_repr_posterior(
-            loci_1, loci_2, ovr_threshold, window_bp, numbins=1000, reproducibility_threshold=reproducibility_threshold)
+            loci_1, loci_2, ovr_threshold, window_bp, reproducibility_threshold=reproducibility_threshold)
 
     else:
         return is_repr_MAP_with_prior(
