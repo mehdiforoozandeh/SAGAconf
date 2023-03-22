@@ -98,7 +98,7 @@ def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True,
             print('connected barpartite')
     
     if mnemons and custom_order:
-        SORT_ORDER = {"Prom": 0, "Prom_fla":1, "Enha":2, "Enha_low":3, "Biva":4, "Tran":5, "Cons":6, "Facu":7, "Quie":8}
+        SORT_ORDER = {"Prom": 0, "Prom_fla":1, "Enha":2, "Enha_low":3, "Biva":4, "Tran":5, "Cons":6, "Facu":7, "K9K3":8, "Quie":9}
 
         new_columns = []
         for c in loci_1.columns[3:]:
