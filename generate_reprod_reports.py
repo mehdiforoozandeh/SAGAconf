@@ -300,11 +300,11 @@ def run(param_dict):
 
 def m_p(nt=10):
     with mp.Pool(nt) as pool:
-        r_ = pool.map(run, r1vsr2())
+        p = pool.map(run, paraminit())
     with mp.Pool(nt) as pool:
         c = pool.map(run, concat())
     with mp.Pool(nt) as pool:
-        p = pool.map(run, paraminit())
-
+        r_ = pool.map(run, r1vsr2())
+    
 if __name__=="__main__":
     m_p()
