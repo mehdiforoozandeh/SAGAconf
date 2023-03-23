@@ -99,31 +99,35 @@ def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True,
     
     if mnemons and custom_order:
         SORT_ORDER = {"Prom": 0, "Prom_fla":1, "Enha":2, "Enha_low":3, "Biva":4, "Tran":5, "Cons":6, "Facu":7, "K9K3":8, "Quie":9}
+        try:
+            new_columns = []
+            for c in loci_1.columns[3:]:
+                l = "_".join(c.split("_")[1:])
+                new_columns.append(str(SORT_ORDER[l])+"_"+c)
+                
+            new_columns.sort()
+            for i in range(len(new_columns)):
+                new_columns[i] = new_columns[i][2:]
 
-        new_columns = []
-        for c in loci_1.columns[3:]:
-            l = "_".join(c.split("_")[1:])
-            new_columns.append(str(SORT_ORDER[l])+"_"+c)
-            
-        new_columns.sort()
-        for i in range(len(new_columns)):
-            new_columns[i] = new_columns[i][2:]
-
-        loci_1 = loci_1[["chr", "start", "end"] + new_columns]
+            loci_1 = loci_1[["chr", "start", "end"] + new_columns]
+        except:
+            pass
 
         ##########################################################################################
         ##########################################################################################
+        try:
+            new_columns = []
+            for c in loci_2.columns[3:]:
+                l = "_".join(c.split("_")[1:])
+                new_columns.append(str(SORT_ORDER[l])+"_"+c)
+                
+            new_columns.sort()
+            for i in range(len(new_columns)):
+                new_columns[i] = new_columns[i][2:]
 
-        new_columns = []
-        for c in loci_2.columns[3:]:
-            l = "_".join(c.split("_")[1:])
-            new_columns.append(str(SORT_ORDER[l])+"_"+c)
-            
-        new_columns.sort()
-        for i in range(len(new_columns)):
-            new_columns[i] = new_columns[i][2:]
-
-        loci_2 = loci_2[["chr", "start", "end"] + new_columns]
+            loci_2 = loci_2[["chr", "start", "end"] + new_columns]
+        except:
+            pass
 
     return loci_1, loci_2
 

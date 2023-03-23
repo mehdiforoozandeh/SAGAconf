@@ -293,18 +293,18 @@ def run(param_dict):
         with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
             f.write(str(param_dict))
             f.write("\nFAILED!")
-            f.write("\n\n", str(e))
+            f.write("\n\n" + str(e))
             
     finally:
         pass
 
 def m_p(nt=10):
     with mp.Pool(nt) as pool:
-        p = pool.map(run, paraminit())
-    with mp.Pool(nt) as pool:
         c = pool.map(run, concat())
     with mp.Pool(nt) as pool:
         r_ = pool.map(run, r1vsr2())
+    with mp.Pool(nt) as pool:
+        p = pool.map(run, paraminit())
     
 if __name__=="__main__":
     m_p()
