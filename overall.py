@@ -853,6 +853,53 @@ def OvrWind_contour(loci1, loci2, savedir, w_range=[0, 4000, 200], t_range=[0, 1
         plt.savefig('{}/reprod_contour_{}.svg'.format(savedir+"/contours_OvrWind", k), format='svg')
         plt.clf()
 
+    ##################################################################################################
+    
+    num_labels = loci1.shape[1]-3
+    n_cols = math.floor(math.sqrt(num_labels))
+    n_rows = math.ceil(num_labels / n_cols)
+
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[25, 16])
+    label_being_plotted = 0
+    plrk = list(perlabel_rec.keys())
+
+    for i in range(n_rows):
+        for j in range(n_cols):
+            k = plrk[label_being_plotted]
+            rec = np.array(perlabel_rec[k])
+
+            x, y, z = rec[:,0], rec[:,1], rec[:,2]
+            rec_df = pd.DataFrame(rec, columns=["w", "t", "s"])
+
+            list_of_ws = np.unique(rec[:, 0])
+            cmap = get_cmap('inferno')
+            gradients = np.linspace(0, 1, len(list_of_ws))
+
+            first_line = True
+            for c in range(len(list_of_ws)):
+                w = int(list_of_ws[c])
+                subset_runs = rec_df.loc[rec_df["w"] == w, :].sort_values(by="t", ascending=False).reset_index(drop=True)
+                
+                axs[i,j].plot(subset_runs.t, subset_runs.s, color=cmap(gradients[c]))#, label="w = {} bp".format(w))
+                
+                if first_line:
+                    axs[i,j].fill_between(subset_runs.t, subset_runs.s, color=cmap(gradients[c]), alpha=0.6)
+                else:
+                    axs[i,j].fill_between(subset_runs.t, previous_line.s, subset_runs.s, color=cmap(gradients[c]), alpha=0.75)
+                    
+                previous_line = subset_runs
+                first_line=False
+
+            label_being_plotted+=1
+            axs[i,j].set_title(k, fontsize=13)
+
+    plt.tight_layout()
+    plt.savefig('{}/reprod_contour_lines.pdf'.format(savedir+"/contours_OvrWind"), format='pdf')
+    plt.savefig('{}/reprod_contour_lines.svg'.format(savedir+"/contours_OvrWind"), format='svg')
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+
 def ReprThresWind_contour(
         loci1, loci2, savedir, w_range=[0, 4000, 200], t_range=[50, 100, 5], posterior=True, 
         matching="static", static_thres = 0.75):
@@ -1035,6 +1082,53 @@ def ReprThresWind_contour(
         plt.savefig('{}/reprod_contour_{}.pdf'.format(savedir+"/contours_ReprThresWind", k), format='pdf')
         plt.savefig('{}/reprod_contour_{}.svg'.format(savedir+"/contours_ReprThresWind", k), format='svg')
         plt.clf()
+    
+    ##################################################################################################
+    
+    num_labels = loci1.shape[1]-3
+    n_cols = math.floor(math.sqrt(num_labels))
+    n_rows = math.ceil(num_labels / n_cols)
+
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[25, 16])
+    label_being_plotted = 0
+    plrk = list(perlabel_rec.keys())
+
+    for i in range(n_rows):
+        for j in range(n_cols):
+            k = plrk[label_being_plotted]
+            rec = np.array(perlabel_rec[k])
+
+            x, y, z = rec[:,0], rec[:,1], rec[:,2]
+            rec_df = pd.DataFrame(rec, columns=["w", "t", "s"])
+
+            list_of_ws = np.unique(rec[:, 0])
+            cmap = get_cmap('inferno')
+            gradients = np.linspace(0, 1, len(list_of_ws))
+
+            first_line = True
+            for c in range(len(list_of_ws)):
+                w = int(list_of_ws[c])
+                subset_runs = rec_df.loc[rec_df["w"] == w, :].sort_values(by="t", ascending=False).reset_index(drop=True)
+                
+                axs[i,j].plot(subset_runs.t, subset_runs.s, color=cmap(gradients[c]))#, label="w = {} bp".format(w))
+                
+                if first_line:
+                    axs[i,j].fill_between(subset_runs.t, subset_runs.s, color=cmap(gradients[c]), alpha=0.6)
+                else:
+                    axs[i,j].fill_between(subset_runs.t, previous_line.s, subset_runs.s, color=cmap(gradients[c]), alpha=0.75)
+                    
+                previous_line = subset_runs
+                first_line=False
+
+            label_being_plotted+=1
+            axs[i,j].set_title(k, fontsize=13)
+
+    plt.tight_layout()
+    plt.savefig('{}/reprod_contour_lines.pdf'.format(savedir+"/contours_ReprThresWind"), format='pdf')
+    plt.savefig('{}/reprod_contour_lines.svg'.format(savedir+"/contours_ReprThresWind"), format='svg')
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
 
 def __OvrWind_delta_NMI_contour(loci1, loci2, savedir, w_range=[0, 4000, 200], t_range=[0, 11, 1], posterior=True, repr_threshold=0.9):
     # NMI is defined for whole annotations. it cannot be used for individal labels

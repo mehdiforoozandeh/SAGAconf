@@ -50,7 +50,7 @@ def r1vsr2(maindir="runs032023_subset"):
     
         {"replicate_1_dir":"chromhmm_runs/CD14-positive_monocyte_rep1/", 
         "replicate_2_dir":"chromhmm_runs/CD14-positive_monocyte_rep2/", 
-        "genecode_dir":"biovalidation/parsed_genecode,_data_hg38_release42.csv", 
+        "genecode_dir":"biovalidation/parsed_genecode_data_hg38_release42.csv", 
         "rnaseq":None,
         "savedir":"{}/r1vsr2/chmm/CD14/".format(maindir)},
 

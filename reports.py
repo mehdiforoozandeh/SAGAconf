@@ -162,7 +162,7 @@ def ct_binned_posterior_heatmap(loci_1, loci_2, savedir):
     sns.reset_orig
     plt.style.use('default')
 
-def ct_confus(loci_1, loci_2, savedir):
+def ct_confus(loci_1, loci_2, savedir, w=1000):
     """
     labels can be matched or not
     """
@@ -199,6 +199,30 @@ def ct_confus(loci_1, loci_2, savedir):
 
     confmat.to_csv("{}/heatmap.csv".format(savedir))
 
+    ####################################################################################
+
+    confmat = IoU_overlap(loci_1, loci_2, w=1000, symmetric=False, soft=False)
+    p = sns.heatmap(
+        confmat.astype(float), annot=True, fmt=".2f",
+        linewidths=0.01,  cbar=False, annot_kws={"size": 8}, 
+        vmin=0, vmax=1, cmap=custom_color_map)
+
+    sns.set(rc={'figure.figsize':(20,15)})
+    p.tick_params(axis='x', rotation=90, labelsize=8)
+    p.tick_params(axis='y', rotation=0, labelsize=8)
+
+    plt.title('IoU Overlap | w={}'.format(w))
+    plt.xlabel('Replicate 2 Labels')
+    plt.ylabel("Replicate 1 Labels")
+    plt.tight_layout()
+    plt.savefig('{}/heatmap_w.pdf'.format(savedir), format='pdf')
+    plt.savefig('{}/heatmap_w.svg'.format(savedir), format='svg')
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
+    confmat.to_csv("{}/heatmap_w.csv".format(savedir))
+
 def ct_granul(loci_1, loci_2, savedir):
     """
     for this function, the labels should not be matched
@@ -224,7 +248,7 @@ def ct_granul(loci_1, loci_2, savedir):
             axs[i,j].plot(cr, ar, c="yellowgreen")
             axs[i,j].set_title(
                 c + str(" | Real/Perfect AUC = {:.2f}".format(p_to_r_auc)), 
-                fontsize=11)
+                fontsize=13)
 
             axs[i,j].fill_between(cr, ar, color="yellowgreen", alpha=0.4)
             axs[i,j].fill_between(cr, perfect_agr, ar, color="palevioletred", alpha=0.4)
@@ -340,7 +364,7 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
     n_cols = math.floor(math.sqrt(num_labels))
     n_rows = math.ceil(num_labels / n_cols)
 
-    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[16, 9])
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[25, 16])
     label_being_plotted = 0
     
     for i in range(n_rows):
@@ -367,14 +391,14 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
             #     sns.ecdfplot(lendist, ax=axs[i, j], color="red")
 
             axs[i, j].set_xticks(np.arange(0, (max_distance+1)*resolution, step=5*resolution))
-            axs[i, j].tick_params(axis='both', labelsize=7)
+            axs[i, j].tick_params(axis='both', labelsize=10)
             axs[i, j].tick_params(axis='x', rotation=90)
             axs[i, j].set_yticks(np.arange(0, 1.1, step=0.2))
-            axs[i, j].set_xlabel('bp', fontsize=7)
-            axs[i, j].set_ylabel('Proportion',fontsize=7)
+            axs[i, j].set_xlabel('bp', fontsize=12)
+            axs[i, j].set_ylabel('Proportion',fontsize=12)
             
             
-            axs[i, j].set_title(k, fontsize=7)
+            axs[i, j].set_title(k, fontsize=13)
 
             label_being_plotted += 1
             
@@ -746,11 +770,11 @@ def get_contour(replicate_1_dir, replicate_2_dir, savedir):
 
     print("getting contours 1 : overlapT-window-repr")
     OvrWind_contour(
-        loci1, loci2, savedir, w_range=[0, 4000, 600], t_range=[0, 11, 1], posterior=True, repr_threshold=0.8)
+        loci1, loci2, savedir, w_range=[0, 4000, 600], t_range=[0, 11, 2], posterior=True, repr_threshold=0.8)
     
     print("getting contours 2 : reprT-window-repr")
     ReprThresWind_contour(
-        loci1, loci2, savedir, w_range=[0, 4000, 600], t_range=[50, 100, 5], posterior=True, matching="static", static_thres=0.75)
+        loci1, loci2, savedir, w_range=[0, 4000, 600], t_range=[50, 105, 5], posterior=True, matching="static", static_thres=0.75)
     
     # print("getting contours 3 : overlapT-window-deltaNMI")
     # OvrWind_delta_NMI_contour(
@@ -765,21 +789,42 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     if os.path.exists(savedir)==False:
         os.mkdir(savedir)
 
-    get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
-    get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
-
-    get_all_bioval(
-        replicate_1_dir, replicate_2_dir, 
-        savedir,
-        genecode_dir=genecode_dir, 
-        rnaseq=rnaseq)
+    try:
+        get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
+    except:
+        pass
     
-    get_overalls(replicate_1_dir, replicate_2_dir, savedir)
+    try:
+        get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
+    except:
+        pass
+    
 
+    try:
+        get_all_bioval(
+            replicate_1_dir, replicate_2_dir, 
+            savedir,
+            genecode_dir=genecode_dir, 
+            rnaseq=rnaseq)
+    except:
+        pass
+   
+    try:
+        get_overalls(replicate_1_dir, replicate_2_dir, savedir)
+    except:
+        pass
+   
     if contour:
-        get_contour(replicate_1_dir, replicate_2_dir, savedir)
-
-    gather_labels(replicate_1_dir, savedir)
+        try:
+            get_contour(replicate_1_dir, replicate_2_dir, savedir)
+        except:
+            pass
+        
+    try:
+        gather_labels(replicate_1_dir, savedir)
+    except:
+        pass
+    
 
 if __name__=="__main__":  
     GET_ALL(
@@ -788,6 +833,8 @@ if __name__=="__main__":
         genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
         rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
         savedir="tests/cedar_runs/chmm/GM12878_R1/")
+
+    exit()
 
     GET_ALL(
         replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
