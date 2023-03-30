@@ -71,7 +71,10 @@ def get_agr_nonsymmetric(MAP1, MAP2, query_label1, query_label2):
             else:
                 record[1] += 1
 
-    agr = float(record[0] / (record[0] + record[1]))
+    try:
+        agr = float(record[0] / (record[0] + record[1]))
+    except:
+        agr = 0
     return agr
 
 def granularity_vs_agreement_symmetric(loci_1, loci_2, query_label, disregard_posterior=True):

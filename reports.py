@@ -131,26 +131,34 @@ def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True,
 
     return loci_1, loci_2
 
-def ct_binned_posterior_heatmap(loci_1, loci_2, savedir):
-    matrix = joint_prob_with_binned_posterior(loci_1, loci_2, n_bins=20, conditional=True, stratified=False)
+def ct_binned_posterior_heatmap(loci_1, loci_2, savedir, n_bins=10):
+    loci_1.iloc[:,3:] = 1 / (1 + np.exp(-1 * np.array(loci_1.iloc[:,3:])))
+    loci_2.iloc[:,3:] = 1 / (1 + np.exp(-1 * np.array(loci_2.iloc[:,3:])))
 
+    num_labels = int(loci_1.shape[1]-3)
+    matrix = joint_prob_with_binned_posterior(loci_1, loci_2, n_bins=n_bins, conditional=True, stratified=False)
+    
     #create custom colormap
-    boundaries = [0.0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0] # custom boundaries
+    boundaries = [x**2 for x in list(np.linspace(0, 1, 20))] + [1]# custom boundaries
     hex_colors = sns.light_palette('navy', n_colors=len(boundaries) * 2 + 2, as_cmap=False).as_hex()
     hex_colors = [hex_colors[i] for i in range(0, len(hex_colors), 2)]
     colors=list(zip(boundaries, hex_colors))
     custom_color_map = LinearSegmentedColormap.from_list(
         name='custom_navy',
-        colors=colors,
-    )
+        colors=colors)
     
     p = sns.heatmap(
             matrix.astype(float), annot=False,
-            linewidths=0.001,  cbar=True, cmap=custom_color_map)
+            linewidths=0.001,  cbar=True, 
+            cmap=custom_color_map)
 
     sns.set(rc={'figure.figsize':(20,15)})
-    p.tick_params(axis='x', rotation=90, labelsize=7)
-    p.tick_params(axis='y', rotation=0, labelsize=7)
+
+    yticks = list(matrix.index)
+    p.set_yticks(np.arange(0, len(yticks), int(n_bins)) + 0.5)
+    p.set_yticklabels([yticks[yt].split("|")[0] for yt in range(0, len(yticks), int(n_bins))], rotation=0)
+    p.tick_params(axis='x', rotation=90, labelsize=9)
+    p.tick_params(axis='y', rotation=0, labelsize=9)
 
     # plt.title('Overlap Ratio')
     plt.xlabel('Replicate 2 Labels')
@@ -167,25 +175,25 @@ def ct_confus(loci_1, loci_2, savedir, w=1000):
     labels can be matched or not
     """
     #create custom colormap
-    boundaries = [0.0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0] # custom boundaries
+    boundaries = [x**2 for x in list(np.linspace(0, 1, 20))] + [1] # custom boundaries
     hex_colors = sns.light_palette('navy', n_colors=len(boundaries) * 2 + 2, as_cmap=False).as_hex()
     hex_colors = [hex_colors[i] for i in range(0, len(hex_colors), 2)]
     colors=list(zip(boundaries, hex_colors))
     custom_color_map = LinearSegmentedColormap.from_list(
         name='custom_navy',
-        colors=colors,
-    )
-        
+        colors=colors)
+    
+    ####################################################################################
     confmat = IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False)
 
     p = sns.heatmap(
         confmat.astype(float), annot=True, fmt=".2f",
-        linewidths=0.01,  cbar=False, annot_kws={"size": 8}, 
+        linewidths=0.01,  cbar=True, annot_kws={"size": 8}, 
         vmin=0, vmax=1, cmap=custom_color_map)
 
     sns.set(rc={'figure.figsize':(20,15)})
-    p.tick_params(axis='x', rotation=90, labelsize=8)
-    p.tick_params(axis='y', rotation=0, labelsize=8)
+    p.tick_params(axis='x', rotation=90, labelsize=10)
+    p.tick_params(axis='y', rotation=0, labelsize=10)
 
     plt.title('IoU Overlap')
     plt.xlabel('Replicate 2 Labels')
@@ -199,17 +207,22 @@ def ct_confus(loci_1, loci_2, savedir, w=1000):
 
     confmat.to_csv("{}/heatmap.csv".format(savedir))
 
+    conditional = overlap_matrix(loci_1, loci_2, type="conditional")
+    with open("{}/raw_conditional_overlap_ratio.txt".format(savedir), "w") as cf:
+        for i in conditional.index:
+            cf.write("{} : {}\n".format(i, np.max(np.array(conditional.loc[i, :]))))
+
     ####################################################################################
 
     confmat = IoU_overlap(loci_1, loci_2, w=1000, symmetric=False, soft=False)
     p = sns.heatmap(
         confmat.astype(float), annot=True, fmt=".2f",
-        linewidths=0.01,  cbar=False, annot_kws={"size": 8}, 
+        linewidths=0.01,  cbar=True, annot_kws={"size": 8}, 
         vmin=0, vmax=1, cmap=custom_color_map)
 
     sns.set(rc={'figure.figsize':(20,15)})
-    p.tick_params(axis='x', rotation=90, labelsize=8)
-    p.tick_params(axis='y', rotation=0, labelsize=8)
+    p.tick_params(axis='x', rotation=90, labelsize=10)
+    p.tick_params(axis='y', rotation=0, labelsize=10)
 
     plt.title('IoU Overlap | w={}'.format(w))
     plt.xlabel('Replicate 2 Labels')
@@ -232,6 +245,8 @@ def ct_granul(loci_1, loci_2, savedir):
     n_cols = math.floor(math.sqrt(num_labels))
     n_rows = math.ceil(num_labels / n_cols)
 
+    p_to_r_auc_record = {}
+
     fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[25, 16])
     label_being_plotted = 0
 
@@ -243,17 +258,20 @@ def ct_granul(loci_1, loci_2, savedir):
             perfect_agr = [0] + [1 for i in range(len(ar) - 1)]
             realAUC = metrics.auc(cr, ar)
             perfectAUC = metrics.auc(cr, perfect_agr)
-            p_to_r_auc = float(realAUC/perfectAUC)
+            p_to_r_auc = float((realAUC)/(perfectAUC))
+
+            p_to_r_auc_record[c] = p_to_r_auc
 
             axs[i,j].plot(cr, ar, c="yellowgreen")
             axs[i,j].set_title(
                 c + str(" | Real/Perfect AUC = {:.2f}".format(p_to_r_auc)), 
-                fontsize=13)
+                fontsize=15)
 
             axs[i,j].fill_between(cr, ar, color="yellowgreen", alpha=0.4)
             axs[i,j].fill_between(cr, perfect_agr, ar, color="palevioletred", alpha=0.4)
             axs[i,j].set_xticks(np.arange(0, 1.1, step=0.2))
             axs[i,j].set_yticks(np.arange(0, 1.1, step=0.2))
+            axs[i,j].tick_params(axis='both', which='major', labelsize=15) 
             label_being_plotted+=1
     
     # fig.text(0.5, 0.02, 'Coverage' , ha='center')
@@ -262,6 +280,25 @@ def ct_granul(loci_1, loci_2, savedir):
     plt.savefig(savedir+"/granularity.pdf", format='pdf')
     plt.savefig(savedir+"/granularity.svg", format='svg')
     
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+
+    fig, ax = plt.subplots(figsize=(12, 9))
+    ax.bar(p_to_r_auc_record.keys(), p_to_r_auc_record.values(), color='black', alpha=0.5)
+    ax.set_xlabel('Chromatin States')
+    ax.set_ylabel('Real/Perfect AUC')
+    ax.set_yticks(np.arange(0, 1.1, 0.1))
+    ax.tick_params(axis='x', rotation=30, labelsize=12)
+    ax.tick_params(axis='y', rotation=0, labelsize=12)
+    ax.axhline(y=0.5, color='r', linestyle='--', linewidth=3)
+
+    with open(savedir+"/AUC_mAUC.txt", 'w') as f:
+        f.write(str(p_to_r_auc_record))
+
+    plt.savefig(savedir+"/barplot.pdf", format='pdf')
+    plt.savefig(savedir+"/barplot.svg", format='svg')
+
     sns.reset_orig
     plt.close("all")
     plt.style.use('default')
@@ -282,6 +319,196 @@ def ct_lable_calib(loci_1, loci_2, pltsavedir):
         loci_1, loci_2, plot_raw=False, window_size=1000, savedir=pltsavedir+"/calib_logit_enr", allow_w=False)
     calibrated_loci_1 = calb.perlabel_calibration_function()
     
+    plt.close("all")
+    plt.style.use('default')
+
+def overall_boundary(loci_1, loci_2, savedir, match_definition="BM"):
+    """
+    a dict for match definition
+    for w in range(max_distance):
+        check the overall correspondence within window of size w
+    
+    plot like normal boundary
+    """
+    resolution = int(loci_1.iloc[0, 2] - loci_1.iloc[0, 1])
+
+    max_distance = int(10000/resolution)
+    num_labels = loci_1.shape[1]-3
+    MAP1 = list(loci_1.iloc[:,3:].idxmax(axis=1))
+    MAP2 = list(loci_2.iloc[:,3:].idxmax(axis=1))
+
+    confmat = IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False)
+    
+    # define matches
+    per_label_matches = {}
+    for k in list(loci_1.columns[3:]):
+        sorted_k_vector = confmat.loc[k,:].sort_values(ascending=False)
+
+        good_matches = sorted_k_vector.index[0]
+        per_label_matches[k] = good_matches
+    #========================================================================================#
+    listofws = []
+    overlaprecord = []
+    
+    for w in range(max_distance):
+        m = 0
+        for i in range(len(MAP1)):
+            k = MAP1[i]
+            if w == 0:
+                i_neighbors = [MAP2[i]]
+            else:
+                i_neighbors = MAP2[max(0, i-w) : min(i+w, len(MAP2)-1)]
+
+            if per_label_matches[k] in i_neighbors:
+                m += 1
+        
+        listofws.append(w)
+        overlaprecord.append(float(m) / len(loci_1))
+    
+    plt.plot([x * resolution for x in listofws], overlaprecord, color="black", label="distance from boundary", linewidth=2)
+    plt.xticks(np.arange(0, (max_distance+1)*resolution, step=5*resolution))
+    plt.tick_params(axis='both', labelsize=12)
+    plt.tick_params(axis='x', rotation=90)
+    plt.yticks(np.arange(0, 1.1, step=0.1))
+    plt.xlabel('bp', fontsize=10)
+    plt.ylabel('Ratio Overlap',fontsize=10)
+    
+    plt.title("Overall", fontsize=12)
+    plt.tight_layout()
+    plt.savefig(savedir+"/len_bound_{}.pdf".format("overall"), format='pdf')
+    plt.savefig(savedir+"/len_bound_{}.svg".format("overall"), format='svg')
+
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+
+def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
+    if os.path.exists(savedir+"/Dist_vs_Corresp") == False:
+        os.mkdir(savedir+"/Dist_vs_Corresp")
+    savedir = savedir+"/Dist_vs_Corresp"
+
+    resolution = int(loci_1.iloc[0, 2] - loci_1.iloc[0, 1])
+
+    max_distance = int(10000/resolution)
+    num_labels = loci_1.shape[1]-3
+    MAP1 = list(loci_1.iloc[:,3:].idxmax(axis=1))
+    MAP2 = list(loci_2.iloc[:,3:].idxmax(axis=1))
+
+    confmat = IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False)
+    
+    # define matches
+    per_label_matches = {}
+    for k in list(loci_1.columns[3:]):
+        sorted_k_vector = confmat.loc[k,:].sort_values(ascending=False)
+
+        good_matches = sorted_k_vector.index[0]
+        per_label_matches[k] = good_matches
+    #========================================================================================#
+
+    distance_to_corresp = []
+    for i in range(len(MAP1)):
+        k = MAP1[i]
+
+        matched = False
+        for w in range(max_distance):
+            if matched==False and w == 0:
+                if MAP2[i] == per_label_matches[k]:
+                    distance_to_corresp.append(0)
+                    matched = True
+
+            elif matched==False and w > 0:
+                upst_neighbors = MAP2[i : min(i+w+1, len(MAP2))]
+                downst_neighbors = MAP2[max(0, i-w) : i+1]
+                if per_label_matches[k] in upst_neighbors:
+                    distance_to_corresp.append(w)
+                    matched = True
+                
+                elif per_label_matches[k] in downst_neighbors:
+                    distance_to_corresp.append(-1*w)
+                    matched = True
+
+            if matched:
+                break
+
+            elif matched==False and w==(max_distance-1):
+                distance_to_corresp.append(None)
+    
+    nonefiltered = [x * resolution for x in distance_to_corresp if x is not None] 
+    matched_ratio = len(nonefiltered) / len(distance_to_corresp)
+    plt.hist(nonefiltered, bins=len(set(nonefiltered)), density=True, log=True, color='black', alpha=0.6, histtype="stepfilled")
+    plt.axvline(x=0, color='red', linestyle='dotted', linewidth=1.5)
+    plt.yticks(np.logspace(-6, 0, 7))
+    plt.xlabel("Distance (bp)")
+    plt.ylabel("Matched label density (log scale)")
+    plt.title("Correspondence vs. Distance -- Overall | Matched Ratio = {:.2f}".format(matched_ratio))
+    plt.tight_layout()
+    plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format("overall"), format='pdf')
+    plt.savefig(savedir+"/dist_vs_corresp_{}.svg".format("overall"), format='svg')
+
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+
+    #========================================================================================#
+    perlabel = {}
+    for k in loci_1.columns[3:]:
+        perlabel[k] = []
+    
+    for i in range(len(MAP1)):
+        perlabel[MAP1[i]].append(distance_to_corresp[i])
+
+    #========================================================================================#
+    for k in perlabel.keys():
+        distance_to_corresp_k = perlabel[k]
+        nonefiltered = [x * resolution for x in distance_to_corresp_k if x is not None] 
+        matched_ratio = len(nonefiltered) / len(distance_to_corresp_k)
+
+        plt.hist(nonefiltered, bins=len(set(nonefiltered)), density=True, log=True, color='black', alpha=0.6, histtype="stepfilled")
+        plt.axvline(x=0, color='red', linestyle='dotted', linewidth=1.5)
+        plt.yticks(np.logspace(-6, 0, 7))
+        plt.xlabel("Distance (bp)")
+        plt.ylabel("Matched label density (log scale)")
+        plt.title("Correspondence vs. Distance -- {} | Matched Ratio = {:.2f}".format(k, matched_ratio))
+        plt.tight_layout()
+        plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format(k), format='pdf')
+        plt.savefig(savedir+"/dist_vs_corresp_{}.svg".format(k), format='svg')
+
+        sns.reset_orig
+        plt.close("all")
+        plt.style.use('default')
+
+    #========================================================================================#
+    num_labels = loci_1.shape[1]-3
+    n_cols = math.floor(math.sqrt(num_labels))
+    n_rows = math.ceil(num_labels / n_cols)
+
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[25, 16])
+    label_being_plotted = 0
+    
+    for i in range(n_rows):
+        for j in range(n_cols):
+            k = loci_1.columns[3:][label_being_plotted]
+            distance_to_corresp_k = perlabel[k]
+            nonefiltered = [x * resolution for x in distance_to_corresp_k if x is not None] 
+            matched_ratio = len(nonefiltered) / len(distance_to_corresp_k)
+
+            axs[i,j].hist(
+                nonefiltered, bins=len(set(nonefiltered)), density=True, log=True, 
+                color='black', alpha=0.6, histtype="stepfilled")
+
+            axs[i,j].axvline(x=0, color='red', linestyle='dotted', linewidth=2)
+            axs[i,j].set_yticks(np.logspace(-6, 0, 7))
+            axs[i,j].set_title("{} | Matched Ratio = {:.2f}".format(k, matched_ratio), fontsize=15)
+            axs[i,j].tick_params(axis='both', which='major', labelsize=15) 
+
+
+            label_being_plotted += 1
+        
+    plt.tight_layout()
+    plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format("subplot"), format='pdf')
+    plt.savefig(savedir+"/dist_vs_corresp_{}.svg".format("subplot"), format='svg')
+
+    sns.reset_orig
     plt.close("all")
     plt.style.use('default')
 
@@ -353,7 +580,6 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
             else:  
                 count_unmatched_boundaries[MAP1[i]] += 1
 
-    
         else:
             boundary_distances[MAP1[i]].append(0)
 
@@ -364,7 +590,7 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
     n_cols = math.floor(math.sqrt(num_labels))
     n_rows = math.ceil(num_labels / n_cols)
 
-    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[25, 16])
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[16, 12])
     label_being_plotted = 0
     
     for i in range(n_rows):
@@ -391,14 +617,14 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
             #     sns.ecdfplot(lendist, ax=axs[i, j], color="red")
 
             axs[i, j].set_xticks(np.arange(0, (max_distance+1)*resolution, step=5*resolution))
-            axs[i, j].tick_params(axis='both', labelsize=10)
+            axs[i, j].tick_params(axis='both', labelsize=11)
             axs[i, j].tick_params(axis='x', rotation=90)
             axs[i, j].set_yticks(np.arange(0, 1.1, step=0.2))
-            axs[i, j].set_xlabel('bp', fontsize=12)
-            axs[i, j].set_ylabel('Proportion',fontsize=12)
+            axs[i, j].set_xlabel('bp', fontsize=13)
+            axs[i, j].set_ylabel('ratio matched',fontsize=13)
             
             
-            axs[i, j].set_title(k, fontsize=13)
+            axs[i, j].set_title(k, fontsize=14)
 
             label_being_plotted += 1
             
@@ -427,7 +653,7 @@ def label_granularity(loci_1, loci_2, savedir):
         plt.plot(cr, ar, c="yellowgreen")
         plt.title(
             c + str(" | Real/Perfect AUC = {:.2f}".format(p_to_r_auc)), 
-            fontsize=11)
+            fontsize=13)
 
         plt.fill_between(cr, ar, color="yellowgreen", alpha=0.4)
         plt.fill_between(cr, perfect_agr, ar, color="palevioletred", alpha=0.4)
@@ -545,13 +771,13 @@ def label_boundary(loci_1, loci_2, savedir, match_definition="BM", max_distance=
         #     sns.ecdfplot(lendist, color="red")
 
         plt.xticks(np.arange(0, (max_distance+1)*resolution, step=5*resolution))
-        plt.tick_params(axis='both', labelsize=7)
+        plt.tick_params(axis='both', labelsize=12)
         plt.tick_params(axis='x', rotation=90)
         plt.yticks(np.arange(0, 1.1, step=0.2))
-        plt.xlabel('bp', fontsize=7)
-        plt.ylabel('Proportion',fontsize=7)
+        plt.xlabel('bp', fontsize=12)
+        plt.ylabel('Ratio Overlap',fontsize=12)
         
-        plt.title(k, fontsize=7)
+        plt.title(k, fontsize=12)
             
         plt.tight_layout()
         plt.savefig(savedir+"/len_bound_{}.pdf".format(k), format='pdf')
@@ -599,17 +825,21 @@ def get_all_ct(replicate_1_dir, replicate_2_dir, savedir):
 
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
-    ct_binned_posterior_heatmap(loci1, loci2, savedir)
+    ct_binned_posterior_heatmap(loci1.copy(), loci2.copy(), savedir)
 
-    ct_confus(loci1, loci2, savedir)
+    ct_confus(loci1.copy(), loci2.copy(), savedir)
 
-    ct_lable_calib(loci1, loci2, savedir)
+    ct_lable_calib(loci1.copy(), loci2.copy(), savedir)
 
-    ct_granul(loci1, loci2, savedir)
+    ct_granul(loci1.copy(), loci2.copy(), savedir)
 
-    ct_boundar(loci1, loci2, savedir, match_definition="BM", max_distance=50)
+    ct_boundar(loci1.copy(), loci2.copy(), savedir, match_definition="BM", max_distance=50)
 
-def gather_labels(original_ct_dir, savedir):
+    overall_boundary(loci1.copy(), loci2.copy(), savedir, match_definition="BM")
+
+    distance_vs_overlap(loci1.copy(), loci2.copy(), savedir, match_definition="BM")
+
+def gather_labels(original_ct_dir, savedir, contour=True):
     
     print("loading mnemonics...")
     if os.path.exists(
@@ -660,28 +890,28 @@ def gather_labels(original_ct_dir, savedir):
                 os.system(
                     "cp {} {}".format(savedir+"/prog/"+f, savedir+"/labels/"+k)
                     )
-        
-        for f in os.listdir(savedir+"/contours_OvrWind/"):
-            if "reprod_lines_"+k in f:
-                os.system(
-                    "cp {} {}".format(savedir+"/contours_OvrWind/"+f, savedir+"/labels/"+k)
-                    )
-            
-            if "reprod_contour_"+k in f:
-                os.system(
-                    "cp {} {}".format(savedir+"/contours_OvrWind/"+f, savedir+"/labels/"+k)
-                    )
+        if contour:
+            for f in os.listdir(savedir+"/contours_OvrWind/"):
+                if "reprod_lines_"+k in f:
+                    os.system(
+                        "cp {} {}".format(savedir+"/contours_OvrWind/"+f, savedir+"/labels/"+k)
+                        )
                 
-        for f in os.listdir(savedir+"/contours_ReprThresWind/"):
-            if "reprod_lines_"+k in f:
-                os.system(
-                    "cp {} {}".format(savedir+"/contours_ReprThresWind/"+f, savedir+"/labels/"+k)
-                    )
-                
-            if "reprod_contour_"+k in f:
-                os.system(
-                    "cp {} {}".format(savedir+"/contours_ReprThresWind/"+f, savedir+"/labels/"+k)
-                    )
+                if "reprod_contour_"+k in f:
+                    os.system(
+                        "cp {} {}".format(savedir+"/contours_OvrWind/"+f, savedir+"/labels/"+k)
+                        )
+                    
+            for f in os.listdir(savedir+"/contours_ReprThresWind/"):
+                if "reprod_lines_"+k in f:
+                    os.system(
+                        "cp {} {}".format(savedir+"/contours_ReprThresWind/"+f, savedir+"/labels/"+k)
+                        )
+                    
+                if "reprod_contour_"+k in f:
+                    os.system(
+                        "cp {} {}".format(savedir+"/contours_ReprThresWind/"+f, savedir+"/labels/"+k)
+                        )
                 
 def get_all_bioval(replicate_1_dir, replicate_2_dir, savedir, genecode_dir, rnaseq=None):
     loci1, loci2 = load_data(
@@ -729,9 +959,9 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
         perlabel_rec[k] = v[0]/ (v[0]+v[1])
 
     with open(savedir+"/general_reproducibility_score.txt", "w") as scorefile:
-        scorefile.write("general reprod score = ".format(general_rep_score))
+        scorefile.write("general reprod score = {}\n".format(general_rep_score))
         for k, v in perlabel_rec.items():
-             scorefile.write("{} reprod score = {}".format(k, str(v)))
+             scorefile.write("{} reprod score = {}\n".format(k, str(v)))
 
     bool_reprod_report = single_point_repr(
         loci1, loci2, ovr_threshold=0.75, window_bp=1000, posterior=True, reproducibility_threshold=0.8)
@@ -749,16 +979,16 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
         perlabel_rec[k] = v[0]/ (v[0]+v[1])
 
     with open(savedir+"/general_reproducibility_score_POSTERIOR.txt", "w") as scorefile:
-        scorefile.write("general reprod score = ".format(general_rep_score))
+        scorefile.write("general reprod score = {}\n".format(general_rep_score))
         for k, v in perlabel_rec.items():
-             scorefile.write("{} reprod score = {}".format(k, str(v)))
+             scorefile.write("{} reprod score = {}\n".format(k, str(v)))
 
     MAP_NMI =  NMI_from_matrix(joint_overlap_prob(loci1, loci2, w=0, symmetric=True))
     POST_NMI = NMI_from_matrix(joint_prob_with_binned_posterior(loci1, loci2, n_bins=200, conditional=False, stratified=True))
 
     with open(savedir+"/NMI.txt", "w") as scorefile:
-        scorefile.write("NMI with MAP = {}".format(MAP_NMI))
-        scorefile.write("NMI with binned posterior of R1 (n_bins=200) = {}".format(POST_NMI))
+        scorefile.write("NMI with MAP = {}\n".format(MAP_NMI))
+        scorefile.write("NMI with binned posterior of R1 (n_bins=200) = {}\n".format(POST_NMI))
 
 def get_contour(replicate_1_dir, replicate_2_dir, savedir):
     loci1, loci2 = load_data(
@@ -784,57 +1014,154 @@ def get_contour(replicate_1_dir, replicate_2_dir, savedir):
     # ReprThresWind_delta_NMI_contour(
     #     loci1, loci2, savedir, w_range=[0, 3000, 500], t_range=[50, 100, 15], posterior=True, matching="static")
 
+def after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None):
+    loci1, loci2 = load_data(
+        replicate_1_dir+"/parsed_posterior.csv",
+        replicate_2_dir+"/parsed_posterior.csv",
+        subset=True, logit_transform=True)
+    
+    savedir = savedir+"/after_SAGAconf"
+    if os.path.exists(savedir) == False:
+        os.mkdir(savedir)
+
+    loci_1, loci_2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+
+    isrep1 = is_repr_posterior(
+        loci_1, loci_2, ovr_threshold=0.75, window_bp=1000, reproducibility_threshold=0.75, matching="static")
+
+    isrep2 = is_repr_posterior(
+        loci_2, loci_1, ovr_threshold=0.75, window_bp=1000, reproducibility_threshold=0.75, matching="static")
+
+    # at this point we can get the intersection of isrep1 and isrep2 as the positions that are considered 
+    is_rep_intersec = []
+
+    for i in range(len(isrep1)):
+        if isrep1[i]==isrep2[i]==1:
+            is_rep_intersec.append(True)
+        else:
+            is_rep_intersec.append(False)
+
+    calibrated_loci1 = keep_reproducible_annotations(loci_1, is_rep_intersec) 
+    calibrated_loci2 = keep_reproducible_annotations(loci_2, is_rep_intersec)
+
+    # ========================================================================================================= #
+    try:
+        MAP_NMI =  NMI_from_matrix(
+            joint_overlap_prob(calibrated_loci1, calibrated_loci2, w=0, symmetric=True))
+        POST_NMI = NMI_from_matrix(
+            joint_prob_with_binned_posterior(calibrated_loci1, calibrated_loci2, n_bins=200, conditional=False, stratified=True))
+
+        with open(savedir+"/NMI.txt", "w") as scorefile:
+            scorefile.write("NMI with MAP = {}\n".format(MAP_NMI))
+            scorefile.write("NMI with binned posterior of R1 (n_bins=200) = {}\n".format(POST_NMI))
+    except:
+        print("FAILED. EXCEPTION...")
+    
+    try:
+        ct_granul(calibrated_loci1, calibrated_loci2, savedir)
+    except:
+        print("FAILED. EXCEPTION...")
+
+    try:
+        conditional = overlap_matrix(calibrated_loci1, calibrated_loci2, type="conditional")
+        with open("{}/raw_conditional_overlap_ratio.txt".format(savedir), "w") as cf:
+            for i in conditional.index:
+                cf.write("{} : {}\n".format(i, np.max(np.array(conditional.loc[i, :]))))
+    except:
+        print("FAILED. EXCEPTION...")
+
+    try:
+        gene_coords = load_gene_coords(genecode_dir)
+        if rnaseq != None:
+            trans_data = load_transcription_data(rnaseq, gene_coords)
+
+            # trans_data = trans_data.drop(trans_data[trans_data.TPM==0].index).reset_index(drop=True)
+
+            posterior_transcription_enrichment(calibrated_loci1, trans_data, savedir+"/trans_post_enr")
+            posterior_transcription_correlation(calibrated_loci1, trans_data, savedir=savedir+"/trans_post_correl")
+
+            posterior_transcription_enrichment(calibrated_loci1, trans_data, TSS=True, savedir=savedir+"/trans_post_enr_aroundTSS")
+
+        overal_TSS_enrichment(loci1, savedir+"/tss_enr")
+    except:
+        print("FAILED. EXCEPTION...")
+
 def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, contour=True):
     print(replicate_1_dir, replicate_2_dir, genecode_dir, savedir)
     if os.path.exists(savedir)==False:
         os.mkdir(savedir)
 
-    try:
-        get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
-    except:
-        pass
-    
-    try:
-        get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
-    except:
-        pass
+    # try:
+    get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
+    # except:
+    #     pass
     
 
-    try:
-        get_all_bioval(
-            replicate_1_dir, replicate_2_dir, 
-            savedir,
-            genecode_dir=genecode_dir, 
-            rnaseq=rnaseq)
-    except:
-        pass
+    # try:
+    get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
+    # except:
+    #     pass
+    
+
+    # try:
+    get_all_bioval(
+        replicate_1_dir, replicate_2_dir, 
+        savedir,
+        genecode_dir=genecode_dir, 
+        rnaseq=rnaseq)
+    # except:
+    #     pass
    
-    try:
-        get_overalls(replicate_1_dir, replicate_2_dir, savedir)
-    except:
-        pass
+    # try:
+    get_overalls(replicate_1_dir, replicate_2_dir, savedir)
+    # except:
+    #     pass
    
     if contour:
-        try:
-            get_contour(replicate_1_dir, replicate_2_dir, savedir)
-        except:
-            pass
+        # try:
+        get_contour(replicate_1_dir, replicate_2_dir, savedir)
+        # except:
+        #     pass
         
+    # try:
+    gather_labels(replicate_1_dir, savedir, contour=contour)
+    # except:
+    #     pass
+
     try:
-        gather_labels(replicate_1_dir, savedir)
+        after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None)
     except:
         pass
     
+def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
+    loci1, loci2 = load_data(
+        replicate_1_dir+"/parsed_posterior.csv",
+        replicate_2_dir+"/parsed_posterior.csv",
+        subset=True, logit_transform=False)
+
+    loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
 if __name__=="__main__":  
+
+    # test_new_functions(
+    #     replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
+    #     replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
+    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+    #     savedir="tests/cedar_runs/chmm/GM12878_R1/")
+    
+    # test_new_functions(
+    #     replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
+    #     replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
+    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+    #     savedir="tests/cedar_runs/segway/GM12878_R1/")
+    # exit()
+
     GET_ALL(
         replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
         replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
         genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
         rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
-        savedir="tests/cedar_runs/chmm/GM12878_R1/")
-
-    exit()
+        savedir="tests/cedar_runs/chmm/GM12878_R1/", contour=False)
 
     GET_ALL(
         replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
@@ -842,6 +1169,8 @@ if __name__=="__main__":
         genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
         rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
         savedir="tests/cedar_runs/segway/GM12878_R1/")
+
+    exit()
     
     GET_ALL(
         replicate_1_dir="tests/cedar_runs/chmm/GM12878_R2/", 

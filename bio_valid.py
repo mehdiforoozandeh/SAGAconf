@@ -397,7 +397,7 @@ def posterior_transcription_correlation(loci, trans_data, savedir):
 
     plt.bar(P_correlations.keys(), P_correlations.values(), color="black", alpha=0.5)
     plt.ylabel("Pearson's Correlation")
-    plt.xticks(rotation=45, fontsize=8)
+    plt.xticks(rotation=45, fontsize=10)
     plt.tight_layout()
 
     plt.savefig(savedir+"/poster_trans_pearson_correl.pdf", format='pdf')
@@ -411,15 +411,18 @@ def posterior_transcription_correlation(loci, trans_data, savedir):
 
     plt.bar(S_correlations.keys(), S_correlations.values(), color="black", alpha=0.5)
     plt.ylabel("Spearman's Correlation")
-    plt.xticks(rotation=45, fontsize=8)
+    plt.xticks(rotation=45, fontsize=10)
     plt.tight_layout()
-
+    
     plt.savefig(savedir+"/poster_trans_spearman_correl.pdf", format='pdf')
     plt.savefig(savedir+"/poster_trans_spearman_correl.svg", format='svg')
     
     sns.reset_orig
     plt.close("all")
     plt.style.use('default')
+
+    with open(savedir+"/poster_trans_spearman_correl.txt", "w") as f:
+        f.write(str(S_correlations))
 
 def transcription_around_TSS(TSSdir, trans_data):
     TSSs = load_TSS(TSSdir)

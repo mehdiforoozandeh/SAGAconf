@@ -1380,6 +1380,9 @@ class TSS_enrichment(object):
         plt.close("all")
         plt.style.use('default')
 
+        with open(self.savedir+"/poster_tss_spearman_correl.txt", "w") as f:
+            f.write(str(S_correlations))
+
 def best_match_overlap(loci1, loci2):
     enr_ovr = overlap_matrix(loci1, loci2, type="IoU")
     best_match_overlap = {i:enr_ovr.loc[i, :].max() for i in enr_ovr.index}
