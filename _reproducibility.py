@@ -1242,7 +1242,7 @@ class TSS_enrichment(object):
             plt.savefig('{}/rep_vs_TSS_enrichment.svg'.format(self.savedir), format='svg')
             plt.clf()
     
-    def tss_enr_vs_posterior_rank(self, num_bins=100):
+    def tss_enr_vs_posterior_rank(self, num_bins=30):
         enr_dict = {}       
         # print(self.overlaps)
 

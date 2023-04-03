@@ -404,7 +404,6 @@ def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
         good_matches = sorted_k_vector.index[0]
         per_label_matches[k] = good_matches
     #========================================================================================#
-
     distance_to_corresp = []
     for i in range(len(MAP1)):
         k = MAP1[i]
@@ -501,6 +500,159 @@ def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
             axs[i,j].set_title("{} | Matched Ratio = {:.2f}".format(k, matched_ratio), fontsize=15)
             axs[i,j].tick_params(axis='both', which='major', labelsize=15) 
 
+
+            label_being_plotted += 1
+        
+    plt.tight_layout()
+    plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format("subplot"), format='pdf')
+    plt.savefig(savedir+"/dist_vs_corresp_{}.svg".format("subplot"), format='svg')
+
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+
+def distance_vs_overlap_2(loci_1, loci_2, savedir, match_definition="BM"):
+    if os.path.exists(savedir+"/Dist_vs_Corresp_2") == False:
+        os.mkdir(savedir+"/Dist_vs_Corresp_2")
+    savedir = savedir+"/Dist_vs_Corresp_2"
+
+    resolution = int(loci_1.iloc[0, 2] - loci_1.iloc[0, 1])
+
+    max_distance = int(10000/resolution)
+    num_labels = loci_1.shape[1]-3
+
+    MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
+    coverage1 = {k:len(MAP1.loc[MAP1==k])/len(loci_1) for k in loci_1.columns[3:]}
+
+    MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
+    coverage2 = {k:len(MAP2.loc[MAP2==k])/len(loci_2) for k in loci_2.columns[3:]}
+
+    MAP1 = list(MAP1)
+    MAP2 = list(MAP2)
+
+    confmat = IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False)
+    
+    # define matches
+    per_label_matches = {}
+    for k in list(loci_1.columns[3:]):
+        sorted_k_vector = confmat.loc[k,:].sort_values(ascending=False)
+
+        good_matches = sorted_k_vector.index[0]
+        per_label_matches[k] = good_matches
+    #========================================================================================#
+    
+    """
+    for each position i
+        for each distance d
+            what fraction of i+d is the corresponding label?
+    """
+
+    distance_to_corresp = {}
+    for d in range(max_distance):
+        distance_to_corresp[d] = [0, 0] #[num_correspond, num_all]
+
+    for i in range(len(loci_1)):
+        for d in range(max_distance):
+            if i+d < len(loci_1):
+                distance_to_corresp[d][1] +=1
+
+                if MAP2[i+d] == per_label_matches[MAP1[i]]:
+                    distance_to_corresp[d][0] +=1
+
+            elif i-d >= 0:
+                distance_to_corresp[d][1] +=1
+
+                if MAP2[i-d] == per_label_matches[MAP1[i]]:
+                    distance_to_corresp[d][0] +=1
+    
+    for d in distance_to_corresp.keys():
+        distance_to_corresp[d] =  float(distance_to_corresp[d][0] / distance_to_corresp[d][1])
+
+    xaxis = [x*resolution for x in distance_to_corresp.keys()]
+    plt.plot(xaxis, distance_to_corresp.values(), color="black")
+    plt.fill_between(xaxis, distance_to_corresp.values(), color="black", alpha=0.4)
+    plt.xlabel("Distance (bp)")
+    plt.ylabel("Probability of overlap with corresponding label")
+    plt.title("Correspondence vs. Distance - Overall")
+
+    plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format("overall"), format='pdf')
+    plt.savefig(savedir+"/dist_vs_corresp_{}.svg".format("overall"), format='svg')
+
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+    
+    #========================================================================================#
+    
+    distance_to_corresp = {}
+    for k in loci_1.columns[3:]:
+        distance_to_corresp[k] = {}
+        for d in range(max_distance):
+            distance_to_corresp[k][d] = [0, coverage1[k]*len(loci_1)] #[num_correspond, num_all]
+
+    for i in range(len(loci_1)):
+        for d in range(max_distance):
+            if i+d < len(loci_1):
+                distance_to_corresp[MAP1[i]][d][1] +=1
+                if MAP2[i+d] == per_label_matches[MAP1[i]]:
+                    distance_to_corresp[MAP1[i]][d][0] += 1
+
+            if i-d >= 0:
+                distance_to_corresp[MAP1[i]][d][1] +=1
+                if MAP2[i-d] == per_label_matches[MAP1[i]]:
+                    distance_to_corresp[MAP1[i]][d][0] += 1
+    
+    for k in distance_to_corresp.keys():
+        for d in distance_to_corresp[k].keys():
+            distance_to_corresp[k][d] =  float(distance_to_corresp[k][d][0] / distance_to_corresp[k][d][1])
+
+    distance_to_corresp = pd.DataFrame(distance_to_corresp)
+    distance_to_corresp.index = [x*resolution for x in distance_to_corresp.index]
+
+    print(distance_to_corresp)
+
+    for k in distance_to_corresp.columns:
+        plt.plot(
+            distance_to_corresp.index, distance_to_corresp.loc[:, k], color="black")
+
+        plt.fill_between(
+            distance_to_corresp.index, distance_to_corresp.loc[:, k], color="black", alpha=0.4)
+
+        plt.axhline(y=coverage2[per_label_matches[k]], color='red', linestyle='--', linewidth=2)
+
+        plt.xlabel("Distance (bp)")
+        plt.ylabel("Probability of overlap with corresponding label")
+        plt.title("Correspondence vs. Distance - {}".format(k))
+
+        plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format(k), format='pdf')
+        plt.savefig(savedir+"/dist_vs_corresp_{}.svg".format(k), format='svg')
+
+        sns.reset_orig
+        plt.close("all")
+        plt.style.use('default')
+
+    #========================================================================================#
+    num_labels = loci_1.shape[1]-3
+    n_cols = math.floor(math.sqrt(num_labels))
+    n_rows = math.ceil(num_labels / n_cols)
+
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[25, 16])
+    label_being_plotted = 0
+    
+    for i in range(n_rows):
+        for j in range(n_cols):
+            k = loci_1.columns[3:][label_being_plotted]
+            axs[i,j].plot(
+                distance_to_corresp.index, distance_to_corresp.loc[:, k], color="black")
+
+            axs[i,j].fill_between(
+                distance_to_corresp.index, distance_to_corresp.loc[:, k], color="black", alpha=0.4)
+            
+            axs[i,j].axhline(y=coverage2[per_label_matches[k]], color='red', linestyle='--', linewidth=1.5)
+
+            axs[i,j].set_xlabel("Distance (bp)")
+            axs[i,j].set_ylabel("Probability of overlap with corresponding label")
+            axs[i,j].set_title(k)
 
             label_being_plotted += 1
         
@@ -1141,20 +1293,22 @@ def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
 
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
+    distance_vs_overlap_2(loci1, loci2, savedir, match_definition="BM")
+
 if __name__=="__main__":  
 
-    # test_new_functions(
-    #     replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
-    #     replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
-    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
-    #     savedir="tests/cedar_runs/chmm/GM12878_R1/")
+    test_new_functions(
+        replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
+        replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
+        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+        savedir="tests/cedar_runs/chmm/GM12878_R1/")
     
-    # test_new_functions(
-    #     replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
-    #     replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
-    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
-    #     savedir="tests/cedar_runs/segway/GM12878_R1/")
-    # exit()
+    test_new_functions(
+        replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
+        replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
+        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+        savedir="tests/cedar_runs/segway/GM12878_R1/")
+    exit()
 
     GET_ALL(
         replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 

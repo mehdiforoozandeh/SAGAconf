@@ -1,6 +1,6 @@
 .DS_Store
-bigWigToBedGraph
 __pycache__/
+files/
 legacy/
 tests/
 biovalidation/gencode.v29.primary_assembly.annotation_UCSC_names.gtf
