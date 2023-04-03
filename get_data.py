@@ -233,6 +233,49 @@ def search_encode(cell, download_dir, target_assembly="GRCh38", check_availabili
             download_response = requests.get(download_link, allow_redirects=True)
             open(save_dir_name, 'wb').write(download_response.content)
 
+def get_data_from_csv(csvfile ="data_summary.csv", downloaddir="files/", bw2bg=True):
+    summary = pd.read_csv(csvfile).drop("Unnamed: 0", axis=1)
+    summary.Celltype = summary.Celltype.astype(str)
+
+    if os.path.exists(downloaddir) == False:
+        os.mkdir(downloaddir)
+
+    listofct = list(set(summary.Celltype.astype(str)))
+    for i in range(summary.shape[0]):
+        ct = summary["Celltype"][i]
+        assay = summary["experiment"][i]
+        fileslist = summary["files"][i].split(", ")
+        print(ct, assay)
+        
+        if os.path.exists("""{}/{}/""".format(downloaddir, ct)) == False:
+            os.mkdir("""{}/{}/""".format(downloaddir, ct))
+
+        if os.path.exists("""{}/{}/{}/""".format(downloaddir, ct, assay)) == False:
+            os.mkdir("""{}/{}/{}/""".format(downloaddir, ct, assay))
+
+        #bam##########################################################################################
+        save_dir_name = """{}/{}/{}/{}""".format(downloaddir, ct, assay, fileslist[0]+".bam")
+        download_link = """https://www.encodeproject.org/files/{}/@@download/{}.{}""".format(
+            fileslist[0], fileslist[0], ".bam"
+        )
+        # download_link = """https://www.encodeproject.org/files/{}""".format(
+        #     fileslist[0]
+        # )
+        download_response = requests.get(download_link, allow_redirects=True)
+        open(save_dir_name, 'wb').write(download_response.content)
+
+        #bigWig#######################################################################################
+        save_dir_name = """{}/{}/{}/{}""".format(downloaddir, ct, assay, fileslist[1]+".bigWig")
+        download_link = """https://www.encodeproject.org/files/{}/@@download/{}.{}""".format(
+            fileslist[1], fileslist[1], ".bigWig"
+        )
+        # download_link = """https://www.encodeproject.org/files/{}""".format(
+        #     fileslist[1]
+        # )
+        download_response = requests.get(download_link, allow_redirects=True)
+        open(save_dir_name, 'wb').write(download_response.content)
+        if 
+
 
 def create_trackname_assay_file(download_dir):
     tracknames = []
@@ -255,6 +298,9 @@ def create_trackname_assay_file(download_dir):
             tna.write('{}\t{}\n'.format(tracknames[i][1], tracknames[i][0]))
 
 if __name__ == "__main__":
+    get_data_from_csv(csvfile ="data_summary.csv")
+
+    exit()
     CellType_list = np.array(
         ['K562', 'MCF-7', 'GM12878', 'HeLa-S3', 'CD14-positive monocyte'])
     for ct in CellType_list:
