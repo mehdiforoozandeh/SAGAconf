@@ -274,7 +274,7 @@ def get_data_from_csv(csvfile ="data_summary.csv", downloaddir="files/", bw2bg=T
         # )
         download_response = requests.get(download_link, allow_redirects=True)
         open(save_dir_name, 'wb').write(download_response.content)
-        if 
+        # if 
 
 
 def create_trackname_assay_file(download_dir):
