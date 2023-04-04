@@ -256,7 +256,7 @@ def get_data_from_csv(csvfile ="data_summary.csv", downloaddir="files/", bw2bg=T
         #bam##########################################################################################
         save_dir_name = """{}/{}/{}/{}""".format(downloaddir, ct, assay, fileslist[0]+".bam")
         download_link = """https://www.encodeproject.org/files/{}/@@download/{}.{}""".format(
-            fileslist[0], fileslist[0], ".bam"
+            fileslist[0], fileslist[0], "bam"
         )
         # download_link = """https://www.encodeproject.org/files/{}""".format(
         #     fileslist[0]
@@ -267,7 +267,7 @@ def get_data_from_csv(csvfile ="data_summary.csv", downloaddir="files/", bw2bg=T
         #bigWig#######################################################################################
         save_dir_name = """{}/{}/{}/{}""".format(downloaddir, ct, assay, fileslist[1]+".bigWig")
         download_link = """https://www.encodeproject.org/files/{}/@@download/{}.{}""".format(
-            fileslist[1], fileslist[1], ".bigWig"
+            fileslist[1], fileslist[1], "bigWig"
         )
         # download_link = """https://www.encodeproject.org/files/{}""".format(
         #     fileslist[1]
