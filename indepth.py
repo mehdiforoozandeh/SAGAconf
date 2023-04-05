@@ -601,21 +601,22 @@ def compare_ct_alltracks(ctdir, savedir):
     
     for i in range(n_rows):
         for j in range(n_cols):
-            k = list_of_tracks[label_being_plotted]
-            bgfiles = ["{}/{}/{}".format(ctdir, k, x) for x in os.listdir(ctdir+"/"+k) if ".bedGraph" in x]
+            if label_being_plotted < num_ct:
+                k = list_of_tracks[label_being_plotted]
+                bgfiles = ["{}/{}/{}".format(ctdir, k, x) for x in os.listdir(ctdir+"/"+k) if ".bedGraph" in x]
 
-            # Create a density heatmap with the pcolormesh() function
-            df1 = read_bedGraph_in_bp(bgfiles[0], subset="chr21")
-            df2 = read_bedGraph_in_bp(bgfiles[1], subset="chr21")
-            heatmap, xedges, yedges = compare_tracks_heatmap(df1, df2)
+                # Create a density heatmap with the pcolormesh() function
+                df1 = read_bedGraph_in_bp(bgfiles[0], subset="chr21")
+                df2 = read_bedGraph_in_bp(bgfiles[1], subset="chr21")
+                heatmap, xedges, yedges = compare_tracks_heatmap(df1, df2)
 
-            im = axs[i, j].pcolormesh(xedges, yedges, heatmap.T, cmap=plt.cm.get_cmap('inferno'))
-            axs[i, j].set_title(k)
+                im = axs[i, j].pcolormesh(xedges, yedges, heatmap.T, cmap=plt.cm.get_cmap('inferno'))
+                axs[i, j].set_title(k)
 
-            # Add a colorbar to the heatmap
-            fig.colorbar(im, ax=axs[i, j])
-            
-            label_being_plotted += 1
+                # Add a colorbar to the heatmap
+                fig.colorbar(im, ax=axs[i, j])
+                
+                label_being_plotted += 1
             
     plt.tight_layout()
     plt.savefig(savedir+"/2dhistogram.pdf", format='pdf')
@@ -630,18 +631,19 @@ def compare_ct_alltracks(ctdir, savedir):
     
     for i in range(n_rows):
         for j in range(n_cols):
-            k = list_of_tracks[label_being_plotted]
-            bgfiles = ["{}/{}/{}".format(ctdir, k, x) for x in os.listdir(ctdir+"/"+k) if ".bedGraph" in x]
+            if label_being_plotted < num_ct:
+                k = list_of_tracks[label_being_plotted]
+                bgfiles = ["{}/{}/{}".format(ctdir, k, x) for x in os.listdir(ctdir+"/"+k) if ".bedGraph" in x]
 
-            df1 = read_bedGraph_in_bp(bgfiles[0], subset="chr21")
-            df2 = read_bedGraph_in_bp(bgfiles[1], subset="chr21")
-            sorted_data_1, normalized_1,  sorted_data_2, normalized_2 = compare_tracks_cdf(df1, df2)
+                df1 = read_bedGraph_in_bp(bgfiles[0], subset="chr21")
+                df2 = read_bedGraph_in_bp(bgfiles[1], subset="chr21")
+                sorted_data_1, normalized_1,  sorted_data_2, normalized_2 = compare_tracks_cdf(df1, df2)
 
-            axs[i, j].plot(sorted_data_1, normalized_1)
-            axs[i, j].plot(sorted_data_2, normalized_2)
-            axs[i, j].set_title(k)
+                axs[i, j].plot(sorted_data_1, normalized_1)
+                axs[i, j].plot(sorted_data_2, normalized_2)
+                axs[i, j].set_title(k)
 
-            label_being_plotted += 1
+                label_being_plotted += 1
             
     plt.tight_layout()
     plt.savefig(savedir+"/cdf.pdf", format='pdf')
