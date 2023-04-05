@@ -763,6 +763,7 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
             
             
             axs[i, j].plot(list(matched_hist[1][:-1]*resolution), list(cdf), color="black", label="distance from boundary")
+            axs[i, j].fill_between(list(matched_hist[1][:-1]*resolution), list(cdf), color="black", alpha=0.35)
             
             # lendist = get_ecdf_for_label(loci_1, k, max=(max_distance+1)*resolution)
             # if len(lendist)>0:
@@ -1243,47 +1244,47 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     if os.path.exists(savedir)==False:
         os.mkdir(savedir)
 
-    try:
-        get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
-    except:
-        pass
+    # try:
+    get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
+# except:
+#     pass
+
+
+# try:
+    get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
+# except:
+#     pass
+
+
+# try:
+    get_all_bioval(
+        replicate_1_dir, replicate_2_dir, 
+        savedir,
+        genecode_dir=genecode_dir, 
+        rnaseq=rnaseq)
+# except:
+#     pass
+
+# try:
+    get_overalls(replicate_1_dir, replicate_2_dir, savedir)
+# except:
+#     pass
+
+# if contour:
+#     try:
+#         get_contour(replicate_1_dir, replicate_2_dir, savedir)
+#     except:
+#         pass
     
+# try:
+    gather_labels(replicate_1_dir, savedir, contour=contour)
+# except:
+#     pass
 
-    try:
-        get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
-    except:
-        pass
-    
-
-    try:
-        get_all_bioval(
-            replicate_1_dir, replicate_2_dir, 
-            savedir,
-            genecode_dir=genecode_dir, 
-            rnaseq=rnaseq)
-    except:
-        pass
-   
-    try:
-        get_overalls(replicate_1_dir, replicate_2_dir, savedir)
-    except:
-        pass
-   
-    if contour:
-        try:
-            get_contour(replicate_1_dir, replicate_2_dir, savedir)
-        except:
-            pass
-        
-    try:
-        gather_labels(replicate_1_dir, savedir, contour=contour)
-    except:
-        pass
-
-    try:
-        after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None)
-    except:
-        pass
+# try:
+    after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None)
+# except:
+    #     pass
     
 def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
     loci1, loci2 = load_data(
@@ -1297,19 +1298,35 @@ def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
 
 if __name__=="__main__":  
 
-    test_new_functions(
-        replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
-        replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
-        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
-        savedir="tests/cedar_runs/chmm/GM12878_R1/")
     
-    test_new_functions(
-        replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
-        replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
-        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
-        savedir="tests/cedar_runs/segway/GM12878_R1/")
-    exit()
 
+    # test_new_functions(
+    #     replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
+    #     replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
+    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+    #     savedir="tests/cedar_runs/chmm/GM12878_R1/")
+    
+    # test_new_functions(
+    #     replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
+    #     replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
+    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+    #     savedir="tests/cedar_runs/segway/GM12878_R1/")
+    # exit()
+    GET_ALL(
+        replicate_1_dir="tests/cedar_runs/segway_concats/GM12878_concat_rep1/", 
+        replicate_2_dir="tests/cedar_runs/segway_concats/GM12878_concat_rep2/", 
+        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+        # rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
+        savedir="tests/cedar_runs/segway_concats/GM12878_concat_rep1/", contour=False)
+
+    GET_ALL(
+        replicate_1_dir="tests/cedar_runs/segway_concats/K562_concat_rep1/", 
+        replicate_2_dir="tests/cedar_runs/segway_concats/K562_concat_rep2/", 
+        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+        # rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
+        savedir="tests/cedar_runs/segway_concats/K562_concat_rep1/", contour=False)
+
+    exit()
     GET_ALL(
         replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
         replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 

@@ -497,7 +497,170 @@ def run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons):
         
         # exit()
 
+def read_bedGraph_in_bp(bgfile, subset="chr21"):
+    arr = pd.read_csv(bgfile, sep="\t", header=None)
+    arr.columns = ["chr", "start", "end", "signal"]
+    arr = arr.loc[arr["chr"]==subset, :]
+    arr = np.array(arr)
+
+    new_arr = []
+    for i in range(len(arr)):
+        _chr = arr[i][0]
+        start = arr[i][1]
+        end = arr[i][2]
+        val = arr[i][3]
+        
+        while start < end:
+            new_arr.append([str(_chr), int(start), int(start+1), float(val)])
+            start +=1
+    
+    arr = np.array(new_arr)
+    arr = pd.DataFrame(arr, columns=["chr", "start", "end", "signal"])
+    arr['chr'] = arr["chr"].astype(str)
+    arr['start'] = arr["start"].astype(int)
+    arr['end'] = arr["end"].astype(int)
+    arr['signal'] = arr["signal"].astype(float)
+    return arr
+
+def compare_tracks_heatmap(df1, df2):
+    intersect = pd.merge(
+        df1, 
+        df2, 
+        how='inner', 
+        on=['chr', 'start', 'end'])
+
+    df1 = [intersect.chr, intersect.start, intersect.end]
+    df2 = [intersect.chr, intersect.start, intersect.end]
+
+    for c in intersect.columns:
+        if c[-1] == 'x':
+            df1.append(intersect[c])
+        elif c[-1] == 'y':
+            df2.append(intersect[c])
+
+    df1 = pd.concat(df1, axis=1)
+    df1.columns = [c.replace("_x", "") for c in df1.columns]
+    
+    df2 = pd.concat(df2, axis=1)
+    df2.columns = [c.replace("_y", "") for c in df2.columns]
+
+    heatmap, xedges, yedges = np.histogram2d(df1.iloc[:,3], df2.iloc[:,3], bins=100)  
+    heatmap = heatmap / len(df1)
+
+    for i in range(heatmap.shape[0]):
+        if np.sum(heatmap[i,:]) != 0:
+            heatmap[i,:] = heatmap[i,:] / np.sum(heatmap[i,:])
+    
+    return heatmap, xedges, yedges
+
+def compare_tracks_cdf(df1, df2):
+    intersect = pd.merge(
+        df1, 
+        df2, 
+        how='inner', 
+        on=['chr', 'start', 'end'])
+
+    df1 = [intersect.chr, intersect.start, intersect.end]
+    df2 = [intersect.chr, intersect.start, intersect.end]
+
+    for c in intersect.columns:
+        if c[-1] == 'x':
+            df1.append(intersect[c])
+        elif c[-1] == 'y':
+            df2.append(intersect[c])
+
+    df1 = pd.concat(df1, axis=1)
+    df1.columns = [c.replace("_x", "") for c in df1.columns]
+    
+    df2 = pd.concat(df2, axis=1)
+    df2.columns = [c.replace("_y", "") for c in df2.columns]
+
+    df1 = df1.iloc[:, 3]
+    df2 = df2.iloc[:, 3]
+
+    sorted_data_1 = np.sort(df1)
+    cumulative_1 = np.cumsum(sorted_data_1)
+    normalized_1 = cumulative_1 / cumulative_1[-1]
+
+    sorted_data_2 = np.sort(df2)
+    cumulative_2 = np.cumsum(sorted_data_2)
+    normalized_2 = cumulative_2 / cumulative_2[-1]
+
+    return sorted_data_1, normalized_1,  sorted_data_2, normalized_2
+
+def compare_ct_alltracks(ctdir, savedir):
+    list_of_tracks = [name for name in os.listdir(ctdir) if os.path.isdir(os.path.join(ctdir, name))]
+    
+    num_ct = len(list_of_tracks)
+    n_cols = math.floor(math.sqrt(num_ct))
+    n_rows = math.ceil(num_ct / n_cols)
+
+    ##################################################################################################
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[n_cols*3, n_rows*3])
+    label_being_plotted = 0
+    
+    for i in range(n_rows):
+        for j in range(n_cols):
+            k = list_of_tracks[label_being_plotted]
+            bgfiles = ["{}/{}/{}".format(ctdir, k, x) for x in os.listdir(ctdir+"/"+k) if ".bedGraph" in x]
+
+            # Create a density heatmap with the pcolormesh() function
+            df1 = read_bedGraph_in_bp(bgfiles[0], subset="chr21")
+            df2 = read_bedGraph_in_bp(bgfiles[1], subset="chr21")
+            heatmap, xedges, yedges = compare_tracks_heatmap(df1, df2)
+
+            im = axs[i, j].pcolormesh(xedges, yedges, heatmap.T, cmap=plt.cm.get_cmap('inferno'))
+            axs[i, j].set_title(k)
+
+            # Add a colorbar to the heatmap
+            fig.colorbar(im, ax=axs[i, j])
+            
+            label_being_plotted += 1
+            
+    plt.tight_layout()
+    plt.savefig(savedir+"/2dhistogram.pdf", format='pdf')
+    plt.savefig(savedir+"/2dhistogram.svg", format='svg')
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+
+    ##################################################################################################
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[n_cols*3, n_rows*2])
+    label_being_plotted = 0
+    
+    for i in range(n_rows):
+        for j in range(n_cols):
+            k = list_of_tracks[label_being_plotted]
+            bgfiles = ["{}/{}/{}".format(ctdir, k, x) for x in os.listdir(ctdir+"/"+k) if ".bedGraph" in x]
+
+            df1 = read_bedGraph_in_bp(bgfiles[0], subset="chr21")
+            df2 = read_bedGraph_in_bp(bgfiles[1], subset="chr21")
+            sorted_data_1, normalized_1,  sorted_data_2, normalized_2 = compare_tracks_cdf(df1, df2)
+
+            axs[i, j].plot(sorted_data_1, normalized_1)
+            axs[i, j].plot(sorted_data_2, normalized_2)
+            axs[i, j].set_title(k)
+
+            label_being_plotted += 1
+            
+    plt.tight_layout()
+    plt.savefig(savedir+"/cdf.pdf", format='pdf')
+    plt.savefig(savedir+"/cdf.svg", format='svg')
+
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+
+
 if __name__=="__main__":
+
+    compare_ct_alltracks("files/CD14-positive_monocyte/", "files/CD14-positive_monocyte/")
+    compare_ct_alltracks("files/GM12878/", "files/GM12878/")
+    compare_ct_alltracks("files/HeLa-S3/", "files/HeLa-S3/")
+    compare_ct_alltracks("files/K562/", "files/K562/")
+    compare_ct_alltracks("files/MCF-7/", "files/MCF-7/")
+
+    exit()
     run_on_subset = True
     mnemons = True
 
