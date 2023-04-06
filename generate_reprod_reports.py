@@ -240,8 +240,8 @@ def paraminit(maindir="runs032023_subset"):
         
         ######## K562 ########
 
-        {"replicate_1_dir":"chromhmm_runs/K562_rep1_rs5/", 
-        "replicate_2_dir":"chromhmm_runs/K562_rep1_rs27/", 
+        {"replicate_1_dir":"chromhmm_runs/K562_rep2_rs5/", 
+        "replicate_2_dir":"chromhmm_runs/K562_rep2_rs27/", 
         "genecode_dir":"biovalidation/parsed_genecode_data_hg38_release42.csv", 
         "rnaseq":"biovalidation/RNA_seq/K562/preferred_default_ENCFF840UYD.tsv",
         "savedir":"{}/paraminit/chmm/K562/".format(maindir)},
@@ -255,8 +255,8 @@ def paraminit(maindir="runs032023_subset"):
 
         ######## HeLa-S3 ########
 
-        {"replicate_1_dir":"chromhmm_runs/HeLa-S3_rep1_rs5/", 
-        "replicate_2_dir":"chromhmm_runs/HeLa-S3_rep1_rs27/", 
+        {"replicate_1_dir":"chromhmm_runs/HeLa-S3_rep2_rs5/", 
+        "replicate_2_dir":"chromhmm_runs/HeLa-S3_rep2_rs27/", 
         "genecode_dir":"biovalidation/parsed_genecode_data_hg38_release42.csv", 
         "rnaseq":None,
         "savedir":"{}/paraminit/chmm/HeLa-S3/".format(maindir)},
@@ -306,5 +306,11 @@ def m_p(nt=10):
     with mp.Pool(nt) as pool:
         p = pool.map(run, paraminit())
     
+def get_comparative(maindir):
+    """
+    
+    """
+    pass
+
 if __name__=="__main__":
     m_p()

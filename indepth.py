@@ -596,7 +596,7 @@ def compare_ct_alltracks(ctdir, savedir):
     n_rows = math.ceil(num_ct / n_cols)
 
     ##################################################################################################
-    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[n_cols*3, n_rows*3])
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=False, sharey=False, figsize=[n_cols*3, n_rows*3])
     label_being_plotted = 0
     
     for i in range(n_rows):
@@ -626,7 +626,7 @@ def compare_ct_alltracks(ctdir, savedir):
     plt.style.use('default')
 
     ##################################################################################################
-    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[n_cols*3, n_rows*2])
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=False, sharey=False, figsize=[n_cols*3, n_rows*2])
     label_being_plotted = 0
     
     for i in range(n_rows):

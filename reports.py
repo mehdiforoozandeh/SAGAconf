@@ -1239,6 +1239,9 @@ def after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, saved
     except:
         print("FAILED. EXCEPTION...")
 
+def compare_before_after_SAGAconf():
+    pass
+
 def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, contour=True):
     print(replicate_1_dir, replicate_2_dir, genecode_dir, savedir)
     if os.path.exists(savedir)==False:
