@@ -544,7 +544,7 @@ def compare_tracks_heatmap(df1, df2):
     df2 = pd.concat(df2, axis=1)
     df2.columns = [c.replace("_y", "") for c in df2.columns]
 
-    heatmap, xedges, yedges = np.histogram2d(df1.iloc[:,3], df2.iloc[:,3], bins=100)  
+    heatmap, xedges, yedges = np.histogram2d(df1.iloc[:,3], df2.iloc[:,3], bins=50)  
     heatmap = heatmap / len(df1)
 
     for i in range(heatmap.shape[0]):
@@ -596,7 +596,7 @@ def compare_ct_alltracks(ctdir, savedir):
     n_rows = math.ceil(num_ct / n_cols)
 
     ##################################################################################################
-    fig, axs = plt.subplots(n_rows, n_cols, sharex=False, sharey=False, figsize=[n_cols*3, n_rows*3])
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=False, sharey=False, figsize=[n_cols*4, n_rows*4])
     label_being_plotted = 0
     
     for i in range(n_rows):
@@ -652,7 +652,6 @@ def compare_ct_alltracks(ctdir, savedir):
     sns.reset_orig
     plt.close("all")
     plt.style.use('default')
-
 
 if __name__=="__main__":
 
