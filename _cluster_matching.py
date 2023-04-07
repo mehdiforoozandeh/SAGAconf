@@ -13,6 +13,11 @@ from scipy.spatial.distance import pdist
 from sklearn.metrics import cohen_kappa_score
 import math 
 
+def overall_overlap_ratio(loci_1, loci_2, w=0):
+    joint = joint_overlap_prob(loci_1, loci_2, w=w, symmetric=False) * len(loci_1)
+    sum_matched = np.sum([np.max(joint.loc[i, :]) for i in joint.index])
+    return sum_matched / len(loci_1)
+
 def overlap_matrix(loci_1, loci_2, type="IoU"):
     if type == "IoU":
         return IoU_overlap(loci_1, loci_2)

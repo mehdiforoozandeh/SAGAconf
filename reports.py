@@ -4,6 +4,7 @@ from granul import *
 from bio_valid import *
 from overall import *
 from matplotlib.colors import LinearSegmentedColormap
+import ast
 
 
 def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False):
@@ -209,6 +210,12 @@ def ct_confus(loci_1, loci_2, savedir, w=1000):
 
     conditional = overlap_matrix(loci_1, loci_2, type="conditional")
     with open("{}/raw_conditional_overlap_ratio.txt".format(savedir), "w") as cf:
+        overall_overlap = overall_overlap_ratio(loci_1, loci_2, w=0)
+        cf.write("{} : {}\n".format("overall w=0", overall_overlap))
+
+        overall_overlap = overall_overlap_ratio(loci_1, loci_2, w=1000)
+        cf.write("{} : {}\n".format("overall w=1000", overall_overlap))
+
         for i in conditional.index:
             cf.write("{} : {}\n".format(i, np.max(np.array(conditional.loc[i, :]))))
 
@@ -1239,55 +1246,50 @@ def after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, saved
     except:
         print("FAILED. EXCEPTION...")
 
-def compare_before_after_SAGAconf():
-    pass
-
 def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, contour=True):
     print(replicate_1_dir, replicate_2_dir, genecode_dir, savedir)
     if os.path.exists(savedir)==False:
         os.mkdir(savedir)
 
-    # try:
-    get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
-# except:
-#     pass
+    try:
+        get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
+    except:
+        pass
 
+    try:
+        get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
+    except:
+        pass
 
-# try:
-    get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
-# except:
-#     pass
+    try:
+        get_all_bioval(
+            replicate_1_dir, replicate_2_dir, 
+            savedir,
+            genecode_dir=genecode_dir, 
+            rnaseq=rnaseq)
+    except:
+        pass
 
+    try:
+        get_overalls(replicate_1_dir, replicate_2_dir, savedir)
+    except:
+        pass
 
-# try:
-    get_all_bioval(
-        replicate_1_dir, replicate_2_dir, 
-        savedir,
-        genecode_dir=genecode_dir, 
-        rnaseq=rnaseq)
-# except:
-#     pass
+    if contour:
+        try:
+            get_contour(replicate_1_dir, replicate_2_dir, savedir)
+        except:
+            pass
+        
+    try:
+        gather_labels(replicate_1_dir, savedir, contour=contour)
+    except:
+        pass
 
-# try:
-    get_overalls(replicate_1_dir, replicate_2_dir, savedir)
-# except:
-#     pass
-
-# if contour:
-#     try:
-#         get_contour(replicate_1_dir, replicate_2_dir, savedir)
-#     except:
-#         pass
-    
-# try:
-    gather_labels(replicate_1_dir, savedir, contour=contour)
-# except:
-#     pass
-
-# try:
-    after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None)
-# except:
-    #     pass
+    try:
+        after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None)
+    except:
+                pass
     
 def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
     loci1, loci2 = load_data(
@@ -1297,7 +1299,11 @@ def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
 
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
-    distance_vs_overlap_2(loci1, loci2, savedir, match_definition="BM")
+    print(overall_overlap_ratio(loci1, loci2, w=0))
+    print(overall_overlap_ratio(loci1, loci2, w=100))
+    print(overall_overlap_ratio(loci1, loci2, w=200))
+    print(overall_overlap_ratio(loci1, loci2, w=500))
+    print(overall_overlap_ratio(loci1, loci2, w=1000))
 
 if __name__=="__main__":  
 
@@ -1315,21 +1321,7 @@ if __name__=="__main__":
     #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
     #     savedir="tests/cedar_runs/segway/GM12878_R1/")
     # exit()
-    GET_ALL(
-        replicate_1_dir="tests/cedar_runs/segway_concats/GM12878_concat_rep1/", 
-        replicate_2_dir="tests/cedar_runs/segway_concats/GM12878_concat_rep2/", 
-        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
-        # rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
-        savedir="tests/cedar_runs/segway_concats/GM12878_concat_rep1/", contour=False)
 
-    GET_ALL(
-        replicate_1_dir="tests/cedar_runs/segway_concats/K562_concat_rep1/", 
-        replicate_2_dir="tests/cedar_runs/segway_concats/K562_concat_rep2/", 
-        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
-        # rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
-        savedir="tests/cedar_runs/segway_concats/K562_concat_rep1/", contour=False)
-
-    exit()
     GET_ALL(
         replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
         replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
@@ -1337,12 +1329,12 @@ if __name__=="__main__":
         rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
         savedir="tests/cedar_runs/chmm/GM12878_R1/", contour=False)
 
-    GET_ALL(
-        replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
-        replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
-        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
-        rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
-        savedir="tests/cedar_runs/segway/GM12878_R1/")
+    # GET_ALL(
+    #     replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
+    #     replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
+    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+    #     rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
+    #     savedir="tests/cedar_runs/segway/GM12878_R1/", contour=False)
 
     exit()
     

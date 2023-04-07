@@ -1,7 +1,8 @@
 from reports import *
 import multiprocessing as mp
+import logging, ast
 
-def r1vsr2(maindir="runs032023_subset"):
+def r1vsr2(maindir="runs042023_subset"):
     ################### Rep1 vs Rep2 ###################
         ######## GM12878 ########
     
@@ -22,14 +23,14 @@ def r1vsr2(maindir="runs032023_subset"):
         "replicate_2_dir":"chromhmm_runs/GM12878_rep2/", 
         "genecode_dir":"biovalidation/parsed_genecode_data_hg38_release42.csv", 
         "rnaseq":"biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv",
-        "savedir":"{}/r1vsr2/chmm/gm12878/".format(maindir)},
+        "savedir":"{}/r1vsr2/chmm/GM12878/".format(maindir)},
 
     
         {"replicate_1_dir":"segway_runs/GM12878_rep1/", 
         "replicate_2_dir":"segway_runs/GM12878_rep2/", 
         "genecode_dir":"biovalidation/parsed_genecode_data_hg38_release42.csv", 
         "rnaseq":"biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv",
-        "savedir":"{}/r1vsr2/segway/gm12878/".format(maindir)},
+        "savedir":"{}/r1vsr2/segway/GM12878/".format(maindir)},
             
         ######## MCF-7 ########
     
@@ -92,7 +93,7 @@ def r1vsr2(maindir="runs032023_subset"):
         ]
     return listofruns
 
-def concat(maindir="runs032023_subset"):
+def concat(maindir="runs042023_subset"):
     if os.path.exists(maindir)==False:
         os.mkdir(maindir)
     
@@ -178,7 +179,7 @@ def concat(maindir="runs032023_subset"):
     ]
     return listofruns
 
-def paraminit(maindir="runs032023_subset"):
+def paraminit(maindir="runs042023_subset"):
     if os.path.exists(maindir)==False:
         os.mkdir(maindir)
     
@@ -271,7 +272,10 @@ def paraminit(maindir="runs032023_subset"):
     return listofruns
 
 def run(param_dict):
-    print("RUNNING {} VS {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
+    # Set up logging
+    log_path = os.path.join(param_dict["savedir"], 'run.log')
+    logging.basicConfig(filename=log_path, level=logging.DEBUG)
+
     try:
         GET_ALL(
             replicate_1_dir=param_dict["replicate_1_dir"], 
@@ -284,19 +288,44 @@ def run(param_dict):
         with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
             f.write(str(param_dict))
 
-        print("RUNNING {} VS {} is OVER!".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
-        print("\n")
+        logging.info("RUNNING {} VS {} is OVER!".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
         
     except Exception as e:
-        print("failed at running {} VS {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
+        logging.error(
+            "failed at running {} VS {}: {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"], e), 
+            exc_info=True)
 
-        with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
+        with open(param_dict["savedir"]+"/run_info.txt", "a") as f:
             f.write(str(param_dict))
             f.write("\nFAILED!")
             f.write("\n\n" + str(e))
+
+    # print("RUNNING {} VS {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
+    # try:
+    #     GET_ALL(
+    #         replicate_1_dir=param_dict["replicate_1_dir"], 
+    #         replicate_2_dir=param_dict["replicate_2_dir"], 
+    #         genecode_dir=param_dict["genecode_dir"], 
+    #         savedir=param_dict["savedir"], 
+    #         rnaseq=param_dict["rnaseq"], 
+    #         contour=True
+    #     )
+    #     with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
+    #         f.write(str(param_dict))
+
+    #     print("RUNNING {} VS {} is OVER!".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
+    #     print("\n")
+        
+    # except Exception as e:
+    #     print("failed at running {} VS {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
+
+    #     with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
+    #         f.write(str(param_dict))
+    #         f.write("\nFAILED!")
+    #         f.write("\n\n" + str(e))
             
-    finally:
-        pass
+    # finally:
+    #     pass
 
 def m_p(nt=10):
     with mp.Pool(nt) as pool:
@@ -306,11 +335,399 @@ def m_p(nt=10):
     with mp.Pool(nt) as pool:
         p = pool.map(run, paraminit())
     
-def get_comparative(maindir):
-    """
-    
-    """
-    pass
+class COMPARATIVE(object):
+    def __init__(self, maindir):
+        "navigate celltypes, settings, and saga model directories"
+        "filter the ones with faulty output"
+        self.navigate_results = {}
 
+        for s in [x for x in os.listdir(maindir) if os.path.isdir("{}/{}".format(maindir, x))]:
+            self.navigate_results[s] = {}
+
+            for m in [xx for xx in os.listdir("{}/{}".format(maindir, s)) if os.path.isdir("{}/{}/{}".format(maindir, s, xx))]:
+                self.navigate_results[s][m] = {}
+
+                for c in [xxx for xxx in os.listdir("{}/{}/{}".format(maindir, s, m)) if os.path.isdir("{}/{}/{}/{}".format(maindir, s, m, xxx))]:
+
+                    self.navigate_results[s][m][c] = ["{}/{}/{}/{}".format(maindir, s, m, c)]
+            
+        # print(self.navigate_results)
+        self.maindir = maindir
+        self.var_setting_dict = {
+            "concat":"S2: Diff. data, Shared train", "r1vsr2": "S1: Diff. data, Separate train", 
+            "paraminit":"S3: Same data, Separate train"}
+        
+        self.var_setting_dict_inverse = {v:k for k, v in self.var_setting_dict.items()}
+
+    # self.navigate_results[s][m][c] = [dir, [NMI_map, NMI_post], [ovr_ratio_w0, ovr_ratio_w1000],  {auc/mauc}]
+    def compare_NMI(self):
+        for s in self.navigate_results.keys():
+            for m in self.navigate_results[s]:
+                for c in self.navigate_results[s][m]:
+                    
+                    if os.path.exists(self.navigate_results[s][m][c][0] + "/NMI.txt"):
+                        dir_NMI_file = self.navigate_results[s][m][c][0] + "/NMI.txt"
+
+                        with open(dir_NMI_file, "r") as nmif:
+                            nmilines = nmif.readlines()
+                        
+                        nmilines[0] = float(nmilines[0].split("=")[1][:7])
+                        nmilines[1] = float(nmilines[1].split("=")[2][:7])
+
+                        self.navigate_results[s][m][c].append(nmilines)
+
+                    else:
+                        self.navigate_results[s][m][c].append([None, None])
+
+    def compare_ratio_raw_overlap(self):
+        for s in self.navigate_results.keys():
+            for m in self.navigate_results[s]:
+                for c in self.navigate_results[s][m]:
+                    
+                    if os.path.exists(self.navigate_results[s][m][c][0] + "/raw_conditional_overlap_ratio.txt"):
+                        dir_ovr_file = self.navigate_results[s][m][c][0] + "/raw_conditional_overlap_ratio.txt"
+
+                        with open(dir_ovr_file, "r") as ovrf:
+                            ovrlines = ovrf.readlines()
+                            ovrlines[0] = float(ovrlines[0].split(":")[1][:7])
+                            ovrlines[1] = float(ovrlines[1].split(":")[1][:7])
+
+                        self.navigate_results[s][m][c].append([ovrlines[0], ovrlines[1]])
+
+                    else:
+                        self.navigate_results[s][m][c].append([None, None])
+
+    def compare_AUC_mAUC(self):
+        for s in self.navigate_results.keys():
+            for m in self.navigate_results[s]:
+                for c in self.navigate_results[s][m]:
+                    
+                    if os.path.exists(self.navigate_results[s][m][c][0] + "/AUC_mAUC.txt"):
+                        dir_auc_file = self.navigate_results[s][m][c][0] + "/AUC_mAUC.txt"
+                        auc_mauc = ast.literal_eval(open(dir_auc_file, "r").read())
+                        self.navigate_results[s][m][c].append(auc_mauc)
+
+                    else:
+                        self.navigate_results[s][m][c].append({})
+
+    def visualize_NMI(self):
+        chmm = {}
+        segway = {}
+
+        for s in self.navigate_results.keys():
+            for m in self.navigate_results[s].keys():
+                for c in self.navigate_results[s][m].keys():
+
+                    if m == "segway":
+                        if s not in segway.keys():
+                            segway[s] = {}
+
+                        segway[s][c] = self.navigate_results[s][m][c][1]
+
+                    elif m == "chmm":
+                        if s not in chmm.keys():
+                            chmm[s] = {}
+                        
+                        chmm[s][c] = self.navigate_results[s][m][c][1]
+
+        df_chmm = []
+        for s in chmm.keys():
+            for c in chmm[s].keys():
+                df_chmm.append([c, self.var_setting_dict[s], chmm[s][c][0], chmm[s][c][1]])
+
+        df_segway = []
+        for s in segway.keys():
+            for c in segway[s].keys():
+                df_segway.append([c, self.var_setting_dict[s], segway[s][c][0], segway[s][c][1]])
+
+        df_chmm = pd.DataFrame(
+            df_chmm, columns = ["CellType", "Setting", "NMI_MAP", "NMI_post"]).sort_values(by=["Setting", "CellType"])
+        df_segway = pd.DataFrame(
+            df_segway, columns = ["CellType", "Setting", "NMI_MAP", "NMI_post"]).sort_values(by=["Setting", "CellType"])
+
+        sns.set_theme(style="whitegrid")
+        sns.reset_orig
+        plt.style.use('default')
+
+        sns.set(rc={'figure.figsize':(10,8)})
+        sns.set_palette(sns.color_palette("deep"))
+
+        sns.barplot(x="CellType", y="NMI_MAP", hue="Setting", data=df_chmm)
+        plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
+        plt.ylabel("NMI")
+        plt.yticks(np.arange(0, 1.1, step=0.1))
+        plt.tight_layout()
+
+        plt.savefig(self.maindir+"/NMI_Comparison_ChormHMM.pdf", format="pdf")
+        plt.savefig(self.maindir+"/NMI_Comparison_ChormHMM.svg", format="svg")
+        plt.clf()
+
+        sns.set_theme(style="whitegrid")
+        sns.reset_orig
+        plt.style.use('default')
+
+        sns.set(rc={'figure.figsize':(10,8)})
+        sns.set_palette(sns.color_palette("deep"))
+
+        sns.barplot(x="CellType", y="NMI_MAP", hue="Setting", data=df_segway)
+        plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
+        plt.ylabel("NMI")
+        plt.yticks(np.arange(0, 1.1, step=0.1))
+        plt.tight_layout()
+        plt.savefig(self.maindir+"/NMI_Comparison_Segway.pdf", format="pdf")
+        plt.savefig(self.maindir+"/NMI_Comparison_Segway.svg", format="svg")
+        plt.clf()
+
+        sns.set_theme(style="whitegrid")
+        sns.reset_orig
+        plt.style.use('default')
+
+        sns.set(rc={'figure.figsize':(10,8)})
+        sns.set_palette(sns.color_palette("deep"))
+
+        sns.barplot(x="CellType", y="NMI_post", hue="Setting", data=df_chmm)
+        plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
+        plt.ylabel("pNMI")
+        plt.yticks(np.arange(0, 1.1, step=0.1))
+        plt.tight_layout()
+
+        plt.savefig(self.maindir+"/pNMI_Comparison_ChormHMM.pdf", format="pdf")
+        plt.savefig(self.maindir+"/pNMI_Comparison_ChormHMM.svg", format="svg")
+        plt.clf()
+
+        sns.set_theme(style="whitegrid")
+        sns.reset_orig
+        plt.style.use('default')
+
+        sns.set(rc={'figure.figsize':(10,8)})
+        sns.set_palette(sns.color_palette("deep"))
+
+        sns.barplot(x="CellType", y="NMI_post", hue="Setting", data=df_segway)
+        plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
+        plt.ylabel("pNMI")
+        plt.yticks(np.arange(0, 1.1, step=0.1))
+        plt.tight_layout()
+        plt.savefig(self.maindir+"/pNMI_Comparison_Segway.pdf", format="pdf")
+        plt.savefig(self.maindir+"/pNMI_Comparison_Segway.svg", format="svg")
+        plt.clf()
+    
+    def visualize_ovr(self):
+        chmm = {}
+        segway = {}
+
+        for s in self.navigate_results.keys():
+            for m in self.navigate_results[s].keys():
+                for c in self.navigate_results[s][m].keys():
+
+                    if m == "segway":
+                        if s not in segway.keys():
+                            segway[s] = {}
+
+                        segway[s][c] = self.navigate_results[s][m][c][2]
+
+                    elif m == "chmm":
+                        if s not in chmm.keys():
+                            chmm[s] = {}
+                        
+                        chmm[s][c] = self.navigate_results[s][m][c][2]
+
+        df_chmm = []
+        for s in chmm.keys():
+            for c in chmm[s].keys():
+                df_chmm.append([c, self.var_setting_dict[s], chmm[s][c][0], chmm[s][c][1]])
+
+        df_segway = []
+        for s in segway.keys():
+            for c in segway[s].keys():
+                df_segway.append([c, self.var_setting_dict[s], segway[s][c][0], segway[s][c][1]])
+
+        df_chmm = pd.DataFrame(
+            df_chmm, columns = ["CellType", "Setting", "ovr_ratio_w0", "ovr_ratio_w1000"]).sort_values(by=["Setting", "CellType"])
+        df_segway = pd.DataFrame(
+            df_segway, columns = ["CellType", "Setting", "ovr_ratio_w0", "ovr_ratio_w1000"]).sort_values(by=["Setting", "CellType"])
+
+        sns.set_theme(style="whitegrid")
+        sns.reset_orig
+        plt.style.use('default')
+
+        sns.set(rc={'figure.figsize':(10,8)})
+        sns.set_palette(sns.color_palette("deep"))
+
+        sns.barplot(x="CellType", y="ovr_ratio_w0", hue="Setting", data=df_chmm)
+        plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
+        plt.ylabel("Overlap Ratio | w=0")
+        plt.yticks(np.arange(0, 1.1, step=0.1))
+        plt.tight_layout()
+
+        plt.savefig(self.maindir+"/ovrw0_Comparison_ChormHMM.pdf", format="pdf")
+        plt.savefig(self.maindir+"/ovrw0_Comparison_ChormHMM.svg", format="svg")
+        plt.clf()
+
+        ######################################################################################################
+        sns.set_theme(style="whitegrid")
+        sns.reset_orig
+        plt.style.use('default')
+
+        sns.set(rc={'figure.figsize':(10,8)})
+        sns.set_palette(sns.color_palette("deep"))
+
+        sns.barplot(x="CellType", y="ovr_ratio_w0", hue="Setting", data=df_segway)
+        plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
+        plt.ylabel("Overlap Ratio | w=0")
+        plt.yticks(np.arange(0, 1.1, step=0.1))
+        plt.tight_layout()
+        plt.savefig(self.maindir+"/ovrw0_Comparison_Segway.pdf", format="pdf")
+        plt.savefig(self.maindir+"/ovrw0_Comparison_Segway.svg", format="svg")
+        plt.clf()
+        ######################################################################################################
+        sns.set_theme(style="whitegrid")
+        sns.reset_orig
+        plt.style.use('default')
+
+        sns.set(rc={'figure.figsize':(10,8)})
+        sns.set_palette(sns.color_palette("deep"))
+
+        sns.barplot(x="CellType", y="ovr_ratio_w1000", hue="Setting", data=df_chmm)
+        plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
+        plt.ylabel("Overlap Ratio | w=1000bp")
+        plt.yticks(np.arange(0, 1.1, step=0.1))
+        plt.tight_layout()
+
+        plt.savefig(self.maindir+"/ovrw1000_Comparison_ChormHMM.pdf", format="pdf")
+        plt.savefig(self.maindir+"/ovrw1000_Comparison_ChormHMM.svg", format="svg")
+        plt.clf()
+        ######################################################################################################
+        sns.set_theme(style="whitegrid")
+        sns.reset_orig
+        plt.style.use('default')
+
+        sns.set(rc={'figure.figsize':(10,8)})
+        sns.set_palette(sns.color_palette("deep"))
+
+        sns.barplot(x="CellType", y="ovr_ratio_w1000", hue="Setting", data=df_segway)
+        plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
+        plt.ylabel("Overlap Ratio | w=1000bp")
+        plt.yticks(np.arange(0, 1.1, step=0.1))
+        plt.tight_layout()
+        plt.savefig(self.maindir+"/ovrw1000_Comparison_Segway.pdf", format="pdf")
+        plt.savefig(self.maindir+"/ovrw1000_Comparison_Segway.svg", format="svg")
+        plt.clf()
+
+    def visualize_AUC_mAUC(self):
+        chmm = {}
+        segway = {}
+
+        for s in self.navigate_results.keys():
+            for m in self.navigate_results[s].keys():
+                for c in self.navigate_results[s][m].keys():
+
+                    if m == "segway":
+                        if s not in segway.keys():
+                            segway[s] = {}
+
+                        smc_dict = self.navigate_results[s][m][c][3]
+                        smc_list = []
+                        for k in smc_dict.keys():
+                            new_k = "_".join(k.split("_")[1:])
+                            smc_list.append([new_k, smc_dict[k]])
+
+                        segway[s][c] = smc_list
+
+                    elif m == "chmm":
+                        if s not in chmm.keys():
+                            chmm[s] = {}
+                        
+                        smc_dict = self.navigate_results[s][m][c][3]
+                        smc_list = []
+                        for k in smc_dict.keys():
+                            new_k = "_".join(k.split("_")[1:])
+                            smc_list.append([new_k, smc_dict[k]])
+
+                        chmm[s][c] = smc_list
+
+        df_chmm = []
+        for s in chmm.keys():
+            for c in chmm[s].keys():
+                for l in chmm[s][c]:
+                    df_chmm.append([c, self.var_setting_dict[s], l[0], l[1]])
+        
+        df_chmm = pd.DataFrame(
+            df_chmm, columns = ["CellType", "Setting", "Genomic_function", "AUC/maxAUC"]).sort_values(
+                by=["Setting", "CellType"])
+
+        df_segway = []
+        for s in segway.keys():
+            for c in segway[s].keys():
+                for l in segway[s][c]:
+                    df_segway.append([c, self.var_setting_dict[s], l[0], l[1]])
+        
+        df_segway = pd.DataFrame(
+            df_segway, columns = ["CellType", "Setting", "Genomic_function", "AUC/maxAUC"]).sort_values(
+                by=["Setting", "CellType"])
+
+
+        ####################################################################################################################################
+        for s in np.unique(df_chmm["Setting"]):
+            fig, ax = plt.subplots(figsize=(10, 8))
+            sns.set_palette(sns.color_palette("deep"))
+            sns.set_theme(style="whitegrid")
+            
+            sns.stripplot(x='Genomic_function', y="AUC/maxAUC", hue="CellType", data=df_chmm.loc[df_chmm["Setting"]==s,:], ax=ax, size=10)
+            # sns.boxplot(x='Genomic_function', y="AUC/maxAUC", hue="CellType", data=df_chmm.loc[df_chmm["Setting"]==s,:], ax=ax)
+            n_categories = len(ax.get_xticks())
+
+            for i in range(n_categories):
+                ax.axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
+
+            ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
+
+            # Show the plot
+            plt.yticks(np.arange(0.5, 1.1, step=0.1))
+            plt.tight_layout()
+            plt.savefig("{}/{}/{}/AUC_mAUC_stripplot.pdf".format(self.maindir, self.var_setting_dict_inverse[s], "chmm"), format="pdf")
+            plt.savefig("{}/{}/{}/AUC_mAUC_stripplot.svg".format(self.maindir, self.var_setting_dict_inverse[s], "chmm"), format="svg")
+
+            plt.clf()
+            sns.reset_orig
+            plt.style.use('default')
+
+
+        ####################################################################################################################################
+        for s in np.unique(df_segway["Setting"]):
+            fig, ax = plt.subplots(figsize=(10, 8))
+            sns.set_palette(sns.color_palette("deep"))
+            sns.set_theme(style="whitegrid")
+            
+            sns.stripplot(x='Genomic_function', y="AUC/maxAUC", hue="CellType", data=df_segway.loc[df_segway["Setting"]==s,:], ax=ax, size=10)
+            # sns.boxplot(x='Genomic_function', y="AUC/maxAUC", hue="CellType", data=df_chmm.loc[df_chmm["Setting"]==s,:], ax=ax)
+            n_categories = len(ax.get_xticks())
+
+            for i in range(n_categories):
+                ax.axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
+
+            ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
+
+            # Show the plot
+            plt.yticks(np.arange(0.5, 1.1, step=0.1))
+            plt.tight_layout()
+            plt.savefig("{}/{}/{}/AUC_mAUC_stripplot.pdf".format(self.maindir, self.var_setting_dict_inverse[s], "segway"), format="pdf")
+            plt.savefig("{}/{}/{}/AUC_mAUC_stripplot.svg".format(self.maindir, self.var_setting_dict_inverse[s], "segway"), format="svg")
+
+            plt.clf()
+            sns.reset_orig
+            plt.style.use('default')
+        ####################################################################################################################################
+
+    def ALL(self):
+        self.compare_NMI()
+        self.compare_ratio_raw_overlap()
+        self.compare_AUC_mAUC()
+        self.visualize_NMI()
+        self.visualize_ovr()
+        self.visualize_AUC_mAUC()
+        
 if __name__=="__main__":
     m_p()
+    comp = COMPARATIVE("runs042023_subset")
+    comp.ALL()
+    
