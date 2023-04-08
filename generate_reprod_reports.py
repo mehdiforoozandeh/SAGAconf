@@ -272,10 +272,8 @@ def paraminit(maindir="runs042023_subset"):
     return listofruns
 
 def run(param_dict):
-    # Set up logging
-    log_path = os.path.join(param_dict["savedir"], 'run.log')
-    logging.basicConfig(filename=log_path, level=logging.DEBUG)
 
+    print("RUNNING {} VS {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
     try:
         GET_ALL(
             replicate_1_dir=param_dict["replicate_1_dir"], 
@@ -288,44 +286,19 @@ def run(param_dict):
         with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
             f.write(str(param_dict))
 
-        logging.info("RUNNING {} VS {} is OVER!".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
+        print("RUNNING {} VS {} is OVER!".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
+        print("\n")
         
     except Exception as e:
-        logging.error(
-            "failed at running {} VS {}: {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"], e), 
-            exc_info=True)
+        print("failed at running {} VS {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
 
-        with open(param_dict["savedir"]+"/run_info.txt", "a") as f:
+        with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
             f.write(str(param_dict))
             f.write("\nFAILED!")
             f.write("\n\n" + str(e))
-
-    # print("RUNNING {} VS {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
-    # try:
-    #     GET_ALL(
-    #         replicate_1_dir=param_dict["replicate_1_dir"], 
-    #         replicate_2_dir=param_dict["replicate_2_dir"], 
-    #         genecode_dir=param_dict["genecode_dir"], 
-    #         savedir=param_dict["savedir"], 
-    #         rnaseq=param_dict["rnaseq"], 
-    #         contour=True
-    #     )
-    #     with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
-    #         f.write(str(param_dict))
-
-    #     print("RUNNING {} VS {} is OVER!".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
-    #     print("\n")
-        
-    # except Exception as e:
-    #     print("failed at running {} VS {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
-
-    #     with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
-    #         f.write(str(param_dict))
-    #         f.write("\nFAILED!")
-    #         f.write("\n\n" + str(e))
             
-    # finally:
-    #     pass
+    finally:
+        pass
 
 def m_p(nt=10):
     with mp.Pool(nt) as pool:
