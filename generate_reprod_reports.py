@@ -196,8 +196,8 @@ def paraminit(maindir="runs042023_subset"):
     listofruns = [
         ######## GM12878 ########
 
-        {"replicate_1_dir":"chromhmm_runs/GM12878_rep1_rs5/", 
-        "replicate_2_dir":"chromhmm_runs/GM12878_rep1_rs27/", 
+        {"replicate_1_dir":"chromhmm_runs/GM12878_rep2_rs5/", 
+        "replicate_2_dir":"chromhmm_runs/GM12878_rep2_rs27/", 
         "genecode_dir":"biovalidation/parsed_genecode_data_hg38_release42.csv", 
         "rnaseq":"biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv",
         "savedir":"{}/paraminit/chmm/GM12878/".format(maindir)},
@@ -622,7 +622,8 @@ class COMPARATIVE(object):
         for s in chmm.keys():
             for c in chmm[s].keys():
                 for l in chmm[s][c]:
-                    df_chmm.append([c, self.var_setting_dict[s], l[0], l[1]])
+                    if l[1] > 0:
+                        df_chmm.append([c, self.var_setting_dict[s], l[0], l[1]])
         
         df_chmm = pd.DataFrame(
             df_chmm, columns = ["CellType", "Setting", "Genomic_function", "AUC/maxAUC"]).sort_values(
@@ -632,7 +633,8 @@ class COMPARATIVE(object):
         for s in segway.keys():
             for c in segway[s].keys():
                 for l in segway[s][c]:
-                    df_segway.append([c, self.var_setting_dict[s], l[0], l[1]])
+                    if l[1] > 0:
+                        df_segway.append([c, self.var_setting_dict[s], l[0], l[1]])
         
         df_segway = pd.DataFrame(
             df_segway, columns = ["CellType", "Setting", "Genomic_function", "AUC/maxAUC"]).sort_values(
@@ -643,7 +645,7 @@ class COMPARATIVE(object):
         for s in np.unique(df_chmm["Setting"]):
             fig, ax = plt.subplots(figsize=(10, 8))
             sns.set_palette(sns.color_palette("deep"))
-            sns.set_theme(style="whitegrid")
+            # sns.set_theme(style="whitegrid")
             
             sns.stripplot(x='Genomic_function', y="AUC/maxAUC", hue="CellType", data=df_chmm.loc[df_chmm["Setting"]==s,:], ax=ax, size=10)
             # sns.boxplot(x='Genomic_function', y="AUC/maxAUC", hue="CellType", data=df_chmm.loc[df_chmm["Setting"]==s,:], ax=ax)
@@ -655,7 +657,7 @@ class COMPARATIVE(object):
             ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
 
             # Show the plot
-            plt.yticks(np.arange(0.5, 1.1, step=0.1))
+            plt.yticks(np.arange(0.5, 1.05, step=0.1))
             plt.tight_layout()
             plt.savefig("{}/{}/{}/AUC_mAUC_stripplot.pdf".format(self.maindir, self.var_setting_dict_inverse[s], "chmm"), format="pdf")
             plt.savefig("{}/{}/{}/AUC_mAUC_stripplot.svg".format(self.maindir, self.var_setting_dict_inverse[s], "chmm"), format="svg")
@@ -669,7 +671,7 @@ class COMPARATIVE(object):
         for s in np.unique(df_segway["Setting"]):
             fig, ax = plt.subplots(figsize=(10, 8))
             sns.set_palette(sns.color_palette("deep"))
-            sns.set_theme(style="whitegrid")
+            # sns.set_theme(style="whitegrid")
             
             sns.stripplot(x='Genomic_function', y="AUC/maxAUC", hue="CellType", data=df_segway.loc[df_segway["Setting"]==s,:], ax=ax, size=10)
             # sns.boxplot(x='Genomic_function', y="AUC/maxAUC", hue="CellType", data=df_chmm.loc[df_chmm["Setting"]==s,:], ax=ax)
@@ -681,7 +683,7 @@ class COMPARATIVE(object):
             ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
 
             # Show the plot
-            plt.yticks(np.arange(0.5, 1.1, step=0.1))
+            plt.yticks(np.arange(0.5, 1.05, step=0.1))
             plt.tight_layout()
             plt.savefig("{}/{}/{}/AUC_mAUC_stripplot.pdf".format(self.maindir, self.var_setting_dict_inverse[s], "segway"), format="pdf")
             plt.savefig("{}/{}/{}/AUC_mAUC_stripplot.svg".format(self.maindir, self.var_setting_dict_inverse[s], "segway"), format="svg")
