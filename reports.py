@@ -14,9 +14,9 @@ def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=Fals
         posterior2_dir)
 
     if subset:
-        # pass
-        loci_1 = loci_1.loc[loci_1["chr"]=="chr21"].reset_index(drop=True)
-        loci_2 = loci_2.loc[loci_2["chr"]=="chr21"].reset_index(drop=True)
+        pass
+        # loci_1 = loci_1.loc[loci_1["chr"]=="chr21"].reset_index(drop=True)
+        # loci_2 = loci_2.loc[loci_2["chr"]=="chr21"].reset_index(drop=True)
 
     print("the shapes of the input matrices are: {}, {}".format(str(loci_1.shape), str(loci_2.shape)))
 
@@ -1333,11 +1333,11 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     except:
         pass
 
-    if contour:
-        try:
-            get_contour(replicate_1_dir, replicate_2_dir, savedir)
-        except:
-            pass
+    # if contour:
+    #     try:
+    #         get_contour(replicate_1_dir, replicate_2_dir, savedir)
+    #     except:
+    #         pass
         
     try:
         gather_labels(replicate_1_dir, savedir, contour=contour)
