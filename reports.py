@@ -14,9 +14,9 @@ def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=Fals
         posterior2_dir)
 
     if subset:
-        pass
-        # loci_1 = loci_1.loc[loci_1["chr"]=="chr21"].reset_index(drop=True)
-        # loci_2 = loci_2.loc[loci_2["chr"]=="chr21"].reset_index(drop=True)
+        # pass
+        loci_1 = loci_1.loc[loci_1["chr"]=="chr21"].reset_index(drop=True)
+        loci_2 = loci_2.loc[loci_2["chr"]=="chr21"].reset_index(drop=True)
 
     print("the shapes of the input matrices are: {}, {}".format(str(loci_1.shape), str(loci_2.shape)))
 
@@ -1246,6 +1246,64 @@ def after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, saved
     except:
         print("FAILED. EXCEPTION...")
 
+def before_after_saga(savedir):
+    auc_before = ast.literal_eval(open(savedir+"/AUC_mAUC.txt", "r").read())
+    auc_after = ast.literal_eval(open(savedir+"/after_SAGAconf/AUC_mAUC.txt", "r").read())
+
+    auc_df = []
+    for k in auc_before.keys():
+        auc_df.append([k, "Before_SAGAconf", auc_before[k]])
+        auc_df.append([k, "After_SAGAconf", auc_after[k]])
+
+    auc_df = pd.DataFrame(auc_df, columns = ["Chromatin State", "b/a", "AUC/mAUC"])
+    sns.set_theme(style="whitegrid")
+    sns.reset_orig
+    plt.style.use('default')
+
+    sns.set(rc={'figure.figsize':(10,8)})
+    sns.set_palette([(0, 0, 0, 0.7), (0, 0.7, 0.3, 0.7)])
+
+    sns.barplot(x="Chromatin State", y="AUC/mAUC", hue="b/a", data=auc_df, alpha=0.7)
+    plt.axhline(y=0.5, linestyle='--', color='red', alpha=0.7)
+    plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
+    plt.ylabel("AUC/mAUC")
+    plt.xticks(rotation=45)
+    plt.yticks(np.arange(0, 1.1, step=0.1))
+    plt.tight_layout()
+
+    plt.savefig(savedir+"/AUC_before_after_SAGAconf.pdf", format="pdf")
+    plt.savefig(savedir+"/AUC_before_after_SAGAconf.svg", format="svg")
+    plt.clf()
+
+    sns.set_theme(style="whitegrid")
+    sns.reset_orig
+    plt.style.use('default')
+
+    #########################################################################################################
+    before_nmi = savedir + "/NMI.txt"
+    after_nmi =  savedir + "/after_SAGAconf/NMI.txt"
+
+    with open(before_nmi, "r") as nmif:
+        nmilines = nmif.readlines()
+        before = float(nmilines[0].split("=")[1][:7])
+    
+    with open(after_nmi, "r") as nmif:
+        nmilines = nmif.readlines()
+        after = float(nmilines[0].split("=")[1][:7])
+    
+    plt.bar(["Before SAGAconf", "After SAGAconf"], [before, after], color=[(0, 0, 0, 0.7), (0, 0.7, 0.3, 0.7)], alpha=0.7)
+    plt.ylabel("NMI")
+    plt.yticks(np.arange(0, 1.1, step=0.1))
+    plt.tight_layout()
+
+    plt.savefig(savedir+"/NMI_before_after_SAGAconf.pdf", format="pdf")
+    plt.savefig(savedir+"/NMI_before_after_SAGAconf.svg", format="svg")
+    plt.clf()
+
+    sns.set_theme(style="whitegrid")
+    sns.reset_orig
+    plt.style.use('default')
+
 def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, contour=True):
     print(replicate_1_dir, replicate_2_dir, genecode_dir, savedir)
     if os.path.exists(savedir)==False:
@@ -1275,11 +1333,11 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     except:
         pass
 
-    # if contour:
-    #     try:
-    #         get_contour(replicate_1_dir, replicate_2_dir, savedir)
-    #     except:
-    #         pass
+    if contour:
+        try:
+            get_contour(replicate_1_dir, replicate_2_dir, savedir)
+        except:
+            pass
         
     try:
         gather_labels(replicate_1_dir, savedir, contour=contour)
@@ -1288,9 +1346,10 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
 
     try:
         after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None)
+        before_after_saga(savedir)
     except:
-                pass
-    
+        pass
+        
 def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
     loci1, loci2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
@@ -1299,28 +1358,24 @@ def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
 
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
-    print(overall_overlap_ratio(loci1, loci2, w=0))
-    print(overall_overlap_ratio(loci1, loci2, w=100))
-    print(overall_overlap_ratio(loci1, loci2, w=200))
-    print(overall_overlap_ratio(loci1, loci2, w=500))
-    print(overall_overlap_ratio(loci1, loci2, w=1000))
+    after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None)
+    before_after_saga(savedir)
 
 if __name__=="__main__":  
 
-    
+    GET_ALL(
+        replicate_1_dir="tests/cedar_runs/segway_concat/GM12878_concat_rep1/", 
+        replicate_2_dir="tests/cedar_runs/segway_concat/GM12878_concat_rep2/", 
+        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+        rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
+        savedir="tests/cedar_runs/segway_concat/GM12878_concat_rep1/", contour=False)
 
-    # test_new_functions(
-    #     replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
-    #     replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
-    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
-    #     savedir="tests/cedar_runs/chmm/GM12878_R1/")
-    
-    # test_new_functions(
-    #     replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
-    #     replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
-    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
-    #     savedir="tests/cedar_runs/segway/GM12878_R1/")
-    # exit()
+    GET_ALL(
+        replicate_1_dir="tests/cedar_runs/segway_concat/K562_concat_rep1/", 
+        replicate_2_dir="tests/cedar_runs/segway_concat/K562_concat_rep2/", 
+        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+        rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
+        savedir="tests/cedar_runs/segway_concat/K562_concat_rep1/", contour=False)
 
     GET_ALL(
         replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
@@ -1329,12 +1384,12 @@ if __name__=="__main__":
         rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
         savedir="tests/cedar_runs/chmm/GM12878_R1/", contour=False)
 
-    # GET_ALL(
-    #     replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
-    #     replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
-    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
-    #     rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
-    #     savedir="tests/cedar_runs/segway/GM12878_R1/", contour=False)
+    GET_ALL(
+        replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
+        replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
+        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+        rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
+        savedir="tests/cedar_runs/segway/GM12878_R1/", contour=False)
 
     exit()
     

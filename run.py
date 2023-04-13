@@ -691,9 +691,9 @@ def intersect_parsed_posteriors(parsed_df_dir_1, parsed_df_dir_2):
         parsed_df_dir_1 = parsed_df_dir_1.replace("parsed_posterior.csv", "parsed_posterior_rep1.csv")
         parsed_df_dir_2 = parsed_df_dir_2.replace("parsed_posterior.csv", "parsed_posterior_rep2.csv")
     
-    df1 = pd.read_csv(parsed_df_dir_1, error_bad_lines=False).drop("Unnamed: 0", axis=1)
+    df1 = pd.read_csv(parsed_df_dir_1, on_bad_lines="skip", encoding_errors="ignore").drop("Unnamed: 0", axis=1)
     df1.iloc[:, 3:] = df1.iloc[:, 3:].astype("float16")
-    df2 = pd.read_csv(parsed_df_dir_2, error_bad_lines=False).drop("Unnamed: 0", axis=1)
+    df2 = pd.read_csv(parsed_df_dir_2, on_bad_lines="skip", encoding_errors="ignore").drop("Unnamed: 0", axis=1)
     df2.iloc[:, 3:] = df2.iloc[:, 3:].astype("float16")
 
     if df1.columns[3] == "posterior0" and df2.columns[3] == "posterior1":

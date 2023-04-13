@@ -302,9 +302,9 @@ def run(param_dict):
 
 def m_p(nt=10):
     with mp.Pool(nt) as pool:
-        c = pool.map(run, concat())
-    with mp.Pool(nt) as pool:
         r_ = pool.map(run, r1vsr2())
+    with mp.Pool(nt) as pool:
+        c = pool.map(run, concat())
     with mp.Pool(nt) as pool:
         p = pool.map(run, paraminit())
     
@@ -331,8 +331,9 @@ class COMPARATIVE(object):
             "paraminit":"S3: Same data, Separate train"}
         
         self.var_setting_dict_inverse = {v:k for k, v in self.var_setting_dict.items()}
+        self.SORT_ORDER = {"Prom": 0, "Prom_fla":1, "Enha":2, "Enha_low":3, "Biva":4, "Tran":5, "Cons":6, "Facu":7, "K9K3":8, "Quie":9}
 
-    # self.navigate_results[s][m][c] = [dir, [NMI_map, NMI_post], [ovr_ratio_w0, ovr_ratio_w1000],  {auc/mauc}]
+    # self.navigate_results[s][m][c] = [dir, [NMI_map, NMI_post], [ovr_ratio_w0, ovr_ratio_w1000],  {auc/mauc}, {ratio_robust}]
     def compare_NMI(self):
         for s in self.navigate_results.keys():
             for m in self.navigate_results[s]:
@@ -379,6 +380,27 @@ class COMPARATIVE(object):
                         dir_auc_file = self.navigate_results[s][m][c][0] + "/AUC_mAUC.txt"
                         auc_mauc = ast.literal_eval(open(dir_auc_file, "r").read())
                         self.navigate_results[s][m][c].append(auc_mauc)
+
+                    else:
+                        self.navigate_results[s][m][c].append({})
+    
+    def compare_ratio_robust(self):
+        for s in self.navigate_results.keys():
+            for m in self.navigate_results[s]:
+                for c in self.navigate_results[s][m]:
+                    
+                    if os.path.exists(self.navigate_results[s][m][c][0] + "/general_reproducibility_score_POSTERIOR.txt"):
+                        dir_robust_file = self.navigate_results[s][m][c][0] + "/general_reproducibility_score_POSTERIOR.txt"
+                        ratio_robust = {}
+
+                        rlines = open(dir_robust_file, "r").readlines()
+                        for l in rlines:
+                            ratio_robust[l.split(" = ")[0].replace(" reprod score", "")] = float(l.split(" = ")[1][:7])
+
+                        if "general" in ratio_robust.keys():
+                            del ratio_robust["general"]
+                        
+                        self.navigate_results[s][m][c].append(ratio_robust)
 
                     else:
                         self.navigate_results[s][m][c].append({})
@@ -693,13 +715,128 @@ class COMPARATIVE(object):
             plt.style.use('default')
         ####################################################################################################################################
 
+    def visualize_robust(self):
+        chmm = {}
+        segway = {}
+
+        for s in self.navigate_results.keys():
+            for m in self.navigate_results[s].keys():
+                for c in self.navigate_results[s][m].keys():
+
+                    if m == "segway":
+                        if s not in segway.keys():
+                            segway[s] = {}
+
+                        smc_dict = self.navigate_results[s][m][c][4]
+                        smc_list = []
+                        for k in smc_dict.keys():
+                            new_k = "_".join(k.split("_")[1:])
+                            smc_list.append([new_k, smc_dict[k]])
+
+                        segway[s][c] = smc_list
+
+                    elif m == "chmm":
+                        if s not in chmm.keys():
+                            chmm[s] = {}
+                        
+                        smc_dict = self.navigate_results[s][m][c][4]
+                        smc_list = []
+                        for k in smc_dict.keys():
+                            new_k = "_".join(k.split("_")[1:])
+                            smc_list.append([new_k, smc_dict[k]])
+
+                        chmm[s][c] = smc_list
+
+        df_chmm = []
+        for s in chmm.keys():
+            for c in chmm[s].keys():
+                for l in chmm[s][c]:
+                    if l[1] > 0:
+                        df_chmm.append([c, self.var_setting_dict[s], l[0], l[1]])
+        
+        df_chmm = pd.DataFrame(
+            df_chmm, columns = ["CellType", "Setting", "Genomic_function", "ratio_robust"]).sort_values(
+                by=["Setting", "CellType"])
+        
+        df_chmm['sort_col'] = df_chmm["Genomic_function"].map(self.SORT_ORDER)
+        df_chmm.sort_values("sort_col", inplace=True)
+        df_chmm.drop("sort_col", axis=1, inplace=True)
+
+        df_segway = []
+        for s in segway.keys():
+            for c in segway[s].keys():
+                for l in segway[s][c]:
+                    if l[1] > 0:
+                        df_segway.append([c, self.var_setting_dict[s], l[0], l[1]])
+        
+        df_segway = pd.DataFrame(
+            df_segway, columns = ["CellType", "Setting", "Genomic_function", "ratio_robust"]).sort_values(
+                by=["Setting", "CellType"])
+        
+        df_segway['sort_col'] = df_segway["Genomic_function"].map(self.SORT_ORDER)
+        df_segway.sort_values("sort_col", inplace=True)
+        df_segway.drop("sort_col", axis=1, inplace=True)
+
+        ####################################################################################################################################
+        for s in np.unique(df_chmm["Setting"]):
+            fig, ax = plt.subplots(figsize=(10, 8))
+            sns.set_palette(sns.color_palette("deep"))
+            # sns.set_theme(style="whitegrid")
+            
+            sns.stripplot(x='Genomic_function', y="ratio_robust", hue="CellType", data=df_chmm.loc[df_chmm["Setting"]==s,:], ax=ax, size=10)
+            # sns.boxplot(x='Genomic_function', y="AUC/maxAUC", hue="CellType", data=df_chmm.loc[df_chmm["Setting"]==s,:], ax=ax)
+            n_categories = len(ax.get_xticks())
+
+            for i in range(n_categories):
+                ax.axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
+
+            ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
+
+            # Show the plot
+            plt.yticks(np.arange(0, 1.05, step=0.1))
+            plt.tight_layout()
+            plt.savefig("{}/{}/{}/ratio_robust_stripplot.pdf".format(self.maindir, self.var_setting_dict_inverse[s], "chmm"), format="pdf")
+            plt.savefig("{}/{}/{}/ratio_robust_stripplot.svg".format(self.maindir, self.var_setting_dict_inverse[s], "chmm"), format="svg")
+
+            plt.clf()
+            sns.reset_orig
+            plt.style.use('default')
+
+
+        ####################################################################################################################################
+        for s in np.unique(df_segway["Setting"]):
+            fig, ax = plt.subplots(figsize=(10, 8))
+            sns.set_palette(sns.color_palette("deep"))
+            # sns.set_theme(style="whitegrid")
+            
+            sns.stripplot(x='Genomic_function', y="ratio_robust", hue="CellType", data=df_segway.loc[df_segway["Setting"]==s,:], ax=ax, size=10)
+            # sns.boxplot(x='Genomic_function', y="AUC/maxAUC", hue="CellType", data=df_chmm.loc[df_chmm["Setting"]==s,:], ax=ax)
+            n_categories = len(ax.get_xticks())
+
+            for i in range(n_categories):
+                ax.axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
+
+            ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
+
+            # Show the plot
+            plt.yticks(np.arange(0, 1.05, step=0.1))
+            plt.tight_layout()
+            plt.savefig("{}/{}/{}/ratio_robust_stripplot.pdf".format(self.maindir, self.var_setting_dict_inverse[s], "segway"), format="pdf")
+            plt.savefig("{}/{}/{}/ratio_robust_stripplot.svg".format(self.maindir, self.var_setting_dict_inverse[s], "segway"), format="svg")
+
+            plt.clf()
+            sns.reset_orig
+            plt.style.use('default')
+
     def ALL(self):
         self.compare_NMI()
         self.compare_ratio_raw_overlap()
         self.compare_AUC_mAUC()
+        self.compare_ratio_robust()
         self.visualize_NMI()
         self.visualize_ovr()
         self.visualize_AUC_mAUC()
+        self.visualize_robust()
         
 if __name__=="__main__":
     m_p()
