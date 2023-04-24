@@ -846,6 +846,9 @@ class COMPARATIVE(object):
 if __name__=="__main__":
     setting = sys.argv[1]
     m_p(setting)
-    comp = COMPARATIVE("runs042023_WG")
-    comp.ALL()
+    try:
+        comp = COMPARATIVE("runs042023_WG")
+        comp.ALL()
+    except:
+        pass
     
