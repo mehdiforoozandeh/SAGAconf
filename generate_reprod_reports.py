@@ -1,6 +1,6 @@
 from reports import *
 import multiprocessing as mp
-import logging, ast
+import logging, ast, sys
 
 def r1vsr2(maindir="runs042023_WG"):
     ################### Rep1 vs Rep2 ###################
@@ -300,14 +300,18 @@ def run(param_dict):
     finally:
         pass
 
-def m_p(nt=10):
-    with mp.Pool(nt) as pool:
-        p = pool.map(run, paraminit())
-    with mp.Pool(nt) as pool:
-        r_ = pool.map(run, r1vsr2())
-    with mp.Pool(nt) as pool:
-        c = pool.map(run, concat())
-    
+def m_p(setting, nt=10):
+    if setting == "s1":
+        with mp.Pool(nt) as pool:
+            r_ = pool.map(run, r1vsr2())
+
+    elif setting == "s2":
+        with mp.Pool(nt) as pool:
+            c = pool.map(run, concat())
+
+    elif setting == "s3":
+        with mp.Pool(nt) as pool:
+            p = pool.map(run, paraminit())
     
 class COMPARATIVE(object):
     def __init__(self, maindir):
@@ -328,8 +332,8 @@ class COMPARATIVE(object):
         # print(self.navigate_results)
         self.maindir = maindir
         self.var_setting_dict = {
-            "concat":"S2: Diff. data, Shared train", "r1vsr2": "S1: Diff. data, Separate train", 
-            "paraminit":"S3: Same data, Separate train"}
+            "concat":"S2: Diff. data, Same model", "r1vsr2": "S1: Diff. data, Diff. model", 
+            "paraminit":"S3: Same data, Diff. model"}
         
         self.var_setting_dict_inverse = {v:k for k, v in self.var_setting_dict.items()}
         self.SORT_ORDER = {"Prom": 0, "Prom_fla":1, "Enha":2, "Enha_low":3, "Biva":4, "Tran":5, "Cons":6, "Facu":7, "K9K3":8, "Quie":9}
@@ -840,7 +844,8 @@ class COMPARATIVE(object):
         self.visualize_robust()
         
 if __name__=="__main__":
-    m_p()
+    setting = sys.argv[1]
+    m_p(setting)
     comp = COMPARATIVE("runs042023_WG")
     comp.ALL()
     

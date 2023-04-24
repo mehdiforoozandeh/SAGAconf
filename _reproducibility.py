@@ -1028,7 +1028,7 @@ class TSS_enrichment(object):
 
         plt.bar(list(enrich_dict.keys()), list(enrich_dict.values()), color="black", alpha=0.5)
         plt.ylabel("log(O/E) TSS enrichment")
-        plt.xticks(rotation=45, fontsize=7)
+        plt.xticks(rotation=90, fontsize=7)
         plt.tight_layout()
         plt.savefig('{}/general_TSS_enrichment.pdf'.format(self.savedir), format='pdf')
         plt.savefig('{}/general_TSS_enrichment.svg'.format(self.savedir), format='svg')
@@ -1301,7 +1301,7 @@ class TSS_enrichment(object):
         n_cols = math.floor(math.sqrt(num_labels))
         n_rows = math.ceil(num_labels / n_cols)
 
-        fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=(15,10))
+        fig, axs = plt.subplots(n_rows, n_cols, sharex=False, sharey=True, figsize=(15,10))
         label_being_plotted = 0
 
         for i in range(n_rows):
@@ -1324,13 +1324,16 @@ class TSS_enrichment(object):
                     [i for i in enr_to_plot_MAP.index], enr_to_plot_MAP.enr, 
                     align='center', width=1, edgecolor='green', color='green', alpha=0.5)
 
-                f = UnivariateSpline(x= np.array([i for i in range(len(enr))]), y=enr.enr, k=3)
-
-                axs[i,j].plot(
-                    [i for i in range(len(enr))], 
-                    f([i for i in range(len(enr))]),
-                    c="black", linewidth=1.5)
-
+                try:
+                    f = UnivariateSpline(x= np.array([i for i in range(len(enr))]), y=enr.enr, k=3)
+                    axs[i,j].plot(
+                        [i for i in range(len(enr))], 
+                        f([i for i in range(len(enr))]),
+                        c="black", linewidth=1.5)
+                
+                except:
+                    pass
+                
                 axs[i,j].plot(
                     [i for i in range(len(enr))], [0 for i in range(len(enr))], 
                     color='black', linewidth=0.5)
@@ -1349,14 +1352,17 @@ class TSS_enrichment(object):
         for k in list_binsdict:
             x = np.array([i for i in enr_dict[k].index])
             y = np.array(enr_dict[k]["enr"]) 
-            P_correlations[k] = scipy.stats.pearsonr(x, y)[0]
-            S_correlations[k] = scipy.stats.spearmanr(x, y)[0]
+            try:
+                P_correlations[k] = scipy.stats.pearsonr(x, y)[0]
+                S_correlations[k] = scipy.stats.spearmanr(x, y)[0]
+            except:
+                pass
 
         ##########################################################################################
 
         plt.bar(P_correlations.keys(), P_correlations.values(), color="black", alpha=0.5)
         plt.ylabel("Pearson's Correlation")
-        plt.xticks(rotation=45, fontsize=8)
+        plt.xticks(rotation=90, fontsize=8)
         plt.tight_layout()
 
         plt.savefig(self.savedir+"/poster_tss_pearson_correl.pdf", format='pdf')
@@ -1370,7 +1376,7 @@ class TSS_enrichment(object):
 
         plt.bar(S_correlations.keys(), S_correlations.values(), color="black", alpha=0.5)
         plt.ylabel("Spearman's Correlation")
-        plt.xticks(rotation=45, fontsize=8)
+        plt.xticks(rotation=90, fontsize=8)
         plt.tight_layout()
 
         plt.savefig(self.savedir+"/poster_tss_spearman_correl.pdf", format='pdf')
@@ -1548,6 +1554,63 @@ def joint_prob_with_binned_posterior(loci1, loci2, n_bins=50, conditional=False,
     
     return joint
 
+def joint_prob_MAP_with_posterior(loci1, loci2, n_bins=50, conditional=False, stratified=True):
+    num_labels = len(loci1.columns[3:])
+    MAP2 = loci2.iloc[:,3:].idxmax(axis=1)
+    MAP1 = loci1.iloc[:,3:].idxmax(axis=1)
+    
+
+    joint = np.zeros((((n_bins+1) * num_labels), num_labels))
+    xlabels = []
+    ylabels = list(loci2.columns[3:])
+
+    bi = 0
+    strat_size = int(len(loci1)/n_bins)
+    for r1_label in loci1.columns[3:]:
+        for n in range(n_bins+1):
+            xlabels.append("{} - bin #{}".format(r1_label, n+1))
+
+        posterior_vector_1 = loci1.loc[:, r1_label]
+
+        vector_pair = pd.concat([posterior_vector_1, MAP2, MAP1], axis=1)
+
+        vector_pair.columns=["pv1", "map2", "map1"]
+
+        vector_pair = vector_pair.sort_values("pv1").reset_index(drop=True)
+
+        for b in range(0, vector_pair.shape[0], strat_size):
+            subset_pair_vector = vector_pair.iloc[b:b+strat_size,:]
+            
+            for r2_label in range(len(loci2.columns[3:])):
+                intersection_l_r = len(
+                    subset_pair_vector.loc[
+                    (subset_pair_vector["map2"]==loci2.columns[3:][r2_label])&(subset_pair_vector["map1"] == r1_label),:
+                    ]) / (len(loci1) * num_labels)
+                
+                P_r = (len(subset_pair_vector) / len(loci1))
+
+                if conditional:
+                    if intersection_l_r * P_r > 0:
+                        joint[bi, r2_label] =  (intersection_l_r / P_r ) * num_labels
+
+                    else:
+                        joint[bi, r2_label] =  0
+                    
+                else:
+                    joint[bi, r2_label] =  intersection_l_r 
+
+            bi +=1
+    
+    joint = pd.DataFrame(joint, columns=ylabels, index=xlabels)
+    for ii in range((n_bins * num_labels)+1):
+        i = joint.index[ii]
+        binnumber = int(i.split("-")[1].replace(" bin #", ""))
+        if binnumber > n_bins:
+            joint.iloc[ii-1, :] = joint.iloc[ii-1, :] + joint.iloc[ii, :]
+            joint = joint.drop(i)
+    
+    return joint
+    
 def normalized_mutual_information(loci_1, loci_2, soft=True):
     """
     get raw overlaps  ->  P(A,B) JOINT
@@ -1596,7 +1659,7 @@ def normalized_mutual_information(loci_1, loci_2, soft=True):
 
     return NMI
 
-def NMI_from_matrix(joint):
+def NMI_from_matrix(joint, return_MI=False):
     coverage1 = {k:sum(joint.loc[k,:]) for k in joint.index}
     coverage2 = {k:sum(joint.loc[:,k]) for k in joint.columns}
 
@@ -1628,10 +1691,13 @@ def NMI_from_matrix(joint):
 
     # NMI = (2*MI)/(H_A + H_B)
 
-    print(MI, H_A, H_B)
+    # print(MI, H_A, H_B)
     NMI = (MI)/(H_B)
 
-    return NMI
+    if return_MI:
+        return MI
+    else: 
+        return NMI
 
 def overlap_heatmap(matrix):
     if matrix.shape[0] <20:

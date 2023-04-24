@@ -1,7 +1,12 @@
 import matplotlib.pyplot as plt
+from _reproducibility import *
 from _cluster_matching import *
 from run import *
 from sklearn import metrics
+from scipy.cluster.hierarchy import dendrogram, linkage
+from scipy.spatial.distance import squareform
+from matplotlib.colors import LinearSegmentedColormap
+
 
 """
 Part1:
@@ -382,6 +387,124 @@ def run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric):
         print(replicate_1_dir.split("/")[2]+"_"+replicate_2_dir.split("/")[2])
 
         plt.savefig(replicate_1_dir+"/granularity.pdf")
+
+def row_similarity(iou_matrix):
+    n = iou_matrix.shape[0]
+    sim_matrix = np.zeros((n, n))
+    for i in range(n):
+        for j in range(n):
+            sim_matrix[i, j] = np.sqrt(np.max(iou_matrix.iloc[i,:] * iou_matrix.iloc[j,:]))
+    np.fill_diagonal(sim_matrix, 1)
+    return sim_matrix
+
+def merging_gain(joint_overlap):
+    coverage1 = {k:sum(joint_overlap.loc[k,:]) for k in joint_overlap.index}
+    coverage2 = {k:sum(joint_overlap.loc[:,k]) for k in joint_overlap.columns}
+
+    nmi0 = NMI_from_matrix(joint_overlap, return_MI=False)
+    gain = pd.DataFrame(
+        np.zeros(joint_overlap.shape), 
+        index=joint_overlap.index,
+        columns=joint_overlap.index)
+    
+    for i in joint_overlap.index:
+        for j in joint_overlap.index:
+            joint_overlap_prime = joint_overlap.copy()
+
+            if i == j:
+                gain.loc[i, j] = 0
+            
+            else:
+                H0_i = -1 * coverage1[i] * np.log(coverage1[i]) # np.sum([-1 * p * np.log(p) for p in joint_overlap.loc[i, :] if p!=0])
+                MI0_i = np.sum([
+                    joint_overlap.loc[i, k] * np.log((joint_overlap.loc[i, k])/(coverage1[i]*coverage2[k])) 
+                    for k in joint_overlap.columns if joint_overlap.loc[i, k] != 0])
+
+                H0_j =  -1 * coverage1[j] * np.log(coverage1[j]) # np.sum([-1 * p * np.log(p) for p in joint_overlap.loc[j, :] if p!=0])
+                MI0_j = np.sum([
+                    joint_overlap.loc[j, k] * np.log((joint_overlap.loc[j, k])/(coverage1[j]*coverage2[k])) 
+                    for k in joint_overlap.columns if joint_overlap.loc[j, k] != 0])
+                
+
+                joint_prime_ij = joint_overlap.loc[i, :] + joint_overlap.loc[j, :]
+                coverage_ij = np.sum(joint_prime_ij)
+
+                joint_overlap_prime.loc[str(i) + " + " + str(j)] = joint_prime_ij
+                joint_overlap_prime = joint_overlap_prime.drop([i, j], axis=0)
+                nmi1 = NMI_from_matrix(joint_overlap_prime, return_MI=False)
+
+                H1 = -1 * coverage_ij * np.log(coverage_ij) #np.sum([-1 * p * np.log(p) for p in joint_prime_ij if p!=0] )
+                MI1 = np.sum([
+                    joint_overlap_prime.loc[str(i) + " + " + str(j), k] * np.log((joint_overlap_prime.loc[str(i) + " + " + str(j), k])/(coverage_ij*coverage2[k])) 
+                    for k in joint_overlap_prime.columns if joint_overlap_prime.loc[str(i) + " + " + str(j), k] != 0])
+
+
+                # print(i, j, (MI0_i+MI0_j)/(H0_i+H0_j) , MI1/H1)
+                gain.loc[i, j] = nmi1 - nmi0 #(MI1/H1) - ((MI0_i+MI0_j)/(H0_i+H0_j))
+
+    gain = np.array((gain - gain.min().min()) / (gain.max().max() - gain.min().min()))
+    np.fill_diagonal(gain, 1)
+    return gain
+
+def merge_clusters(joint, loci_1, loci_2):
+    num_labels = loci_1.shape[1]-3
+    m = 0
+
+    r1_sim = pd.DataFrame(merging_gain(joint), columns=joint.index, index=joint.index)
+    r2_sim = pd.DataFrame(merging_gain(joint.T), columns=joint.columns, index=joint.columns)
+
+    distance_matrix_1 = 1 - r1_sim
+    linkage_1 = hc.linkage(squareform(distance_matrix_1), method='average')
+
+    distance_matrix_2 = 1 - r2_sim
+    linkage_2 = hc.linkage(squareform(distance_matrix_2), method='average')
+
+    # sns.clustermap(
+    #     distance_matrix_1, row_linkage=linkage_1, 
+    #     col_linkage=linkage_1, annot=True)
+    # plt.show()
+
+    #########################################################################################################
+
+    merged_label_ID_1 = {}
+    labels = loci_1.iloc[:, 3:].columns
+    for i in range(num_labels):
+        merged_label_ID_1[i] = labels[i]
+    
+    to_be_merged_1 = [
+        merged_label_ID_1[int(linkage_1[m, 0])],
+        merged_label_ID_1[int(linkage_1[m, 1])],
+    ]
+
+    merged_label_ID_1[num_labels + m] = str(
+        merged_label_ID_1[int(linkage_1[m, 0])] + "+" + merged_label_ID_1[int(linkage_1[m, 1])]
+    )
+
+    loci_1[merged_label_ID_1[num_labels + m]] = \
+        loci_1[to_be_merged_1[0]] + loci_1[to_be_merged_1[1]]
+    loci_1 = loci_1.drop(to_be_merged_1, axis=1)
+
+    #########################################################################################################
+
+    merged_label_ID_2 = {}
+    labels = loci_2.iloc[:, 3:].columns
+    for i in range(num_labels):
+        merged_label_ID_2[i] = labels[i]
+
+    to_be_merged_2 = [
+        merged_label_ID_2[int(linkage_2[m, 0])],
+        merged_label_ID_2[int(linkage_2[m, 1])],
+    ]
+
+    merged_label_ID_2[num_labels + m] = str(
+        merged_label_ID_2[int(linkage_2[m, 0])] + "+" + merged_label_ID_2[int(linkage_2[m, 1])]
+    )
+
+    loci_2[merged_label_ID_2[num_labels + m]] = \
+        loci_2[to_be_merged_2[0]] + loci_2[to_be_merged_2[1]]
+    loci_2 = loci_2.drop(to_be_merged_2, axis=1)
+
+    return loci_1, loci_2
 
 if __name__=="__main__":
     run_on_subset = True
