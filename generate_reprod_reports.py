@@ -844,11 +844,19 @@ class COMPARATIVE(object):
         self.visualize_robust()
         
 if __name__=="__main__":
-    setting = sys.argv[1]
-    m_p(setting)
-    try:
+    if sys.argv[1] == "all":
+        m_p("s1")
+        m_p("s2")
+        m_p("s3")
         comp = COMPARATIVE("runs052023_subset")
         comp.ALL()
-    except:
-        pass
+
+    else:
+        setting = sys.argv[1]
+        m_p(setting)
+        try:
+            comp = COMPARATIVE("runs052023_subset")
+            comp.ALL()
+        except:
+            pass
     
