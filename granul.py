@@ -446,63 +446,57 @@ def merging_gain(joint_overlap):
     np.fill_diagonal(gain, 1)
     return gain
 
-def merge_clusters(joint, loci_1, loci_2):
+def merge_clusters(joint, loci_1, loci_2, r1=True):
     num_labels = loci_1.shape[1]-3
     m = 0
 
-    r1_sim = pd.DataFrame(merging_gain(joint), columns=joint.index, index=joint.index)
-    r2_sim = pd.DataFrame(merging_gain(joint.T), columns=joint.columns, index=joint.columns)
+    #########################################################################################################
+    if r1:
+        r1_sim = pd.DataFrame(merging_gain(joint), columns=joint.index, index=joint.index)
+        distance_matrix_1 = 1 - r1_sim
+        linkage_1 = hc.linkage(squareform(distance_matrix_1), method='average')
 
-    distance_matrix_1 = 1 - r1_sim
-    linkage_1 = hc.linkage(squareform(distance_matrix_1), method='average')
+        merged_label_ID_1 = {}
+        labels = loci_1.iloc[:, 3:].columns
+        for i in range(num_labels):
+            merged_label_ID_1[i] = labels[i]
+        
+        to_be_merged_1 = [
+            merged_label_ID_1[int(linkage_1[m, 0])],
+            merged_label_ID_1[int(linkage_1[m, 1])],
+        ]
 
-    distance_matrix_2 = 1 - r2_sim
-    linkage_2 = hc.linkage(squareform(distance_matrix_2), method='average')
+        merged_label_ID_1[num_labels + m] = str(
+            merged_label_ID_1[int(linkage_1[m, 0])] + "+" + merged_label_ID_1[int(linkage_1[m, 1])]
+        )
 
-    # sns.clustermap(
-    #     distance_matrix_1, row_linkage=linkage_1, 
-    #     col_linkage=linkage_1, annot=True)
-    # plt.show()
+        loci_1[merged_label_ID_1[num_labels + m]] = \
+            loci_1[to_be_merged_1[0]] + loci_1[to_be_merged_1[1]]
+        loci_1 = loci_1.drop(to_be_merged_1, axis=1)
 
     #########################################################################################################
+    else:
+        r2_sim = pd.DataFrame(merging_gain(joint.T), columns=joint.columns, index=joint.columns)
+        distance_matrix_2 = 1 - r2_sim
+        linkage_2 = hc.linkage(squareform(distance_matrix_2), method='average')
 
-    merged_label_ID_1 = {}
-    labels = loci_1.iloc[:, 3:].columns
-    for i in range(num_labels):
-        merged_label_ID_1[i] = labels[i]
-    
-    to_be_merged_1 = [
-        merged_label_ID_1[int(linkage_1[m, 0])],
-        merged_label_ID_1[int(linkage_1[m, 1])],
-    ]
+        merged_label_ID_2 = {}
+        labels = loci_2.iloc[:, 3:].columns
+        for i in range(num_labels):
+            merged_label_ID_2[i] = labels[i]
 
-    merged_label_ID_1[num_labels + m] = str(
-        merged_label_ID_1[int(linkage_1[m, 0])] + "+" + merged_label_ID_1[int(linkage_1[m, 1])]
-    )
+        to_be_merged_2 = [
+            merged_label_ID_2[int(linkage_2[m, 0])],
+            merged_label_ID_2[int(linkage_2[m, 1])],
+        ]
 
-    loci_1[merged_label_ID_1[num_labels + m]] = \
-        loci_1[to_be_merged_1[0]] + loci_1[to_be_merged_1[1]]
-    loci_1 = loci_1.drop(to_be_merged_1, axis=1)
+        merged_label_ID_2[num_labels + m] = str(
+            merged_label_ID_2[int(linkage_2[m, 0])] + "+" + merged_label_ID_2[int(linkage_2[m, 1])]
+        )
 
-    #########################################################################################################
-
-    merged_label_ID_2 = {}
-    labels = loci_2.iloc[:, 3:].columns
-    for i in range(num_labels):
-        merged_label_ID_2[i] = labels[i]
-
-    to_be_merged_2 = [
-        merged_label_ID_2[int(linkage_2[m, 0])],
-        merged_label_ID_2[int(linkage_2[m, 1])],
-    ]
-
-    merged_label_ID_2[num_labels + m] = str(
-        merged_label_ID_2[int(linkage_2[m, 0])] + "+" + merged_label_ID_2[int(linkage_2[m, 1])]
-    )
-
-    loci_2[merged_label_ID_2[num_labels + m]] = \
-        loci_2[to_be_merged_2[0]] + loci_2[to_be_merged_2[1]]
-    loci_2 = loci_2.drop(to_be_merged_2, axis=1)
+        loci_2[merged_label_ID_2[num_labels + m]] = \
+            loci_2[to_be_merged_2[0]] + loci_2[to_be_merged_2[1]]
+        loci_2 = loci_2.drop(to_be_merged_2, axis=1)
 
     return loci_1, loci_2
 
@@ -531,3 +525,4 @@ if __name__=="__main__":
     run(replicate_1_dir, replicate_2_dir, run_on_subset, mnemons, symmetric)
     run(replicate_2_dir, replicate_1_dir, run_on_subset, mnemons, symmetric)
 
+ 

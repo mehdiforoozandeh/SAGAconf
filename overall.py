@@ -499,7 +499,7 @@ def is_repr_MAP_with_prior(prior, loci_1, loci_2, ovr_threshold, window_bp, matc
     
     return rep_rec
 
-def calibrate(loci_1, loci_2, ovr_threshold, window_bp, numbins=500, matching="static"):
+def calibrate(loci_1, loci_2, ovr_threshold, window_bp, numbins=500, matching="static", always_include_best_match=True):
     # based on the resolution determine the number of bins for w
     resolution = loci_1["end"][0] - loci_1["start"][0] 
     window_bin = math.ceil(window_bp/resolution)
@@ -528,7 +528,8 @@ def calibrate(loci_1, loci_2, ovr_threshold, window_bp, numbins=500, matching="s
             above_threshold_match = list(enr_ovr.loc[k, enr_ovr.loc[k, :] > ovr_threshold].index)
 
             if len(above_threshold_match) == 0:
-                above_threshold_match = [best_match[0]]
+                if always_include_best_match:
+                    above_threshold_match = [best_match[0]]
 
         elif matching == "dynamic":
             above_threshold_match = dyn_matching_map[k]
@@ -590,10 +591,10 @@ def calibrate(loci_1, loci_2, ovr_threshold, window_bp, numbins=500, matching="s
     calibrated_loci1.columns = loci_1.columns
     return calibrated_loci1
 
-def is_repr_posterior(loci_1, loci_2, ovr_threshold, window_bp, reproducibility_threshold=0.9, matching="static"):
+def is_repr_posterior(loci_1, loci_2, ovr_threshold, window_bp, reproducibility_threshold=0.9, matching="static", always_include_best_match=True):
     MAP1 = list(loci_1.iloc[:,3:].idxmax(axis=1)) 
 
-    calibrated_loci1 = calibrate(loci_1, loci_2, ovr_threshold, window_bp, matching=matching)
+    calibrated_loci1 = calibrate(loci_1, loci_2, ovr_threshold, window_bp, matching=matching, always_include_best_match=always_include_best_match)
     # here I'm just looking at the calibrated score that is assigned to the MAP1 of each position (~>.9)
     calibrated_reproducibility = []
     for i in range(len(MAP1)):
@@ -672,7 +673,8 @@ def keep_reproducible_annotations(loci, bool_reprod_report):
 
     return loci.loc[(bool_reprod_report["is_repr"] == True), :].reset_index(drop=True)
 
-def OvrWind_contour(loci1, loci2, savedir, w_range=[0, 4000, 200], t_range=[0, 11, 1], posterior=True, repr_threshold=0.9):
+def OvrWind_contour(
+    loci1, loci2, savedir, w_range=[0, 4000, 200], t_range=[0, 11, 1], posterior=True, repr_threshold=0.9):
     # t is the overlap threshold (used to define matches)
     """
     initialize wrange and trange and reverse trange to start from the most strict to easiest
@@ -712,7 +714,9 @@ def OvrWind_contour(loci1, loci2, savedir, w_range=[0, 4000, 200], t_range=[0, 1
             t0 = datetime.now()
 
             if posterior:
-                updated_repr = is_repr_posterior(loci1, loci2, t, w, reproducibility_threshold=repr_threshold, matching="static")
+                updated_repr = is_repr_posterior(
+                    loci1, loci2, t, w, reproducibility_threshold=repr_threshold, 
+                    matching="static", always_include_best_match=False)
 
             else:
                 updated_repr = is_repr_MAP_with_prior(A[t][w], loci1, loci2, t, w, matching="static")

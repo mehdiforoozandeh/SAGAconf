@@ -13,9 +13,9 @@ def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=Fals
         posterior2_dir)
 
     if subset:
-        pass
-        # loci_1 = loci_1.loc[loci_1["chr"]=="chr21"].reset_index(drop=True)
-        # loci_2 = loci_2.loc[loci_2["chr"]=="chr21"].reset_index(drop=True)
+        # pass
+        loci_1 = loci_1.loc[loci_1["chr"]=="chr21"].reset_index(drop=True)
+        loci_2 = loci_2.loc[loci_2["chr"]=="chr21"].reset_index(drop=True)
 
     print("the shapes of the input matrices are: {}, {}".format(str(loci_1.shape), str(loci_2.shape)))
 
@@ -1365,6 +1365,7 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir):
     nmi_rec = {}
     robust_rec = {}
 
+    eo_c = 0
     while loci_1.shape[1]-3 > 1:
         
         bool_reprod_report = single_point_repr(
@@ -1383,15 +1384,23 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir):
         joint = joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True)
         NMI = NMI_from_matrix(joint)
 
-        nmi_rec[loci_1.shape[1]-3] = NMI
-        robust_rec[loci_1.shape[1]-3] = general_rep_score
+        nmi_rec["{}_{}".format(loci_1.shape[1]-3, loci_2.shape[1]-3)] = NMI
+        robust_rec["{}_{}".format(loci_1.shape[1]-3, loci_2.shape[1]-3)] = general_rep_score
         
-        loci_1, loci_2 = merge_clusters(joint, loci_1, loci_2)
+        if eo_c%2==0:
+            loci_1, loci_2 = merge_clusters(joint, loci_1, loci_2, r1=True)
+        else:
+            loci_1, loci_2 = merge_clusters(joint, loci_1, loci_2, r1=False)
     
+    with open('{}/post_clustering_progress.txt'.format(savedir), 'w') as savefile:
+        savefile.write(str(nmi_rec))
+        savefile.write("\n")
+        savefile.write(str(robust_rec))
+
     nl = list(nmi_rec.keys())
     ys =[nmi_rec[k] for k in nl]
     plt.bar(list(nl), list(ys), color="grey")
-    plt.plot(list(nl), list(ys), "--", color="red", linewidth=2)
+    # plt.plot(list(nl), list(ys), "--", color="red", linewidth=2)
     plt.xlabel("Number of Labels")
     plt.ylabel("NMI")
     plt.yticks(np.arange(0,1.05,0.1))
@@ -1402,7 +1411,7 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir):
     nl = list(robust_rec.keys())
     ys =[robust_rec[k] for k in nl]
     plt.bar(list(nl), list(ys), color="grey")
-    plt.plot(list(nl), list(ys), "--", color="red", linewidth=2)
+    # plt.plot(list(nl), list(ys), "--", color="red", linewidth=2)
     plt.xlabel("Number of Labels")
     plt.ylabel("Ratio Robust")
     plt.yticks(np.arange(0,1.05,0.1))
@@ -1447,11 +1456,11 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     except:
         pass
 
-    # if contour:
-    #     try:
-    #         get_contour(replicate_1_dir, replicate_2_dir, savedir)
-    #     except:
-    #         pass
+    if contour:
+        try:
+            get_contour(replicate_1_dir, replicate_2_dir, savedir)
+        except:
+            pass
 
     try:
         gather_labels(replicate_1_dir, savedir, contour=contour)
