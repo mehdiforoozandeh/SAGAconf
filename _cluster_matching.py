@@ -104,7 +104,7 @@ def joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True):
     
     return oo_mat / len(loci_1)
 
-def IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False, overlap_coeff=True):
+def IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False, overlap_coeff=False):
     num_labels = len(loci_1.columns) - 3
     
     IoU = pd.DataFrame(np.zeros((num_labels, num_labels)), columns=loci_2.columns[3:], index=loci_1.columns[3:])

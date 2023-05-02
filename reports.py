@@ -6,14 +6,13 @@ from overall import *
 from matplotlib.colors import LinearSegmentedColormap
 import ast
 
-def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False):
+def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False, force_WG=True):
     print("loading and intersecting")
     loci_1, loci_2 = intersect_parsed_posteriors(
         posterior1_dir, 
         posterior2_dir)
 
-    if subset:
-        # pass
+    if subset and force_WG==False:
         loci_1 = loci_1.loc[loci_1["chr"]=="chr21"].reset_index(drop=True)
         loci_2 = loci_2.loc[loci_2["chr"]=="chr21"].reset_index(drop=True)
 
@@ -681,6 +680,15 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
     num_labels = loci_1.shape[1]-3
     MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
     MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
+
+    coverage1 = {k:len(MAP1.loc[MAP1 == k])/len(loci_1) for k in loci_1.columns[3:]}
+    coverage2 = {k:len(MAP2.loc[MAP2 == k])/len(loci_2) for k in loci_2.columns[3:]}
+
+    with open(outdir+"/coverages1.txt", 'w') as coveragesfile:
+        coveragesfile.write(str(coverage1))
+
+    with open(outdir+"/coverages2.txt", 'w') as coveragesfile:
+        coveragesfile.write(str(coverage2))
     
     """
     we need to define what a "good match" is.
@@ -1159,7 +1167,7 @@ def get_contour(replicate_1_dir, replicate_2_dir, savedir):
 
     print("getting contours 1 : overlapT-window-repr")
     OvrWind_contour(
-        loci1, loci2, savedir, w_range=[0, 2000, 500], t_range=[0, 11, 2], posterior=True, repr_threshold=0.75)
+        loci1, loci2, savedir, w_range=[0, 2600, 500], t_range=[0, 11, 2], posterior=True, repr_threshold=0.75)
     
     # print("getting contours 2 : reprT-window-repr")
     # ReprThresWind_contour(

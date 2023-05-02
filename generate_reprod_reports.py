@@ -2,7 +2,7 @@ from reports import *
 import multiprocessing as mp
 import logging, ast, sys
 
-def r1vsr2(maindir="runs052023_subset_ocoeff"):
+def r1vsr2(maindir="runs052023_WG"):
     ################### Rep1 vs Rep2 ###################
         ######## GM12878 ########
     
@@ -93,7 +93,7 @@ def r1vsr2(maindir="runs052023_subset_ocoeff"):
         ]
     return listofruns
 
-def concat(maindir="runs052023_subset_ocoeff"):
+def concat(maindir="runs052023_WG"):
     if os.path.exists(maindir)==False:
         os.mkdir(maindir)
     
@@ -179,7 +179,7 @@ def concat(maindir="runs052023_subset_ocoeff"):
     ]
     return listofruns
 
-def paraminit(maindir="runs052023_subset_ocoeff"):
+def paraminit(maindir="runs052023_WG"):
     if os.path.exists(maindir)==False:
         os.mkdir(maindir)
     
@@ -281,7 +281,7 @@ def run(param_dict):
             genecode_dir=param_dict["genecode_dir"], 
             savedir=param_dict["savedir"], 
             rnaseq=param_dict["rnaseq"], 
-            contour=True
+            contour=False
         )
         with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
             f.write(str(param_dict))
@@ -389,6 +389,19 @@ class COMPARATIVE(object):
                     else:
                         self.navigate_results[s][m][c].append({})
     
+    def load_coverages(self):
+        for s in self.navigate_results.keys():
+            for m in self.navigate_results[s]:
+                for c in self.navigate_results[s][m]:
+                    
+                    if os.path.exists(self.navigate_results[s][m][c][0] + "/coverage1.txt"):
+                        coverage_file = self.navigate_results[s][m][c][0] + "/coverage1.txt"
+                        coverage = ast.literal_eval(open(coverage_file, "r").read())
+                        self.navigate_results[s][m][c].append(coverage)
+
+                    else:
+                        self.navigate_results[s][m][c].append({})
+
     def compare_ratio_robust(self):
         for s in self.navigate_results.keys():
             for m in self.navigate_results[s]:
@@ -853,9 +866,9 @@ if __name__=="__main__":
 
     else:
         setting = sys.argv[1]
-        m_p(setting)
+        m_p(setting, nt=5)
         try:
-            comp = COMPARATIVE("runs052023_subset")
+            comp = COMPARATIVE("runs052023_WG")
             comp.ALL()
         except:
             pass
