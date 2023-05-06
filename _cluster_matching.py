@@ -58,7 +58,8 @@ def soft_coverage(loci_1, loci_2):
     return coverage1, coverage2
 
 def joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True):
-    num_labels = len(loci_1.columns) -3
+    num_labels1 = len(loci_1.columns) -3
+    num_labels2 = len(loci_2.columns) -3
     resolution = loci_1["end"][0] - loci_1["start"][0] 
     w = math.ceil(w/resolution)
 
@@ -71,7 +72,7 @@ def joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True):
         for j in loci_2.columns[3:]:
             observed_overlap[str(k + "|" + j)] = 0
 
-    oo_mat = pd.DataFrame(np.zeros((num_labels, num_labels)), columns=loci_2.columns[3:], index=loci_1.columns[3:])
+    oo_mat = pd.DataFrame(np.zeros((num_labels1, num_labels2)), columns=loci_2.columns[3:], index=loci_1.columns[3:])
 
     MAP1 = list(MAP1)
     MAP2 = list(MAP2)
@@ -105,9 +106,10 @@ def joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True):
     return oo_mat / len(loci_1)
 
 def IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False, overlap_coeff=False):
-    num_labels = len(loci_1.columns) - 3
+    num_labels1 = len(loci_1.columns) - 3
+    num_labels2 = len(loci_2.columns) - 3
     
-    IoU = pd.DataFrame(np.zeros((num_labels, num_labels)), columns=loci_2.columns[3:], index=loci_1.columns[3:])
+    IoU = pd.DataFrame(np.zeros((num_labels1, num_labels2)), columns=loci_2.columns[3:], index=loci_1.columns[3:])
 
     if soft and w == 0:
         joint = soft_joint_prob(loci_1, loci_2)
@@ -128,7 +130,8 @@ def IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False, overlap_coeff=F
     for A in loci_1.columns[3:]:
         for B in loci_2.columns[3:]:
             if overlap_coeff:
-                IoU.loc[A, B] = (joint.loc[A, B])/np.min(coverage1[A] + coverage2[B])
+                IoU.loc[A, B] = (joint.loc[A, B])/np.min([coverage1[A], coverage2[B]])
+
             else:
                 IoU.loc[A, B] = (joint.loc[A, B])/(coverage1[A] + coverage2[B] - ((joint.loc[A, B])))
 

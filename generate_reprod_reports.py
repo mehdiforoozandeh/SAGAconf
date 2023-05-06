@@ -866,7 +866,7 @@ if __name__=="__main__":
 
     else:
         setting = sys.argv[1]
-        m_p(setting, nt=5)
+        m_p(setting, nt=10)
         try:
             comp = COMPARATIVE("runs052023_WG")
             comp.ALL()

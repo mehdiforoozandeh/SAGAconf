@@ -1,4 +1,3 @@
-
 import multiprocessing as mp
 from matplotlib.cm import get_cmap
 import numpy as np
@@ -1659,7 +1658,7 @@ def normalized_mutual_information(loci_1, loci_2, soft=True):
 
     return NMI
 
-def NMI_from_matrix(joint, return_MI=False):
+def NMI_from_matrix(joint, return_MI=False, posterior=False):
     coverage1 = {k:sum(joint.loc[k,:]) for k in joint.index}
     coverage2 = {k:sum(joint.loc[:,k]) for k in joint.columns}
 
@@ -1689,10 +1688,11 @@ def NMI_from_matrix(joint, return_MI=False):
                     (coverage1[a] * coverage2[b])
                     )
 
-    # NMI = (2*MI)/(H_A + H_B)
-
     # print(MI, H_A, H_B)
-    NMI = (MI)/(H_B)
+    if posterior:
+        NMI = (MI)/(H_B)
+    else:
+        NMI = (2*MI)/(H_A + H_B)
 
     if return_MI:
         return MI

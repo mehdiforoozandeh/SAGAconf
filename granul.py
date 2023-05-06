@@ -403,7 +403,7 @@ def merging_gain(joint_overlap):
 
     nmi0 = NMI_from_matrix(joint_overlap, return_MI=False)
     gain = pd.DataFrame(
-        np.zeros(joint_overlap.shape), 
+        np.zeros([joint_overlap.shape[0], joint_overlap.shape[0]]), 
         index=joint_overlap.index,
         columns=joint_overlap.index)
     
@@ -413,48 +413,45 @@ def merging_gain(joint_overlap):
 
             if i == j:
                 gain.loc[i, j] = 0
-            
-            else:
-                H0_i = -1 * coverage1[i] * np.log(coverage1[i]) # np.sum([-1 * p * np.log(p) for p in joint_overlap.loc[i, :] if p!=0])
-                MI0_i = np.sum([
-                    joint_overlap.loc[i, k] * np.log((joint_overlap.loc[i, k])/(coverage1[i]*coverage2[k])) 
-                    for k in joint_overlap.columns if joint_overlap.loc[i, k] != 0])
 
-                H0_j =  -1 * coverage1[j] * np.log(coverage1[j]) # np.sum([-1 * p * np.log(p) for p in joint_overlap.loc[j, :] if p!=0])
-                MI0_j = np.sum([
-                    joint_overlap.loc[j, k] * np.log((joint_overlap.loc[j, k])/(coverage1[j]*coverage2[k])) 
-                    for k in joint_overlap.columns if joint_overlap.loc[j, k] != 0])
-                
+            else:
 
                 joint_prime_ij = joint_overlap.loc[i, :] + joint_overlap.loc[j, :]
                 coverage_ij = np.sum(joint_prime_ij)
 
                 joint_overlap_prime.loc[str(i) + " + " + str(j)] = joint_prime_ij
                 joint_overlap_prime = joint_overlap_prime.drop([i, j], axis=0)
+                
                 nmi1 = NMI_from_matrix(joint_overlap_prime, return_MI=False)
 
-                H1 = -1 * coverage_ij * np.log(coverage_ij) #np.sum([-1 * p * np.log(p) for p in joint_prime_ij if p!=0] )
-                MI1 = np.sum([
-                    joint_overlap_prime.loc[str(i) + " + " + str(j), k] * np.log((joint_overlap_prime.loc[str(i) + " + " + str(j), k])/(coverage_ij*coverage2[k])) 
-                    for k in joint_overlap_prime.columns if joint_overlap_prime.loc[str(i) + " + " + str(j), k] != 0])
+                gain.loc[i, j] = nmi1 - nmi0
 
-
-                # print(i, j, (MI0_i+MI0_j)/(H0_i+H0_j) , MI1/H1)
-                gain.loc[i, j] = nmi1 - nmi0 #(MI1/H1) - ((MI0_i+MI0_j)/(H0_i+H0_j))
-
-    gain = np.array((gain - gain.min().min()) / (gain.max().max() - gain.min().min()))
-    np.fill_diagonal(gain, 1)
+    # gain = np.array((gain - gain.min().min()) / (gain.max().max() - gain.min().min()))
+    # print(gain)
+    gain = np.array(gain)
+    np.fill_diagonal(gain, np.min(gain) - 1)
     return gain
 
 def merge_clusters(joint, loci_1, loci_2, r1=True):
-    num_labels = loci_1.shape[1]-3
     m = 0
 
     #########################################################################################################
     if r1:
-        r1_sim = pd.DataFrame(merging_gain(joint), columns=joint.index, index=joint.index)
-        distance_matrix_1 = 1 - r1_sim
-        linkage_1 = hc.linkage(squareform(distance_matrix_1), method='average')
+        num_labels = loci_1.shape[1]-3
+        r1_gain = pd.DataFrame(merging_gain(joint), columns=joint.index, index=joint.index)
+
+        max_value = r1_gain.max().max()
+
+        # Find the indices of the maximum value in the similarity matrix
+        max_index = np.where(r1_gain == max_value)
+
+        # Get the row and column labels of the maximum value
+        row_label = r1_gain.index[max_index[0][0]]
+        col_label = r1_gain.columns[max_index[1][0]]
+
+        print(f"The most similar pair is ({row_label}, {col_label}) with a similarity of {max_value}")
+
+        linkage_1 = np.array([[max_index[0][0], max_index[1][0]]])
 
         merged_label_ID_1 = {}
         labels = loci_1.iloc[:, 3:].columns
@@ -476,9 +473,21 @@ def merge_clusters(joint, loci_1, loci_2, r1=True):
 
     #########################################################################################################
     else:
-        r2_sim = pd.DataFrame(merging_gain(joint.T), columns=joint.columns, index=joint.columns)
-        distance_matrix_2 = 1 - r2_sim
-        linkage_2 = hc.linkage(squareform(distance_matrix_2), method='average')
+        num_labels = loci_2.shape[1]-3
+        r2_gain = pd.DataFrame(merging_gain(joint.T), columns=joint.columns, index=joint.columns)
+
+        max_value = r2_gain.max().max()
+
+        # Find the indices of the maximum value in the similarity matrix
+        max_index = np.where(r2_gain == max_value)
+
+        # Get the row and column labels of the maximum value
+        row_label = r2_gain.index[max_index[0][0]]
+        col_label = r2_gain.columns[max_index[1][0]]
+
+        print(f"The most similar pair is ({row_label}, {col_label}) with a similarity of {max_value}")
+
+        linkage_2 = np.array([[max_index[0][0], max_index[1][0]]])
 
         merged_label_ID_2 = {}
         labels = loci_2.iloc[:, 3:].columns

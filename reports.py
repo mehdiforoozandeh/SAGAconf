@@ -6,7 +6,7 @@ from overall import *
 from matplotlib.colors import LinearSegmentedColormap
 import ast
 
-def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False, force_WG=True):
+def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False, force_WG=False):
     print("loading and intersecting")
     loci_1, loci_2 = intersect_parsed_posteriors(
         posterior1_dir, 
@@ -131,6 +131,10 @@ def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True,
     return loci_1, loci_2
 
 def ct_binned_posterior_heatmap(loci_1, loci_2, savedir, n_bins=10):
+    indicator_file = "{}/binned_posterior_heatmap.txt".format(savedir)
+    if os.path.exists(indicator_file):
+        return
+
     loci_1.iloc[:,3:] = 1 / (1 + np.exp(-1 * np.array(loci_1.iloc[:,3:])))
     loci_2.iloc[:,3:] = 1 / (1 + np.exp(-1 * np.array(loci_2.iloc[:,3:])))
 
@@ -170,6 +174,10 @@ def ct_binned_posterior_heatmap(loci_1, loci_2, savedir, n_bins=10):
     plt.style.use('default')
 
 def ct_confus(loci_1, loci_2, savedir, w=1000):
+    indicator_file = "{}/raw_conditional_overlap_ratio.txt".format(savedir)
+    if os.path.exists(indicator_file):
+        return
+
     """
     labels can be matched or not
     """
@@ -242,6 +250,10 @@ def ct_confus(loci_1, loci_2, savedir, w=1000):
     confmat.to_csv("{}/heatmap_w.csv".format(savedir))
 
 def ct_granul(loci_1, loci_2, savedir):
+    indicator_file = savedir+"/granularity.pdf"
+    if os.path.exists(indicator_file):
+        return
+
     """
     for this function, the labels should not be matched
     """
@@ -309,6 +321,10 @@ def ct_granul(loci_1, loci_2, savedir):
     plt.style.use('default')
 
 def ct_lable_calib(loci_1, loci_2, pltsavedir):
+    indicator_file = pltsavedir+"/calib_logit_enr"
+    if os.path.exists(indicator_file):
+        return
+
     """
     labels need to be matched
     """
@@ -328,6 +344,10 @@ def ct_lable_calib(loci_1, loci_2, pltsavedir):
     plt.style.use('default')
 
 def overall_boundary(loci_1, loci_2, savedir, match_definition="BM"):
+    indicator_file = savedir+"/len_bound_{}.pdf".format("overall")
+    if os.path.exists(indicator_file):
+        return
+
     """
     a dict for match definition
     for w in range(max_distance):
@@ -388,6 +408,10 @@ def overall_boundary(loci_1, loci_2, savedir, match_definition="BM"):
     plt.style.use('default')
 
 def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
+    indicator_file = savedir+"/Dist_vs_Corresp"
+    if os.path.exists(indicator_file):
+        return
+
     if os.path.exists(savedir+"/Dist_vs_Corresp") == False:
         os.mkdir(savedir+"/Dist_vs_Corresp")
     savedir = savedir+"/Dist_vs_Corresp"
@@ -517,6 +541,10 @@ def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
     plt.style.use('default')
 
 def distance_vs_overlap_2(loci_1, loci_2, savedir, match_definition="BM"):
+    indicator_file = savedir+"/Dist_vs_Corresp_2"
+    if os.path.exists(indicator_file):
+        return
+        
     if os.path.exists(savedir+"/Dist_vs_Corresp_2") == False:
         os.mkdir(savedir+"/Dist_vs_Corresp_2")
     savedir = savedir+"/Dist_vs_Corresp_2"
@@ -670,6 +698,10 @@ def distance_vs_overlap_2(loci_1, loci_2, savedir, match_definition="BM"):
     plt.style.use('default')
 
 def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
+    indicator_file = outdir+"/len_bound.pdf"
+    if os.path.exists(indicator_file):
+        return
+
     """
     Here i'm gonna merge ECDF of length dist and boundary thing.
     """
@@ -804,8 +836,11 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
     plt.style.use('default')
 
 def label_granularity(loci_1, loci_2, savedir):
-    savedir = savedir+"/granul/"
+    indicator_file = savedir+"/granul/"
+    if os.path.exists(indicator_file):
+        return
 
+    savedir = savedir+"/granul/"
     if os.path.exists(savedir)==False:
         os.mkdir(savedir)
     
@@ -838,6 +873,10 @@ def label_granularity(loci_1, loci_2, savedir):
         plt.style.use('default')
 
 def label_boundary(loci_1, loci_2, savedir, match_definition="BM", max_distance=50):
+    indicator_file = savedir+"/len_bound/"
+    if os.path.exists(indicator_file):
+        return
+
     savedir = savedir+"/len_bound/"
     if os.path.exists(savedir)==False:
         os.mkdir(savedir)
@@ -955,6 +994,10 @@ def label_boundary(loci_1, loci_2, savedir, match_definition="BM", max_distance=
         plt.style.use('default')
 
 def label_merging_progression(loci_1, loci_2, savedir):
+    indicator_file = savedir+"/prog/"
+    if os.path.exists(indicator_file):
+        return
+
     savedir = savedir+"/prog/"
     if os.path.exists(savedir)==False:
         os.mkdir(savedir)
@@ -985,6 +1028,7 @@ def get_all_labels(replicate_1_dir, replicate_2_dir, savedir):
     label_boundary(loci1, loci2, savedir, match_definition="BM", max_distance=50)
 
 def get_all_ct(replicate_1_dir, replicate_2_dir, savedir):
+
     loci1, loci2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
         replicate_2_dir+"/parsed_posterior.csv",
@@ -1081,6 +1125,10 @@ def gather_labels(original_ct_dir, savedir, contour=True):
                         )
                 
 def get_all_bioval(replicate_1_dir, replicate_2_dir, savedir, genecode_dir, rnaseq=None):
+    indicator_file = savedir+"/trans_post_enr"
+    if os.path.exists(indicator_file):
+        return
+
     loci1, loci2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
         replicate_2_dir+"/parsed_posterior.csv",
@@ -1102,6 +1150,10 @@ def get_all_bioval(replicate_1_dir, replicate_2_dir, savedir, genecode_dir, rnas
     overal_TSS_enrichment(loci1, savedir+"/tss_enr")
 
 def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
+    indicator_file = savedir+"/general_reproducibility_score.txt"
+    if os.path.exists(indicator_file):
+        return
+        
     loci1, loci2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
         replicate_2_dir+"/parsed_posterior.csv",
@@ -1151,13 +1203,17 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
              scorefile.write("{} reprod score = {}\n".format(k, str(v)))
 
     MAP_NMI =  NMI_from_matrix(joint_overlap_prob(loci1, loci2, w=0, symmetric=True))
-    POST_NMI = NMI_from_matrix(joint_prob_MAP_with_posterior(loci1, loci2, n_bins=200, conditional=False, stratified=True))
+    POST_NMI = NMI_from_matrix(joint_prob_MAP_with_posterior(loci1, loci2, n_bins=200, conditional=False, stratified=True), posterior=True)
 
     with open(savedir+"/NMI.txt", "w") as scorefile:
         scorefile.write("NMI with MAP = {}\n".format(MAP_NMI))
         scorefile.write("NMI with binned posterior of R1 (n_bins=200) = {}\n".format(POST_NMI))
 
 def get_contour(replicate_1_dir, replicate_2_dir, savedir):
+    indicator_file = savedir+"/contours_OvrWind/"
+    if os.path.exists(indicator_file):
+        return
+
     loci1, loci2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
         replicate_2_dir+"/parsed_posterior.csv",
@@ -1182,6 +1238,10 @@ def get_contour(replicate_1_dir, replicate_2_dir, savedir):
     #     loci1, loci2, savedir, w_range=[0, 3000, 500], t_range=[50, 100, 15], posterior=True, matching="static")
 
 def after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, intersect_r1r2=False):
+    indicator_file = savedir+"/after_SAGAconf/NMI.txt"
+    if os.path.exists(indicator_file):
+        return
+
     loci1, loci2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
         replicate_2_dir+"/parsed_posterior.csv",
@@ -1219,9 +1279,9 @@ def after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, saved
 
     try:
         with open(savedir+"/sym_r1r2_repr.txt", "w") as scorefile:
-            scorefile.write("reproduced in both = {}".format(float(conf[1,1] / len(isrep1))))
-            scorefile.write("not-reproduced in both = {}".format(float(conf[0,0] / len(isrep1))))
-            scorefile.write("fraction similar = {}".format(float((conf[1,1] + conf[0,0]) / len(isrep1))))
+            scorefile.write("reproduced in both = {}\n".format(float(conf[1,1] / len(isrep1))))
+            scorefile.write("not-reproduced in both = {}\n".format(float(conf[0,0] / len(isrep1))))
+            scorefile.write("fraction similar = {}\n".format(float((conf[1,1] + conf[0,0]) / len(isrep1))))
 
     except:
         pass
@@ -1241,7 +1301,9 @@ def after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, saved
         MAP_NMI =  NMI_from_matrix(
             joint_overlap_prob(calibrated_loci1, calibrated_loci2, w=0, symmetric=True))
         POST_NMI = NMI_from_matrix(
-            joint_prob_with_binned_posterior(calibrated_loci1, calibrated_loci2, n_bins=200, conditional=False, stratified=True))
+            joint_prob_with_binned_posterior(
+                calibrated_loci1, calibrated_loci2, n_bins=200, conditional=False, stratified=True), 
+                posterior=True)
 
         with open(savedir+"/NMI.txt", "w") as scorefile:
             scorefile.write("NMI with MAP = {}\n".format(MAP_NMI))
@@ -1279,6 +1341,10 @@ def after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, saved
         print("FAILED. EXCEPTION...")
 
 def before_after_saga(savedir):
+    indicator_file = '{}/AUC_before_after_SAGAconf.pdf'.format(savedir)
+    if os.path.exists(indicator_file):
+        return
+
     auc_before = ast.literal_eval(open(savedir+"/AUC_mAUC.txt", "r").read())
     auc_after = ast.literal_eval(open(savedir+"/after_SAGAconf/AUC_mAUC.txt", "r").read())
 
@@ -1349,6 +1415,9 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir):
         merge best pair of R2
         generate new dendrogram
     """
+    indicator_file = '{}/NMI_Progress.pdf'.format(savedir)
+    if os.path.exists(indicator_file):
+        return
 
     loci_1, loci_2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
@@ -1375,7 +1444,6 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir):
 
     eo_c = 0
     while loci_1.shape[1]-3 > 1:
-        
         bool_reprod_report = single_point_repr(
             loci_1, loci_2, ovr_threshold=0.75, window_bp=1000, posterior=True, reproducibility_threshold=0.8)
 
@@ -1391,14 +1459,18 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir):
 
         joint = joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True)
         NMI = NMI_from_matrix(joint)
-
+        # print(NMI)
+        # print(joint)
         nmi_rec["{}_{}".format(loci_1.shape[1]-3, loci_2.shape[1]-3)] = NMI
         robust_rec["{}_{}".format(loci_1.shape[1]-3, loci_2.shape[1]-3)] = general_rep_score
         
+        print(loci_1.shape, loci_2.shape)
         if eo_c%2==0:
             loci_1, loci_2 = merge_clusters(joint, loci_1, loci_2, r1=True)
         else:
             loci_1, loci_2 = merge_clusters(joint, loci_1, loci_2, r1=False)
+        
+        eo_c +=1
     
     with open('{}/post_clustering_progress.txt'.format(savedir), 'w') as savefile:
         savefile.write(str(nmi_rec))
@@ -1412,6 +1484,7 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir):
     plt.xlabel("Number of Labels")
     plt.ylabel("NMI")
     plt.yticks(np.arange(0,1.05,0.1))
+    plt.xticks(rotation=90)
     plt.savefig('{}/NMI_Progress.pdf'.format(savedir), format='pdf')
     plt.savefig('{}/NMI_Progress.svg'.format(savedir), format='svg')
     plt.clf()
@@ -1423,6 +1496,7 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir):
     plt.xlabel("Number of Labels")
     plt.ylabel("Ratio Robust")
     plt.yticks(np.arange(0,1.05,0.1))
+    plt.xticks(rotation=90)
     plt.savefig('{}/conf_progress.pdf'.format(savedir), format='pdf')
     plt.savefig('{}/conf_progress.svg'.format(savedir), format='svg')
     plt.clf()
@@ -1483,28 +1557,41 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     except:
         pass
 
-def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
-    loci1, loci2 = load_data(
-        replicate_1_dir+"/parsed_posterior.csv",
-        replicate_2_dir+"/parsed_posterior.csv",
-        subset=True, logit_transform=False)
+# def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
+    # loci1, loci2 = load_data(
+    #     replicate_1_dir+"/parsed_posterior.csv",
+    #     replicate_2_dir+"/parsed_posterior.csv",
+    #     subset=True, logit_transform=False)
 
-    loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+    # loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
-    print(NMI_from_matrix(joint_prob_with_binned_posterior(loci1, loci2, n_bins=50, conditional=False, stratified=True)))
-    print(NMI_from_matrix(joint_prob_MAP_with_posterior(loci1, loci2, n_bins=50, conditional=False, stratified=True)))
+    # post_clustering(replicate_1_dir, replicate_2_dir, savedir)
+
+    # print(NMI_from_matrix(joint_prob_with_binned_posterior(loci1, loci2, n_bins=50, conditional=False, stratified=True)))
+    # print(NMI_from_matrix(joint_prob_MAP_with_posterior(loci1, loci2, n_bins=50, conditional=False, stratified=True)))
 
     # after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None)
     # before_after_saga(savedir)
 
 if __name__=="__main__":  
-
+    GET_ALL(
+        replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
+        replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
+        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+        rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
+        savedir="tests/cedar_runs/chmm/GM12878_R1/", contour=False)
     # test_new_functions(
     #     replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
     #     replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
     #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
     #     savedir="tests/cedar_runs/chmm/GM12878_R1/")
 
+    # test_new_functions(
+    #     replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
+    #     replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
+    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+    #     savedir="tests/cedar_runs/segway/GM12878_R1/")
+    # exit()
     # test_new_functions(
     #     replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
     #     replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
@@ -1538,12 +1625,7 @@ if __name__=="__main__":
     #     rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
     #     savedir="tests/cedar_runs/segway_concat/K562_concat_rep1/", contour=False)
 
-    GET_ALL(
-        replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
-        replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
-        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
-        rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
-        savedir="tests/cedar_runs/chmm/GM12878_R1/", contour=False)
+    
     exit()
 
     GET_ALL(
