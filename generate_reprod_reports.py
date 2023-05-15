@@ -281,7 +281,7 @@ def run(param_dict):
             genecode_dir=param_dict["genecode_dir"], 
             savedir=param_dict["savedir"], 
             rnaseq=param_dict["rnaseq"], 
-            contour=False
+            contour=True
         )
         with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
             f.write(str(param_dict))
@@ -300,7 +300,7 @@ def run(param_dict):
     finally:
         pass
 
-def m_p(setting, nt=10):
+def m_p(setting, nt=5):
     if setting == "s1":
         with mp.Pool(nt) as pool:
             r_ = pool.map(run, r1vsr2())
