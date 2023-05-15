@@ -24,14 +24,15 @@ def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=Fals
 
     return loci_1, loci_2
 
-def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False, custom_order=True):
+#######################################################################################################################
+
+def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True, vm="NA", bm="NA", match=False, custom_order=True):
     # print('generating confmat 1 ...')
     num_labels = loci_1.shape[1]-3
 
     loci_1.columns = ["chr", "start", "end"]+["posterior{}".format(i) for i in range(num_labels)]
     loci_2.columns = ["chr", "start", "end"]+["posterior{}".format(i) for i in range(num_labels)]
     
-
     if mnemons:
         print("loading mnemonics...")
         if os.path.exists(
@@ -43,8 +44,13 @@ def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True,
             loci_2_mnemon = read_mnemonics("/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics_rep2.txt")
         else:
             print("reading mnemonics")
-            loci_1_mnemon = read_mnemonics("/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics.txt")
-            loci_2_mnemon = read_mnemonics("/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics.txt")
+            if bm == "NA":
+                bm = "/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics.txt"
+            if vm == "NA":
+                vm = "/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics.txt"
+
+            loci_1_mnemon = read_mnemonics(bm)
+            loci_2_mnemon = read_mnemonics(vm)
 
         mnemon1_dict = {}
         for i in loci_1_mnemon:
@@ -227,7 +233,7 @@ def ct_confus(loci_1, loci_2, savedir, w=1000):
 
     ####################################################################################
 
-    confmat = IoU_overlap(loci_1, loci_2, w=1000, symmetric=False, soft=False)
+    confmat = IoU_overlap(loci_1, loci_2, w=w, symmetric=False, soft=False)
     p = sns.heatmap(
         confmat.astype(float), annot=True, fmt=".2f",
         linewidths=0.01,  cbar=True, annot_kws={"size": 8}, 
@@ -1010,35 +1016,42 @@ def label_merging_progression(loci_1, loci_2, savedir):
         plt.close("all")
         plt.style.use('default')
 
-def get_all_labels(replicate_1_dir, replicate_2_dir, savedir):
+#######################################################################################################################
+
+def get_all_labels(replicate_1_dir, replicate_2_dir, savedir, locis=False):
     """
     -single granularity
     -single prog
     -single boundar
     """
-    loci1, loci2 = load_data(
-        replicate_1_dir+"/parsed_posterior.csv",
-        replicate_2_dir+"/parsed_posterior.csv",
-        subset=True)
+    if locis:
+        loci1, loci2 = replicate_1_dir, replicate_2_dir
+    else:
+        loci1, loci2 = load_data(
+            replicate_1_dir+"/parsed_posterior.csv",
+            replicate_2_dir+"/parsed_posterior.csv",
+            subset=True)
 
-    loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+        loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
     label_granularity(loci1, loci2, savedir)
     label_merging_progression(loci1, loci2, savedir)
     label_boundary(loci1, loci2, savedir, match_definition="BM", max_distance=50)
 
-def get_all_ct(replicate_1_dir, replicate_2_dir, savedir):
+def get_all_ct(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000):
+    if locis:
+        loci1, loci2 = replicate_1_dir, replicate_2_dir
+    else:
+        loci1, loci2 = load_data(
+            replicate_1_dir+"/parsed_posterior.csv",
+            replicate_2_dir+"/parsed_posterior.csv",
+            subset=True, logit_transform=True)
 
-    loci1, loci2 = load_data(
-        replicate_1_dir+"/parsed_posterior.csv",
-        replicate_2_dir+"/parsed_posterior.csv",
-        subset=True, logit_transform=True)
-
-    loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+        loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
     ct_binned_posterior_heatmap(loci1.copy(), loci2.copy(), savedir)
 
-    ct_confus(loci1.copy(), loci2.copy(), savedir)
+    ct_confus(loci1.copy(), loci2.copy(), savedir, w=w)
 
     ct_lable_calib(loci1.copy(), loci2.copy(), savedir)
 
@@ -1124,17 +1137,20 @@ def gather_labels(original_ct_dir, savedir, contour=True):
                         "cp {} {}".format(savedir+"/contours_ReprThresWind/"+f, savedir+"/labels/"+k)
                         )
                 
-def get_all_bioval(replicate_1_dir, replicate_2_dir, savedir, genecode_dir, rnaseq=None):
+def get_all_bioval(replicate_1_dir, replicate_2_dir, savedir, genecode_dir, rnaseq=None, locis=False):
     indicator_file = savedir+"/trans_post_enr"
     if os.path.exists(indicator_file):
         return
 
-    loci1, loci2 = load_data(
-        replicate_1_dir+"/parsed_posterior.csv",
-        replicate_2_dir+"/parsed_posterior.csv",
-        subset=True, logit_transform=False)
+    if locis:
+        loci1, loci2 = replicate_1_dir, replicate_2_dir
+    else:
+        loci1, loci2 = load_data(
+            replicate_1_dir+"/parsed_posterior.csv",
+            replicate_2_dir+"/parsed_posterior.csv",
+            subset=True, logit_transform=False)
 
-    loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+        loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
     gene_coords = load_gene_coords(genecode_dir)
     if rnaseq != None:
@@ -1149,21 +1165,24 @@ def get_all_bioval(replicate_1_dir, replicate_2_dir, savedir, genecode_dir, rnas
 
     overal_TSS_enrichment(loci1, savedir+"/tss_enr")
 
-def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
+def get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000):
     indicator_file = savedir+"/general_reproducibility_score.txt"
     if os.path.exists(indicator_file):
         return
-        
-    loci1, loci2 = load_data(
-        replicate_1_dir+"/parsed_posterior.csv",
-        replicate_2_dir+"/parsed_posterior.csv",
-        subset=True, logit_transform=True)
 
-    loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+    if locis:
+        loci1, loci2 = replicate_1_dir, replicate_2_dir
+    else: 
+        loci1, loci2 = load_data(
+            replicate_1_dir+"/parsed_posterior.csv",
+            replicate_2_dir+"/parsed_posterior.csv",
+            subset=True, logit_transform=True)
+
+        loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
     
     ###################################################################################################################
     bool_reprod_report = single_point_repr(
-        loci1, loci2, ovr_threshold=0.75, window_bp=1000, posterior=False, reproducibility_threshold=0.8)
+        loci1, loci2, ovr_threshold=0.75, window_bp=w, posterior=False, reproducibility_threshold=0.8)
 
     bool_reprod_report = pd.concat(
         [loci1["chr"], loci1["start"], loci1["end"], pd.Series(bool_reprod_report)], axis=1)
@@ -1183,7 +1202,7 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
              scorefile.write("{} reprod score = {}\n".format(k, str(v)))
 
     bool_reprod_report = single_point_repr(
-        loci1, loci2, ovr_threshold=0.75, window_bp=1000, posterior=True, reproducibility_threshold=0.8)
+        loci1, loci2, ovr_threshold=0.75, window_bp=w, posterior=True, reproducibility_threshold=0.8)
 
     bool_reprod_report = pd.concat(
         [loci1["chr"], loci1["start"], loci1["end"], pd.Series(bool_reprod_report)], axis=1)
@@ -1209,17 +1228,20 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir):
         scorefile.write("NMI with MAP = {}\n".format(MAP_NMI))
         scorefile.write("NMI with binned posterior of R1 (n_bins=200) = {}\n".format(POST_NMI))
 
-def get_contour(replicate_1_dir, replicate_2_dir, savedir):
+def get_contour(replicate_1_dir, replicate_2_dir, savedir, locis=False):
     indicator_file = savedir+"/contours_OvrWind/"
     if os.path.exists(indicator_file):
         return
 
-    loci1, loci2 = load_data(
-        replicate_1_dir+"/parsed_posterior.csv",
-        replicate_2_dir+"/parsed_posterior.csv",
-        subset=True, logit_transform=False)
+    if locis:
+        loci1, loci2 = replicate_1_dir, replicate_2_dir
+    else:
+        loci1, loci2 = load_data(
+            replicate_1_dir+"/parsed_posterior.csv",
+            replicate_2_dir+"/parsed_posterior.csv",
+            subset=True, logit_transform=False)
 
-    loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+        loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
     print("getting contours 1 : overlapT-window-repr")
     OvrWind_contour(
@@ -1237,27 +1259,29 @@ def get_contour(replicate_1_dir, replicate_2_dir, savedir):
     # ReprThresWind_delta_NMI_contour(
     #     loci1, loci2, savedir, w_range=[0, 3000, 500], t_range=[50, 100, 15], posterior=True, matching="static")
 
-def after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, intersect_r1r2=False):
+def after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, w=1000, rnaseq=None, intersect_r1r2=False, locis=False):
     indicator_file = savedir+"/after_SAGAconf/NMI.txt"
     if os.path.exists(indicator_file):
         return
 
-    loci1, loci2 = load_data(
-        replicate_1_dir+"/parsed_posterior.csv",
-        replicate_2_dir+"/parsed_posterior.csv",
-        subset=True, logit_transform=True)
-    
+    if locis:
+        loci1, loci2 = replicate_1_dir, replicate_2_dir
+    else:
+        loci1, loci2 = load_data(
+            replicate_1_dir+"/parsed_posterior.csv",
+            replicate_2_dir+"/parsed_posterior.csv",
+            subset=True, logit_transform=True)
+        loci_1, loci_2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+
     savedir = savedir+"/after_SAGAconf"
     if os.path.exists(savedir) == False:
         os.mkdir(savedir)
-
-    loci_1, loci_2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
-
+    
     isrep1 = is_repr_posterior(
-        loci_1, loci_2, ovr_threshold=0.75, window_bp=1000, reproducibility_threshold=0.75, matching="static")
+        loci_1, loci_2, ovr_threshold=0.75, window_bp=w, reproducibility_threshold=0.75, matching="static")
     
     isrep2 = is_repr_posterior(
-            loci_2, loci_1, ovr_threshold=0.75, window_bp=1000, reproducibility_threshold=0.75, matching="static")
+            loci_2, loci_1, ovr_threshold=0.75, window_bp=w, reproducibility_threshold=0.75, matching="static")
     
     is_rep_intersec = []
     conf = np.zeros((2,2))
@@ -1402,7 +1426,7 @@ def before_after_saga(savedir):
     sns.reset_orig
     plt.style.use('default')
 
-def post_clustering(replicate_1_dir, replicate_2_dir, savedir):
+def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False):
     """
     get the IoU
     make it symmetric
@@ -1419,12 +1443,16 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir):
     if os.path.exists(indicator_file):
         return
 
-    loci_1, loci_2 = load_data(
-        replicate_1_dir+"/parsed_posterior.csv",
-        replicate_2_dir+"/parsed_posterior.csv",
-        subset=True, logit_transform=False)
+    if locis:
+        loci1, loci2 = replicate_1_dir, replicate_2_dir
 
-    loci_1, loci_2 = process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+    else:
+        loci_1, loci_2 = load_data(
+            replicate_1_dir+"/parsed_posterior.csv",
+            replicate_2_dir+"/parsed_posterior.csv",
+            subset=True, logit_transform=False)
+
+        loci_1, loci_2 = process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
     joint = joint_overlap_prob(loci_1, loci_2, w=0, symmetric=False)
 
@@ -1500,6 +1528,8 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir):
     plt.savefig('{}/conf_progress.pdf'.format(savedir), format='pdf')
     plt.savefig('{}/conf_progress.svg'.format(savedir), format='svg')
     plt.clf()
+
+#######################################################################################################################
 
 def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, contour=True):
     print(replicate_1_dir, replicate_2_dir, genecode_dir, savedir)
