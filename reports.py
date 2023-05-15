@@ -1444,25 +1444,25 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir):
 
     eo_c = 0
     while loci_1.shape[1]-3 > 1:
-        bool_reprod_report = single_point_repr(
-            loci_1, loci_2, ovr_threshold=0.75, window_bp=1000, posterior=True, reproducibility_threshold=0.8)
+        # bool_reprod_report = single_point_repr(
+        #     loci_1, loci_2, ovr_threshold=0.75, window_bp=1000, posterior=True, reproducibility_threshold=0.8)
 
-        bool_reprod_report = pd.concat(
-            [loci_1["chr"], loci_1["start"], loci_1["end"], pd.Series(bool_reprod_report)], axis=1)
-        bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
+        # bool_reprod_report = pd.concat(
+        #     [loci_1["chr"], loci_1["start"], loci_1["end"], pd.Series(bool_reprod_report)], axis=1)
+        # bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
 
-        general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
-        perlabel_rec = {}
-        lab_rep = perlabel_is_reproduced(bool_reprod_report, loci_1)
-        for k, v in lab_rep.items():
-            perlabel_rec[k] = v[0]/ (v[0]+v[1])
+        # general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
+        # perlabel_rec = {}
+        # lab_rep = perlabel_is_reproduced(bool_reprod_report, loci_1)
+        # for k, v in lab_rep.items():
+        #     perlabel_rec[k] = v[0]/ (v[0]+v[1])
 
         joint = joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True)
         NMI = NMI_from_matrix(joint)
         # print(NMI)
         # print(joint)
         nmi_rec["{}_{}".format(loci_1.shape[1]-3, loci_2.shape[1]-3)] = NMI
-        robust_rec["{}_{}".format(loci_1.shape[1]-3, loci_2.shape[1]-3)] = general_rep_score
+        # robust_rec["{}_{}".format(loci_1.shape[1]-3, loci_2.shape[1]-3)] = general_rep_score
         
         print(loci_1.shape, loci_2.shape)
         if eo_c%2==0:
@@ -1557,7 +1557,7 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     except:
         pass
 
-# def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
+def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
     # loci1, loci2 = load_data(
     #     replicate_1_dir+"/parsed_posterior.csv",
     #     replicate_2_dir+"/parsed_posterior.csv",
@@ -1565,7 +1565,7 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
 
     # loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
-    # post_clustering(replicate_1_dir, replicate_2_dir, savedir)
+    post_clustering(replicate_1_dir, replicate_2_dir, savedir)
 
     # print(NMI_from_matrix(joint_prob_with_binned_posterior(loci1, loci2, n_bins=50, conditional=False, stratified=True)))
     # print(NMI_from_matrix(joint_prob_MAP_with_posterior(loci1, loci2, n_bins=50, conditional=False, stratified=True)))
@@ -1574,17 +1574,18 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     # before_after_saga(savedir)
 
 if __name__=="__main__":  
-    GET_ALL(
+    # GET_ALL(
+    #     replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
+    #     replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
+    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+    #     rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
+    #     savedir="tests/cedar_runs/segway/GM12878_R1/", contour=True)
+
+    test_new_functions(
         replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
         replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
         genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
-        rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
-        savedir="tests/cedar_runs/chmm/GM12878_R1/", contour=False)
-    # test_new_functions(
-    #     replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
-    #     replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
-    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
-    #     savedir="tests/cedar_runs/chmm/GM12878_R1/")
+        savedir="tests/cedar_runs/chmm/GM12878_R1/")
 
     # test_new_functions(
     #     replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 

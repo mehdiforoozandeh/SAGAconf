@@ -401,7 +401,7 @@ def merging_gain(joint_overlap):
     coverage1 = {k:sum(joint_overlap.loc[k,:]) for k in joint_overlap.index}
     coverage2 = {k:sum(joint_overlap.loc[:,k]) for k in joint_overlap.columns}
 
-    nmi0 = NMI_from_matrix(joint_overlap, return_MI=False)
+    # nmi0 = NMI_from_matrix(joint_overlap, return_MI=False)
     gain = pd.DataFrame(
         np.zeros([joint_overlap.shape[0], joint_overlap.shape[0]]), 
         index=joint_overlap.index,
@@ -415,21 +415,43 @@ def merging_gain(joint_overlap):
                 gain.loc[i, j] = 0
 
             else:
+                MI0 = NMI_from_matrix(joint_overlap_prime, return_MI=True)
+                H0 = -1 * np.sum([
+                    np.sum(joint_overlap_prime.loc[p, :]) * np.log(np.sum(joint_overlap_prime.loc[p, :])) for p in joint_overlap_prime.index
+                ])
 
                 joint_prime_ij = joint_overlap.loc[i, :] + joint_overlap.loc[j, :]
                 coverage_ij = np.sum(joint_prime_ij)
 
                 joint_overlap_prime.loc[str(i) + " + " + str(j)] = joint_prime_ij
                 joint_overlap_prime = joint_overlap_prime.drop([i, j], axis=0)
-                
-                nmi1 = NMI_from_matrix(joint_overlap_prime, return_MI=False)
 
-                gain.loc[i, j] = nmi1 - nmi0
+                MI1 = NMI_from_matrix(joint_overlap_prime, return_MI=True)
+                H1 = -1 * np.sum([
+                    np.sum(joint_overlap_prime.loc[p, :]) * np.log(np.sum(joint_overlap_prime.loc[p, :])) for p in joint_overlap_prime.index
+                ])
+                
+                # nmi1 = NMI_from_matrix(joint_overlap_prime, return_MI=False)
+
+                # gain.loc[i, j] = nmi1 - nmi0
+                gain.loc[i, j] = 1 - ((MI1 - MI0) / (H1 - H0))
+
 
     # gain = np.array((gain - gain.min().min()) / (gain.max().max() - gain.min().min()))
     # print(gain)
-    gain = np.array(gain)
-    np.fill_diagonal(gain, np.min(gain) - 1)
+    # gain = np.array(gain)
+    # np.fill_diagonal(gain, np.min(gain) - 1)
+    p = sns.heatmap(
+        gain.astype(float), annot=True, fmt=".2f",
+        linewidths=0.01,  cbar=True, annot_kws={"size": 8})
+
+    p.tick_params(axis='x', rotation=90, labelsize=10)
+    p.tick_params(axis='y', rotation=0, labelsize=10)
+
+    plt.tight_layout()
+    plt.show()
+    # exit()
+
     return gain
 
 def merge_clusters(joint, loci_1, loci_2, r1=True):

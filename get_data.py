@@ -278,7 +278,6 @@ def get_data_from_csv(csvfile ="data_summary.csv", downloaddir="files/", bw2bg=T
         if bw2bg:
             os.system("./bigWigToBedGraph {} {}".format(save_dir_name, save_dir_name.replace("bigWig", "bedGraph")))
 
-
 def create_trackname_assay_file(download_dir):
     tracknames = []
     CellType_list = [ct for ct in os.listdir(download_dir) if os.path.isdir(download_dir+ct)]
