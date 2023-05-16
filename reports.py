@@ -1138,7 +1138,7 @@ def gather_labels(original_ct_dir, savedir, contour=True):
                         )
                 
 def get_all_bioval(replicate_1_dir, replicate_2_dir, savedir, genecode_dir, rnaseq=None, locis=False):
-    indicator_file = savedir+"/trans_post_enr"
+    indicator_file = savedir+"/tss_enr"
     if os.path.exists(indicator_file):
         return
 
@@ -1265,7 +1265,7 @@ def after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, saved
         return
 
     if locis:
-        loci1, loci2 = replicate_1_dir, replicate_2_dir
+        loci_1, loci_2 = replicate_1_dir, replicate_2_dir
     else:
         loci1, loci2 = load_data(
             replicate_1_dir+"/parsed_posterior.csv",
@@ -1444,7 +1444,7 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False):
         return
 
     if locis:
-        loci1, loci2 = replicate_1_dir, replicate_2_dir
+        loci_1, loci_2 = replicate_1_dir, replicate_2_dir
 
     else:
         loci_1, loci_2 = load_data(

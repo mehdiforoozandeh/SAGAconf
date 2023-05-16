@@ -2,8 +2,8 @@ from reports import *
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("base", help="path of parsed posterior CSV file of base replicate annotation.", type=str)
-parser.add_argument("verif", help="path of parsed posterior CSV file of verification replicate annotation.", type=str)
+parser.add_argument("base", help="path of parsed posterior CSV file of base replicate annotation", type=str)
+parser.add_argument("verif", help="path of parsed posterior CSV file of verification replicate annotation", type=str)
 parser.add_argument("savedir", help="directory to save SAGAconf results.", type=str)
 
 
@@ -20,10 +20,10 @@ parser.add_argument(
 
 parser.add_argument("--rnaseq", help="path to rnaseq TPM per gene data", type=str, default=None)
 
-parser.add_argument("-c", "--contour", help="if specified, generate contours plots.", action="store_true")
+parser.add_argument("-c", "--contour", help="if specified, generate contours plots.", action="store_true", default=False)
 parser.add_argument("-s", "--subset", help="if specified, run SAGA on just one chromosome", action="store_true", default=True)
 
-parser.add_argument("-w", "--windowsize",  help="window size (bp) to account for around each genomic bin", type=int, default=1000)
+parser.add_argument("-w", "--windowsize",  help="window size (bp) to account for around each genomic bin [default=1000bp]", type=int, default=1000)
 
 args = parser.parse_args()
 
@@ -70,72 +70,93 @@ issubset = args.subset
 
 try:
     loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
-    loci1, loci2 = process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=mnem, match=False, custom_order=True)
+    loci1, loci2 = process_data(
+        loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
+        vm=args.verif_mnemonics, match=False, custom_order=True)
 
-    get_all_ct(args.base, args.verif, args.savedir, locis=True, w=w)
+    get_all_ct(loci1, loci2, args.savedir, locis=True, w=w)
 
 except:
-    pass
+    if args.verbosity:
+        print("Failed to generated some of the general celltype analysis.")
+try:
+    loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
+    loci1, loci2 = process_data(
+        loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
+        vm=args.verif_mnemonics, match=False, custom_order=True)
+
+    get_all_labels(loci1, loci2, args.savedir, locis=True)
+except:
+    if args.verbosity:
+        print("Failed to generated some of the label-specific analysis.")
 
 try:
     loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
-    loci1, loci2 = process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=mnem, match=False, custom_order=True)
+    loci1, loci2 = process_data(
+        loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
+        vm=args.verif_mnemonics, match=False, custom_order=True)
 
-    get_all_labels(args.base, args.verif, args.savedir, locis=True)
+    post_clustering(loci1, loci2, args.savedir, locis=True)
+
 except:
-    pass
+    if args.verbosity:
+        print("Failed to perform post-clustering results")
 
 try:
     loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
-    loci1, loci2 = process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=mnem, match=False, custom_order=True)
-
-    post_clustering(args.base, args.verif, args.savedir, locis=True)
-
-except:
-    pass
-
-try:
-    loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
-    loci1, loci2 = process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=mnem, match=False, custom_order=True)
+    loci1, loci2 = process_data(
+        loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
+        vm=args.verif_mnemonics, match=False, custom_order=True)
 
     get_all_bioval(
-        args.base, args.verif, 
+        loci1, loci2, 
         args.savedir,
         genecode_dir=args.genecode, 
         rnaseq=args.rnaseq, locis=True)
 except:
-    pass
+    if args.verbosity:
+        print("failed to perform biological validation results")
 
 try:
     loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
-    loci1, loci2 = process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=mnem, match=False, custom_order=True)
+    loci1, loci2 = process_data(
+        loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
+        vm=args.verif_mnemonics, match=False, custom_order=True)
 
-    get_overalls(args.base, args.verif, args.savedir, locis=True, w=w)
+    get_overalls(loci1, loci2, args.savedir, locis=True, w=w)
 
 except:
-    pass
+    if args.verbosity:
+        print("failed to get overall SAGAconf reproducibility results")
 
 if args.contour:
     try:
         loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
-        loci1, loci2 = process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=mnem, match=False, custom_order=True)
+        loci1, loci2 = process_data(
+            loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
+            vm=args.verif_mnemonics, match=False, custom_order=True)
 
-        get_contour(args.base, args.verif, args.savedir, locis=True)
+        get_contour(loci1, loci2, args.savedir, locis=True)
     except:
-        pass
+        if args.verbosity:
+            print("failed to generate overall reproducibility contours")
 
 try:
     gather_labels(args.base, args.savedir, contour=args.contour)
 
 except:
-    pass
+    if args.verbosity:
+        print("failed to gather per-label results")
 
-try:
-    loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
-    loci1, loci2 = process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=mnem, match=False, custom_order=True)
+# try:
+loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
+loci1, loci2 = process_data(
+    loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
+    vm=args.verif_mnemonics, match=False, custom_order=True)
 
-    after_SAGAconf_metrics(args.base, args.verif, args.genecode, args.savedir, rnaseq=None, locis=True, w=w)
-    before_after_saga(args.savedir)
+after_SAGAconf_metrics(loci1, loci2, args.genecode, args.savedir, rnaseq=None, locis=True, w=w)
+before_after_saga(args.savedir)
 
-except:
-    pass
+# except:
+#     if args.verbosity:
+#         print("failed to generate before vs. after SAGAconf results")

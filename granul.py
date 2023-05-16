@@ -441,15 +441,16 @@ def merging_gain(joint_overlap):
     # print(gain)
     # gain = np.array(gain)
     # np.fill_diagonal(gain, np.min(gain) - 1)
-    p = sns.heatmap(
-        gain.astype(float), annot=True, fmt=".2f",
-        linewidths=0.01,  cbar=True, annot_kws={"size": 8})
 
-    p.tick_params(axis='x', rotation=90, labelsize=10)
-    p.tick_params(axis='y', rotation=0, labelsize=10)
+    # p = sns.heatmap(
+    #     gain.astype(float), annot=True, fmt=".2f",
+    #     linewidths=0.01,  cbar=True, annot_kws={"size": 8})
 
-    plt.tight_layout()
-    plt.show()
+    # p.tick_params(axis='x', rotation=90, labelsize=10)
+    # p.tick_params(axis='y', rotation=0, labelsize=10)
+
+    # plt.tight_layout()
+    # plt.show()
     # exit()
 
     return gain
