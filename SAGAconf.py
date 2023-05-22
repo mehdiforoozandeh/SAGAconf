@@ -1,6 +1,17 @@
 from reports import *
 import argparse
 
+"""
+# TODO:
+1. the input files should be in BED3+k format
+2. the main output file should be in BED format of confident segments
+3. the savedir should look sth like this:
+    a. the BED of confident segments
+    b. analysis/ directory where everything else reside
+4. remove the replicate dirs that are temporarily created
+5. add the option to post_cluster the annotations up to a certain point to get better reproducibility.
+"""
+
 parser = argparse.ArgumentParser()
 parser.add_argument("base", help="path of parsed posterior CSV file of base replicate annotation", type=str)
 parser.add_argument("verif", help="path of parsed posterior CSV file of verification replicate annotation", type=str)

@@ -282,13 +282,13 @@ def inplace_binning(posterior_file, resolution):
         else:
             new_posterior_list.append(posterior_list[i])
 
-        if i % int(len(posterior_list)/5000) == 0:
-            print(len(new_posterior_list))
+        # if i % int(len(posterior_list)/1000000) == 0:
+        #     print(len(new_posterior_list))
 
     new_posterior_list = pd.DataFrame(new_posterior_list, columns=['chr', 'start', 'end', posterior_ID])
     return new_posterior_list
 
-def mp_inplace_binning(posterior_dir, resolution, assert_coord_match=False, mp=False):
+def mp_inplace_binning(posterior_dir, resolution, assert_coord_match=False, m_p=False):
     ls_dir = os.listdir(posterior_dir)
     posterior_file_list = []
 
@@ -299,13 +299,14 @@ def mp_inplace_binning(posterior_dir, resolution, assert_coord_match=False, mp=F
     posterior_file_list = ["{}/posterior{}.bedGraph".format(posterior_dir, i) for i in range(len(posterior_file_list))]
 
     print("starting the parsing")
-    if mp:
+    if m_p:
         p_obj = mp.Pool(len(posterior_file_list))
         parsed_list = p_obj.map(
             functools.partial(inplace_binning, resolution=resolution), posterior_file_list)
     else:
         parsed_list = []
         for pfile in posterior_file_list:
+            print(pfile)
             parsed_list.append(inplace_binning(pfile, resolution))
 
     print("parsed all individual files")
@@ -328,7 +329,6 @@ def mp_inplace_binning(posterior_dir, resolution, assert_coord_match=False, mp=F
 
 
 def logit(p):
-
     if 1e-16 < p < (1- 1e-16):
         return np.log((p)/(1-p))
 
