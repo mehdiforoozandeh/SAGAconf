@@ -673,6 +673,28 @@ def keep_reproducible_annotations(loci, bool_reprod_report):
 
     return loci.loc[(bool_reprod_report["is_repr"] == True), :].reset_index(drop=True)
 
+def condense_segments(coordMAP):
+    coordMAP = coordMAP.values.tolist()
+    i=0
+    while i+1 < len(coordMAP):
+        if coordMAP[i][0] == coordMAP[i+1][0] and coordMAP[i][3] == coordMAP[i+1][3]:
+            coordMAP[i+1][1] = coordMAP[i][1]
+            del coordMAP[i]
+
+        else:
+            i += 1
+    
+    return pd.DataFrame(coordMAP, columns=["chr", "start", "end", "MAP"])
+
+def write_MAPloci_in_BED(loci, savedir):
+    MAP = loci.iloc[:,3:].idxmax(axis=1)
+    coordMAP = pd.concat([loci.iloc[:, :3], MAP], axis=1)
+    coordMAP.columns = ["chr", "start", "end", "MAP"]
+    denseMAP = condense_segments(coordMAP)
+
+    coordMAP.to_csv(savedir + "/confident_segments.bed", sep='\t', header=False, index=False)
+    denseMAP.to_csv(savedir + "/confident_segments_dense.bed", sep='\t', header=False, index=False)
+
 def OvrWind_contour(
     loci1, loci2, savedir, w_range=[0, 4000, 200], t_range=[0, 11, 1], posterior=True, repr_threshold=0.9):
     # t is the overlap threshold (used to define matches)

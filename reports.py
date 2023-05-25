@@ -6,7 +6,7 @@ from overall import *
 from matplotlib.colors import LinearSegmentedColormap
 import ast
 
-def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False, force_WG=True):
+def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False, force_WG=False):
     print("loading and intersecting")
     loci_1, loci_2 = intersect_parsed_posteriors(
         posterior1_dir, 
@@ -474,7 +474,7 @@ def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
     plt.yticks(np.logspace(-6, 0, 7))
     plt.xlabel("Distance (bp)")
     plt.ylabel("Matched label density (log scale)")
-    plt.title("Correspondence vs. Distance -- Overall | Matched Ratio = {:.2f}".format(matched_ratio))
+    plt.title("Correspondence vs. Distance -- Overall | overlap ratio = {:.2f}".format(matched_ratio))
     plt.tight_layout()
     plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format("overall"), format='pdf')
     plt.savefig(savedir+"/dist_vs_corresp_{}.svg".format("overall"), format='svg')
@@ -502,7 +502,7 @@ def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
         plt.yticks(np.logspace(-6, 0, 7))
         plt.xlabel("Distance (bp)")
         plt.ylabel("Matched label density (log scale)")
-        plt.title("Correspondence vs. Distance -- {} | Matched Ratio = {:.2f}".format(k, matched_ratio))
+        plt.title("Correspondence vs. Distance -- {} | overlap ratio = {:.2f}".format(k, matched_ratio))
         plt.tight_layout()
         plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format(k), format='pdf')
         plt.savefig(savedir+"/dist_vs_corresp_{}.svg".format(k), format='svg')
@@ -532,7 +532,7 @@ def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
 
             axs[i,j].axvline(x=0, color='red', linestyle='dotted', linewidth=2)
             axs[i,j].set_yticks(np.logspace(-6, 0, 7))
-            axs[i,j].set_title("{} | Matched Ratio = {:.2f}".format(k, matched_ratio), fontsize=15)
+            axs[i,j].set_title("{} | overlap ratio = {:.2f}".format(k, matched_ratio), fontsize=15)
             axs[i,j].tick_params(axis='both', which='major', labelsize=15) 
 
 
@@ -826,7 +826,7 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
             axs[i, j].tick_params(axis='x', rotation=90)
             axs[i, j].set_yticks(np.arange(0, 1.1, step=0.2))
             axs[i, j].set_xlabel('bp', fontsize=13)
-            axs[i, j].set_ylabel('ratio matched',fontsize=13)
+            axs[i, j].set_ylabel('overlap ratio',fontsize=13)
             
             
             axs[i, j].set_title(k, fontsize=14)
@@ -1165,8 +1165,8 @@ def get_all_bioval(replicate_1_dir, replicate_2_dir, savedir, genecode_dir, rnas
 
     overal_TSS_enrichment(loci1, savedir+"/tss_enr")
 
-def get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000):
-    indicator_file = savedir+"/general_reproducibility_score.txt"
+def get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000, to=0.75, tr=0.8):
+    indicator_file = savedir+"/boolean_reproducibility_report_POSTERIOR.txt"
     if os.path.exists(indicator_file):
         return
 
@@ -1181,28 +1181,32 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000)
         loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
     
     ###################################################################################################################
+    # bool_reprod_report = single_point_repr(
+    #     loci1, loci2, ovr_threshold=0.75, window_bp=w, posterior=False, reproducibility_threshold=0.8)
+
+    # bool_reprod_report = pd.concat(
+    #     [loci1["chr"], loci1["start"], loci1["end"], pd.Series(bool_reprod_report)], axis=1)
+    # bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
+
+    # bool_reprod_report.to_csv(savedir+"/boolean_reproducibility_report.csv")
+
+    # general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
+    # perlabel_rec = {}
+    # lab_rep = perlabel_is_reproduced(bool_reprod_report, loci1)
+    # for k, v in lab_rep.items():
+    #     perlabel_rec[k] = v[0]/ (v[0]+v[1])
+
+    # with open(savedir+"/general_reproducibility_score.txt", "w") as scorefile:
+    #     scorefile.write("general reprod score = {}\n".format(general_rep_score))
+    #     for k, v in perlabel_rec.items():
+    #          scorefile.write("{} reprod score = {}\n".format(k, str(v)))
+
     bool_reprod_report = single_point_repr(
-        loci1, loci2, ovr_threshold=0.75, window_bp=w, posterior=False, reproducibility_threshold=0.8)
+        loci1, loci2, ovr_threshold=to, window_bp=w, posterior=True, reproducibility_threshold=tr)
 
-    bool_reprod_report = pd.concat(
-        [loci1["chr"], loci1["start"], loci1["end"], pd.Series(bool_reprod_report)], axis=1)
-    bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
-
-    bool_reprod_report.to_csv(savedir+"/boolean_reproducibility_report.csv")
-
-    general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
-    perlabel_rec = {}
-    lab_rep = perlabel_is_reproduced(bool_reprod_report, loci1)
-    for k, v in lab_rep.items():
-        perlabel_rec[k] = v[0]/ (v[0]+v[1])
-
-    with open(savedir+"/general_reproducibility_score.txt", "w") as scorefile:
-        scorefile.write("general reprod score = {}\n".format(general_rep_score))
-        for k, v in perlabel_rec.items():
-             scorefile.write("{} reprod score = {}\n".format(k, str(v)))
-
-    bool_reprod_report = single_point_repr(
-        loci1, loci2, ovr_threshold=0.75, window_bp=w, posterior=True, reproducibility_threshold=0.8)
+    reproduced_loci1 = keep_reproducible_annotations(loci1, bool_reprod_report)
+    write_MAPloci_in_BED(reproduced_loci1, savedir)
+    reproduced_loci1.to_csv(savedir + "/confident_posteriors.bed", sep='\t', header=True, index=False)
 
     bool_reprod_report = pd.concat(
         [loci1["chr"], loci1["start"], loci1["end"], pd.Series(bool_reprod_report)], axis=1)
@@ -1220,6 +1224,7 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000)
         scorefile.write("general reprod score = {}\n".format(general_rep_score))
         for k, v in perlabel_rec.items():
              scorefile.write("{} reprod score = {}\n".format(k, str(v)))
+
 
     MAP_NMI =  NMI_from_matrix(joint_overlap_prob(loci1, loci2, w=0, symmetric=True))
     POST_NMI = NMI_from_matrix(joint_prob_MAP_with_posterior(loci1, loci2, n_bins=200, conditional=False, stratified=True), posterior=True)
@@ -1259,7 +1264,7 @@ def get_contour(replicate_1_dir, replicate_2_dir, savedir, locis=False):
     # ReprThresWind_delta_NMI_contour(
     #     loci1, loci2, savedir, w_range=[0, 3000, 500], t_range=[50, 100, 15], posterior=True, matching="static")
 
-def after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, w=1000, rnaseq=None, intersect_r1r2=False, locis=False):
+def after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, w=1000, rnaseq=None, intersect_r1r2=False, locis=False, to=0.75, tr=0.8):
     indicator_file = savedir+"/after_SAGAconf/NMI.txt"
     if os.path.exists(indicator_file):
         return
@@ -1278,10 +1283,10 @@ def after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, saved
         os.mkdir(savedir)
     
     isrep1 = is_repr_posterior(
-        loci_1, loci_2, ovr_threshold=0.75, window_bp=w, reproducibility_threshold=0.75, matching="static")
+        loci_1, loci_2, ovr_threshold=to, window_bp=w, reproducibility_threshold=tr, matching="static")
     
     isrep2 = is_repr_posterior(
-            loci_2, loci_1, ovr_threshold=0.75, window_bp=w, reproducibility_threshold=0.75, matching="static")
+            loci_2, loci_1, ovr_threshold=to, window_bp=w, reproducibility_threshold=tr, matching="static")
     
     is_rep_intersec = []
     conf = np.zeros((2,2))
@@ -1426,7 +1431,7 @@ def before_after_saga(savedir):
     sns.reset_orig
     plt.style.use('default')
 
-def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False):
+def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0.75, tr=0.8):
     """
     get the IoU
     make it symmetric
@@ -1456,78 +1461,102 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False):
 
     joint = joint_overlap_prob(loci_1, loci_2, w=0, symmetric=False)
 
-    ####################################################################################
-
-    boundaries = [x**2 for x in list(np.linspace(0, 1, 20))] + [1] # custom boundaries
-    hex_colors = sns.light_palette('navy', n_colors=len(boundaries) * 2 + 2, as_cmap=False).as_hex()
-    hex_colors = [hex_colors[i] for i in range(0, len(hex_colors), 2)]
-    colors=list(zip(boundaries, hex_colors))
-    custom_color_map = LinearSegmentedColormap.from_list(
-        name='custom_navy',
-        colors=colors)
-
     ###################################################################################
     nmi_rec = {}
     robust_rec = {}
 
     eo_c = 0
     while loci_1.shape[1]-3 > 1:
-        # bool_reprod_report = single_point_repr(
-        #     loci_1, loci_2, ovr_threshold=0.75, window_bp=1000, posterior=True, reproducibility_threshold=0.8)
+        bool_reprod_report = single_point_repr(
+            loci_1, loci_2, ovr_threshold=to, window_bp=1000, posterior=True, reproducibility_threshold=tr)
 
-        # bool_reprod_report = pd.concat(
-        #     [loci_1["chr"], loci_1["start"], loci_1["end"], pd.Series(bool_reprod_report)], axis=1)
-        # bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
+        bool_reprod_report = pd.concat(
+            [loci_1["chr"], loci_1["start"], loci_1["end"], pd.Series(bool_reprod_report)], axis=1)
+        bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
 
-        # general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
-        # perlabel_rec = {}
-        # lab_rep = perlabel_is_reproduced(bool_reprod_report, loci_1)
-        # for k, v in lab_rep.items():
-        #     perlabel_rec[k] = v[0]/ (v[0]+v[1])
+        general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
+        perlabel_rec = {}
+        lab_rep = perlabel_is_reproduced(bool_reprod_report, loci_1)
+        for k, v in lab_rep.items():
+            perlabel_rec[k] = v[0]/ (v[0]+v[1])
 
         joint = joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True)
         NMI = NMI_from_matrix(joint)
-        # print(NMI)
-        # print(joint)
-        nmi_rec["{}_{}".format(loci_1.shape[1]-3, loci_2.shape[1]-3)] = NMI
-        # robust_rec["{}_{}".format(loci_1.shape[1]-3, loci_2.shape[1]-3)] = general_rep_score
+        nmi_rec["{}".format(loci_1.shape[1]-3)] = NMI
+        robust_rec["{}".format(loci_1.shape[1]-3)] = general_rep_score
         
         print(loci_1.shape, loci_2.shape)
-        if eo_c%2==0:
-            loci_1, loci_2 = merge_clusters(joint, loci_1, loci_2, r1=True)
-        else:
-            loci_1, loci_2 = merge_clusters(joint, loci_1, loci_2, r1=False)
+        # if eo_c%2==0:
+        loci_1, loci_2 = merge_clusters(joint, loci_1, loci_2, r1=True)
+        # else:
+        loci_1, loci_2 = merge_clusters(joint, loci_1, loci_2, r1=False)
         
-        eo_c +=1
+        # eo_c +=1
     
     with open('{}/post_clustering_progress.txt'.format(savedir), 'w') as savefile:
         savefile.write(str(nmi_rec))
         savefile.write("\n")
         savefile.write(str(robust_rec))
 
-    nl = list(nmi_rec.keys())
-    ys =[nmi_rec[k] for k in nl]
-    plt.bar(list(nl), list(ys), color="grey")
-    # plt.plot(list(nl), list(ys), "--", color="red", linewidth=2)
-    plt.xlabel("Number of Labels")
-    plt.ylabel("NMI")
-    plt.yticks(np.arange(0,1.05,0.1))
-    plt.xticks(rotation=90)
-    plt.savefig('{}/NMI_Progress.pdf'.format(savedir), format='pdf')
-    plt.savefig('{}/NMI_Progress.svg'.format(savedir), format='svg')
-    plt.clf()
+    # nl = list(nmi_rec.keys())
+    # ys =[nmi_rec[k] for k in nl]
+    # plt.bar(list(nl), list(ys), color="grey")
+    # # plt.plot(list(nl), list(ys), "--", color="red", linewidth=2)
+    # plt.xlabel("Number of Labels")
+    # plt.ylabel("NMI")
+    # plt.yticks(np.arange(0,1.05,0.1))
+    # plt.xticks(rotation=90)
+    # plt.savefig('{}/NMI_Progress.pdf'.format(savedir), format='pdf')
+    # plt.savefig('{}/NMI_Progress.svg'.format(savedir), format='svg')
+    # plt.clf()
 
     nl = list(robust_rec.keys())
     ys =[robust_rec[k] for k in nl]
     plt.bar(list(nl), list(ys), color="grey")
     # plt.plot(list(nl), list(ys), "--", color="red", linewidth=2)
     plt.xlabel("Number of Labels")
-    plt.ylabel("Ratio Robust")
+    plt.ylabel("ratio confident")
     plt.yticks(np.arange(0,1.05,0.1))
     plt.xticks(rotation=90)
     plt.savefig('{}/conf_progress.pdf'.format(savedir), format='pdf')
     plt.savefig('{}/conf_progress.svg'.format(savedir), format='svg')
     plt.clf()
+
+def post_clustering_keep_k_states(replicate_1_dir, replicate_2_dir, savedir, k, locis=False, write_csv=True):
+
+    if locis:
+        loci_1, loci_2 = replicate_1_dir, replicate_2_dir
+
+    else:
+        loci_1, loci_2 = load_data(
+            replicate_1_dir+"/parsed_posterior.csv",
+            replicate_2_dir+"/parsed_posterior.csv",
+            subset=True, logit_transform=False)
+
+        loci_1, loci_2 = process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+
+    joint = joint_overlap_prob(loci_1, loci_2, w=0, symmetric=False)
+
+    ###################################################################################
+    while loci_1.shape[1]-3 > 1:
+        joint = joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True)
+        
+        loci_1, loci_2 = merge_clusters(joint, loci_1, loci_2, r1=True)
+        loci_1, loci_2 = merge_clusters(joint, loci_1, loci_2, r1=False)
+
+        if loci_1.shape[1]-3 == k:
+            if write_csv:
+                loci_1.to_csv(savedir + f"/{str(k)}states_post_clustered_posterior.csv")
+            loci_1.to_csv(savedir + f"/{str(k)}states_post_clustered_posterior.bed", sep='\t', header=True, index=False)
+
+            MAP = loci_1.iloc[:,3:].idxmax(axis=1)
+            coordMAP = pd.concat([loci_1.iloc[:, :3], MAP], axis=1)
+            coordMAP.columns = ["chr", "start", "end", "MAP"]
+            denseMAP = condense_segments(coordMAP)
+            if write_csv:
+                denseMAP.to_csv(savedir + f"/{str(k)}_states_confident_segments_dense.csv")
+            denseMAP.to_csv(savedir + f"/{str(k)}_states_confident_segments_dense.bed", sep='\t', header=True, index=False)
+            return
 
 #######################################################################################################################
 
@@ -1588,14 +1617,25 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
         pass
 
 def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
+    # get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000)
     # loci1, loci2 = load_data(
-    #     replicate_1_dir+"/parsed_posterior.csv",
-    #     replicate_2_dir+"/parsed_posterior.csv",
+    #     "tests/test_posteriors/parsed_posterior.bed",
+    #     "tests/test_posteriors/parsed_posterior.bed",
     #     subset=True, logit_transform=False)
+    # print(loci1.head())
+    # print(loci2.head())
 
+    # loci1, loci2 = load_data(
+    #     "tests/test_posteriors/parsed_posterior.csv",
+    #     "tests/test_posteriors/parsed_posterior.csv",
+    #     subset=True, logit_transform=False)
+    # print(loci1.head())
+    # print(loci2.head())
+
+    # exit()
     # loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
-    post_clustering(replicate_1_dir, replicate_2_dir, savedir)
+    post_clustering_keep_k_states(replicate_1_dir, replicate_2_dir, replicate_1_dir, k=5, locis=False)
 
     # print(NMI_from_matrix(joint_prob_with_binned_posterior(loci1, loci2, n_bins=50, conditional=False, stratified=True)))
     # print(NMI_from_matrix(joint_prob_MAP_with_posterior(loci1, loci2, n_bins=50, conditional=False, stratified=True)))

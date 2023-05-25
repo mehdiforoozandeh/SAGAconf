@@ -41,7 +41,7 @@ def read_posterior_file(filepath):
     vals = vals.astype("float32")
     return vals
 
-def ChrHMM_read_posteriordir(posteriordir, rep, resolution=200):
+def ChrHMM_read_posteriordir(posteriordir, resolution=200):
     '''
     for each file in posteriordir
     Initialize emptybins based on chromsizes
@@ -51,8 +51,9 @@ def ChrHMM_read_posteriordir(posteriordir, rep, resolution=200):
     ls = os.listdir(posteriordir)
     to_parse = []
     for f in ls:
-        if rep in f:
-            to_parse.append(f)
+        # if rep in f:
+        to_parse.append(f)  
+
     parsed_posteriors = {}
     for f in to_parse:
         fileinfo = f.split("_")
