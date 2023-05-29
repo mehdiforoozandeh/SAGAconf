@@ -1732,3 +1732,19 @@ def overlap_heatmap(matrix):
         plt.clf()
         sns.reset_orig
         plt.style.use('default')
+
+def calc_entropy(joint, rows=True):
+    if rows:
+        coverage1 = {k:sum(joint.loc[k,:]) for k in joint.index}
+    else:
+        coverage1 = {k:sum(joint.loc[:,k]) for k in joint.columns}
+
+    # entropies
+    H_A = 0
+    for a in coverage1.keys():
+        if coverage1[a] > 0:
+            H_A += coverage1[a] * np.log(coverage1[a])
+
+    H_A = -1 * H_A
+
+    return H_A

@@ -1464,6 +1464,7 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
     ###################################################################################
     nmi_rec = {}
     robust_rec = {}
+    robust_rec_entropy = {}
 
     eo_c = 0
     while loci_1.shape[1]-3 > 1:
@@ -1484,6 +1485,8 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
         NMI = NMI_from_matrix(joint)
         nmi_rec["{}".format(loci_1.shape[1]-3)] = NMI
         robust_rec["{}".format(loci_1.shape[1]-3)] = general_rep_score
+        loci1_entropy = calc_entropy(joint, rows=True)
+        robust_rec_entropy[loci1_entropy] = general_rep_score
         
         print(loci_1.shape, loci_2.shape)
         # if eo_c%2==0:
@@ -1497,6 +1500,8 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
         savefile.write(str(nmi_rec))
         savefile.write("\n")
         savefile.write(str(robust_rec))
+        savefile.write("\n")
+        savefile.write(str(robust_rec_entropy))
 
     # nl = list(nmi_rec.keys())
     # ys =[nmi_rec[k] for k in nl]
@@ -1520,6 +1525,18 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
     plt.xticks(rotation=90)
     plt.savefig('{}/conf_progress.pdf'.format(savedir), format='pdf')
     plt.savefig('{}/conf_progress.svg'.format(savedir), format='svg')
+    plt.clf()
+
+    nl = list(robust_rec_entropy.keys())
+    ys =[robust_rec_entropy[k] for k in nl]
+    # plt.bar(list(nl), list(ys), color="grey")
+    plt.plot(list(nl), list(ys), "--", color="red", linewidth=2)
+    plt.xlabel("Entropy of Base Annotation")
+    plt.ylabel("ratio confident")
+    plt.yticks(np.arange(0,1.05,0.1))
+    plt.xticks(rotation=90)
+    plt.savefig('{}/conf_progress_entropy.pdf'.format(savedir), format='pdf')
+    plt.savefig('{}/conf_progress_entropy.svg'.format(savedir), format='svg')
     plt.clf()
 
 def post_clustering_keep_k_states(replicate_1_dir, replicate_2_dir, savedir, k, locis=False, write_csv=True):
@@ -1617,6 +1634,7 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
         pass
 
 def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
+    post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0.75, tr=0.8)
     # get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000)
     # loci1, loci2 = load_data(
     #     "tests/test_posteriors/parsed_posterior.bed",
@@ -1635,7 +1653,7 @@ def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
     # exit()
     # loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
-    post_clustering_keep_k_states(replicate_1_dir, replicate_2_dir, replicate_1_dir, k=5, locis=False)
+    # post_clustering_keep_k_states(replicate_1_dir, replicate_2_dir, replicate_1_dir, k=5, locis=False)
 
     # print(NMI_from_matrix(joint_prob_with_binned_posterior(loci1, loci2, n_bins=50, conditional=False, stratified=True)))
     # print(NMI_from_matrix(joint_prob_MAP_with_posterior(loci1, loci2, n_bins=50, conditional=False, stratified=True)))
