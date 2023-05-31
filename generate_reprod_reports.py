@@ -281,7 +281,7 @@ def run(param_dict):
             genecode_dir=param_dict["genecode_dir"], 
             savedir=param_dict["savedir"], 
             rnaseq=param_dict["rnaseq"], 
-            contour=True
+            contour=False
         )
         with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
             f.write(str(param_dict))
