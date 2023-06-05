@@ -69,9 +69,9 @@ def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True,
         #handle missing mnemonics
         for i in range(num_labels):
             if str(i) not in mnemon1_dict.keys():
-                mnemon1_dict[str(i)] = str(i)
+                mnemon1_dict[str(i)] = str(f"{i}_Unkn")
             if str(i) not in mnemon2_dict.keys():
-                mnemon2_dict[str(i)] = str(i)
+                mnemon2_dict[str(i)] = str(f"{i}_Unkn")
         
         if match:
             conf_mat = overlap_matrix(loci_1, loci_2, type="IoU")
@@ -103,7 +103,7 @@ def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True,
             print('connected barpartite')
     
     if mnemons and custom_order:
-        SORT_ORDER = {"Prom": 0, "Prom_fla":1, "Enha":2, "Enha_low":3, "Biva":4, "Tran":5, "Cons":6, "Facu":7, "K9K3":8, "Quie":9}
+        SORT_ORDER = {"Prom": 0, "Prom_fla":1, "Enha":2, "Enha_low":3, "Biva":4, "Tran":5, "Cons":6, "Facu":7, "K9K3":8, "Quie":9, "Unkn":10}
         try:
             new_columns = []
             for c in loci_1.columns[3:]:
@@ -1444,7 +1444,7 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
         merge best pair of R2
         generate new dendrogram
     """
-    indicator_file = '{}/NMI_Progress.pdf'.format(savedir)
+    indicator_file = '{}/conf_rogress.pdf'.format(savedir)
     if os.path.exists(indicator_file):
         return
 
@@ -1487,8 +1487,10 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
         robust_rec["{}".format(loci_1.shape[1]-3)] = general_rep_score
         loci1_entropy = calc_entropy(joint, rows=True)
         robust_rec_entropy[loci1_entropy] = general_rep_score
+
+        print(f"entropy: {loci1_entropy} | num_labels: {loci_1.shape[1]-3} | repr_score: {general_rep_score}\n\n")
         
-        print(loci_1.shape, loci_2.shape)
+        # print(loci_1.shape, loci_2.shape)
         # if eo_c%2==0:
         loci_1, loci_2 = merge_clusters(joint, loci_1, loci_2, r1=True)
         # else:
@@ -1503,18 +1505,6 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
         savefile.write("\n")
         savefile.write(str(robust_rec_entropy))
 
-    # nl = list(nmi_rec.keys())
-    # ys =[nmi_rec[k] for k in nl]
-    # plt.bar(list(nl), list(ys), color="grey")
-    # # plt.plot(list(nl), list(ys), "--", color="red", linewidth=2)
-    # plt.xlabel("Number of Labels")
-    # plt.ylabel("NMI")
-    # plt.yticks(np.arange(0,1.05,0.1))
-    # plt.xticks(rotation=90)
-    # plt.savefig('{}/NMI_Progress.pdf'.format(savedir), format='pdf')
-    # plt.savefig('{}/NMI_Progress.svg'.format(savedir), format='svg')
-    # plt.clf()
-
     nl = list(robust_rec.keys())
     ys =[robust_rec[k] for k in nl]
     plt.bar(list(nl), list(ys), color="grey")
@@ -1528,9 +1518,15 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
     plt.clf()
 
     nl = list(robust_rec_entropy.keys())
-    ys =[robust_rec_entropy[k] for k in nl]
+    ys = [robust_rec_entropy[k] for k in nl]
     # plt.bar(list(nl), list(ys), color="grey")
-    plt.plot(list(nl), list(ys), "--", color="red", linewidth=2)
+    plt.scatter(list(nl), list(ys), color="Black")
+    plt.plot(list(nl), list(ys), "--", color="red", linewidth=3)
+
+    keyss = list(robust_rec.keys())
+    for i in range(len(nl)):
+        plt.annotate(f"{keyss[i]} Labels", (nl[i], ys[i] + 0.1), rotation=90, fontsize=6)
+    
     plt.xlabel("Entropy of Base Annotation")
     plt.ylabel("ratio confident")
     plt.yticks(np.arange(0,1.05,0.1))
