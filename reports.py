@@ -1525,7 +1525,7 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
 
     keyss = list(robust_rec.keys())
     for i in range(len(nl)):
-        plt.annotate(f"{keyss[i]} Labels", (nl[i], ys[i] + 0.1), rotation=90, fontsize=6)
+        plt.annotate(f"{keyss[i]}", (nl[i], ys[i] + 0.1), rotation=90, fontsize=6)
     
     plt.xlabel("Entropy of Base Annotation")
     plt.ylabel("ratio confident")
