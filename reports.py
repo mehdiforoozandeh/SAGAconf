@@ -6,7 +6,7 @@ from overall import *
 from matplotlib.colors import LinearSegmentedColormap
 import ast
 
-def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False, force_WG=True):
+def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False, force_WG=False):
     print("loading and intersecting")
     loci_1, loci_2 = intersect_parsed_posteriors(
         posterior1_dir, 
@@ -1666,8 +1666,8 @@ if __name__=="__main__":
     #     savedir="tests/cedar_runs/segway/GM12878_R1/", contour=True)
 
     test_new_functions(
-        replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
-        replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
+        replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
+        replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
         genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
         savedir="tests/cedar_runs/chmm/GM12878_R1/")
 
