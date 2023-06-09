@@ -2,7 +2,7 @@ from reports import *
 import multiprocessing as mp
 import logging, ast, sys
 
-def r1vsr2(maindir="runs062023_subset_ocoeff"):
+def r1vsr2(maindir="runs062023_subset"):
     ################### Rep1 vs Rep2 ###################
         ######## GM12878 ########
     
@@ -93,7 +93,7 @@ def r1vsr2(maindir="runs062023_subset_ocoeff"):
         ]
     return listofruns
 
-def concat(maindir="runs062023_subset_ocoeff"):
+def concat(maindir="runs062023_subset"):
     if os.path.exists(maindir)==False:
         os.mkdir(maindir)
     
@@ -179,7 +179,7 @@ def concat(maindir="runs062023_subset_ocoeff"):
     ]
     return listofruns
 
-def paraminit(maindir="runs062023_subset_ocoeff"):
+def paraminit(maindir="runs062023_subset"):
     if os.path.exists(maindir)==False:
         os.mkdir(maindir)
     
