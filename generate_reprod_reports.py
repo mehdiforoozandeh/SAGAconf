@@ -861,7 +861,7 @@ if __name__=="__main__":
         m_p("s1")
         m_p("s2")
         m_p("s3")
-        comp = COMPARATIVE("runs062023_subset_ocoeff")
+        comp = COMPARATIVE("runs062023_subset")
         comp.ALL()
 
     else:
