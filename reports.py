@@ -1159,7 +1159,7 @@ def get_all_bioval(replicate_1_dir, replicate_2_dir, savedir, genecode_dir, rnas
         # trans_data = trans_data.drop(trans_data[trans_data.TPM==0].index).reset_index(drop=True)
 
         posterior_transcription_enrichment(loci1, trans_data, savedir+"/trans_post_enr")
-        posterior_transcription_correlation(loci1, trans_data, savedir=savedir+"/trans_post_correl")
+        # posterior_transcription_correlation(loci1, trans_data, savedir=savedir+"/trans_post_correl")
 
         posterior_transcription_enrichment(loci1, trans_data, TSS=True, savedir=savedir+"/trans_post_enr_aroundTSS")
 
@@ -1596,15 +1596,6 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
         pass
 
     try:
-        get_all_bioval(
-            replicate_1_dir, replicate_2_dir, 
-            savedir,
-            genecode_dir=genecode_dir, 
-            rnaseq=rnaseq)
-    except:
-        pass
-
-    try:
         get_overalls(replicate_1_dir, replicate_2_dir, savedir)
 
     except:
@@ -1626,6 +1617,15 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
         after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None)
         before_after_saga(savedir)
 
+    except:
+        pass
+
+    try:
+        get_all_bioval(
+            replicate_1_dir, replicate_2_dir, 
+            savedir,
+            genecode_dir=genecode_dir, 
+            rnaseq=rnaseq)
     except:
         pass
 
