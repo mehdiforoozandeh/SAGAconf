@@ -1578,16 +1578,16 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     if os.path.exists(savedir)==False:
         os.mkdir(savedir)
 
-    try:
-        get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
+    # try:
+    #     get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
 
-    except:
-        pass
+    # except:
+    #     pass
 
-    try:
-        get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
-    except:
-        pass
+    # try:
+    #     get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
+    # except:
+    #     pass
     
     try:
         post_clustering(replicate_1_dir, replicate_2_dir, savedir)
@@ -1610,17 +1610,17 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     except:
         pass
 
-    if contour:
-        try:
-            get_contour(replicate_1_dir, replicate_2_dir, savedir)
-        except:
-            pass
+    # if contour:
+    #     try:
+    #         get_contour(replicate_1_dir, replicate_2_dir, savedir)
+    #     except:
+    #         pass
 
-    try:
-        gather_labels(replicate_1_dir, savedir, contour=contour)
+    # try:
+    #     gather_labels(replicate_1_dir, savedir, contour=contour)
 
-    except:
-        pass
+    # except:
+    #     pass
 
     try:
         after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None)
