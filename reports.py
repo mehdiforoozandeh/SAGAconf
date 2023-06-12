@@ -6,7 +6,7 @@ from overall import *
 from matplotlib.colors import LinearSegmentedColormap
 import ast
 
-def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False, force_WG=False):
+def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False, force_WG=True):
     print("loading and intersecting")
     loci_1, loci_2 = intersect_parsed_posteriors(
         posterior1_dir, 
