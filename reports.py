@@ -1156,10 +1156,10 @@ def get_all_bioval(replicate_1_dir, replicate_2_dir, savedir, genecode_dir, rnas
     if rnaseq != None:
         trans_data = load_transcription_data(rnaseq, gene_coords)
 
-        # trans_data = trans_data.drop(trans_data[trans_data.TPM==0].index).reset_index(drop=True)
+        trans_data = trans_data.drop(trans_data[trans_data.TPM==0].index).reset_index(drop=True)
 
         posterior_transcription_enrichment(loci1, trans_data, savedir+"/trans_post_enr")
-        # posterior_transcription_correlation(loci1, trans_data, savedir=savedir+"/trans_post_correl")
+        posterior_transcription_correlation(loci1, trans_data, savedir=savedir+"/trans_post_correl")
 
         posterior_transcription_enrichment(loci1, trans_data, TSS=True, savedir=savedir+"/trans_post_enr_aroundTSS")
 
@@ -1578,16 +1578,16 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     if os.path.exists(savedir)==False:
         os.mkdir(savedir)
 
-    # try:
-    #     get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
+    try:
+        get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
 
-    # except:
-    #     pass
+    except:
+        pass
 
-    # try:
-    #     get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
-    # except:
-    #     pass
+    try:
+        get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
+    except:
+        pass
     
     try:
         post_clustering(replicate_1_dir, replicate_2_dir, savedir)
@@ -1601,17 +1601,17 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     except:
         pass
 
-    # if contour:
-    #     try:
-    #         get_contour(replicate_1_dir, replicate_2_dir, savedir)
-    #     except:
-    #         pass
+    if contour:
+        try:
+            get_contour(replicate_1_dir, replicate_2_dir, savedir)
+        except:
+            pass
 
-    # try:
-    #     gather_labels(replicate_1_dir, savedir, contour=contour)
+    try:
+        gather_labels(replicate_1_dir, savedir, contour=contour)
 
-    # except:
-    #     pass
+    except:
+        pass
 
     try:
         after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None)
