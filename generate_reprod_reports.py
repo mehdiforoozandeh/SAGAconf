@@ -2,7 +2,7 @@ from reports import *
 import multiprocessing as mp
 import logging, ast, sys
 
-def r1vsr2(maindir="subset"):
+def r1vsr2(maindir="WG"):
     ################### Rep1 vs Rep2 ###################
         ######## GM12878 ########
     
@@ -93,7 +93,7 @@ def r1vsr2(maindir="subset"):
         ]
     return listofruns
 
-def concat(maindir="subset"):
+def concat(maindir="WG"):
     if os.path.exists(maindir)==False:
         os.mkdir(maindir)
     
@@ -179,7 +179,7 @@ def concat(maindir="subset"):
     ]
     return listofruns
 
-def paraminit(maindir="subset"):
+def paraminit(maindir="WG"):
     if os.path.exists(maindir)==False:
         os.mkdir(maindir)
     
@@ -1259,7 +1259,6 @@ class COMPARATIVE(object):
         except:
             print("failed at visualize_robust")
 
-
 if __name__=="__main__":
     # comp = COMPARATIVE("tests/WG")
     # comp.ALL()
@@ -1278,9 +1277,9 @@ if __name__=="__main__":
     else:
         setting = sys.argv[1]
         m_p(setting, nt=10)
-        try:
-            comp = COMPARATIVE("runs052023_WG")
-            comp.ALL()
-        except:
-            pass
+        # try:
+        #     # comp = COMPARATIVE("runs052023_WG")
+        #     # comp.ALL()
+        # except:
+        #     pass
     

@@ -8,7 +8,7 @@ import ast
 from scipy.interpolate import UnivariateSpline
 
 
-def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False, force_WG=False):
+def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False, force_WG=True):
     print("loading and intersecting")
     loci_1, loci_2 = intersect_parsed_posteriors(
         posterior1_dir, 
@@ -1955,26 +1955,26 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     
     ################################################################################################################
 
-    try:
-        get_all_bioval(
-            replicate_1_dir, replicate_2_dir, 
-            savedir,
-            genecode_dir=genecode_dir, 
-            rnaseq=rnaseq)
-    except:
-        pass
+    # try:
+    #     get_all_bioval(
+    #         replicate_1_dir, replicate_2_dir, 
+    #         savedir,
+    #         genecode_dir=genecode_dir, 
+    #         rnaseq=rnaseq)
+    # except:
+    #     pass
 
-    if contour:
-        try:
-            get_contour(replicate_1_dir, replicate_2_dir, savedir)
-        except:
-            pass
+    # if contour:
+    #     try:
+    #         get_contour(replicate_1_dir, replicate_2_dir, savedir)
+    #     except:
+    #         pass
 
-    try:
-        gather_labels(replicate_1_dir, savedir, contour=contour)
+    # try:
+    #     gather_labels(replicate_1_dir, savedir, contour=contour)
 
-    except:
-        pass
+    # except:
+    #     pass
 
 def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
 
