@@ -2,7 +2,7 @@ from reports import *
 import multiprocessing as mp
 import logging, ast, sys
 
-def r1vsr2(maindir="runs062023_subset"):
+def r1vsr2(maindir="subset"):
     ################### Rep1 vs Rep2 ###################
         ######## GM12878 ########
     
@@ -93,7 +93,7 @@ def r1vsr2(maindir="runs062023_subset"):
         ]
     return listofruns
 
-def concat(maindir="runs062023_subset"):
+def concat(maindir="subset"):
     if os.path.exists(maindir)==False:
         os.mkdir(maindir)
     
@@ -179,7 +179,7 @@ def concat(maindir="runs062023_subset"):
     ]
     return listofruns
 
-def paraminit(maindir="runs062023_subset"):
+def paraminit(maindir="subset"):
     if os.path.exists(maindir)==False:
         os.mkdir(maindir)
     
@@ -335,10 +335,13 @@ class COMPARATIVE(object):
             "concat":"S2: Diff. data, Same model", "r1vsr2": "S1: Diff. data, Diff. model", 
             "paraminit":"S3: Same data, Diff. model"}
         
+        self.coverage_quantizer = {(0.0, 0.02):7, (0.02, 0.2):11, (0.2, 0.5):15, (0.5, 1):20}
+
         self.var_setting_dict_inverse = {v:k for k, v in self.var_setting_dict.items()}
         self.SORT_ORDER = {"Prom": 0, "Prom_fla":1, "Enha":2, "Enha_low":3, "Biva":4, "Tran":5, "Cons":6, "Facu":7, "K9K3":8, "Quie":9}
 
-    # self.navigate_results[s][m][c] = [dir, [NMI_map, NMI_post], [ovr_ratio_w0, ovr_ratio_w1000],  {auc/mauc}, {ratio_robust}]
+     # self.navigate_results[s][m][c] = [dir, [NMI_map, NMI_post], [ovr_ratio_w0, ovr_ratio_w1000], {auc/mauc}, general_rep, {ratio_robust}, {coverage}]
+
     def compare_NMI(self):
         for s in self.navigate_results.keys():
             for m in self.navigate_results[s]:
@@ -394,13 +397,13 @@ class COMPARATIVE(object):
             for m in self.navigate_results[s]:
                 for c in self.navigate_results[s][m]:
                     
-                    if os.path.exists(self.navigate_results[s][m][c][0] + "/coverage1.txt"):
-                        coverage_file = self.navigate_results[s][m][c][0] + "/coverage1.txt"
+                    if os.path.exists(self.navigate_results[s][m][c][0] + "/coverages1.txt"):
+                        coverage_file = self.navigate_results[s][m][c][0] + "/coverages1.txt"
                         coverage = ast.literal_eval(open(coverage_file, "r").read())
                         self.navigate_results[s][m][c].append(coverage)
 
                     else:
-                        self.navigate_results[s][m][c].append({})
+                        self.navigate_results[s][m][c].append({})                 
 
     def compare_ratio_robust(self):
         for s in self.navigate_results.keys():
@@ -416,11 +419,13 @@ class COMPARATIVE(object):
                             ratio_robust[l.split(" = ")[0].replace(" reprod score", "")] = float(l.split(" = ")[1][:7])
 
                         if "general" in ratio_robust.keys():
+                            self.navigate_results[s][m][c].append(ratio_robust["general"])
                             del ratio_robust["general"]
                         
                         self.navigate_results[s][m][c].append(ratio_robust)
 
                     else:
+                        self.navigate_results[s][m][c].append(None)
                         self.navigate_results[s][m][c].append({})
 
     def visualize_NMI(self):
@@ -639,10 +644,16 @@ class COMPARATIVE(object):
                             segway[s] = {}
 
                         smc_dict = self.navigate_results[s][m][c][3]
+                        smc_coverage = self.navigate_results[s][m][c][6]
+
+
                         smc_list = []
                         for k in smc_dict.keys():
                             new_k = "_".join(k.split("_")[1:])
-                            smc_list.append([new_k, smc_dict[k]])
+
+                            for q in self.coverage_quantizer.keys():
+                                if q[0] <= smc_coverage[k] and smc_coverage[k] < q[1]:
+                                    smc_list.append([new_k, smc_dict[k], self.coverage_quantizer[q]])
 
                         segway[s][c] = smc_list
 
@@ -651,10 +662,14 @@ class COMPARATIVE(object):
                             chmm[s] = {}
                         
                         smc_dict = self.navigate_results[s][m][c][3]
+                        smc_coverage = self.navigate_results[s][m][c][6]
+
                         smc_list = []
                         for k in smc_dict.keys():
                             new_k = "_".join(k.split("_")[1:])
-                            smc_list.append([new_k, smc_dict[k]])
+                            for q in self.coverage_quantizer.keys():
+                                if q[0] <= smc_coverage[k] and smc_coverage[k] < q[1]:
+                                    smc_list.append([new_k, smc_dict[k], self.coverage_quantizer[q]])
 
                         chmm[s][c] = smc_list
 
@@ -663,10 +678,10 @@ class COMPARATIVE(object):
             for c in chmm[s].keys():
                 for l in chmm[s][c]:
                     if l[1] > 0:
-                        df_chmm.append([c, self.var_setting_dict[s], l[0], l[1]])
+                        df_chmm.append([c, self.var_setting_dict[s], l[0], l[1], l[2]])
         
         df_chmm = pd.DataFrame(
-            df_chmm, columns = ["CellType", "Setting", "Genomic_function", "AUC/maxAUC"]).sort_values(
+            df_chmm, columns = ["CellType", "Setting", "Genomic_function", "AUC/maxAUC", "coverage"]).sort_values(
                 by=["Setting", "CellType"])
 
         df_segway = []
@@ -674,31 +689,47 @@ class COMPARATIVE(object):
             for c in segway[s].keys():
                 for l in segway[s][c]:
                     if l[1] > 0:
-                        df_segway.append([c, self.var_setting_dict[s], l[0], l[1]])
+                        df_segway.append([c, self.var_setting_dict[s], l[0], l[1], l[2]])
         
         df_segway = pd.DataFrame(
-            df_segway, columns = ["CellType", "Setting", "Genomic_function", "AUC/maxAUC"]).sort_values(
+            df_segway, columns = ["CellType", "Setting", "Genomic_function", "AUC/maxAUC", "coverage"]).sort_values(
                 by=["Setting", "CellType"])
-
 
         ####################################################################################################################################
         for s in np.unique(df_chmm["Setting"]):
             fig, ax = plt.subplots(figsize=(10, 8))
-            sns.set_palette(sns.color_palette("deep"))
-            # sns.set_theme(style="whitegrid")
-            
-            sns.stripplot(x='Genomic_function', y="AUC/maxAUC", hue="CellType", data=df_chmm.loc[df_chmm["Setting"]==s,:], ax=ax, size=10)
-            # sns.boxplot(x='Genomic_function', y="AUC/maxAUC", hue="CellType", data=df_chmm.loc[df_chmm["Setting"]==s,:], ax=ax)
+
+            chmmdata = df_chmm.loc[df_chmm["Setting"]==s,:]
+
+            order = chmmdata['Genomic_function'].unique()
+            unique_coverages = chmmdata['coverage'].unique()
+            unique_celltypes = chmmdata['CellType'].unique()
+            palette = sns.color_palette("deep", len(unique_celltypes))
+
+            for coverage in unique_coverages:
+                mask = chmmdata['coverage'] == coverage
+                size = coverage
+                for i, celltype in enumerate(unique_celltypes):
+                    celltype_mask = chmmdata['CellType'] == celltype
+                    data = chmmdata[mask & celltype_mask]
+                    if not data.empty:
+                        sns.stripplot(
+                            x='Genomic_function', y="AUC/maxAUC", data=data, ax=ax, size=size, 
+                            color=palette[i], order=order, alpha=0.85)
+
             n_categories = len(ax.get_xticks())
 
             for i in range(n_categories):
                 ax.axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
 
-            ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
+            # ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
+            handles = [plt.Line2D([], [], marker='o', color=palette[i], linestyle='None') for i in range(len(unique_celltypes))]
+            ax.legend(handles, unique_celltypes, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
 
             # Show the plot
             plt.yticks(np.arange(0.5, 1.05, step=0.1))
             plt.tight_layout()
+
             plt.savefig("{}/{}/{}/AUC_mAUC_stripplot.pdf".format(self.maindir, self.var_setting_dict_inverse[s], "chmm"), format="pdf")
             plt.savefig("{}/{}/{}/AUC_mAUC_stripplot.svg".format(self.maindir, self.var_setting_dict_inverse[s], "chmm"), format="svg")
 
@@ -706,25 +737,42 @@ class COMPARATIVE(object):
             sns.reset_orig
             plt.style.use('default')
 
-
+            
         ####################################################################################################################################
         for s in np.unique(df_segway["Setting"]):
             fig, ax = plt.subplots(figsize=(10, 8))
-            sns.set_palette(sns.color_palette("deep"))
-            # sns.set_theme(style="whitegrid")
-            
-            sns.stripplot(x='Genomic_function', y="AUC/maxAUC", hue="CellType", data=df_segway.loc[df_segway["Setting"]==s,:], ax=ax, size=10)
-            # sns.boxplot(x='Genomic_function', y="AUC/maxAUC", hue="CellType", data=df_chmm.loc[df_chmm["Setting"]==s,:], ax=ax)
+
+            segdata = df_segway.loc[df_segway["Setting"]==s,:]
+
+            order = segdata['Genomic_function'].unique()
+            unique_coverages = segdata['coverage'].unique()
+            unique_celltypes = segdata['CellType'].unique()
+            palette = sns.color_palette("deep", len(unique_celltypes))
+
+            for coverage in unique_coverages:
+                mask = segdata['coverage'] == coverage
+                size = coverage
+                for i, celltype in enumerate(unique_celltypes):
+                    celltype_mask = segdata['CellType'] == celltype
+                    data = segdata[mask & celltype_mask]
+                    if not data.empty:
+                        sns.stripplot(
+                            x='Genomic_function', y="AUC/maxAUC", data=data, ax=ax, size=size, 
+                            color=palette[i], order=order, alpha=0.85)
+
             n_categories = len(ax.get_xticks())
 
             for i in range(n_categories):
                 ax.axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
 
-            ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
+            # ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
+            handles = [plt.Line2D([], [], marker='o', color=palette[i], linestyle='None') for i in range(len(unique_celltypes))]
+            ax.legend(handles, unique_celltypes, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
 
             # Show the plot
             plt.yticks(np.arange(0.5, 1.05, step=0.1))
             plt.tight_layout()
+
             plt.savefig("{}/{}/{}/AUC_mAUC_stripplot.pdf".format(self.maindir, self.var_setting_dict_inverse[s], "segway"), format="pdf")
             plt.savefig("{}/{}/{}/AUC_mAUC_stripplot.svg".format(self.maindir, self.var_setting_dict_inverse[s], "segway"), format="svg")
 
@@ -745,11 +793,17 @@ class COMPARATIVE(object):
                         if s not in segway.keys():
                             segway[s] = {}
 
-                        smc_dict = self.navigate_results[s][m][c][4]
+                        smc_dict = self.navigate_results[s][m][c][5]
+                        smc_coverage = self.navigate_results[s][m][c][6]
+
+
                         smc_list = []
                         for k in smc_dict.keys():
                             new_k = "_".join(k.split("_")[1:])
-                            smc_list.append([new_k, smc_dict[k]])
+
+                            for q in self.coverage_quantizer.keys():
+                                if q[0] <= smc_coverage[k] and smc_coverage[k] < q[1]:
+                                    smc_list.append([new_k, smc_dict[k], self.coverage_quantizer[q]])
 
                         segway[s][c] = smc_list
 
@@ -757,11 +811,16 @@ class COMPARATIVE(object):
                         if s not in chmm.keys():
                             chmm[s] = {}
                         
-                        smc_dict = self.navigate_results[s][m][c][4]
+                        smc_dict = self.navigate_results[s][m][c][5]
+                        smc_coverage = self.navigate_results[s][m][c][6]
+
                         smc_list = []
                         for k in smc_dict.keys():
                             new_k = "_".join(k.split("_")[1:])
-                            smc_list.append([new_k, smc_dict[k]])
+
+                            for q in self.coverage_quantizer.keys():
+                                if q[0] <= smc_coverage[k] and smc_coverage[k] < q[1]:
+                                    smc_list.append([new_k, smc_dict[k], self.coverage_quantizer[q]])
 
                         chmm[s][c] = smc_list
 
@@ -770,10 +829,10 @@ class COMPARATIVE(object):
             for c in chmm[s].keys():
                 for l in chmm[s][c]:
                     if l[1] > 0:
-                        df_chmm.append([c, self.var_setting_dict[s], l[0], l[1]])
+                        df_chmm.append([c, self.var_setting_dict[s], l[0], l[1], l[2]])
         
         df_chmm = pd.DataFrame(
-            df_chmm, columns = ["CellType", "Setting", "Genomic_function", "ratio_robust"]).sort_values(
+            df_chmm, columns = ["CellType", "Setting", "Genomic_function", "ratio_robust", "coverage"]).sort_values(
                 by=["Setting", "CellType"])
         
         df_chmm['sort_col'] = df_chmm["Genomic_function"].map(self.SORT_ORDER)
@@ -785,10 +844,10 @@ class COMPARATIVE(object):
             for c in segway[s].keys():
                 for l in segway[s][c]:
                     if l[1] > 0:
-                        df_segway.append([c, self.var_setting_dict[s], l[0], l[1]])
+                        df_segway.append([c, self.var_setting_dict[s], l[0], l[1], l[2]])
         
         df_segway = pd.DataFrame(
-            df_segway, columns = ["CellType", "Setting", "Genomic_function", "ratio_robust"]).sort_values(
+            df_segway, columns = ["CellType", "Setting", "Genomic_function", "ratio_robust", "coverage"]).sort_values(
                 by=["Setting", "CellType"])
         
         df_segway['sort_col'] = df_segway["Genomic_function"].map(self.SORT_ORDER)
@@ -798,17 +857,34 @@ class COMPARATIVE(object):
         ####################################################################################################################################
         for s in np.unique(df_chmm["Setting"]):
             fig, ax = plt.subplots(figsize=(10, 8))
-            sns.set_palette(sns.color_palette("deep"))
-            # sns.set_theme(style="whitegrid")
-            
-            sns.stripplot(x='Genomic_function', y="ratio_robust", hue="CellType", data=df_chmm.loc[df_chmm["Setting"]==s,:], ax=ax, size=10)
-            # sns.boxplot(x='Genomic_function', y="AUC/maxAUC", hue="CellType", data=df_chmm.loc[df_chmm["Setting"]==s,:], ax=ax)
+
+
+            chmmdata = df_chmm.loc[df_chmm["Setting"]==s,:]
+
+            order = chmmdata['Genomic_function'].unique()
+            unique_coverages = chmmdata['coverage'].unique()
+            unique_celltypes = chmmdata['CellType'].unique()
+            palette = sns.color_palette("deep", len(unique_celltypes))
+
+            for coverage in unique_coverages:
+                mask = chmmdata['coverage'] == coverage
+                size = coverage
+                for i, celltype in enumerate(unique_celltypes):
+                    celltype_mask = chmmdata['CellType'] == celltype
+                    data = chmmdata[mask & celltype_mask]
+                    if not data.empty:
+                        sns.stripplot(
+                            x='Genomic_function', y="ratio_robust", data=data, ax=ax, size=size, 
+                            color=palette[i], order=order, alpha=0.85)
+
             n_categories = len(ax.get_xticks())
 
             for i in range(n_categories):
                 ax.axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
 
-            ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
+            # ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
+            handles = [plt.Line2D([], [], marker='o', color=palette[i], linestyle='None') for i in range(len(unique_celltypes))]
+            ax.legend(handles, unique_celltypes, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
 
             # Show the plot
             plt.yticks(np.arange(0, 1.05, step=0.1))
@@ -824,17 +900,33 @@ class COMPARATIVE(object):
         ####################################################################################################################################
         for s in np.unique(df_segway["Setting"]):
             fig, ax = plt.subplots(figsize=(10, 8))
-            sns.set_palette(sns.color_palette("deep"))
-            # sns.set_theme(style="whitegrid")
             
-            sns.stripplot(x='Genomic_function', y="ratio_robust", hue="CellType", data=df_segway.loc[df_segway["Setting"]==s,:], ax=ax, size=10)
-            # sns.boxplot(x='Genomic_function', y="AUC/maxAUC", hue="CellType", data=df_chmm.loc[df_chmm["Setting"]==s,:], ax=ax)
+            segdata = df_segway.loc[df_segway["Setting"]==s,:]
+
+            order = segdata['Genomic_function'].unique()
+            unique_coverages = segdata['coverage'].unique()
+            unique_celltypes = segdata['CellType'].unique()
+            palette = sns.color_palette("deep", len(unique_celltypes))
+
+            for coverage in unique_coverages:
+                mask = segdata['coverage'] == coverage
+                size = coverage
+                for i, celltype in enumerate(unique_celltypes):
+                    celltype_mask = segdata['CellType'] == celltype
+                    data = segdata[mask & celltype_mask]
+                    if not data.empty:
+                        sns.stripplot(
+                            x='Genomic_function', y="ratio_robust", data=data, ax=ax, size=size, 
+                            color=palette[i], order=order, alpha=0.85)
+
             n_categories = len(ax.get_xticks())
 
             for i in range(n_categories):
                 ax.axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
 
-            ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
+            # ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
+            handles = [plt.Line2D([], [], marker='o', color=palette[i], linestyle='None') for i in range(len(unique_celltypes))]
+            ax.legend(handles, unique_celltypes, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
 
             # Show the plot
             plt.yticks(np.arange(0, 1.05, step=0.1))
@@ -846,23 +938,342 @@ class COMPARATIVE(object):
             sns.reset_orig
             plt.style.use('default')
 
-    def ALL(self):
-        self.compare_NMI()
-        self.compare_ratio_raw_overlap()
-        self.compare_AUC_mAUC()
-        self.compare_ratio_robust()
-        self.visualize_NMI()
-        self.visualize_ovr()
-        self.visualize_AUC_mAUC()
-        self.visualize_robust()
+    def MPF1(self):
+        saga_translate = {"chmm":"ChromHMM","segway":"Segway"}
+        general_DF = []
         
+        for s in self.navigate_results.keys():
+            for m in self.navigate_results[s].keys():
+                for c in self.navigate_results[s][m].keys():
+                    general_DF.append(
+                        [self.var_setting_dict[s], saga_translate[m], c, 
+                        self.navigate_results[s][m][c][1][0], self.navigate_results[s][m][c][1][1], 
+                        self.navigate_results[s][m][c][2][0], self.navigate_results[s][m][c][2][1]
+                        ]
+                    )
+        
+        general_DF = pd.DataFrame(general_DF, columns= [
+            "setting", "saga", "celltype", "NMI", "pNMI", "overlap | w=0", "overlap | w=1000"]).sort_values(by=["setting", "celltype"])
+
+        # Create a 2x2 grid of subplots
+        fig, axs = plt.subplots(2, 2, figsize=(15, 10), sharex=False, sharey=False)
+
+        # Flatten the axs array to make it easier to iterate over
+        axs = axs.flatten()
+
+        # Define the marker styles you want to use for each category of the 'saga' variable
+        markers = {general_DF.saga.unique()[0]: 'o', general_DF.saga.unique()[1]: '^'}
+
+        # Plot the data in each subplot
+        for saga, marker in markers.items():
+            df = general_DF[general_DF['saga'] == saga]
+            sns.stripplot(x="setting", y="NMI", hue="celltype", data=df, ax=axs[0], marker=marker, size=8, alpha=0.8)
+            sns.stripplot(x="setting", y="pNMI", hue="celltype", data=df, ax=axs[1], marker=marker, size=8, alpha=0.8)
+            sns.stripplot(x="setting", y="overlap | w=0", hue="celltype", data=df, ax=axs[2], marker=marker, size=8, alpha=0.8)
+            sns.stripplot(x="setting", y="overlap | w=1000", hue="celltype", data=df, ax=axs[3], marker=marker, size=8, alpha=0.8)
+
+        for i in range(len(general_DF.setting.unique())):
+            axs[0].axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
+            axs[1].axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
+            axs[2].axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
+            axs[3].axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
+
+        for ax in axs:
+            ax.set_xticklabels(ax.get_xticklabels(), fontsize=9)
+            ax.set_xlabel('')
+
+        # Get the color palette used by seaborn
+        palette = sns.color_palette()
+
+        # Create a custom legend
+        legend_elements = []
+        for i, celltype in enumerate(general_DF.celltype.unique()):
+            legend_elements.append(plt.Line2D([0], [0], color=palette[i], label=celltype))
+            
+        for i, saga in enumerate(general_DF.saga.unique()):
+            legend_elements.append(plt.Line2D([0], [0], color='black', marker=markers[saga], label=saga, linestyle='None'))
+
+        # Add the custom legend to the first subplot
+        axs[0].legend(handles=legend_elements, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
+                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=7)
+
+        axs[1].legend(handles=legend_elements, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
+                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=7)
+
+        axs[2].legend(handles=legend_elements, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
+                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=7)
+
+        axs[3].legend(handles=legend_elements, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
+                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=7)
+
+        plt.savefig(self.maindir+"/MPF1.pdf", format="pdf")
+        plt.savefig(self.maindir+"/MPF1.svg", format="svg")
+        plt.clf()
+        sns.reset_orig
+        plt.style.use('default')
+
+    def MPF2(self):
+        saga_translate = {"chmm":"ChromHMM","segway":"Segway"}
+        general_DF = []
+
+        for s in self.navigate_results.keys():
+            for m in self.navigate_results[s].keys():
+                for c in self.navigate_results[s][m].keys():
+                    general_DF.append(
+                        [self.var_setting_dict[s], saga_translate[m], c, 
+                        self.navigate_results[s][m][c][1][0], self.navigate_results[s][m][c][1][1], 
+                        self.navigate_results[s][m][c][2][0], self.navigate_results[s][m][c][2][1]
+                        ]
+                    )
+
+        general_DF = pd.DataFrame(general_DF, columns= [
+            "setting", "saga", "celltype", "NMI", "pNMI", "overlap | w=0", "overlap | w=1000"]).sort_values(by=["setting", "celltype"])
+
+        # Create a 2x2 grid of subplots
+        fig, axs = plt.subplots(2, 2, figsize=(15, 10), sharex=False, sharey=False)
+
+        # Flatten the axs array to make it easier to iterate over
+        axs = axs.flatten()
+
+        # Define the marker styles you want to use for each category of the 'celltype' variable
+        markers = {general_DF.celltype.unique()[0]: 'o', general_DF.celltype.unique()[1]: '^', general_DF.celltype.unique()[2]: 's', general_DF.celltype.unique()[3]: 'D', general_DF.celltype.unique()[4]: 'v'}
+
+        # Plot the data in each subplot
+        for celltype, marker in markers.items():
+            df = general_DF[general_DF['celltype'] == celltype]
+            sns.stripplot(x="setting", y="NMI", hue="saga", data=df, ax=axs[0], marker=marker, size=8, alpha=0.8)
+            sns.stripplot(x="setting", y="pNMI", hue="saga", data=df, ax=axs[1], marker=marker, size=8, alpha=0.8)
+            sns.stripplot(x="setting", y="overlap | w=0", hue="saga", data=df, ax=axs[2], marker=marker, size=8, alpha=0.8)
+            sns.stripplot(x="setting", y="overlap | w=1000", hue="saga", data=df, ax=axs[3], marker=marker, size=8, alpha=0.8)
+
+        for i in range(len(general_DF.setting.unique())):
+            axs[0].axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
+            axs[1].axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
+            axs[2].axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
+            axs[3].axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
+
+        for ax in axs:
+            ax.set_xticklabels(ax.get_xticklabels(), fontsize=9)
+            ax.set_xlabel('')
+
+        # Get the color palette used by seaborn
+        palette = sns.color_palette()
+
+        # Create a custom legend
+        legend_elements = []
+        for i, saga in enumerate(general_DF.saga.unique()):
+            legend_elements.append(plt.Line2D([0], [0], color=palette[i], label=saga))
+            
+        for i, celltype in enumerate(general_DF.celltype.unique()):
+            legend_elements.append(plt.Line2D([0], [0], color='black', marker=markers[celltype], label=celltype, linestyle='None'))
+    
+         # Add the custom legend to the first subplot
+        axs[0].legend(handles=legend_elements, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
+                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=7)
+
+        axs[1].legend(handles=legend_elements, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
+                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=7)
+
+        axs[2].legend(handles=legend_elements, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
+                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=7)
+
+        axs[3].legend(handles=legend_elements, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
+                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=7)
+
+        plt.savefig(self.maindir+"/MPF2.pdf", format="pdf")
+        plt.savefig(self.maindir+"/MPF2.svg", format="svg")
+
+        plt.clf()
+        sns.reset_orig
+        plt.style.use('default')
+    
+    def integ_ratio_robust(self):
+        saga_translate = {"chmm":"ChromHMM","segway":"Segway"}
+        general_DF = []
+        
+        for s in self.navigate_results.keys():
+            for m in self.navigate_results[s].keys():
+                for c in self.navigate_results[s][m].keys():
+                    general_DF.append(
+                        [self.var_setting_dict[s], saga_translate[m], c, 
+                        self.navigate_results[s][m][c][4]])
+        
+        general_DF = pd.DataFrame(general_DF, columns= [
+            "setting", "saga", "celltype", "ratio_confident"]).sort_values(by=["setting", "celltype"])
+
+        fig, axs = plt.subplots(1, 1, figsize=(8, 6), sharex=False, sharey=False)
+
+        # Flatten the axs array to make it easier to iterate over
+        # axs = axs.flatten()
+
+        # Define the marker styles you want to use for each category of the 'celltype' variable
+        markers = {
+            general_DF.celltype.unique()[0]: 'o', general_DF.celltype.unique()[1]: '^', 
+            general_DF.celltype.unique()[2]: 's', general_DF.celltype.unique()[3]: 'D', 
+            general_DF.celltype.unique()[4]: 'v'}
+
+        # Plot the data in each subplot
+        for celltype, marker in markers.items():
+            df = general_DF[general_DF['celltype'] == celltype]
+            sns.stripplot(x="setting", y="ratio_confident", hue="saga", data=df, ax=axs, marker=marker, size=8, alpha=0.8)
+
+        for i in range(len(general_DF.setting.unique())):
+            axs.axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
+
+        axs.set_xticklabels(axs.get_xticklabels(), fontsize=9)
+        axs.set_xlabel('')
+
+        # Get the color palette used by seaborn
+        palette = sns.color_palette()
+
+        # Create a custom legend
+        legend_elements = []
+        for i, saga in enumerate(general_DF.saga.unique()):
+            legend_elements.append(plt.Line2D([0], [0], color=palette[i], label=saga))
+            
+        for i, celltype in enumerate(general_DF.celltype.unique()):
+            legend_elements.append(plt.Line2D([0], [0], color='black', marker=markers[celltype], label=celltype, linestyle='None'))
+    
+         # Add the custom legend to the first subplot
+        axs.legend(handles=legend_elements, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
+                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=7)
+        
+        plt.savefig(self.maindir+"/integ_ratiorobust.pdf", format="pdf")
+        plt.savefig(self.maindir+"/integ_ratiorobust.svg", format="svg")
+        plt.clf()
+        sns.reset_orig
+        plt.style.use('default')
+
+    def integ_auc_mauc(self):
+        saga_translate = {"chmm":"ChromHMM","segway":"Segway"}
+        general_DF = []
+        
+        for s in self.navigate_results.keys():
+            for m in self.navigate_results[s].keys():
+                for c in self.navigate_results[s][m].keys():
+                    avg_auc = 0
+                    for k in self.navigate_results[s][m][c][3].keys():
+                        avg_auc += self.navigate_results[s][m][c][3][k] * self.navigate_results[s][m][c][6][k]
+
+                    general_DF.append(
+                        [self.var_setting_dict[s], saga_translate[m], c, 
+                        avg_auc])
+        
+        general_DF = pd.DataFrame(general_DF, columns= [
+            "setting", "saga", "celltype", "average AUC/mAUC"]).sort_values(by=["setting", "celltype"])
+
+        fig, axs = plt.subplots(1, 1, figsize=(8, 6), sharex=False, sharey=False)
+
+        # Flatten the axs array to make it easier to iterate over
+        # axs = axs.flatten()
+
+        # Define the marker styles you want to use for each category of the 'celltype' variable
+        markers = {
+            general_DF.celltype.unique()[0]: 'o', general_DF.celltype.unique()[1]: '^', 
+            general_DF.celltype.unique()[2]: 's', general_DF.celltype.unique()[3]: 'D', 
+            general_DF.celltype.unique()[4]: 'v'}
+
+        # Plot the data in each subplot
+        for celltype, marker in markers.items():
+            df = general_DF[general_DF['celltype'] == celltype]
+            sns.stripplot(x="setting", y="average AUC/mAUC", hue="saga", data=df, ax=axs, marker=marker, size=8, alpha=0.8)
+
+        for i in range(len(general_DF.setting.unique())):
+            axs.axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
+
+        axs.set_xticklabels(axs.get_xticklabels(), fontsize=9)
+        axs.set_xlabel('')
+
+        # Get the color palette used by seaborn
+        palette = sns.color_palette()
+
+        # Create a custom legend
+        legend_elements = []
+        for i, saga in enumerate(general_DF.saga.unique()):
+            legend_elements.append(plt.Line2D([0], [0], color=palette[i], label=saga))
+            
+        for i, celltype in enumerate(general_DF.celltype.unique()):
+            legend_elements.append(plt.Line2D([0], [0], color='black', marker=markers[celltype], label=celltype, linestyle='None'))
+    
+         # Add the custom legend to the first subplot
+        axs.legend(handles=legend_elements, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
+                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=7)
+
+        plt.savefig(self.maindir+"/integ_auc_mauc.pdf", format="pdf")
+        plt.savefig(self.maindir+"/integ_auc_mauc.svg", format="svg")
+        plt.clf()
+        sns.reset_orig
+        plt.style.use('default')
+
+    def ALL(self):
+        try:
+            self.compare_NMI()
+        except:
+            print("failed at compare_NMI")
+        try:
+            self.compare_ratio_raw_overlap()
+        except:
+            print("failed at compare_ratio_raw_overlap")
+        try:
+            self.compare_AUC_mAUC()
+        except:
+            print("failed at compare_AUC_mAUC")
+        try:
+            self.compare_ratio_robust()
+        except:
+            print("failed at compare_ratio_robust")
+        try:
+            self.load_coverages()
+        except:
+            print("failed at load_coverages")
+        try:
+            self.integ_ratio_robust()
+        except:
+            print("failed at integ_ratio_robust")
+        try:
+            self.integ_auc_mauc()
+        except:
+            print("failed at integ_auc_mauc")
+        try:
+            self.MPF1()
+        except:
+            print("failed at MPF1")
+        try:
+            self.MPF2()
+        except:
+            print("failed at MPF2")
+        try:
+            self.visualize_NMI()
+        except:
+            print("failed at visualize_NMI")
+        try:
+            self.visualize_ovr()
+        except:
+            print("failed at visualize_ovr")
+        try:
+            self.visualize_AUC_mAUC()
+        except:
+            print("failed at visualize_AUC_mAUC")
+        try:
+            self.visualize_robust()
+        except:
+            print("failed at visualize_robust")
+
+
 if __name__=="__main__":
+    # comp = COMPARATIVE("tests/WG")
+    # comp.ALL()
+    # comp = COMPARATIVE("tests/runs062023_subset")
+    # comp.ALL()
+
+    # exit()
+
     if sys.argv[1] == "all":
         m_p("s1")
         m_p("s2")
         m_p("s3")
-        comp = COMPARATIVE("runs062023_subset")
-        comp.ALL()
+        # comp = COMPARATIVE("Subset")
+        # comp.ALL()
 
     else:
         setting = sys.argv[1]

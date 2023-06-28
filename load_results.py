@@ -1,5 +1,8 @@
 import os, ast, sys
 import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 class COMPARATIVE(object):
     def __init__(self, maindir):
@@ -28,7 +31,7 @@ class COMPARATIVE(object):
         self.var_setting_dict_inverse = {v:k for k, v in self.var_setting_dict.items()}
         self.SORT_ORDER = {"Prom": 0, "Prom_fla":1, "Enha":2, "Enha_low":3, "Biva":4, "Tran":5, "Cons":6, "Facu":7, "K9K3":8, "Quie":9}
 
-    # self.navigate_results[s][m][c] = [dir, [NMI_map, NMI_post], [ovr_ratio_w0, ovr_ratio_w1000],  {auc/mauc}, {ratio_robust}]
+    # self.navigate_results[s][m][c] = [dir, [NMI_map, NMI_post], [ovr_ratio_w0, ovr_ratio_w1000],  {auc/mauc}, general_rep, {ratio_robust}]
     def compare_NMI(self):
         for s in self.navigate_results.keys():
             for m in self.navigate_results[s]:
@@ -106,6 +109,7 @@ class COMPARATIVE(object):
                             ratio_robust[l.split(" = ")[0].replace(" reprod score", "")] = float(l.split(" = ")[1][:7])
 
                         if "general" in ratio_robust.keys():
+                            self.navigate_results[s][m][c].append(ratio_robust["general"])
                             del ratio_robust["general"]
                         
                         self.navigate_results[s][m][c].append(ratio_robust)
@@ -126,34 +130,78 @@ class COMPARATIVE(object):
         cts = ['HeLa-S3', 'GM12878', 'MCF-7', 'CD14', 'K562']
 
 
-        general_df = [] # settings, saga, ct, NMI_map, NMI_post, ovr_ratio_w0, ovr_ratio_w1000
-        perlabel_df = [] # settings, saga, ct, label, auc/mauc, ratio_robust
+        self.general_df = [] # settings, saga, ct, NMI_map, NMI_post, ovr_ratio_w0, ovr_ratio_w1000
+        self.perlabel_df = [] # settings, saga, ct, label, auc/mauc, ratio_robust
 
         for i in settings:
             for j in sagas:
                 for k in cts:
-                    general_df.append([
+                    self.general_df.append([
                         self.var_setting_dict[i], j, str(k), 
                         res.navigate_results[i][j][k][1][0],
                         res.navigate_results[i][j][k][1][1],
                         res.navigate_results[i][j][k][2][0],
-                        res.navigate_results[i][j][k][2][1]])
+                        res.navigate_results[i][j][k][2][1],
+                        res.navigate_results[i][j][k][4]])
 
                     for l in res.navigate_results[i][j][k][3].keys():
-                        if l in res.navigate_results[i][j][k][4].keys():
-                            perlabel_df.append([
+                        if l in res.navigate_results[i][j][k][5].keys():
+                            self.perlabel_df.append([
                                 self.var_setting_dict[i], j, str(k), l, "_".join(l.split("_")[1:]),
                                 res.navigate_results[i][j][k][3][l],
-                                res.navigate_results[i][j][k][4][l]
+                                res.navigate_results[i][j][k][5][l]
                             ])
 
-        general_df = pd.DataFrame(general_df, columns = ["settings", "saga", "ct", "NMI_map", "NMI_post", "ovr_ratio_w0", "ovr_ratio_w1000"])
-        perlabel_df = pd.DataFrame(perlabel_df, columns = ["settings", "saga", "ct", "label", "func", "auc/mauc", "ratio_robust"])
+        self.general_df = pd.DataFrame(
+            self.general_df, 
+            columns = ["settings", "saga", "ct", "NMI_map", "NMI_post", "ovr_ratio_w0", "ovr_ratio_w1000", "general_reproducibility"]).sort_values(by=["settings", "ct"])
+            
+        self.perlabel_df = pd.DataFrame(
+            self.perlabel_df, 
+            columns = ["settings", "saga", "ct", "label", "func", "auc/mauc", "ratio_robust"]).sort_values(by=["settings", "ct"])
 
-        general_df.to_csv(self.maindir  + "/general_df.csv")
-        perlabel_df.to_csv(self.maindir + "/perlabel_df.csv")
+        self.general_df.to_csv(self.maindir  + "/general_df.csv")
+        self.perlabel_df.to_csv(self.maindir + "/perlabel_df.csv")
+
+    def visualize_r(self):
+        sns.set_theme(style="whitegrid")
+        sns.reset_orig
+        plt.style.use('default')
+
+        sns.set(rc={'figure.figsize':(10,8)})
+        sns.set_palette(sns.color_palette("deep"))
+
+        sns.barplot(x="ct", y="general_reproducibility", hue="settings", data=self.general_df.loc[self.general_df["saga"]=="segway", :])
+        plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
+        plt.ylabel("reproducibility")
+        plt.yticks(np.arange(0, 1.1, step=0.1))
+        plt.tight_layout()
+
+        plt.savefig(self.maindir+"/Seg_general_repr.pdf", format="pdf")
+        plt.savefig(self.maindir+"/Seg_general_repr.svg", format="svg")
+        plt.clf()
+
+        ########################################################################################################################
+
+        sns.set_theme(style="whitegrid")
+        sns.reset_orig
+        plt.style.use('default')
+
+        sns.set(rc={'figure.figsize':(10,8)})
+        sns.set_palette(sns.color_palette("deep"))
+
+        sns.barplot(x="ct", y="general_reproducibility", hue="settings", data=self.general_df.loc[self.general_df["saga"]=="chmm", :])
+        plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
+        plt.ylabel("reproducibility")
+        plt.yticks(np.arange(0, 1.1, step=0.1))
+        plt.tight_layout()
+
+        plt.savefig(self.maindir+"/chmm_general_repr.pdf", format="pdf")
+        plt.savefig(self.maindir+"/chmm_general_repr.svg", format="svg")
+        plt.clf()
 
 if __name__ == "__main__":
     res = COMPARATIVE(sys.argv[1])
     res.load_all()
     res.save_all()
+    res.visualize_r()

@@ -1,5 +1,8 @@
 from matplotlib import pyplot as plt
 import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+from scipy.spatial.distance import euclidean
+from scipy.stats import pearsonr
 import pandas as pd
 from scipy.optimize import linear_sum_assignment
 from scipy.cluster.hierarchy import dendrogram
@@ -11,7 +14,8 @@ from sklearn import preprocessing
 from sklearn.cluster import KMeans
 from scipy.spatial.distance import pdist
 from sklearn.metrics import cohen_kappa_score
-import math 
+import math, os
+from matplotlib.colors import LinearSegmentedColormap
 
 def overall_overlap_ratio(loci_1, loci_2, w=0):
     joint = joint_overlap_prob(loci_1, loci_2, w=w, symmetric=False) * len(loci_1)
@@ -572,3 +576,73 @@ def match_evaluation(matrix, assignment_pairs):
 
     probability_array['all'] = matched_sum / np.array(matrix).sum()
     return pd.Series(probability_array)
+
+def correspondence_based_on_emission(rep_dir1, rep_dir2, outdir, saga="chmm", metric="cosine"):
+    if saga == "segway":
+        emis_1 = pd.read_csv(rep_dir1 + "/gmtk_parameters/gmtk_parameters.stats.csv").drop("Unnamed: 0", axis=1)
+        emis_2 = pd.read_csv(rep_dir2 + "/gmtk_parameters/gmtk_parameters.stats.csv").drop("Unnamed: 0", axis=1)
+
+    elif saga == "chmm":
+        for l in os.listdir(rep_dir1):
+            if "emissions" in l and ".txt" in l:
+                emis_1 = pd.read_csv(f"{rep_dir1}/{l}", sep="\t").drop("State (Emission order)" ,axis=1)
+
+        for l in os.listdir(rep_dir2):
+            if "emissions" in l and ".txt" in l:
+                emis_2 = pd.read_csv(f"{rep_dir2}/{l}", sep="\t").drop("State (Emission order)" ,axis=1)  
+
+    emis_1 = emis_1.sort_index(axis=1)
+    emis_2 = emis_2.sort_index(axis=1)
+
+    boundaries = [x for x in list(np.linspace(0, 1, 20))] + [1] # custom boundaries
+    hex_colors = sns.light_palette('navy', n_colors=len(boundaries) * 2 + 2, as_cmap=False).as_hex()
+    hex_colors = [hex_colors[i] for i in range(0, len(hex_colors), 2)]
+    colors=list(zip(boundaries, hex_colors))
+    custom_color_map = LinearSegmentedColormap.from_list(
+        name='custom_navy',
+        colors=colors)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+    sns.heatmap(
+        emis_1.astype(float), annot=False, fmt=".1f",
+        linewidths=0.01,  cbar=True, annot_kws={"size": 6}, 
+        cmap=custom_color_map, ax=ax1)
+    
+    ax1.set_title("Base")
+    
+    sns.heatmap(
+        emis_2.astype(float), annot=False, fmt=".1f",
+        linewidths=0.01,  cbar=True, annot_kws={"size": 6}, 
+        cmap=custom_color_map, ax=ax2)
+
+    ax2.set_title("Verification")
+
+    plt.tight_layout()
+    plt.savefig('{}/emissions.pdf'.format(outdir), format='pdf')
+    plt.savefig('{}/emissions.svg'.format(outdir), format='svg')
+
+    sim_mat = np.zeros((emis_1.shape[0], emis_2.shape[0]))
+
+    for i in range(emis_1.shape[0]):
+        for j in range(emis_2.shape[0]):
+
+            if metric == "cosine":
+                sim_mat[i,j] = cosine_similarity(np.array(emis_1.iloc[i,:]).reshape(1,-1), np.array(emis_2.iloc[j,:]).reshape(1,-1))
+
+            elif metric == "eucl":
+                sim_mat[i,j] = euclidean(np.array(emis_1.iloc[i,:]), np.array(emis_2.iloc[j,:]))
+
+            elif metric == "correl":
+                corr, _ = pearsonr(np.array(emis_1.iloc[i,:]), np.array(emis_2.iloc[j,:]))
+
+                if math.isnan(corr):
+                    sim_mat[i,j] = 0
+                else:
+                    sim_mat[i,j] = corr
+
+    if metric == "eucl":
+        # similarity = exp(-gamma * distance^2)
+
+        sim_mat = np.exp(-1 * sim_mat**2)
+
+    return sim_mat

@@ -591,7 +591,9 @@ def calibrate(loci_1, loci_2, ovr_threshold, window_bp, numbins=500, matching="s
     calibrated_loci1.columns = loci_1.columns
     return calibrated_loci1
 
-def is_repr_posterior(loci_1, loci_2, ovr_threshold, window_bp, reproducibility_threshold=0.9, matching="static", always_include_best_match=True):
+def is_repr_posterior(
+    loci_1, loci_2, ovr_threshold, window_bp, reproducibility_threshold=0.9, 
+    matching="static", always_include_best_match=True, return_r=False, return_mean_r=False):
     MAP1 = list(loci_1.iloc[:,3:].idxmax(axis=1)) 
 
     calibrated_loci1 = calibrate(loci_1, loci_2, ovr_threshold, window_bp, matching=matching, always_include_best_match=always_include_best_match)
@@ -600,15 +602,24 @@ def is_repr_posterior(loci_1, loci_2, ovr_threshold, window_bp, reproducibility_
     for i in range(len(MAP1)):
         calibrated_reproducibility.append(calibrated_loci1.loc[i, MAP1[i]])
 
-    # then based on the initial threshold that we had, we say a position is reproduced if it has a calibrated score of >threshold
-    binary_isrep = []
-    for t in calibrated_reproducibility:
-        if t>=reproducibility_threshold:
-            binary_isrep.append(True)
-        else:
-            binary_isrep.append(False)
+    if return_r:
+        r = pd.concat([loci_1.chr, loci_1.start, loci_1.end, pd.Series(MAP1), pd.Series(calibrated_reproducibility)], axis=1)
+        r.columns = ["chr", "start", "end", "MAP", "r_value"]
+        return r
 
-    return binary_isrep
+    else:
+        # then based on the initial threshold that we had, we say a position is reproduced if it has a calibrated score of >threshold
+        binary_isrep = []
+        for t in calibrated_reproducibility:
+            if t>=reproducibility_threshold:
+                binary_isrep.append(True)
+            else:
+                binary_isrep.append(False)
+        if return_mean_r:
+            avg_r = np.mean(np.array(calibrated_reproducibility))
+            return binary_isrep, avg_r
+        else:
+            return binary_isrep
 
 def single_point_delta_NMI_repr(loci_1, loci_2, ovr_threshold, window_bp, repr_threshold, posterior=True, matching="static"):
 
@@ -641,7 +652,8 @@ def single_point_delta_NMI_repr(loci_1, loci_2, ovr_threshold, window_bp, repr_t
 
     return float(post_calib_NMI - pre_calib_NMI)
 
-def single_point_repr(loci_1, loci_2, ovr_threshold, window_bp, posterior=False, reproducibility_threshold=0.9):
+def single_point_repr(
+    loci_1, loci_2, ovr_threshold, window_bp, posterior=False, reproducibility_threshold=0.9, return_mean_r=False):
     if posterior:
         """
         for all labels in R1:
@@ -650,7 +662,7 @@ def single_point_repr(loci_1, loci_2, ovr_threshold, window_bp, posterior=False,
         according to the calibrated p, 
         """
         return is_repr_posterior(
-            loci_1, loci_2, ovr_threshold, window_bp, reproducibility_threshold=reproducibility_threshold)
+            loci_1, loci_2, ovr_threshold, window_bp, reproducibility_threshold=reproducibility_threshold, return_mean_r=return_mean_r)
 
     else:
         return is_repr_MAP_with_prior(
@@ -1363,4 +1375,3 @@ def __ReprThresWind_delta_NMI_contour(
     plt.savefig('{}/deltaNMI_contour_general.pdf'.format(savedir+"/contours_ReprThresWind_deltaNMI"), format='pdf')
     plt.savefig('{}/deltaNMI_contour_general.svg'.format(savedir+"/contours_ReprThresWind_deltaNMI"), format='svg')
     plt.clf()
-

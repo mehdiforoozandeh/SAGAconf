@@ -1632,14 +1632,14 @@ def normalized_mutual_information(loci_1, loci_2, soft=True):
     H_A = 0
     for a in coverage1.keys():
         if coverage1[a] > 0:
-            H_A += coverage1[a] * np.log(coverage1[a])
+            H_A += coverage1[a] * np.log2(coverage1[a])
 
     H_A = -1 * H_A
 
     H_B = 0
     for b in coverage2.keys():
         if coverage2[b] > 0:
-            H_B += coverage2[b] * np.log(coverage2[b])
+            H_B += coverage2[b] * np.log2(coverage2[b])
         
     H_B = -1 * H_B
 
@@ -1649,12 +1649,13 @@ def normalized_mutual_information(loci_1, loci_2, soft=True):
         for b in coverage2.keys(): 
             
             if (joint.loc[a, b]) != 0:
-                MI += joint.loc[a, b] * np.log(
+                MI += joint.loc[a, b] * np.log2(
                     (joint.loc[a, b]) / 
                     (coverage1[a] * coverage2[b])
                     )
 
-    NMI = (2*MI)/(H_A + H_B)
+    # NMI = (2*MI)/(H_A + H_B)
+    NMI = (MI)/(H_B)
 
     return NMI
 
@@ -1666,14 +1667,14 @@ def NMI_from_matrix(joint, return_MI=False, posterior=False):
     H_A = 0
     for a in coverage1.keys():
         if coverage1[a] > 0:
-            H_A += coverage1[a] * np.log(coverage1[a])
+            H_A += coverage1[a] * np.log2(coverage1[a])
 
     H_A = -1 * H_A
 
     H_B = 0
     for b in coverage2.keys():
         if coverage2[b] > 0:
-            H_B += coverage2[b] * np.log(coverage2[b])
+            H_B += coverage2[b] * np.log2(coverage2[b])
         
     H_B = -1 * H_B
 
@@ -1683,16 +1684,16 @@ def NMI_from_matrix(joint, return_MI=False, posterior=False):
         for b in coverage2.keys(): 
             
             if (joint.loc[a, b]) != 0:
-                MI += joint.loc[a, b] * np.log(
+                MI += joint.loc[a, b] * np.log2(
                     (joint.loc[a, b]) / 
                     (coverage1[a] * coverage2[b])
                     )
 
     # print(MI, H_A, H_B)
-    if posterior:
-        NMI = (MI)/(H_B)
-    else:
-        NMI = (2*MI)/(H_A + H_B)
+    # if posterior:
+    NMI = (MI)/(H_B)
+    # else:
+    #     NMI = (2*MI)/(H_A + H_B)
 
     if return_MI:
         return MI
@@ -1743,8 +1744,16 @@ def calc_entropy(joint, rows=True):
     H_A = 0
     for a in coverage1.keys():
         if coverage1[a] > 0:
-            H_A += coverage1[a] * np.log(coverage1[a])
-
-    H_A = -1 * H_A
-
+            H_A += coverage1[a] * np.log2(1 / coverage1[a])
+    # H_A = -1 * H_A
     return H_A
+
+def conditional_entropy(joint):
+    marginal_1 = {k:sum(joint.loc[k,:]) for k in joint.index}
+    marginal_2 = {k:sum(joint.loc[:,k]) for k in joint.columns}
+    cond_entr = 0
+    for k in marginal_1.keys():
+        for l in marginal_2.keys():
+            if joint.loc[k,l] >0:
+                cond_entr += joint.loc[k,l] * np.log2( joint.loc[k,l] / marginal_2[l] )
+    return -1 * cond_entr

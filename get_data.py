@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import requests, os, itertools, ast
 
-
 def search_encode(cell, download_dir, target_assembly="GRCh38", check_availability=False):
     # Force return from the server in JSON format
     headers = {'accept': 'application/json'}
@@ -298,8 +297,39 @@ def create_trackname_assay_file(download_dir):
         for i in range(len(tracknames)):
             tna.write('{}\t{}\n'.format(tracknames[i][1], tracknames[i][0]))
 
+def add_lab_data_to_summary(csvfile ="data_summary.csv"):
+    # Force return from the server in JSON format
+    headers = {'accept': 'application/json'}
+    summary = pd.read_csv(csvfile).drop("Unnamed: 0", axis=1)
+    summary.Celltype = summary.Celltype.astype(str)
+    base_url = "https://www.encodeproject.org/files/"
+    for i in range(summary.shape[0]):
+        file_accession = summary["files"][i].split(", ")[1]
+        # GET the object
+        response = requests.get(base_url + file_accession, headers=headers)
+        # Extract the JSON response as a Python dictionary
+        search_results = response.json()
+        lab = search_results["lab"]["title"]
+        pi = search_results["award"]["pi"]["title"]
+        print(lab, pi)
+
+    base_url = "https://www.encodeproject.org/biosamples/"
+
+    for i in range(summary.shape[0]):
+        file_accession = summary["biosample (isoreplicate)"][i].split(" ")[0]
+        # GET the object
+        response = requests.get(base_url + file_accession, headers=headers)
+        # Extract the JSON response as a Python dictionary
+        search_results = response.json()
+        lab = search_results["lab"]["title"]
+        pi = search_results["award"]["pi"]["title"]
+        print(lab, pi)
+
+    # print(summary)
+
 if __name__ == "__main__":
-    get_data_from_csv(csvfile ="data_summary.csv")
+    add_lab_data_to_summary()
+    # get_data_from_csv(csvfile ="data_summary.csv")
 
     exit()
     CellType_list = np.array(
