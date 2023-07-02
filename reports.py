@@ -1903,20 +1903,20 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     if os.path.exists(savedir)==False:
         os.mkdir(savedir)
 
-    try:
-        get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
-    except:
-        pass
+    # try:
+    #     get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
+    # except:
+    #     pass
 
-    try:
-        get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
-    except:
-        pass
+    # try:
+    #     get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
+    # except:
+    #     pass
 
-    try:
-        get_overalls(replicate_1_dir, replicate_2_dir, savedir, tr=0.9)
-    except:
-        pass
+    # try:
+    #     get_overalls(replicate_1_dir, replicate_2_dir, savedir, tr=0.9)
+    # except:
+    #     pass
 
     try:
         if "chmm" in replicate_1_dir.lower() or "chromhmm_runs" in replicate_1_dir.lower():
@@ -1928,10 +1928,10 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     except:
         pass
 
-    try:
-        r_value_hists(replicate_1_dir, replicate_2_dir, savedir)
-    except:
-        pass
+    # try:
+    #     r_value_hists(replicate_1_dir, replicate_2_dir, savedir)
+    # except:
+    #     pass
 
     try:
         post_clustering(replicate_1_dir, replicate_2_dir, savedir, tr=0.9)
@@ -1939,12 +1939,12 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     except:
         pass
 
-    try:
-        after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, tr=0.9)
-        before_after_saga(savedir)
+    # try:
+    #     after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, tr=0.9)
+    #     before_after_saga(savedir)
 
-    except:
-        pass
+    # except:
+    #     pass
     
     ################################################################################################################
 
@@ -1957,17 +1957,17 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     except:
         pass
 
-    if contour:
-        try:
-            get_contour(replicate_1_dir, replicate_2_dir, savedir)
-        except:
-            pass
+    # if contour:
+    #     try:
+    #         get_contour(replicate_1_dir, replicate_2_dir, savedir)
+    #     except:
+    #         pass
 
-    try:
-        gather_labels(replicate_1_dir, savedir, contour=contour)
+    # try:
+    #     gather_labels(replicate_1_dir, savedir, contour=contour)
 
-    except:
-        pass
+    # except:
+    #     pass
 
 def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
 

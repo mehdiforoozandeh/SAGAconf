@@ -1,6 +1,6 @@
 from reports import *
 import multiprocessing as mp
-import logging, ast, sys
+import logging, ast, sys, shutil, os
 
 def r1vsr2(maindir="WG"):
     ################### Rep1 vs Rep2 ###################
@@ -1500,7 +1500,33 @@ class COMPARATIVE(object):
         except:
             print("failed at visualize_robust")
 
+def merge_WG_subset(dir1, dir2, log_file):
+    """
+    this function fills the missing analysis from WG runs with their corresponding results
+    from subset runs.
+    """
+    # Open the log file for writing
+    with open(log_file, 'w') as f:
+        # Recursively iterate over all subdirectories and files in dir1
+        for root, dirs, files in os.walk(dir1):
+            for file in files:
+                # Construct the absolute path of the current file
+                file_path = os.path.join(root, file)
+                # Construct the relative path of the current file with respect to dir1
+                rel_path = os.path.relpath(file_path, dir1)
+                # Construct the target path in dir2
+                target_path = os.path.join(dir2, rel_path)
+                # Check if the target path exists
+                if not os.path.exists(target_path):
+                    # Create any necessary subdirectories in dir2
+                    os.makedirs(os.path.dirname(target_path), exist_ok=True)
+                    # Copy the file to dir2
+                    shutil.copy2(file_path, target_path)
+                    # Write a log entry to the log file
+                    f.write(f'Copied {file_path} to {target_path}\n')
+
 if __name__=="__main__":
+    # merge_WG_subset("tests/subset", "tests/WG", "tests/copy_log.txt")
     # comp = COMPARATIVE("tests/WG")
     # comp.ALL()
     # comp = COMPARATIVE("tests/subset")
