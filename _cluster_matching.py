@@ -594,32 +594,35 @@ def correspondence_based_on_emission(rep_dir1, rep_dir2, outdir, saga="chmm", me
     emis_1 = emis_1.sort_index(axis=1)
     emis_2 = emis_2.sort_index(axis=1)
 
-    boundaries = [x for x in list(np.linspace(0, 1, 20))] + [1] # custom boundaries
-    hex_colors = sns.light_palette('navy', n_colors=len(boundaries) * 2 + 2, as_cmap=False).as_hex()
-    hex_colors = [hex_colors[i] for i in range(0, len(hex_colors), 2)]
-    colors=list(zip(boundaries, hex_colors))
-    custom_color_map = LinearSegmentedColormap.from_list(
-        name='custom_navy',
-        colors=colors)
+    try:
+        boundaries = [x for x in list(np.linspace(0, 1, 20))] + [1] # custom boundaries
+        hex_colors = sns.light_palette('navy', n_colors=len(boundaries) * 2 + 2, as_cmap=False).as_hex()
+        hex_colors = [hex_colors[i] for i in range(0, len(hex_colors), 2)]
+        colors=list(zip(boundaries, hex_colors))
+        custom_color_map = LinearSegmentedColormap.from_list(
+            name='custom_navy',
+            colors=colors)
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+        sns.heatmap(
+            emis_1.astype(float), annot=False, fmt=".1f",
+            linewidths=0.01,  cbar=True, annot_kws={"size": 6}, 
+            cmap=custom_color_map, ax=ax1)
+        
+        ax1.set_title("Base")
+        
+        sns.heatmap(
+            emis_2.astype(float), annot=False, fmt=".1f",
+            linewidths=0.01,  cbar=True, annot_kws={"size": 6}, 
+            cmap=custom_color_map, ax=ax2)
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
-    sns.heatmap(
-        emis_1.astype(float), annot=False, fmt=".1f",
-        linewidths=0.01,  cbar=True, annot_kws={"size": 6}, 
-        cmap=custom_color_map, ax=ax1)
-    
-    ax1.set_title("Base")
-    
-    sns.heatmap(
-        emis_2.astype(float), annot=False, fmt=".1f",
-        linewidths=0.01,  cbar=True, annot_kws={"size": 6}, 
-        cmap=custom_color_map, ax=ax2)
+        ax2.set_title("Verification")
 
-    ax2.set_title("Verification")
-
-    plt.tight_layout()
-    plt.savefig('{}/emissions.pdf'.format(outdir), format='pdf')
-    plt.savefig('{}/emissions.svg'.format(outdir), format='svg')
+        plt.tight_layout()
+        plt.savefig('{}/emissions.pdf'.format(outdir), format='pdf')
+        plt.savefig('{}/emissions.svg'.format(outdir), format='svg')
+        
+    except:
+        pass
 
     sim_mat = np.zeros((emis_1.shape[0], emis_2.shape[0]))
 

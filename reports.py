@@ -7,7 +7,6 @@ from matplotlib.colors import LinearSegmentedColormap
 import ast
 from scipy.interpolate import UnivariateSpline
 
-
 def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False, force_WG=False):
     print("loading and intersecting")
     loci_1, loci_2 = intersect_parsed_posteriors(
@@ -15,8 +14,8 @@ def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=Fals
         posterior2_dir)
 
     if subset and force_WG==False:
-        loci_1 = loci_1.loc[loci_1["chr"]=="chr21"].reset_index(drop=True)
-        loci_2 = loci_2.loc[loci_2["chr"]=="chr21"].reset_index(drop=True)
+        loci_1 = loci_1.loc[loci_1["chr"]=="chr1"].reset_index(drop=True)
+        loci_2 = loci_2.loc[loci_2["chr"]=="chr1"].reset_index(drop=True)
 
     print("the shapes of the input matrices are: {}, {}".format(str(loci_1.shape), str(loci_2.shape)))
 
@@ -1755,7 +1754,6 @@ def compare_corresp_methods(replicate_1_dir, replicate_2_dir, outdir, saga="chmm
         subset=True, logit_transform=False)
     
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False, custom_order=False)
-
     cos_mat = correspondence_based_on_emission(replicate_1_dir, replicate_2_dir, outdir=outdir, saga=saga, metric="cosine")
 
     iou = IoU_overlap(loci1, loci2)
@@ -1921,10 +1919,12 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
         pass
 
     try:
-        if "chmm" in replicate_1_dir.lower() or "chromhmm" in replicate_1_dir.lower():
+        if "chmm" in replicate_1_dir.lower() or "chromhmm_runs" in replicate_1_dir.lower():
             compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="chmm")
+
         elif "segway" in replicate_1_dir.lower():
             compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="segway")
+            
     except:
         pass
 
