@@ -1503,10 +1503,10 @@ class COMPARATIVE(object):
 if __name__=="__main__":
     # comp = COMPARATIVE("tests/WG")
     # comp.ALL()
-    comp = COMPARATIVE("tests/subset")
-    comp.ALL()
+    # comp = COMPARATIVE("tests/subset")
+    # comp.ALL()
 
-    exit()
+    # exit()
 
     if sys.argv[1] == "all":
         m_p("s1")
