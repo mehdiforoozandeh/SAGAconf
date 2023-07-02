@@ -8,7 +8,7 @@ import ast
 from scipy.interpolate import UnivariateSpline
 
 
-def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False, force_WG=True):
+def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False, force_WG=False):
     print("loading and intersecting")
     loci_1, loci_2 = intersect_parsed_posteriors(
         posterior1_dir, 
@@ -181,7 +181,6 @@ def ct_binned_posterior_heatmap(loci_1, loci_2, savedir, n_bins=10):
     plt.close("all")
     plt.style.use('default')
     plt.clf()
-
 
 def ct_confus(loci_1, loci_2, savedir, w=1000):
     indicator_file = "{}/raw_conditional_overlap_ratio.txt".format(savedir)
@@ -422,7 +421,6 @@ def overall_boundary(loci_1, loci_2, savedir, match_definition="BM"):
     plt.style.use('default')
     plt.clf()
 
-
 def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
     indicator_file = savedir+"/Dist_vs_Corresp"
     if os.path.exists(indicator_file):
@@ -560,7 +558,6 @@ def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
     plt.close("all")
     plt.style.use('default')
     plt.clf()
-
 
 def distance_vs_overlap_2(loci_1, loci_2, savedir, match_definition="BM"):
     indicator_file = savedir+"/Dist_vs_Corresp_2"
@@ -724,7 +721,6 @@ def distance_vs_overlap_2(loci_1, loci_2, savedir, match_definition="BM"):
     plt.style.use('default')
     plt.clf()
 
-
 def distance_vs_overlap_3(loci_1, loci_2, savedir, match_definition="BM"):
     indicator_file = savedir+"/Dist_vs_Corresp_3"
     if os.path.exists(indicator_file):
@@ -832,7 +828,6 @@ def distance_vs_overlap_3(loci_1, loci_2, savedir, match_definition="BM"):
     plt.close("all")
     plt.style.use('default')
     plt.clf()
-
 
 def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
     indicator_file = outdir+"/len_bound.pdf"
@@ -973,7 +968,6 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
     plt.style.use('default')
     plt.clf()
 
-
 def label_granularity(loci_1, loci_2, savedir):
     indicator_file = savedir+"/granul/"
     if os.path.exists(indicator_file):
@@ -1011,7 +1005,6 @@ def label_granularity(loci_1, loci_2, savedir):
         plt.close("all")
         plt.style.use('default')
         plt.clf()
-
 
 def label_boundary(loci_1, loci_2, savedir, match_definition="BM", max_distance=50):
     indicator_file = savedir+"/len_bound/"
@@ -1134,7 +1127,6 @@ def label_boundary(loci_1, loci_2, savedir, match_definition="BM", max_distance=
         plt.close("all")
         plt.style.use('default')
         plt.clf()
-
 
 def label_merging_progression(loci_1, loci_2, savedir):
     indicator_file = savedir+"/prog/"
@@ -1598,7 +1590,7 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
         merge best pair of R2
         generate new dendrogram
     """
-    indicator_file = '{}/conf_rogress.pdf'.format(savedir)
+    indicator_file = '{}/post_clustering_progress.txt'.format(savedir)
     if os.path.exists(indicator_file):
         return
 
@@ -1691,7 +1683,6 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
     plt.style.use('default')
     plt.clf()
 
-
     ####################################################################################################
 
     nl = list(robust_rec_entropy.keys())
@@ -1754,6 +1745,10 @@ def post_clustering_keep_k_states(replicate_1_dir, replicate_2_dir, savedir, k, 
             return
 
 def compare_corresp_methods(replicate_1_dir, replicate_2_dir, outdir, saga="chmm"):
+    indicator_file = savedir+"/corresp.pdf"
+    if os.path.exists(indicator_file):
+        return
+
     loci1, loci2 = load_data(
         f"{replicate_1_dir}/parsed_posterior.csv",
         f"{replicate_2_dir}/parsed_posterior.csv",
@@ -1912,7 +1907,6 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
 
     try:
         get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
-
     except:
         pass
 
@@ -1923,7 +1917,6 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
 
     try:
         get_overalls(replicate_1_dir, replicate_2_dir, savedir, tr=0.9)
-
     except:
         pass
 
@@ -1955,26 +1948,26 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     
     ################################################################################################################
 
-    # try:
-    #     get_all_bioval(
-    #         replicate_1_dir, replicate_2_dir, 
-    #         savedir,
-    #         genecode_dir=genecode_dir, 
-    #         rnaseq=rnaseq)
-    # except:
-    #     pass
+    try:
+        get_all_bioval(
+            replicate_1_dir, replicate_2_dir, 
+            savedir,
+            genecode_dir=genecode_dir, 
+            rnaseq=rnaseq)
+    except:
+        pass
 
-    # if contour:
-    #     try:
-    #         get_contour(replicate_1_dir, replicate_2_dir, savedir)
-    #     except:
-    #         pass
+    if contour:
+        try:
+            get_contour(replicate_1_dir, replicate_2_dir, savedir)
+        except:
+            pass
 
-    # try:
-    #     gather_labels(replicate_1_dir, savedir, contour=contour)
+    try:
+        gather_labels(replicate_1_dir, savedir, contour=contour)
 
-    # except:
-    #     pass
+    except:
+        pass
 
 def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
 

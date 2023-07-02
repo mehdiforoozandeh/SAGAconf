@@ -340,7 +340,9 @@ class COMPARATIVE(object):
         self.var_setting_dict_inverse = {v:k for k, v in self.var_setting_dict.items()}
         self.SORT_ORDER = {"Prom": 0, "Prom_fla":1, "Enha":2, "Enha_low":3, "Biva":4, "Tran":5, "Cons":6, "Facu":7, "K9K3":8, "Quie":9}
 
-     # self.navigate_results[s][m][c] = [dir, [NMI_map, NMI_post], [ovr_ratio_w0, ovr_ratio_w1000], {auc/mauc}, general_rep, {ratio_robust}, {coverage}]
+     # self.navigate_results[s][m][c] = [
+     #              dir, [NMI_map, NMI_post], [ovr_ratio_w0, ovr_ratio_w1000], {auc/mauc}, general_rep, {ratio_robust}, {coverage}
+     #              {nmi_rec}, {robust_rec}, {avgr_rec}, {robust_rec_entropy}, {NMI_rec_entropy}, {avgr_entropy}]
 
     def compare_NMI(self):
         for s in self.navigate_results.keys():
@@ -404,6 +406,38 @@ class COMPARATIVE(object):
 
                     else:
                         self.navigate_results[s][m][c].append({})                 
+
+    def load_post_clustering_progress(self):
+        for s in self.navigate_results.keys():
+            for m in self.navigate_results[s]:
+                for c in self.navigate_results[s][m]:
+                    progress_file = self.navigate_results[s][m][c][0] + "/post_clustering_progress.txt"
+                   
+                    if os.path.exists(progress_file):
+                        with open(progress_file,"r") as f:
+                            lines = f.readlines()
+
+                        nmi_rec = ast.literal_eval(lines[0][:-1])
+                        robust_rec = ast.literal_eval(lines[1][:-1])
+                        avgr_rec = ast.literal_eval(lines[2][:-1])
+                        robust_rec_entropy = ast.literal_eval(lines[3][:-1])
+                        NMI_rec_entropy = ast.literal_eval(lines[4][:-1])
+                        avgr_entropy = ast.literal_eval(lines[5])
+
+                        self.navigate_results[s][m][c].append(nmi_rec)
+                        self.navigate_results[s][m][c].append(robust_rec)
+                        self.navigate_results[s][m][c].append(avgr_rec)
+                        self.navigate_results[s][m][c].append(robust_rec_entropy)
+                        self.navigate_results[s][m][c].append(NMI_rec_entropy)
+                        self.navigate_results[s][m][c].append(avgr_entropy)
+
+                    else:
+                        self.navigate_results[s][m][c].append({})  
+                        self.navigate_results[s][m][c].append({})  
+                        self.navigate_results[s][m][c].append({})  
+                        self.navigate_results[s][m][c].append({})  
+                        self.navigate_results[s][m][c].append({})  
+                        self.navigate_results[s][m][c].append({})  
 
     def compare_ratio_robust(self):
         for s in self.navigate_results.keys():
@@ -938,6 +972,205 @@ class COMPARATIVE(object):
             sns.reset_orig
             plt.style.use('default')
 
+    def post_clustering_comparatives(self):
+        saga_translate = {"chmm":"ChromHMM","segway":"Segway"}
+        numlabels_DF = []
+        entropy_DF = []
+
+        for s in self.navigate_results.keys():
+            for m in self.navigate_results[s].keys():
+                for c in self.navigate_results[s][m].keys():
+                    
+                    for k in self.navigate_results[s][m][c][7].keys():
+                        smc_nlabels_list = [self.var_setting_dict[s], saga_translate[m], c]
+                        smc_nlabels_list.append(k)
+                        smc_nlabels_list.append(self.navigate_results[s][m][c][7][k])
+                        smc_nlabels_list.append(self.navigate_results[s][m][c][8][k])
+                        smc_nlabels_list.append(self.navigate_results[s][m][c][9][k])
+
+                        numlabels_DF.append(smc_nlabels_list)
+                    
+                    for k in self.navigate_results[s][m][c][10].keys():
+                        smc_entropy_list = [self.var_setting_dict[s], saga_translate[m], c]
+                        smc_entropy_list.append(k)
+                        smc_entropy_list.append(self.navigate_results[s][m][c][10][k])
+                        smc_entropy_list.append(self.navigate_results[s][m][c][11][k])
+                        smc_entropy_list.append(self.navigate_results[s][m][c][12][k])
+
+                        entropy_DF.append(smc_entropy_list)
+
+        
+        numlabels_DF = pd.DataFrame(numlabels_DF, columns= [
+            "setting", "saga", "celltype", "num_labels", "nmi", "ratio_robust", "avgr"]).sort_values(by=["setting", "celltype"]) 
+        numlabels_DF['num_labels'] = numlabels_DF['num_labels'].astype(int)
+
+        entropy_DF = pd.DataFrame(entropy_DF, columns= [
+            "setting", "saga", "celltype", "entropy", "ratio_robust", "nmi", "avgr"]).sort_values(by=["setting", "celltype"]) 
+    
+
+        markers = {entropy_DF.setting.unique()[0]: 'o', entropy_DF.setting.unique()[1]: '^', entropy_DF.setting.unique()[2]: 's'}
+        linestyles = {
+            entropy_DF.setting.unique()[0]: 'dashed', 
+            entropy_DF.setting.unique()[1]: "solid", 
+            entropy_DF.setting.unique()[2]: 'dotted'}
+
+        colors = sns.color_palette('colorblind', n_colors=len(entropy_DF.celltype.unique()))
+        colors = dict(zip(entropy_DF.celltype.unique(), colors))
+
+        methods = {"Segway":1, "ChromHMM":0}
+        settings = {
+            entropy_DF.setting.unique()[0]: 0, 
+            entropy_DF.setting.unique()[1]: 1, 
+            entropy_DF.setting.unique()[2]: 2}
+
+        ########################################################################################################
+
+        fig, axs = plt.subplots(3, 2, figsize=(15, 10), sharex=False, sharey=True)
+
+        for s in entropy_DF.setting.unique():
+            for m in entropy_DF.saga.unique():
+                for c in entropy_DF.celltype.unique():
+                    
+                    data = entropy_DF.loc[
+                        (entropy_DF["setting"] == s) &  
+                        (entropy_DF["saga"] == m) &
+                        (entropy_DF["celltype"] == c), :
+                    ]
+                    
+                    data = data.sort_values(by=["entropy"]) 
+
+                    xs = np.array(data.entropy)
+                    ys = np.array(data.ratio_robust)
+                    
+                    try:
+                        axs[settings[s], methods[m]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
+                        axs[settings[s], methods[m]].plot(xs, ys, linestyle=linestyles[s], color=colors[c])
+
+                        axs[settings[s], methods[m]].set_title(f"{m} | {s}")
+                        axs[settings[s], methods[m]].set_xlabel("Entorpy")
+                        axs[settings[s], methods[m]].set_ylabel("Ratio Confident")
+                        axs[settings[s], methods[m]].legend()
+                    except:
+                        pass
+        
+        plt.tight_layout()
+        plt.savefig(self.maindir+"/ent_robust.pdf", format="pdf")
+        plt.savefig(self.maindir+"/ent_robust.svg", format="svg")
+        plt.clf()
+        sns.reset_orig
+        plt.style.use('default')
+
+        ########################################################################################################
+        fig, axs = plt.subplots(3, 2, figsize=(15, 10), sharex=False, sharey=True)
+
+        for s in entropy_DF.setting.unique():
+            for m in entropy_DF.saga.unique():
+                for c in entropy_DF.celltype.unique():
+                    
+                    data = entropy_DF.loc[
+                        (entropy_DF["setting"] == s) &  
+                        (entropy_DF["saga"] == m) &
+                        (entropy_DF["celltype"] == c), :
+                    ]
+                    
+                    data = data.sort_values(by=["entropy"]) 
+
+                    xs = np.array(data.entropy)
+                    ys = np.array(data.avgr)
+                    
+                    try:
+                        axs[settings[s], methods[m]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
+                        axs[settings[s], methods[m]].plot(xs, ys, linestyle=linestyles[s], color=colors[c])
+
+                        axs[settings[s], methods[m]].set_title(f"{m} | {s}")
+                        axs[settings[s], methods[m]].set_xlabel("Entorpy")
+                        axs[settings[s], methods[m]].set_ylabel("Average r_value")
+                        axs[settings[s], methods[m]].legend()
+                    except:
+                        pass
+        
+        plt.tight_layout()
+        plt.savefig(self.maindir+"/ent_avgr.pdf", format="pdf")
+        plt.savefig(self.maindir+"/ent_avgr.svg", format="svg")
+        plt.clf()
+        sns.reset_orig
+        plt.style.use('default')
+
+        ########################################################################################################
+        fig, axs = plt.subplots(3, 2, figsize=(15, 10), sharex=True, sharey=True)
+
+        for s in numlabels_DF.setting.unique():
+            for m in numlabels_DF.saga.unique():
+                for c in numlabels_DF.celltype.unique():
+                    
+                    data = numlabels_DF.loc[
+                        (numlabels_DF["setting"] == s) &  
+                        (numlabels_DF["saga"] == m) &
+                        (numlabels_DF["celltype"] == c), :
+                    ]
+                    
+                    data = data.sort_values(by=["num_labels"]) 
+
+                    xs = np.array(data.num_labels)
+                    ys = np.array(data.ratio_robust)
+                    
+                    try:
+                        axs[settings[s], methods[m]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
+                        axs[settings[s], methods[m]].plot(xs, ys, linestyle=linestyles[s], color=colors[c])
+
+                        axs[settings[s], methods[m]].set_title(f"{m} | {s}")
+                        axs[settings[s], methods[m]].set_xlabel("Number of Chromatin States")
+                        axs[settings[s], methods[m]].set_ylabel("Ratio Confident")
+                        axs[settings[s], methods[m]].legend()
+                    except:
+                        pass
+        
+        plt.tight_layout()
+        plt.savefig(self.maindir+"/nlabels_avgr.pdf", format="pdf")
+        plt.savefig(self.maindir+"/nlabels_avgr.svg", format="svg")
+        plt.clf()
+        sns.reset_orig
+        plt.style.use('default')
+
+        ########################################################################################################
+        fig, axs = plt.subplots(3, 2, figsize=(15, 10), sharex=True, sharey=True)
+
+        for s in numlabels_DF.setting.unique():
+            for m in numlabels_DF.saga.unique():
+                for c in numlabels_DF.celltype.unique():
+                    
+                    data = numlabels_DF.loc[
+                        (numlabels_DF["setting"] == s) &  
+                        (numlabels_DF["saga"] == m) &
+                        (numlabels_DF["celltype"] == c), :
+                    ]
+                    
+                    data = data.sort_values(by=["num_labels"]) 
+
+                    xs = np.array(data.num_labels)
+                    ys = np.array(data.avgr)
+                    
+                    try:
+                        axs[settings[s], methods[m]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
+                        axs[settings[s], methods[m]].plot(xs, ys, linestyle=linestyles[s], color=colors[c])
+
+                        axs[settings[s], methods[m]].set_title(f"{m} | {s}")
+                        axs[settings[s], methods[m]].set_xlabel("Number of Chromatin States")
+                        axs[settings[s], methods[m]].set_ylabel("Average r_value")
+                        axs[settings[s], methods[m]].legend()
+                    except:
+                        pass
+        
+        plt.tight_layout()
+        plt.savefig(self.maindir+"/nlabels_robust.pdf", format="pdf")
+        plt.savefig(self.maindir+"/nlabels_robust.svg", format="svg")
+        plt.clf()
+        sns.reset_orig
+        plt.style.use('default')
+
+        
+        
+
     def MPF1(self):
         saga_translate = {"chmm":"ChromHMM","segway":"Segway"}
         general_DF = []
@@ -1227,6 +1460,14 @@ class COMPARATIVE(object):
         except:
             print("failed at load_coverages")
         try:
+            self.load_post_clustering_progress()
+        except:
+            print("failed at load_post_clustering_progress")
+        try:
+            self.post_clustering_comparatives()    
+        except:
+            print("failed at post_clustering_comparatives")
+        try:
             self.integ_ratio_robust()
         except:
             print("failed at integ_ratio_robust")
@@ -1262,10 +1503,10 @@ class COMPARATIVE(object):
 if __name__=="__main__":
     # comp = COMPARATIVE("tests/WG")
     # comp.ALL()
-    # comp = COMPARATIVE("tests/runs062023_subset")
-    # comp.ALL()
+    comp = COMPARATIVE("tests/subset")
+    comp.ALL()
 
-    # exit()
+    exit()
 
     if sys.argv[1] == "all":
         m_p("s1")
