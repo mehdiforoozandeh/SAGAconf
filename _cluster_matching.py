@@ -585,11 +585,11 @@ def correspondence_based_on_emission(rep_dir1, rep_dir2, outdir, saga="chmm", me
     elif saga == "chmm":
         for l in os.listdir(rep_dir1):
             if "emissions" in l and ".txt" in l:
-                emis_1 = pd.read_csv(f"{rep_dir1}/{l}", sep="\t").drop("State (Emission order)" ,axis=1)
+                emis_1 = pd.read_csv(f"{rep_dir1}/{l}", sep="\t", on_bad_lines="skip", encoding_errors="ignore").drop("State (Emission order)" ,axis=1)
 
         for l in os.listdir(rep_dir2):
             if "emissions" in l and ".txt" in l:
-                emis_2 = pd.read_csv(f"{rep_dir2}/{l}", sep="\t").drop("State (Emission order)" ,axis=1)  
+                emis_2 = pd.read_csv(f"{rep_dir2}/{l}", sep="\t", on_bad_lines="skip", encoding_errors="ignore").drop("State (Emission order)" ,axis=1)  
 
     emis_1 = emis_1.sort_index(axis=1)
     emis_2 = emis_2.sort_index(axis=1)
@@ -620,7 +620,7 @@ def correspondence_based_on_emission(rep_dir1, rep_dir2, outdir, saga="chmm", me
         plt.tight_layout()
         plt.savefig('{}/emissions.pdf'.format(outdir), format='pdf')
         plt.savefig('{}/emissions.svg'.format(outdir), format='svg')
-        
+
     except:
         pass
 
