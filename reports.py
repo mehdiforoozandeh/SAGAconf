@@ -1748,13 +1748,14 @@ def compare_corresp_methods(replicate_1_dir, replicate_2_dir, outdir, saga="chmm
     if os.path.exists(indicator_file):
         return
 
+    cos_mat = correspondence_based_on_emission(replicate_1_dir, replicate_2_dir, outdir=outdir, saga=saga, metric="cosine")
     loci1, loci2 = load_data(
         f"{replicate_1_dir}/parsed_posterior.csv",
         f"{replicate_2_dir}/parsed_posterior.csv",
         subset=True, logit_transform=False)
     
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False, custom_order=False)
-    cos_mat = correspondence_based_on_emission(replicate_1_dir, replicate_2_dir, outdir=outdir, saga=saga, metric="cosine")
+    
 
     iou = IoU_overlap(loci1, loci2)
     cos_mat = pd.DataFrame(cos_mat, columns=iou.columns, index=iou.index)
