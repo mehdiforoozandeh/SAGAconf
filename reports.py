@@ -1614,9 +1614,6 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
     nmi_rec = {}
     NMI_rec_entropy = {}
     
-    print(loci_1.columns)
-    print(loci_2.columns)
-    
     while loci_1.shape[1]-3 > 1 :
         bool_reprod_report, avg_r = single_point_repr(
             loci_1, loci_2, ovr_threshold=to, window_bp=1000, posterior=True, 
@@ -1747,7 +1744,7 @@ def post_clustering_keep_k_states(replicate_1_dir, replicate_2_dir, savedir, k, 
             return
 
 def compare_corresp_methods(replicate_1_dir, replicate_2_dir, outdir, saga="chmm"):
-    indicator_file = savedir+"/corresp.pdf"
+    indicator_file = outdir+"/corresp.pdf"
     if os.path.exists(indicator_file):
         return
 
@@ -2124,3 +2121,13 @@ if __name__=="__main__":
         rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
         savedir="tests/cedar_runs/segway/GM12878_R2/")
     
+
+
+from generate_reprod_reports import *
+ls_runs = paraminit(maindir="subset") + concat(maindir="subset") + r1vsr2(maindir="subset")
+
+for item in ls_runs:
+	if "chmm" in item["replicate_1_dir"].lower() or "chromhmm_runs" in item["replicate_1_dir"].lower():
+		compare_corresp_methods(item["replicate_1_dir"], item["replicate_2_dir"], item["savedir"], saga="chmm")
+	elif "segway" in item["replicate_1_dir"].lower():
+		compare_corresp_methods(item["replicate_1_dir"], item["replicate_2_dir"], item["savedir"], saga="segway")
