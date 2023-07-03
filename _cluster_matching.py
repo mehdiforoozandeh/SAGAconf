@@ -595,11 +595,11 @@ def correspondence_based_on_emission(rep_dir1, rep_dir2, outdir, saga="chmm", me
                 if "State (Emission order)" in emis_2.columns:
                     emis_2 = emis_2.drop("State (Emission order)" ,axis=1) 
 
+    emis_1 = pd.DataFrame(np.where(np.isnan(emis_1), 0, emis_1), columns=emis_1.columns)
+    emis_2 = pd.DataFrame(np.where(np.isnan(emis_2), 0, emis_2), columns=emis_2.columns)
+
     emis_1 = emis_1.sort_index(axis=1)
     emis_2 = emis_2.sort_index(axis=1)
-
-    emis_1 = np.where(np.isnan(emis_1), 0, emis_1)
-    emis_2 = np.where(np.isnan(emis_2), 0, emis_2)
 
     try:
         boundaries = [x for x in list(np.linspace(0, 1, 20))] + [1] # custom boundaries
