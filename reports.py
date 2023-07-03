@@ -1613,7 +1613,10 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
     avgr_entropy = {} # avgr vs enrtopy
     nmi_rec = {}
     NMI_rec_entropy = {}
-
+    
+    print(loci_1.columns)
+    print(loci_2.columns)
+    
     while loci_1.shape[1]-3 > 1 :
         bool_reprod_report, avg_r = single_point_repr(
             loci_1, loci_2, ovr_threshold=to, window_bp=1000, posterior=True, 
