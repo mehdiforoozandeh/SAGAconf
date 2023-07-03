@@ -585,11 +585,11 @@ def correspondence_based_on_emission(rep_dir1, rep_dir2, outdir, saga="chmm", me
     elif saga == "chmm":
         for l in os.listdir(rep_dir1):
             if "emissions" in l and ".txt" in l:
-                emis_1 = pd.read_csv(f"{rep_dir1}/{l}", sep="\t", on_bad_lines="skip", encoding_errors="ignore").drop("State (Emission order)" ,axis=1)
+                emis_1 = pd.read_csv(f"{rep_dir1}/{l}", sep="\t", encoding_errors="ignore").drop("State (Emission order)" ,axis=1)
 
         for l in os.listdir(rep_dir2):
             if "emissions" in l and ".txt" in l:
-                emis_2 = pd.read_csv(f"{rep_dir2}/{l}", sep="\t", on_bad_lines="skip", encoding_errors="ignore").drop("State (Emission order)" ,axis=1)  
+                emis_2 = pd.read_csv(f"{rep_dir2}/{l}", sep="\t", encoding_errors="ignore").drop("State (Emission order)" ,axis=1)  
 
     emis_1 = emis_1.sort_index(axis=1)
     emis_2 = emis_2.sort_index(axis=1)
@@ -649,3 +649,17 @@ def correspondence_based_on_emission(rep_dir1, rep_dir2, outdir, saga="chmm", me
         sim_mat = np.exp(-1 * sim_mat**2)
 
     return sim_mat
+
+
+def void():
+    from generate_reprod_reports import *
+    ls_runs = paraminit(maindir="subset") + concat(maindir="subset") + r1vsr2(maindir="subset")
+
+    for item in ls_runs:
+        try:
+            if "chmm" in replicate_1_dir.lower() or "chromhmm_runs" in replicate_1_dir.lower():
+                compare_corresp_methods(item["replicate_1_dir"], item["replicate_2_dir"], item["savedir"], saga="chmm")
+            elif "segway" in replicate_1_dir.lower():
+                compare_corresp_methods(item["replicate_1_dir"], item["replicate_2_dir"], item["savedir"],saga="segway")
+        except:
+            print(f"""skipped {item["savedir"]}""")
