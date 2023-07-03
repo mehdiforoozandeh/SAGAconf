@@ -578,23 +578,18 @@ def match_evaluation(matrix, assignment_pairs):
     return pd.Series(probability_array)
 
 def correspondence_based_on_emission(rep_dir1, rep_dir2, outdir, saga="chmm", metric="cosine"):
-    try:
-        if saga == "segway":
-            emis_1 = pd.read_csv(rep_dir1 + "/gmtk_parameters/gmtk_parameters.stats.csv").drop("Unnamed: 0", axis=1)
-            emis_2 = pd.read_csv(rep_dir2 + "/gmtk_parameters/gmtk_parameters.stats.csv").drop("Unnamed: 0", axis=1)
+    if saga == "segway":
+        emis_1 = pd.read_csv(rep_dir1 + "/gmtk_parameters/gmtk_parameters.stats.csv").drop("Unnamed: 0", axis=1)
+        emis_2 = pd.read_csv(rep_dir2 + "/gmtk_parameters/gmtk_parameters.stats.csv").drop("Unnamed: 0", axis=1)
 
-        elif saga == "chmm":
-            for l in os.listdir(rep_dir1):
-                if "emissions" in l and ".txt" in l:
-                    emis_1 = pd.read_csv(f"{rep_dir1}/{l}", sep="\t", on_bad_lines="skip", encoding_errors="ignore").drop("State (Emission order)" ,axis=1)
+    elif saga == "chmm":
+        for l in os.listdir(rep_dir1):
+            if "emissions" in l and ".txt" in l:
+                emis_1 = pd.read_csv(f"{rep_dir1}/{l}", sep="\t", on_bad_lines="skip", encoding_errors="ignore").drop("State (Emission order)" ,axis=1)
 
-            for l in os.listdir(rep_dir2):
-                if "emissions" in l and ".txt" in l:
-                    emis_2 = pd.read_csv(f"{rep_dir2}/{l}", sep="\t", on_bad_lines="skip", encoding_errors="ignore").drop("State (Emission order)" ,axis=1)  
-    except:
-        print(f"skipped {outdir}")
-        print(emis_1)
-        print(emis_2)
+        for l in os.listdir(rep_dir2):
+            if "emissions" in l and ".txt" in l:
+                emis_2 = pd.read_csv(f"{rep_dir2}/{l}", sep="\t", on_bad_lines="skip", encoding_errors="ignore").drop("State (Emission order)" ,axis=1)  
 
     emis_1 = emis_1.sort_index(axis=1)
     emis_2 = emis_2.sort_index(axis=1)
