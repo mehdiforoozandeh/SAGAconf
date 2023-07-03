@@ -651,15 +651,15 @@ def correspondence_based_on_emission(rep_dir1, rep_dir2, outdir, saga="chmm", me
     return sim_mat
 
 
-def void():
-    from generate_reprod_reports import *
-    ls_runs = paraminit(maindir="subset") + concat(maindir="subset") + r1vsr2(maindir="subset")
+# def void():
+# from generate_reprod_reports import *
+# ls_runs = paraminit(maindir="subset") + concat(maindir="subset") + r1vsr2(maindir="subset")
 
-    for item in ls_runs:
-        try:
-            if "chmm" in replicate_1_dir.lower() or "chromhmm_runs" in replicate_1_dir.lower():
-                compare_corresp_methods(item["replicate_1_dir"], item["replicate_2_dir"], item["savedir"], saga="chmm")
-            elif "segway" in replicate_1_dir.lower():
-                compare_corresp_methods(item["replicate_1_dir"], item["replicate_2_dir"], item["savedir"],saga="segway")
-        except:
-            print(f"""skipped {item["savedir"]}""")
+# for item in ls_runs:
+#     try:
+#         if "chmm" in replicate_1_dir.lower() or "chromhmm_runs" in replicate_1_dir.lower():
+#             compare_corresp_methods(item["replicate_1_dir"], item["replicate_2_dir"], item["savedir"], saga="chmm")
+#         elif "segway" in replicate_1_dir.lower():
+#             compare_corresp_methods(item["replicate_1_dir"], item["replicate_2_dir"], item["savedir"],saga="segway")
+#     except:
+#         print(f"""skipped {item["savedir"]}""")
