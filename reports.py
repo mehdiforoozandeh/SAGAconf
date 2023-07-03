@@ -2121,13 +2121,3 @@ if __name__=="__main__":
         rnaseq="biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", 
         savedir="tests/cedar_runs/segway/GM12878_R2/")
     
-
-
-from generate_reprod_reports import *
-ls_runs = paraminit(maindir="subset") + concat(maindir="subset") + r1vsr2(maindir="subset")
-
-for item in ls_runs:
-	if "chmm" in item["replicate_1_dir"].lower() or "chromhmm_runs" in item["replicate_1_dir"].lower():
-		compare_corresp_methods(item["replicate_1_dir"], item["replicate_2_dir"], item["savedir"], saga="chmm")
-	elif "segway" in item["replicate_1_dir"].lower():
-		compare_corresp_methods(item["replicate_1_dir"], item["replicate_2_dir"], item["savedir"], saga="segway")
