@@ -1749,23 +1749,24 @@ def compare_corresp_methods(replicate_1_dir, replicate_2_dir, outdir, saga="chmm
         return
 
     cos_mat = correspondence_based_on_emission(replicate_1_dir, replicate_2_dir, outdir=outdir, saga=saga, metric="cosine")
+
+    ####################################################################################
     loci1, loci2 = load_data(
         f"{replicate_1_dir}/parsed_posterior.csv",
         f"{replicate_2_dir}/parsed_posterior.csv",
         subset=True, logit_transform=False)
     
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False, custom_order=False)
-    
 
-    iou = IoU_overlap(loci1, loci2)
     cos_mat = pd.DataFrame(cos_mat, columns=iou.columns, index=iou.index)
-    
     a = Hungarian_algorithm(cos_mat)
     a = [(iou.index[i], iou.columns[j]) for i, j in a]
-        
+
+    iou = IoU_overlap(loci1, loci2)
     c = Hungarian_algorithm(iou)
     c = [(iou.index[i], iou.columns[j]) for i, j in c]
-
+    ####################################################################################
+    
     boundaries = [x for x in list(np.linspace(0, 1, 20))] + [1] # custom boundaries
     hex_colors = sns.light_palette('navy', n_colors=len(boundaries) * 2 + 2, as_cmap=False).as_hex()
     hex_colors = [hex_colors[i] for i in range(0, len(hex_colors), 2)]

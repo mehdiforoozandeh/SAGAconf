@@ -601,6 +601,9 @@ def correspondence_based_on_emission(rep_dir1, rep_dir2, outdir, saga="chmm", me
     emis_1 = emis_1.sort_index(axis=1)
     emis_2 = emis_2.sort_index(axis=1)
 
+    print(emis_1)
+    print(emis_2)
+
     try:
         boundaries = [x for x in list(np.linspace(0, 1, 20))] + [1] # custom boundaries
         hex_colors = sns.light_palette('navy', n_colors=len(boundaries) * 2 + 2, as_cmap=False).as_hex()
