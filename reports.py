@@ -14,8 +14,8 @@ def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=Fals
         posterior2_dir)
 
     if subset and force_WG==False:
-        loci_1 = loci_1.loc[loci_1["chr"]=="chr1"].reset_index(drop=True)
-        loci_2 = loci_2.loc[loci_2["chr"]=="chr1"].reset_index(drop=True)
+        loci_1 = loci_1.loc[loci_1["chr"]=="chr21"].reset_index(drop=True)
+        loci_2 = loci_2.loc[loci_2["chr"]=="chr21"].reset_index(drop=True)
 
     print("the shapes of the input matrices are: {}, {}".format(str(loci_1.shape), str(loci_2.shape)))
 
