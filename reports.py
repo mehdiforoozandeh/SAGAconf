@@ -1589,9 +1589,9 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
         merge best pair of R2
         generate new dendrogram
     """
-    # indicator_file = '{}/post_clustering_progress.txt'.format(savedir)
-    # if os.path.exists(indicator_file):
-    #     return
+    indicator_file = '{}/MI_post_clustering_progress.txt'.format(savedir)
+    if os.path.exists(indicator_file):
+        return
 
     if locis:
         loci_1, loci_2 = replicate_1_dir, replicate_2_dir
