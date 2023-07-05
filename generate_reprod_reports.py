@@ -274,31 +274,31 @@ def paraminit(maindir="subset"):
 def run(param_dict):
 
     print("RUNNING {} VS {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
-    try:
-        GET_ALL(
-            replicate_1_dir=param_dict["replicate_1_dir"], 
-            replicate_2_dir=param_dict["replicate_2_dir"], 
-            genecode_dir=param_dict["genecode_dir"], 
-            savedir=param_dict["savedir"], 
-            rnaseq=param_dict["rnaseq"], 
-            contour=False
-        )
-        with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
-            f.write(str(param_dict))
+    # try:
+    GET_ALL(
+        replicate_1_dir=param_dict["replicate_1_dir"], 
+        replicate_2_dir=param_dict["replicate_2_dir"], 
+        genecode_dir=param_dict["genecode_dir"], 
+        savedir=param_dict["savedir"], 
+        rnaseq=param_dict["rnaseq"], 
+        contour=False
+    )
+    with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
+        f.write(str(param_dict))
 
-        print("RUNNING {} VS {} is OVER!".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
-        print("\n")
+    print("RUNNING {} VS {} is OVER!".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
+    print("\n")
         
-    except Exception as e:
-        print("failed at running {} VS {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
+    # except Exception as e:
+    #     print("failed at running {} VS {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
 
-        with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
-            f.write(str(param_dict))
-            f.write("\nFAILED!")
-            f.write("\n\n" + str(e))
+    #     with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
+    #         f.write(str(param_dict))
+    #         f.write("\nFAILED!")
+    #         f.write("\n\n" + str(e))
             
-    finally:
-        pass
+    # finally:
+    #     pass
 
 def m_p(setting, nt=1):
     if setting == "s1":
