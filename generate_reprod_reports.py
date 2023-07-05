@@ -1528,12 +1528,12 @@ def merge_WG_subset(dir1, dir2, log_file):
 
 if __name__=="__main__":
     # merge_WG_subset("tests/subset", "tests/WG", "tests/copy_log.txt")
-    comp = COMPARATIVE("tests/subset")
-    comp.ALL()
-    comp = COMPARATIVE("tests/WG")
-    comp.ALL()
+    # comp = COMPARATIVE("tests/subset")
+    # comp.ALL()
+    # comp = COMPARATIVE("tests/WG")
+    # comp.ALL()
 
-    exit()
+    # exit()
 
     if sys.argv[1] == "all":
         m_p("s1")
