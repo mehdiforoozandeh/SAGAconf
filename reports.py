@@ -1948,11 +1948,11 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     # except:
     #     pass
 
-    try:
-        post_clustering(replicate_1_dir, replicate_2_dir, savedir, tr=0.9)
+    # try:
+    post_clustering(replicate_1_dir, replicate_2_dir, savedir, tr=0.9)
 
-    except:
-        pass
+    # except:
+    #     pass
 
     # try:
     #     after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, tr=0.9)
