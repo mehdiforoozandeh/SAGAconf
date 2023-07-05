@@ -731,6 +731,10 @@ class COMPARATIVE(object):
 
         ####################################################################################################################################
         for s in np.unique(df_chmm["Setting"]):
+            plt.clf()
+            sns.reset_orig
+            plt.style.use('default')
+
             fig, ax = plt.subplots(figsize=(10, 8))
 
             chmmdata = df_chmm.loc[df_chmm["Setting"]==s,:]
@@ -1126,8 +1130,8 @@ class COMPARATIVE(object):
                         pass
         
         plt.tight_layout()
-        plt.savefig(self.maindir+"/nlabels_avgr.pdf", format="pdf")
-        plt.savefig(self.maindir+"/nlabels_avgr.svg", format="svg")
+        plt.savefig(self.maindir+"/nlabels_robust.pdf", format="pdf")
+        plt.savefig(self.maindir+"/nlabels_robust.svg", format="svg")
         plt.clf()
         sns.reset_orig
         plt.style.use('default')
@@ -1162,14 +1166,11 @@ class COMPARATIVE(object):
                         pass
         
         plt.tight_layout()
-        plt.savefig(self.maindir+"/nlabels_robust.pdf", format="pdf")
-        plt.savefig(self.maindir+"/nlabels_robust.svg", format="svg")
+        plt.savefig(self.maindir+"/nlabels_avgr.pdf", format="pdf")
+        plt.savefig(self.maindir+"/nlabels_avgr.svg", format="svg")
         plt.clf()
         sns.reset_orig
-        plt.style.use('default')
-
-        
-        
+        plt.style.use('default')      
 
     def MPF1(self):
         saga_translate = {"chmm":"ChromHMM","segway":"Segway"}
@@ -1527,12 +1528,12 @@ def merge_WG_subset(dir1, dir2, log_file):
 
 if __name__=="__main__":
     # merge_WG_subset("tests/subset", "tests/WG", "tests/copy_log.txt")
-    # comp = COMPARATIVE("tests/WG")
-    # comp.ALL()
-    # comp = COMPARATIVE("tests/subset")
-    # comp.ALL()
+    comp = COMPARATIVE("tests/subset")
+    comp.ALL()
+    comp = COMPARATIVE("tests/WG")
+    comp.ALL()
 
-    # exit()
+    exit()
 
     if sys.argv[1] == "all":
         m_p("s1")

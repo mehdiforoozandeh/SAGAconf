@@ -1589,9 +1589,9 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
         merge best pair of R2
         generate new dendrogram
     """
-    indicator_file = '{}/post_clustering_progress.txt'.format(savedir)
-    if os.path.exists(indicator_file):
-        return
+    # indicator_file = '{}/post_clustering_progress.txt'.format(savedir)
+    # if os.path.exists(indicator_file):
+    #     return
 
     if locis:
         loci_1, loci_2 = replicate_1_dir, replicate_2_dir
@@ -1613,37 +1613,44 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
     avgr_entropy = {} # avgr vs enrtopy
     nmi_rec = {}
     NMI_rec_entropy = {}
+
+    MI_rec_entropy = {}
+    MI_rec = {}
     
     while loci_1.shape[1]-3 > 1 :
-        bool_reprod_report, avg_r = single_point_repr(
-            loci_1, loci_2, ovr_threshold=to, window_bp=1000, posterior=True, 
-            reproducibility_threshold=tr, return_mean_r=True)
+        # bool_reprod_report, avg_r = single_point_repr(
+        #     loci_1, loci_2, ovr_threshold=to, window_bp=1000, posterior=True, 
+        #     reproducibility_threshold=tr, return_mean_r=True)
 
-        bool_reprod_report = pd.concat(
-            [loci_1["chr"], loci_1["start"], loci_1["end"], pd.Series(bool_reprod_report)], axis=1)
-        bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
+        # bool_reprod_report = pd.concat(
+        #     [loci_1["chr"], loci_1["start"], loci_1["end"], pd.Series(bool_reprod_report)], axis=1)
+        # bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
 
-        general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
-        perlabel_rec = {}
+        # general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
+        # perlabel_rec = {}
 
-        lab_rep = perlabel_is_reproduced(bool_reprod_report, loci_1)
+        # lab_rep = perlabel_is_reproduced(bool_reprod_report, loci_1)
 
-        for k, v in lab_rep.items():
-            perlabel_rec[k] = v[0]/ (v[0]+v[1])
+        # for k, v in lab_rep.items():
+        #     perlabel_rec[k] = v[0]/ (v[0]+v[1])
 
         joint = joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True)
         NMI = NMI_from_matrix(joint)
+        MI = NMI_from_matrix(joint, return_MI=True)
         loci1_entropy = calc_entropy(joint, rows=True)
 
-        nmi_rec["{}".format(loci_1.shape[1]-3)] = NMI
-        robust_rec["{}".format(loci_1.shape[1]-3)] = general_rep_score
-        avgr_rec["{}".format(loci_1.shape[1]-3)] = avg_r
+        # nmi_rec["{}".format(loci_1.shape[1]-3)] = NMI
+        # robust_rec["{}".format(loci_1.shape[1]-3)] = general_rep_score
+        # avgr_rec["{}".format(loci_1.shape[1]-3)] = avg_r
 
-        robust_rec_entropy[loci1_entropy] = general_rep_score
-        NMI_rec_entropy[loci1_entropy] = NMI
-        avgr_entropy[loci1_entropy] = avg_r
+        MI_rec["{}".format(loci_1.shape[1]-3)] = MI
+        MI_rec_entropy[loci1_entropy] = MI
 
-        print(f"entropy: {loci1_entropy} | num_labels: {loci_1.shape[1]-3} | repr_score: {general_rep_score}\n\n")
+        # robust_rec_entropy[loci1_entropy] = general_rep_score
+        # NMI_rec_entropy[loci1_entropy] = NMI
+        # avgr_entropy[loci1_entropy] = avg_r
+
+        # print(f"entropy: {loci1_entropy} | num_labels: {loci_1.shape[1]-3} | repr_score: {general_rep_score}\n\n")
         
         if loci_1.shape[1]-3 == 2:
             break
@@ -1651,59 +1658,65 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
         loci_1, loci_2 = merge_clusters(joint, loci_1, loci_2, r1=True)
         loci_1, loci_2 = merge_clusters(joint, loci_1, loci_2, r1=False)
 
-    with open('{}/post_clustering_progress.txt'.format(savedir), 'w') as savefile:
-        savefile.write(str(nmi_rec))
+    with open('{}/MI_post_clustering_progress.txt'.format(savedir), 'w') as savefile:
+        savefile.write(str(MI_rec))
         savefile.write("\n")
-        savefile.write(str(robust_rec))
-        savefile.write("\n")
-        savefile.write(str(avgr_rec))
+        savefile.write(str(MI_rec_entropy))
         savefile.write("\n")
 
-        savefile.write(str(robust_rec_entropy))
-        savefile.write("\n")
-        savefile.write(str(NMI_rec_entropy))
-        savefile.write("\n")
-        savefile.write(str(avgr_entropy))
+    # with open('{}/post_clustering_progress.txt'.format(savedir), 'w') as savefile:
+    #     savefile.write(str(nmi_rec))
+    #     savefile.write("\n")
+    #     savefile.write(str(robust_rec))
+    #     savefile.write("\n")
+    #     savefile.write(str(avgr_rec))
+    #     savefile.write("\n")
 
-    ####################################################################################################
+    #     savefile.write(str(robust_rec_entropy))
+    #     savefile.write("\n")
+    #     savefile.write(str(NMI_rec_entropy))
+    #     savefile.write("\n")
+    #     savefile.write(str(avgr_entropy))
 
-    nl = list(robust_rec.keys())
-    ys =[robust_rec[k] for k in nl]
-    plt.bar(list(nl), list(ys), color="grey")
-    plt.xlabel("Number of Labels")
-    plt.ylabel("ratio confident")
-    plt.yticks(np.arange(0,1.05,0.1))
-    plt.xticks(rotation=90)
-    plt.savefig('{}/conf_progress.pdf'.format(savedir), format='pdf')
-    plt.savefig('{}/conf_progress.svg'.format(savedir), format='svg')
+    # ####################################################################################################
+
+    # nl = list(robust_rec.keys())
+    # ys =[robust_rec[k] for k in nl]
+    # plt.bar(list(nl), list(ys), color="grey")
+    # plt.xlabel("Number of Labels")
+    # plt.ylabel("ratio confident")
+    # plt.yticks(np.arange(0,1.05,0.1))
+    # plt.xticks(rotation=90)
+    # plt.savefig('{}/conf_progress.pdf'.format(savedir), format='pdf')
+    # plt.savefig('{}/conf_progress.svg'.format(savedir), format='svg')
     
-    sns.reset_orig
-    plt.close("all")
-    plt.style.use('default')
-    plt.clf()
+    # sns.reset_orig
+    # plt.close("all")
+    # plt.style.use('default')
+    # plt.clf()
 
-    ####################################################################################################
+    # ####################################################################################################
 
-    nl = list(robust_rec_entropy.keys())
-    ys = [robust_rec_entropy[k] for k in nl]
-    plt.scatter(list(nl), list(ys), color="Black")
-    plt.plot(list(nl), list(ys), "--", color="red", linewidth=3)
+    # nl = list(robust_rec_entropy.keys())
+    # ys = [robust_rec_entropy[k] for k in nl]
+    # plt.scatter(list(nl), list(ys), color="Black")
+    # plt.plot(list(nl), list(ys), "--", color="red", linewidth=3)
 
-    keyss = list(robust_rec.keys())
-    for i in range(len(nl)):
-        plt.annotate(f"{keyss[i]}", (nl[i], ys[i] + 0.1), rotation=90, fontsize=6)
+    # keyss = list(robust_rec.keys())
+    # for i in range(len(nl)):
+    #     plt.annotate(f"{keyss[i]}", (nl[i], ys[i] + 0.1), rotation=90, fontsize=6)
     
-    plt.xlabel("Entropy of Base Annotation")
-    plt.ylabel("ratio confident")
-    plt.yticks(np.arange(0,1.05,0.1))
-    plt.xticks(rotation=90)
-    plt.savefig('{}/conf_progress_entropy.pdf'.format(savedir), format='pdf')
-    plt.savefig('{}/conf_progress_entropy.svg'.format(savedir), format='svg')
+    # plt.xlabel("Entropy of Base Annotation")
+    # plt.ylabel("ratio confident")
+    # plt.yticks(np.arange(0,1.05,0.1))
+    # plt.xticks(rotation=90)
+    # plt.savefig('{}/conf_progress_entropy.pdf'.format(savedir), format='pdf')
+    # plt.savefig('{}/conf_progress_entropy.svg'.format(savedir), format='svg')
     
-    sns.reset_orig
-    plt.close("all")
-    plt.style.use('default')
-    plt.clf()
+    # sns.reset_orig
+    # plt.close("all")
+    # plt.style.use('default')
+    # plt.clf()
 
     ####################################################################################################
 
@@ -1920,15 +1933,15 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     # except:
     #     pass
 
-    try:
-        if "chmm" in replicate_1_dir.lower() or "chromhmm_runs" in replicate_1_dir.lower():
-            compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="chmm")
+    # try:
+    #     if "chmm" in replicate_1_dir.lower() or "chromhmm_runs" in replicate_1_dir.lower():
+    #         compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="chmm")
 
-        elif "segway" in replicate_1_dir.lower():
-            compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="segway")
+    #     elif "segway" in replicate_1_dir.lower():
+    #         compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="segway")
             
-    except:
-        pass
+    # except:
+    #     pass
 
     # try:
     #     r_value_hists(replicate_1_dir, replicate_2_dir, savedir)
@@ -1948,16 +1961,16 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     # except:
     #     pass
     
-    ################################################################################################################
+    # ################################################################################################################
 
-    try:
-        get_all_bioval(
-            replicate_1_dir, replicate_2_dir, 
-            savedir,
-            genecode_dir=genecode_dir, 
-            rnaseq=rnaseq)
-    except:
-        pass
+    # try:
+    #     get_all_bioval(
+    #         replicate_1_dir, replicate_2_dir, 
+    #         savedir,
+    #         genecode_dir=genecode_dir, 
+    #         rnaseq=rnaseq)
+    # except:
+    #     pass
 
     # if contour:
     #     try:
