@@ -300,7 +300,7 @@ def run(param_dict):
     finally:
         pass
 
-def m_p(setting, nt=10):
+def m_p(setting, nt=1):
     if setting == "s1":
         with mp.Pool(nt) as pool:
             r_ = pool.map(run, r1vsr2())
@@ -1533,7 +1533,7 @@ if __name__=="__main__":
     # comp = COMPARATIVE("tests/WG")
     # comp.ALL()
 
-    # exit()
+    exit()
 
     if sys.argv[1] == "all":
         m_p("s1")
