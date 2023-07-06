@@ -1,6 +1,8 @@
 from reports import *
 import multiprocessing as mp
 import logging, ast, sys, shutil, os
+import matplotlib.patches as mpatches
+
 
 def r1vsr2(maindir="subset"):
     ################### Rep1 vs Rep2 ###################
@@ -274,33 +276,33 @@ def paraminit(maindir="subset"):
 def run(param_dict):
 
     print("RUNNING {} VS {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
-    # try:
-    GET_ALL(
-        replicate_1_dir=param_dict["replicate_1_dir"], 
-        replicate_2_dir=param_dict["replicate_2_dir"], 
-        genecode_dir=param_dict["genecode_dir"], 
-        savedir=param_dict["savedir"], 
-        rnaseq=param_dict["rnaseq"], 
-        contour=False
-    )
-    with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
-        f.write(str(param_dict))
+    try:
+        GET_ALL(
+            replicate_1_dir=param_dict["replicate_1_dir"], 
+            replicate_2_dir=param_dict["replicate_2_dir"], 
+            genecode_dir=param_dict["genecode_dir"], 
+            savedir=param_dict["savedir"], 
+            rnaseq=param_dict["rnaseq"], 
+            contour=False
+        )
+        with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
+            f.write(str(param_dict))
 
-    print("RUNNING {} VS {} is OVER!".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
-    print("\n")
+        print("RUNNING {} VS {} is OVER!".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
+        print("\n")
         
-    # except Exception as e:
-    #     print("failed at running {} VS {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
+    except Exception as e:
+        print("failed at running {} VS {}".format(param_dict["replicate_1_dir"], param_dict["replicate_2_dir"]))
 
-    #     with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
-    #         f.write(str(param_dict))
-    #         f.write("\nFAILED!")
-    #         f.write("\n\n" + str(e))
+        with open(param_dict["savedir"]+"/run_info.txt", "w") as f:
+            f.write(str(param_dict))
+            f.write("\nFAILED!")
+            f.write("\n\n" + str(e))
             
-    # finally:
-    #     pass
+    finally:
+        pass
 
-def m_p(setting, nt=1):
+def m_p(setting, nt=10):
     if setting == "s1":
         with mp.Pool(nt) as pool:
             r_ = pool.map(run, r1vsr2())
@@ -340,9 +342,9 @@ class COMPARATIVE(object):
         self.var_setting_dict_inverse = {v:k for k, v in self.var_setting_dict.items()}
         self.SORT_ORDER = {"Prom": 0, "Prom_fla":1, "Enha":2, "Enha_low":3, "Biva":4, "Tran":5, "Cons":6, "Facu":7, "K9K3":8, "Quie":9}
 
-     # self.navigate_results[s][m][c] = [
-     #              dir, [NMI_map, NMI_post], [ovr_ratio_w0, ovr_ratio_w1000], {auc/mauc}, general_rep, {ratio_robust}, {coverage}
-     #              {nmi_rec}, {robust_rec}, {avgr_rec}, {robust_rec_entropy}, {NMI_rec_entropy}, {avgr_entropy}]
+    # self.navigate_results[s][m][c] = [
+    #         dir, [NMI_map, NMI_post], [ovr_ratio_w0, ovr_ratio_w1000], {auc/mauc}, general_rep, {ratio_robust}, {coverage}
+    #         {nmi_rec}, {robust_rec}, {avgr_rec}, {robust_rec_entropy}, {NMI_rec_entropy}, {avgr_entropy}, {MI_entropy}, {MI_rec}]
 
     def compare_NMI(self):
         for s in self.navigate_results.keys():
@@ -436,6 +438,22 @@ class COMPARATIVE(object):
                         self.navigate_results[s][m][c].append({})  
                         self.navigate_results[s][m][c].append({})  
                         self.navigate_results[s][m][c].append({})  
+                        self.navigate_results[s][m][c].append({})  
+                        self.navigate_results[s][m][c].append({})  
+
+                    progress_file = self.navigate_results[s][m][c][0] + "/MI_post_clustering_progress.txt"
+                   
+                    if os.path.exists(progress_file):
+                        with open(progress_file,"r") as f:
+                            lines = f.readlines()
+
+                        MI_rec = ast.literal_eval(lines[0][:-1])
+                        MI_entropy = ast.literal_eval(lines[1][:-1])
+
+                        self.navigate_results[s][m][c].append(MI_entropy)
+                        self.navigate_results[s][m][c].append(MI_rec)
+
+                    else:
                         self.navigate_results[s][m][c].append({})  
                         self.navigate_results[s][m][c].append({})  
 
@@ -891,7 +909,6 @@ class COMPARATIVE(object):
         df_segway['sort_col'] = df_segway["Genomic_function"].map(self.SORT_ORDER)
         df_segway.sort_values("sort_col", inplace=True)
         df_segway.drop("sort_col", axis=1, inplace=True)
-
         ####################################################################################################################################
         for s in np.unique(df_chmm["Setting"]):
             fig, ax = plt.subplots(figsize=(10, 8))
@@ -923,7 +940,7 @@ class COMPARATIVE(object):
             # ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
             handles = [plt.Line2D([], [], marker='o', color=palette[i], linestyle='None') for i in range(len(unique_celltypes))]
             ax.legend(handles, unique_celltypes, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
-
+            
             # Show the plot
             plt.yticks(np.arange(0, 1.05, step=0.1))
             plt.tight_layout()
@@ -933,8 +950,6 @@ class COMPARATIVE(object):
             plt.clf()
             sns.reset_orig
             plt.style.use('default')
-
-
         ####################################################################################################################################
         for s in np.unique(df_segway["Setting"]):
             fig, ax = plt.subplots(figsize=(10, 8))
@@ -976,7 +991,7 @@ class COMPARATIVE(object):
             sns.reset_orig
             plt.style.use('default')
 
-    def post_clustering_comparatives(self):
+    def post_clustering_comparatives(self, drop_decrease=True):
         saga_translate = {"chmm":"ChromHMM","segway":"Segway"}
         numlabels_DF = []
         entropy_DF = []
@@ -991,6 +1006,7 @@ class COMPARATIVE(object):
                         smc_nlabels_list.append(self.navigate_results[s][m][c][7][k])
                         smc_nlabels_list.append(self.navigate_results[s][m][c][8][k])
                         smc_nlabels_list.append(self.navigate_results[s][m][c][9][k])
+                        # smc_nlabels_list.append(self.navigate_results[s][m][c][14][k])
 
                         numlabels_DF.append(smc_nlabels_list)
                     
@@ -1000,6 +1016,7 @@ class COMPARATIVE(object):
                         smc_entropy_list.append(self.navigate_results[s][m][c][10][k])
                         smc_entropy_list.append(self.navigate_results[s][m][c][11][k])
                         smc_entropy_list.append(self.navigate_results[s][m][c][12][k])
+                        # smc_entropy_list.append(self.navigate_results[s][m][c][13][k])
 
                         entropy_DF.append(smc_entropy_list)
 
@@ -1026,10 +1043,21 @@ class COMPARATIVE(object):
             entropy_DF.setting.unique()[0]: 0, 
             entropy_DF.setting.unique()[1]: 1, 
             entropy_DF.setting.unique()[2]: 2}
+        ########################################################################################################
+        def dd(x, y):
+            xs = []
+            ys = []
+            max_sofar = y[0]
+            for i in range(len(x)):
+                if y[i] >= max_sofar:
+                    xs.append(x[i])
+                    ys.append(y[i])
+                    max_sofar = y[i]
 
+            return np.array(xs), np.array(ys)
         ########################################################################################################
 
-        fig, axs = plt.subplots(3, 2, figsize=(15, 10), sharex=False, sharey=True)
+        fig, axs = plt.subplots(3, 2, figsize=(15, 10), sharex=True, sharey=True)
 
         for s in entropy_DF.setting.unique():
             for m in entropy_DF.saga.unique():
@@ -1041,10 +1069,13 @@ class COMPARATIVE(object):
                         (entropy_DF["celltype"] == c), :
                     ]
                     
-                    data = data.sort_values(by=["entropy"]) 
+                    data = data.sort_values(by=["entropy"], ascending=False) 
 
                     xs = np.array(data.entropy)
                     ys = np.array(data.ratio_robust)
+
+                    if drop_decrease:
+                        xs, ys = dd(xs, ys)
                     
                     try:
                         axs[settings[s], methods[m]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
@@ -1065,7 +1096,7 @@ class COMPARATIVE(object):
         plt.style.use('default')
 
         ########################################################################################################
-        fig, axs = plt.subplots(3, 2, figsize=(15, 10), sharex=False, sharey=True)
+        fig, axs = plt.subplots(3, 2, figsize=(15, 10), sharex=True, sharey=True)
 
         for s in entropy_DF.setting.unique():
             for m in entropy_DF.saga.unique():
@@ -1077,10 +1108,13 @@ class COMPARATIVE(object):
                         (entropy_DF["celltype"] == c), :
                     ]
                     
-                    data = data.sort_values(by=["entropy"]) 
+                    data = data.sort_values(by=["entropy"], ascending=False) 
 
                     xs = np.array(data.entropy)
                     ys = np.array(data.avgr)
+
+                    if drop_decrease:
+                        xs, ys = dd(xs, ys)
                     
                     try:
                         axs[settings[s], methods[m]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
@@ -1113,10 +1147,13 @@ class COMPARATIVE(object):
                         (numlabels_DF["celltype"] == c), :
                     ]
                     
-                    data = data.sort_values(by=["num_labels"]) 
+                    data = data.sort_values(by=["num_labels"], ascending=False) 
 
                     xs = np.array(data.num_labels)
                     ys = np.array(data.ratio_robust)
+
+                    if drop_decrease:
+                        xs, ys = dd(xs, ys)
                     
                     try:
                         axs[settings[s], methods[m]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
@@ -1136,7 +1173,7 @@ class COMPARATIVE(object):
         sns.reset_orig
         plt.style.use('default')
 
-        ########################################################################################################
+        #######################################################################################################
         fig, axs = plt.subplots(3, 2, figsize=(15, 10), sharex=True, sharey=True)
 
         for s in numlabels_DF.setting.unique():
@@ -1149,10 +1186,13 @@ class COMPARATIVE(object):
                         (numlabels_DF["celltype"] == c), :
                     ]
                     
-                    data = data.sort_values(by=["num_labels"]) 
+                    data = data.sort_values(by=["num_labels"], ascending=False) 
 
                     xs = np.array(data.num_labels)
                     ys = np.array(data.avgr)
+
+                    if drop_decrease:
+                        xs, ys = dd(xs, ys)
                     
                     try:
                         axs[settings[s], methods[m]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
@@ -1171,6 +1211,451 @@ class COMPARATIVE(object):
         plt.clf()
         sns.reset_orig
         plt.style.use('default')      
+
+    def post_clustering_compressed(self, drop_decrease=True):
+        saga_translate = {"chmm":"ChromHMM","segway":"Segway"}
+        numlabels_DF = []
+        entropy_DF = []
+
+        for s in self.navigate_results.keys():
+            for m in self.navigate_results[s].keys():
+                for c in self.navigate_results[s][m].keys():
+                    
+                    for k in self.navigate_results[s][m][c][7].keys():
+                        smc_nlabels_list = [self.var_setting_dict[s], saga_translate[m], c]
+                        smc_nlabels_list.append(k)
+                        smc_nlabels_list.append(self.navigate_results[s][m][c][7][k])
+                        smc_nlabels_list.append(self.navigate_results[s][m][c][8][k])
+                        smc_nlabels_list.append(self.navigate_results[s][m][c][9][k])
+                        # smc_nlabels_list.append(self.navigate_results[s][m][c][14][k])
+
+                        numlabels_DF.append(smc_nlabels_list)
+                    
+                    for k in self.navigate_results[s][m][c][10].keys():
+                        smc_entropy_list = [self.var_setting_dict[s], saga_translate[m], c]
+                        smc_entropy_list.append(k)
+                        smc_entropy_list.append(self.navigate_results[s][m][c][10][k])
+                        smc_entropy_list.append(self.navigate_results[s][m][c][11][k])
+                        smc_entropy_list.append(self.navigate_results[s][m][c][12][k])
+                        # smc_entropy_list.append(self.navigate_results[s][m][c][13][k])
+
+                        entropy_DF.append(smc_entropy_list)
+
+        
+        numlabels_DF = pd.DataFrame(numlabels_DF, columns= [
+            "setting", "saga", "celltype", "num_labels", "nmi", "ratio_robust", "avgr"]).sort_values(by=["setting", "celltype"]) 
+        numlabels_DF['num_labels'] = numlabels_DF['num_labels'].astype(int)
+
+        entropy_DF = pd.DataFrame(entropy_DF, columns= [
+            "setting", "saga", "celltype", "entropy", "ratio_robust", "nmi", "avgr"]).sort_values(by=["setting", "celltype"]) 
+    
+
+        markers = {entropy_DF.setting.unique()[0]: 'o', entropy_DF.setting.unique()[1]: '^', entropy_DF.setting.unique()[2]: 's'}
+        linestyles = {
+            entropy_DF.saga.unique()[0]: 'solid', 
+            entropy_DF.saga.unique()[1]: 'dotted'}
+
+        colors = sns.color_palette('colorblind', n_colors=len(entropy_DF.saga.unique()))
+        colors = dict(zip(entropy_DF.saga.unique(), colors))
+
+        methods = {"Segway":1, "ChromHMM":0}
+        settings = {
+            entropy_DF.setting.unique()[0]: 0, 
+            entropy_DF.setting.unique()[1]: 1, 
+            entropy_DF.setting.unique()[2]: 2}
+        ########################################################################################################
+        def dd(x, y):
+            xs = []
+            ys = []
+            max_sofar = y[0]
+            for i in range(len(x)):
+                if y[i] >= max_sofar:
+                    xs.append(x[i])
+                    ys.append(y[i])
+                    max_sofar = y[i]
+                    
+            return np.array(xs), np.array(ys)
+        ########################################################################################################
+        fig, axs = plt.subplots(3, 1, figsize=(7, 8), sharex=True, sharey=True)
+
+        for s in entropy_DF.setting.unique():
+            for m in entropy_DF.saga.unique():
+                for c in entropy_DF.celltype.unique():
+                    
+                    data = entropy_DF.loc[
+                        (entropy_DF["celltype"] == c) &
+                        (entropy_DF["setting"] == s) &  
+                        (entropy_DF["saga"] == m), :
+                    ]
+                    
+                    data = data.sort_values(by=["entropy"], ascending=False) 
+
+                    xs = np.array(data.entropy)
+                    ys = np.array(data.avgr)
+                    if drop_decrease:
+                        xs, ys = dd(xs, ys)
+                    
+                    axs[settings[s]].plot(xs, ys, linestyle=linestyles[m], color=colors[m], label=m)
+                    axs[settings[s]].set_title(f"{s}")
+                    axs[settings[s]].set_xlabel("Entorpy")
+                    axs[settings[s]].set_ylabel("Average r_value")
+
+        lines, labels = axs[settings[s]].get_legend_handles_labels()
+
+        # Create a dictionary to store unique entries
+        unique_entries = {}
+        # Iterate over the lines and labels
+        for line, label in zip(lines, labels):
+            # Only add unique entries to the dictionary
+            if label not in unique_entries:
+                unique_entries[label] = line
+
+        # Create a custom legend using the unique entries
+        plt.legend(unique_entries.values(), unique_entries.keys())
+        plt.tight_layout()
+        plt.savefig(self.maindir+"/compressed_ent_avgr.pdf", format="pdf")
+        plt.savefig(self.maindir+"/compressed_ent_avgr.svg", format="svg")
+        plt.clf()
+        sns.reset_orig
+        plt.style.use('default')
+        ########################################################################################################
+        fig, axs = plt.subplots(3, 1, figsize=(7, 8), sharex=True, sharey=True)
+
+        for s in entropy_DF.setting.unique():
+            for m in entropy_DF.saga.unique():
+                for c in entropy_DF.celltype.unique():
+                    
+                    data = entropy_DF.loc[
+                        (entropy_DF["celltype"] == c) &
+                        (entropy_DF["setting"] == s) &  
+                        (entropy_DF["saga"] == m), :
+                    ]
+                    
+                    data = data.sort_values(by=["entropy"], ascending=False) 
+
+                    xs = np.array(data.entropy)
+                    ys = np.array(data.ratio_robust)
+                    if drop_decrease:
+                        xs, ys = dd(xs, ys)
+                    
+                    axs[settings[s]].plot(xs, ys, linestyle=linestyles[m], color=colors[m], label=m)
+                    axs[settings[s]].set_title(f"{s}")
+                    axs[settings[s]].set_xlabel("Entorpy")
+                    axs[settings[s]].set_ylabel("Ratio Confident")
+
+        lines, labels = axs[settings[s]].get_legend_handles_labels()
+
+        # Create a dictionary to store unique entries
+        unique_entries = {}
+        # Iterate over the lines and labels
+        for line, label in zip(lines, labels):
+            # Only add unique entries to the dictionary
+            if label not in unique_entries:
+                unique_entries[label] = line
+
+        # Create a custom legend using the unique entries
+        plt.legend(unique_entries.values(), unique_entries.keys())
+        plt.tight_layout()
+        plt.savefig(self.maindir+"/compressed_ent_robust.pdf", format="pdf")
+        plt.savefig(self.maindir+"/compressed_ent_robust.svg", format="svg")
+        plt.clf()
+        sns.reset_orig
+        plt.style.use('default')
+        ########################################################################################################
+        fig, axs = plt.subplots(3, 1, figsize=(7, 8), sharex=True, sharey=True)
+
+        for s in numlabels_DF.setting.unique():
+            for m in numlabels_DF.saga.unique():
+                for c in numlabels_DF.celltype.unique():
+                    
+                    data = numlabels_DF.loc[
+                        (numlabels_DF["celltype"] == c) &
+                        (numlabels_DF["setting"] == s) &  
+                        (numlabels_DF["saga"] == m), :
+                    ]
+                    
+                    data = data.sort_values(by=["num_labels"], ascending=False) 
+
+                    xs = np.array(data.num_labels)
+                    ys = np.array(data.avgr)
+                    if drop_decrease:
+                        xs, ys = dd(xs, ys)
+                    
+                    axs[settings[s]].plot(xs, ys, linestyle=linestyles[m], color=colors[m], label=m)
+                    axs[settings[s]].set_title(f"{s}")
+                    axs[settings[s]].set_xlabel("Number of Chromatin states")
+                    axs[settings[s]].set_ylabel("Average r_value")
+
+        lines, labels = axs[settings[s]].get_legend_handles_labels()
+
+        # Create a dictionary to store unique entries
+        unique_entries = {}
+        # Iterate over the lines and labels
+        for line, label in zip(lines, labels):
+            # Only add unique entries to the dictionary
+            if label not in unique_entries:
+                unique_entries[label] = line
+
+        # Create a custom legend using the unique entries
+        plt.legend(unique_entries.values(), unique_entries.keys())
+        plt.tight_layout()
+        plt.savefig(self.maindir+"/compressed_nlabels_avgr.pdf", format="pdf")
+        plt.savefig(self.maindir+"/compressed_nlabels_avgr.svg", format="svg")
+        plt.clf()
+        sns.reset_orig
+        plt.style.use('default')
+        ########################################################################################################
+        fig, axs = plt.subplots(3, 1, figsize=(7, 8), sharex=True, sharey=True)
+
+        for s in numlabels_DF.setting.unique():
+            for m in numlabels_DF.saga.unique():
+                for c in numlabels_DF.celltype.unique():
+                    
+                    data = numlabels_DF.loc[
+                        (numlabels_DF["celltype"] == c) &
+                        (numlabels_DF["setting"] == s) &  
+                        (numlabels_DF["saga"] == m), :
+                    ]
+                    
+                    data = data.sort_values(by=["num_labels"], ascending=False) 
+
+                    xs = np.array(data.num_labels)
+                    ys = np.array(data.ratio_robust)
+                    if drop_decrease:
+                        xs, ys = dd(xs, ys)
+                    
+                    axs[settings[s]].plot(xs, ys, linestyle=linestyles[m], color=colors[m], label=m)
+                    axs[settings[s]].set_title(f"{s}")
+                    axs[settings[s]].set_xlabel("Number of Chromatin states")
+                    axs[settings[s]].set_ylabel("Ratio Confident")
+
+        lines, labels = axs[settings[s]].get_legend_handles_labels()
+
+        # Create a dictionary to store unique entries
+        unique_entries = {}
+        # Iterate over the lines and labels
+        for line, label in zip(lines, labels):
+            # Only add unique entries to the dictionary
+            if label not in unique_entries:
+                unique_entries[label] = line
+
+        # Create a custom legend using the unique entries
+        plt.legend(unique_entries.values(), unique_entries.keys())
+        plt.tight_layout()
+        plt.savefig(self.maindir+"/compressed_nlabels_robust.pdf", format="pdf")
+        plt.savefig(self.maindir+"/compressed_nlabels_robust.svg", format="svg")
+        plt.clf()
+        sns.reset_orig
+        plt.style.use('default')
+        
+    def post_clustering_MI(self):
+        saga_translate = {"chmm":"ChromHMM","segway":"Segway"}
+        numlabels_DF = []
+        entropy_DF = []
+
+        for s in self.navigate_results.keys():
+            for m in self.navigate_results[s].keys():
+                for c in self.navigate_results[s][m].keys():
+                    
+                    for k in self.navigate_results[s][m][c][14].keys():
+                        smc_nlabels_list = [self.var_setting_dict[s], saga_translate[m], c]
+                        smc_nlabels_list.append(k)
+                        smc_nlabels_list.append(self.navigate_results[s][m][c][14][k])
+
+                        numlabels_DF.append(smc_nlabels_list)
+                    
+                    for k in self.navigate_results[s][m][c][13].keys():
+                        smc_entropy_list = [self.var_setting_dict[s], saga_translate[m], c]
+                        smc_entropy_list.append(k)
+                        smc_entropy_list.append(self.navigate_results[s][m][c][13][k])
+
+                        entropy_DF.append(smc_entropy_list)
+
+        numlabels_DF = pd.DataFrame(numlabels_DF, columns= [
+            "setting", "saga", "celltype", "num_labels", "MI"]).sort_values(by=["setting", "celltype"]) 
+        numlabels_DF['num_labels'] = numlabels_DF['num_labels'].astype(int)
+
+        entropy_DF = pd.DataFrame(entropy_DF, columns= [
+            "setting", "saga", "celltype", "entropy", "MI"]).sort_values(by=["setting", "celltype"]) 
+    
+
+        markers = {entropy_DF.setting.unique()[0]: 'o', entropy_DF.setting.unique()[1]: '^', entropy_DF.setting.unique()[2]: 's'}
+        linestyles = {
+            entropy_DF.setting.unique()[0]: 'dashed', 
+            entropy_DF.setting.unique()[1]: "solid", 
+            entropy_DF.setting.unique()[2]: 'dotted'}
+
+        colors = sns.color_palette('colorblind', n_colors=len(entropy_DF.celltype.unique()))
+        colors = dict(zip(entropy_DF.celltype.unique(), colors))
+
+        methods = {"Segway":1, "ChromHMM":0}
+        settings = {
+            entropy_DF.setting.unique()[0]: 0, 
+            entropy_DF.setting.unique()[1]: 1, 
+            entropy_DF.setting.unique()[2]: 2}
+
+        ########################################################################################################
+
+        fig, axs = plt.subplots(3, 2, figsize=(15, 10), sharex=True, sharey=True)
+
+        for s in entropy_DF.setting.unique():
+            for m in entropy_DF.saga.unique():
+                for c in entropy_DF.celltype.unique():
+                    
+                    data = entropy_DF.loc[
+                        (entropy_DF["setting"] == s) &  
+                        (entropy_DF["saga"] == m) &
+                        (entropy_DF["celltype"] == c), :
+                    ]
+                    
+                    data = data.sort_values(by=["entropy"], ascending=False) 
+
+                    xs = np.array(data.entropy)
+                    ys = np.array(data.MI)
+                
+                    axs[settings[s], methods[m]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
+                    axs[settings[s], methods[m]].plot(xs, ys, linestyle=linestyles[s], color=colors[c])
+
+                    axs[settings[s], methods[m]].set_title(f"{m} | {s}")
+                    axs[settings[s], methods[m]].set_xlabel("Entorpy")
+                    axs[settings[s], methods[m]].set_ylabel("Mutual Information")
+                    axs[settings[s], methods[m]].legend()
+    
+        plt.tight_layout()
+        plt.savefig(self.maindir+"/ent_MI.pdf", format="pdf")
+        plt.savefig(self.maindir+"/ent_MI.svg", format="svg")
+        plt.clf()
+        sns.reset_orig
+        plt.style.use('default')
+        ########################################################################################################
+
+        fig, axs = plt.subplots(3, 2, figsize=(15, 10), sharex=True, sharey=True)
+
+        for s in numlabels_DF.setting.unique():
+            for m in numlabels_DF.saga.unique():
+                for c in numlabels_DF.celltype.unique():
+                    
+                    data = numlabels_DF.loc[
+                        (numlabels_DF["setting"] == s) &  
+                        (numlabels_DF["saga"] == m) &
+                        (numlabels_DF["celltype"] == c), :
+                    ]
+                    
+                    data = data.sort_values(by=["num_labels"], ascending=False) 
+
+                    xs = np.array(data.num_labels)
+                    ys = np.array(data.MI)
+                    
+                    axs[settings[s], methods[m]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
+                    axs[settings[s], methods[m]].plot(xs, ys, linestyle=linestyles[s], color=colors[c])
+
+                    axs[settings[s], methods[m]].set_title(f"{m} | {s}")
+                    axs[settings[s], methods[m]].set_xlabel("Entorpy")
+                    axs[settings[s], methods[m]].set_ylabel("Mutual Information")
+                    axs[settings[s], methods[m]].legend()
+        
+        plt.tight_layout()
+        plt.savefig(self.maindir+"/num_labels_MI.pdf", format="pdf")
+        plt.savefig(self.maindir+"/num_labels_MI.svg", format="svg")
+        plt.clf()
+        sns.reset_orig
+        plt.style.use('default')
+        ########################################################################################################
+        markers = {entropy_DF.setting.unique()[0]: 'o', entropy_DF.setting.unique()[1]: '^', entropy_DF.setting.unique()[2]: 's'}
+        linestyles = {
+            entropy_DF.saga.unique()[0]: 'solid', 
+            entropy_DF.saga.unique()[1]: 'dotted'}
+
+        colors = sns.color_palette('colorblind', n_colors=len(entropy_DF.saga.unique()))
+        colors = dict(zip(entropy_DF.saga.unique(), colors))
+
+        methods = {"Segway":1, "ChromHMM":0}
+        settings = {
+            entropy_DF.setting.unique()[0]: 0, 
+            entropy_DF.setting.unique()[1]: 1, 
+            entropy_DF.setting.unique()[2]: 2}
+        ########################################################################################################
+        fig, axs = plt.subplots(3, 1, figsize=(7, 8), sharex=True, sharey=True)
+
+        for s in entropy_DF.setting.unique():
+            for m in entropy_DF.saga.unique():
+                for c in entropy_DF.celltype.unique():
+                    
+                    data = entropy_DF.loc[
+                        (entropy_DF["celltype"] == c) &
+                        (entropy_DF["setting"] == s) &  
+                        (entropy_DF["saga"] == m), :
+                    ]
+                    
+                    data = data.sort_values(by=["entropy"], ascending=False) 
+
+                    xs = np.array(data.entropy)
+                    ys = np.array(data.MI)
+                    
+                    axs[settings[s]].plot(xs, ys, linestyle=linestyles[m], color=colors[m], label=m)
+                    axs[settings[s]].set_title(f"{s}")
+                    axs[settings[s]].set_xlabel("Entorpy")
+                    axs[settings[s]].set_ylabel("Mutual Information")
+
+        lines, labels = axs[settings[s]].get_legend_handles_labels()
+
+        # Create a dictionary to store unique entries
+        unique_entries = {}
+        # Iterate over the lines and labels
+        for line, label in zip(lines, labels):
+            # Only add unique entries to the dictionary
+            if label not in unique_entries:
+                unique_entries[label] = line
+
+        # Create a custom legend using the unique entries
+        plt.legend(unique_entries.values(), unique_entries.keys())
+        plt.tight_layout()
+        plt.savefig(self.maindir+"/compressed_ent_MI.pdf", format="pdf")
+        plt.savefig(self.maindir+"/compressed_ent_MI.svg", format="svg")
+        plt.clf()
+        sns.reset_orig
+        plt.style.use('default')
+        ########################################################################################################
+        fig, axs = plt.subplots(3, 1, figsize=(7, 8), sharex=True, sharey=True)
+
+        for s in numlabels_DF.setting.unique():
+            for m in numlabels_DF.saga.unique():
+                for c in numlabels_DF.celltype.unique():
+                    
+                    data = numlabels_DF.loc[
+                        (numlabels_DF["celltype"] == c) &
+                        (numlabels_DF["setting"] == s) &  
+                        (numlabels_DF["saga"] == m), :
+                    ]
+                    
+                    data = data.sort_values(by=["num_labels"], ascending=False) 
+
+                    xs = np.array(data.num_labels)
+                    ys = np.array(data.MI)
+                    
+                    axs[settings[s]].plot(xs, ys, linestyle=linestyles[m], color=colors[m], label=m)
+                    axs[settings[s]].set_title(f"{s}")
+                    axs[settings[s]].set_xlabel("Number of Chromatin states")
+                    axs[settings[s]].set_ylabel("Mutual Information")
+
+        lines, labels = axs[settings[s]].get_legend_handles_labels()
+
+        # Create a dictionary to store unique entries
+        unique_entries = {}
+        # Iterate over the lines and labels
+        for line, label in zip(lines, labels):
+            # Only add unique entries to the dictionary
+            if label not in unique_entries:
+                unique_entries[label] = line
+
+        # Create a custom legend using the unique entries
+        plt.legend(unique_entries.values(), unique_entries.keys())
+        plt.tight_layout()
+        plt.savefig(self.maindir+"/compressed_nlabels_MI.pdf", format="pdf")
+        plt.savefig(self.maindir+"/compressed_nlabels_MI.svg", format="svg")
+        plt.clf()
+        sns.reset_orig
+        plt.style.use('default')
 
     def MPF1(self):
         saga_translate = {"chmm":"ChromHMM","segway":"Segway"}
@@ -1201,10 +1686,10 @@ class COMPARATIVE(object):
         # Plot the data in each subplot
         for saga, marker in markers.items():
             df = general_DF[general_DF['saga'] == saga]
-            sns.stripplot(x="setting", y="NMI", hue="celltype", data=df, ax=axs[0], marker=marker, size=8, alpha=0.8)
-            sns.stripplot(x="setting", y="pNMI", hue="celltype", data=df, ax=axs[1], marker=marker, size=8, alpha=0.8)
-            sns.stripplot(x="setting", y="overlap | w=0", hue="celltype", data=df, ax=axs[2], marker=marker, size=8, alpha=0.8)
-            sns.stripplot(x="setting", y="overlap | w=1000", hue="celltype", data=df, ax=axs[3], marker=marker, size=8, alpha=0.8)
+            sns.stripplot(x="setting", y="NMI", hue="celltype", data=df, ax=axs[0], marker=marker, size=10, alpha=0.8)
+            sns.stripplot(x="setting", y="pNMI", hue="celltype", data=df, ax=axs[1], marker=marker, size=10, alpha=0.8)
+            sns.stripplot(x="setting", y="overlap | w=0", hue="celltype", data=df, ax=axs[2], marker=marker, size=10, alpha=0.8)
+            sns.stripplot(x="setting", y="overlap | w=1000", hue="celltype", data=df, ax=axs[3], marker=marker, size=10, alpha=0.8)
 
         for i in range(len(general_DF.setting.unique())):
             axs[0].axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
@@ -1275,10 +1760,10 @@ class COMPARATIVE(object):
         # Plot the data in each subplot
         for celltype, marker in markers.items():
             df = general_DF[general_DF['celltype'] == celltype]
-            sns.stripplot(x="setting", y="NMI", hue="saga", data=df, ax=axs[0], marker=marker, size=8, alpha=0.8)
-            sns.stripplot(x="setting", y="pNMI", hue="saga", data=df, ax=axs[1], marker=marker, size=8, alpha=0.8)
-            sns.stripplot(x="setting", y="overlap | w=0", hue="saga", data=df, ax=axs[2], marker=marker, size=8, alpha=0.8)
-            sns.stripplot(x="setting", y="overlap | w=1000", hue="saga", data=df, ax=axs[3], marker=marker, size=8, alpha=0.8)
+            sns.stripplot(x="setting", y="NMI", hue="saga", data=df, ax=axs[0], marker=marker, size=10, alpha=0.8)
+            sns.stripplot(x="setting", y="pNMI", hue="saga", data=df, ax=axs[1], marker=marker, size=10, alpha=0.8)
+            sns.stripplot(x="setting", y="overlap | w=0", hue="saga", data=df, ax=axs[2], marker=marker, size=10, alpha=0.8)
+            sns.stripplot(x="setting", y="overlap | w=1000", hue="saga", data=df, ax=axs[3], marker=marker, size=10, alpha=0.8)
 
         for i in range(len(general_DF.setting.unique())):
             axs[0].axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
@@ -1349,7 +1834,7 @@ class COMPARATIVE(object):
         # Plot the data in each subplot
         for celltype, marker in markers.items():
             df = general_DF[general_DF['celltype'] == celltype]
-            sns.stripplot(x="setting", y="ratio_confident", hue="saga", data=df, ax=axs, marker=marker, size=8, alpha=0.8)
+            sns.stripplot(x="setting", y="ratio_confident", hue="saga", data=df, ax=axs, marker=marker, size=10, alpha=0.8)
 
         for i in range(len(general_DF.setting.unique())):
             axs.axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
@@ -1410,7 +1895,7 @@ class COMPARATIVE(object):
         # Plot the data in each subplot
         for celltype, marker in markers.items():
             df = general_DF[general_DF['celltype'] == celltype]
-            sns.stripplot(x="setting", y="average AUC/mAUC", hue="saga", data=df, ax=axs, marker=marker, size=8, alpha=0.8)
+            sns.stripplot(x="setting", y="average AUC/mAUC", hue="saga", data=df, ax=axs, marker=marker, size=10, alpha=0.8)
 
         for i in range(len(general_DF.setting.unique())):
             axs.axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
@@ -1465,6 +1950,10 @@ class COMPARATIVE(object):
         except:
             print("failed at load_post_clustering_progress")
         try:
+            self.post_clustering_compressed(drop_decrease=True)
+        except:
+            print("failed at post_clustering_compressed")
+        try:
             self.post_clustering_comparatives()    
         except:
             print("failed at post_clustering_comparatives")
@@ -1500,14 +1989,27 @@ class COMPARATIVE(object):
             self.visualize_robust()
         except:
             print("failed at visualize_robust")
+        try:
+            self.post_clustering_MI()
+        except:
+            print("failed at post_clustering_MI")
+
 
 def merge_WG_subset(dir1, dir2, log_file):
     """
     this function fills the missing analysis from WG runs with their corresponding results
     from subset runs.
     """
+    if os.path.exists(log_file):
+        prev_log = open(log_file, 'r').readlines()
+    else:
+        prev_log = []
+
     # Open the log file for writing
     with open(log_file, 'w') as f:
+        for l in prev_log:
+            f.write(l)
+
         # Recursively iterate over all subdirectories and files in dir1
         for root, dirs, files in os.walk(dir1):
             for file in files:
@@ -1527,13 +2029,14 @@ def merge_WG_subset(dir1, dir2, log_file):
                     f.write(f'Copied {file_path} to {target_path}\n')
 
 if __name__=="__main__":
-    # merge_WG_subset("tests/subset", "tests/WG", "tests/copy_log.txt")
-    # comp = COMPARATIVE("tests/subset")
-    # comp.ALL()
-    # comp = COMPARATIVE("tests/WG")
-    # comp.ALL()
+    merge_WG_subset("tests/subset", "tests/WG", "tests/copy_log.txt")
+    comp = COMPARATIVE("tests/subset")
+    comp.ALL()
+    comp = COMPARATIVE("tests/WG")
+    comp.ALL()
+    
 
-    # exit()
+    exit()
 
     if sys.argv[1] == "all":
         m_p("s1")

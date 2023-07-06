@@ -6,6 +6,8 @@ from overall import *
 from matplotlib.colors import LinearSegmentedColormap
 import ast
 from scipy.interpolate import UnivariateSpline
+from matplotlib.colors import LogNorm
+
 
 def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False, force_WG=False):
     print("loading and intersecting")
@@ -1618,39 +1620,39 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
     MI_rec = {}
     
     while loci_1.shape[1]-3 > 1 :
-        # bool_reprod_report, avg_r = single_point_repr(
-        #     loci_1, loci_2, ovr_threshold=to, window_bp=1000, posterior=True, 
-        #     reproducibility_threshold=tr, return_mean_r=True)
+        bool_reprod_report, avg_r = single_point_repr(
+            loci_1, loci_2, ovr_threshold=to, window_bp=1000, posterior=True, 
+            reproducibility_threshold=tr, return_mean_r=True)
 
-        # bool_reprod_report = pd.concat(
-        #     [loci_1["chr"], loci_1["start"], loci_1["end"], pd.Series(bool_reprod_report)], axis=1)
-        # bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
+        bool_reprod_report = pd.concat(
+            [loci_1["chr"], loci_1["start"], loci_1["end"], pd.Series(bool_reprod_report)], axis=1)
+        bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
 
-        # general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
-        # perlabel_rec = {}
+        general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
+        perlabel_rec = {}
 
-        # lab_rep = perlabel_is_reproduced(bool_reprod_report, loci_1)
+        lab_rep = perlabel_is_reproduced(bool_reprod_report, loci_1)
 
-        # for k, v in lab_rep.items():
-        #     perlabel_rec[k] = v[0]/ (v[0]+v[1])
+        for k, v in lab_rep.items():
+            perlabel_rec[k] = v[0]/ (v[0]+v[1])
 
         joint = joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True)
         NMI = NMI_from_matrix(joint)
         MI = NMI_from_matrix(joint, return_MI=True)
         loci1_entropy = calc_entropy(joint, rows=True)
 
-        # nmi_rec["{}".format(loci_1.shape[1]-3)] = NMI
-        # robust_rec["{}".format(loci_1.shape[1]-3)] = general_rep_score
-        # avgr_rec["{}".format(loci_1.shape[1]-3)] = avg_r
+        nmi_rec["{}".format(loci_1.shape[1]-3)] = NMI
+        robust_rec["{}".format(loci_1.shape[1]-3)] = general_rep_score
+        avgr_rec["{}".format(loci_1.shape[1]-3)] = avg_r
 
         MI_rec["{}".format(loci_1.shape[1]-3)] = MI
         MI_rec_entropy[loci1_entropy] = MI
 
-        # robust_rec_entropy[loci1_entropy] = general_rep_score
-        # NMI_rec_entropy[loci1_entropy] = NMI
-        # avgr_entropy[loci1_entropy] = avg_r
+        robust_rec_entropy[loci1_entropy] = general_rep_score
+        NMI_rec_entropy[loci1_entropy] = NMI
+        avgr_entropy[loci1_entropy] = avg_r
 
-        # print(f"entropy: {loci1_entropy} | num_labels: {loci_1.shape[1]-3} | repr_score: {general_rep_score}\n\n")
+        print(f"entropy: {loci1_entropy} | num_labels: {loci_1.shape[1]-3} | repr_score: {general_rep_score}\n\n")
         
         if loci_1.shape[1]-3 == 2:
             break
@@ -1664,59 +1666,59 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
         savefile.write(str(MI_rec_entropy))
         savefile.write("\n")
 
-    # with open('{}/post_clustering_progress.txt'.format(savedir), 'w') as savefile:
-    #     savefile.write(str(nmi_rec))
-    #     savefile.write("\n")
-    #     savefile.write(str(robust_rec))
-    #     savefile.write("\n")
-    #     savefile.write(str(avgr_rec))
-    #     savefile.write("\n")
+    with open('{}/post_clustering_progress.txt'.format(savedir), 'w') as savefile:
+        savefile.write(str(nmi_rec))
+        savefile.write("\n")
+        savefile.write(str(robust_rec))
+        savefile.write("\n")
+        savefile.write(str(avgr_rec))
+        savefile.write("\n")
 
-    #     savefile.write(str(robust_rec_entropy))
-    #     savefile.write("\n")
-    #     savefile.write(str(NMI_rec_entropy))
-    #     savefile.write("\n")
-    #     savefile.write(str(avgr_entropy))
+        savefile.write(str(robust_rec_entropy))
+        savefile.write("\n")
+        savefile.write(str(NMI_rec_entropy))
+        savefile.write("\n")
+        savefile.write(str(avgr_entropy))
 
-    # ####################################################################################################
+    ####################################################################################################
 
-    # nl = list(robust_rec.keys())
-    # ys =[robust_rec[k] for k in nl]
-    # plt.bar(list(nl), list(ys), color="grey")
-    # plt.xlabel("Number of Labels")
-    # plt.ylabel("ratio confident")
-    # plt.yticks(np.arange(0,1.05,0.1))
-    # plt.xticks(rotation=90)
-    # plt.savefig('{}/conf_progress.pdf'.format(savedir), format='pdf')
-    # plt.savefig('{}/conf_progress.svg'.format(savedir), format='svg')
+    nl = list(robust_rec.keys())
+    ys =[robust_rec[k] for k in nl]
+    plt.bar(list(nl), list(ys), color="grey")
+    plt.xlabel("Number of Labels")
+    plt.ylabel("ratio confident")
+    plt.yticks(np.arange(0,1.05,0.1))
+    plt.xticks(rotation=90)
+    plt.savefig('{}/conf_progress.pdf'.format(savedir), format='pdf')
+    plt.savefig('{}/conf_progress.svg'.format(savedir), format='svg')
     
-    # sns.reset_orig
-    # plt.close("all")
-    # plt.style.use('default')
-    # plt.clf()
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+    plt.clf()
 
-    # ####################################################################################################
+    ####################################################################################################
 
-    # nl = list(robust_rec_entropy.keys())
-    # ys = [robust_rec_entropy[k] for k in nl]
-    # plt.scatter(list(nl), list(ys), color="Black")
-    # plt.plot(list(nl), list(ys), "--", color="red", linewidth=3)
+    nl = list(robust_rec_entropy.keys())
+    ys = [robust_rec_entropy[k] for k in nl]
+    plt.scatter(list(nl), list(ys), color="Black")
+    plt.plot(list(nl), list(ys), "--", color="red", linewidth=3)
 
-    # keyss = list(robust_rec.keys())
-    # for i in range(len(nl)):
-    #     plt.annotate(f"{keyss[i]}", (nl[i], ys[i] + 0.1), rotation=90, fontsize=6)
+    keyss = list(robust_rec.keys())
+    for i in range(len(nl)):
+        plt.annotate(f"{keyss[i]}", (nl[i], ys[i] + 0.1), rotation=90, fontsize=6)
     
-    # plt.xlabel("Entropy of Base Annotation")
-    # plt.ylabel("ratio confident")
-    # plt.yticks(np.arange(0,1.05,0.1))
-    # plt.xticks(rotation=90)
-    # plt.savefig('{}/conf_progress_entropy.pdf'.format(savedir), format='pdf')
-    # plt.savefig('{}/conf_progress_entropy.svg'.format(savedir), format='svg')
+    plt.xlabel("Entropy of Base Annotation")
+    plt.ylabel("ratio confident")
+    plt.yticks(np.arange(0,1.05,0.1))
+    plt.xticks(rotation=90)
+    plt.savefig('{}/conf_progress_entropy.pdf'.format(savedir), format='pdf')
+    plt.savefig('{}/conf_progress_entropy.svg'.format(savedir), format='svg')
     
-    # sns.reset_orig
-    # plt.close("all")
-    # plt.style.use('default')
-    # plt.clf()
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+    plt.clf()
 
     ####################################################################################################
 
@@ -1918,92 +1920,94 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
     if os.path.exists(savedir)==False:
         os.mkdir(savedir)
 
-    # try:
-    #     get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
-    # except:
-    #     pass
+    try:
+        get_all_ct(replicate_1_dir, replicate_2_dir, savedir)
+    except:
+        pass
 
-    # try:
-    #     get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
-    # except:
-    #     pass
+    try:
+        get_all_labels(replicate_1_dir, replicate_2_dir, savedir)
+    except:
+        pass
 
-    # try:
-    #     get_overalls(replicate_1_dir, replicate_2_dir, savedir, tr=0.9)
-    # except:
-    #     pass
+    try:
+        get_overalls(replicate_1_dir, replicate_2_dir, savedir, tr=0.9)
+    except:
+        pass
 
-    # try:
-    #     if "chmm" in replicate_1_dir.lower() or "chromhmm_runs" in replicate_1_dir.lower():
-    #         compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="chmm")
+    try:
+        if "chmm" in replicate_1_dir.lower() or "chromhmm_runs" in replicate_1_dir.lower():
+            compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="chmm")
 
-    #     elif "segway" in replicate_1_dir.lower():
-    #         compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="segway")
+        elif "segway" in replicate_1_dir.lower():
+            compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="segway")
             
-    # except:
-    #     pass
+    except:
+        pass
 
-    # try:
-    #     r_value_hists(replicate_1_dir, replicate_2_dir, savedir)
-    # except:
-    #     pass
+    try:
+        r_value_hists(replicate_1_dir, replicate_2_dir, savedir)
+    except:
+        pass
 
-    # try:
-    post_clustering(replicate_1_dir, replicate_2_dir, savedir, tr=0.9)
+    try:
+        post_clustering(replicate_1_dir, replicate_2_dir, savedir, tr=0.9)
 
-    # except:
-    #     pass
+    except:
+        pass
 
-    # try:
-    #     after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, tr=0.9)
-    #     before_after_saga(savedir)
+    try:
+        after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None, tr=0.9)
+        before_after_saga(savedir)
 
-    # except:
-    #     pass
+    except:
+        pass
     
-    # ################################################################################################################
+    ################################################################################################################
 
-    # try:
-    #     get_all_bioval(
-    #         replicate_1_dir, replicate_2_dir, 
-    #         savedir,
-    #         genecode_dir=genecode_dir, 
-    #         rnaseq=rnaseq)
-    # except:
-    #     pass
+    try:
+        get_all_bioval(
+            replicate_1_dir, replicate_2_dir, 
+            savedir,
+            genecode_dir=genecode_dir, 
+            rnaseq=rnaseq)
+    except:
+        pass
 
-    # if contour:
-    #     try:
-    #         get_contour(replicate_1_dir, replicate_2_dir, savedir)
-    #     except:
-    #         pass
+    if contour:
+        try:
+            get_contour(replicate_1_dir, replicate_2_dir, savedir)
+        except:
+            pass
 
-    # try:
-    #     gather_labels(replicate_1_dir, savedir, contour=contour)
+    try:
+        gather_labels(replicate_1_dir, savedir, contour=contour)
 
-    # except:
-    #     pass
+    except:
+        pass
 
 def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
 
-    post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0.75, tr=0.9)
-    exit()
+    # post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0.75, tr=0.9)
+    # exit()
     
     # r_value_hists(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000, to=0.75)
-    if "chmm" in replicate_1_dir:
-        compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="chmm")
-    elif "segway" in replicate_1_dir:
-        compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="segway")
+    # if "chmm" in replicate_1_dir:
+    #     compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="chmm")
+    # elif "segway" in replicate_1_dir:
+    #     compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="segway")
 
     # # post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0.75, tr=0.8)
     # # get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000)
 
-    # loci_1, loci_2 = load_data(
-    #     replicate_1_dir+"/parsed_posterior.csv",
-    #     replicate_2_dir+"/parsed_posterior.csv",
-    #     subset=True, logit_transform=False)
+    loci_1, loci_2 = load_data(
+        replicate_1_dir+"/parsed_posterior.csv",
+        replicate_2_dir+"/parsed_posterior.csv",
+        subset=True, logit_transform=False)
 
-    # loci_1, loci_2 = process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+    loci_1, loci_2 = process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False, custom_order=True) 
+    # loci_1.columns = [s.replace("posterior","") for s in loci_1.columns]
+    # loci_2.columns = [s.replace("posterior","") for s in loci_2.columns]
     # distance_vs_overlap_3(loci_1, loci_2, savedir, match_definition="BM")
 
     # print(loci1, loci2)
@@ -2016,33 +2020,41 @@ def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
     # after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None)
     # before_after_saga(savedir)
 
-    # boundaries = [x for x in list(np.linspace(0, 1, 20))] + [1] # custom boundaries
-    # hex_colors = sns.light_palette('navy', n_colors=len(boundaries) * 2 + 2, as_cmap=False).as_hex()
-    # hex_colors = [hex_colors[i] for i in range(0, len(hex_colors), 2)]
-    # colors=list(zip(boundaries, hex_colors))
-    # custom_color_map = LinearSegmentedColormap.from_list(
-    #     name='custom_navy',
-    #     colors=colors)
+    # boundaries = [-1 * np.log2((1 - x)+1e-19) for x in list(np.linspace(0, 1, 100))]  # custom boundaries
+    # boundaries = boundaries / max(boundaries)
+    boundaries = [x for x in list(np.linspace(0, 1, 100))]  # custom boundaries
+    hex_colors = sns.light_palette('navy', n_colors=len(boundaries) * 2 + 2, as_cmap=False).as_hex()
+    hex_colors = [hex_colors[i] for i in range(0, len(hex_colors), 2)]
+    colors=list(zip(boundaries, hex_colors))
+    custom_color_map = LinearSegmentedColormap.from_list(
+        name='custom_navy',
+        colors=colors)
     
     # ####################################################################################
-    # confmat = joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True)
+    confmat = joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True)
 
-    # p = sns.heatmap(
-    #     confmat.astype(float), annot=True, fmt=".2f",
-    #     linewidths=0.01,  cbar=True, annot_kws={"size": 8}, 
-    #     vmin=0, vmax=1, cmap=custom_color_map)
+    p = sns.heatmap(
+        confmat.astype(float), annot=True, fmt=".2f",
+        linewidths=0.01,  cbar=True, annot_kws={"size": 8}, 
+        vmin=0, vmax=1, cmap=custom_color_map)
 
-    # sns.set(rc={'figure.figsize':(20,15)})
-    # p.tick_params(axis='x', rotation=90, labelsize=10)
-    # p.tick_params(axis='y', rotation=0, labelsize=10)
+    sns.set(rc={'figure.figsize':(20,15)})
+    p.tick_params(axis='x', rotation=90, labelsize=10)
+    p.tick_params(axis='y', rotation=0, labelsize=10)
 
     # plt.title('IoU Overlap')
-    # plt.xlabel('Replicate 2 Labels')
-    # plt.ylabel("Replicate 1 Labels")
-    # plt.tight_layout()
-    # plt.show()
+    plt.xlabel('Replicate 2 Labels')
+    plt.ylabel("Replicate 1 Labels")
+    plt.tight_layout()
+    plt.show()
 
 if __name__=="__main__":  
+    # test_new_functions(
+    #     replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
+    #     replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
+    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+    #     savedir="tests/cedar_runs/chmm/GM12878_R1/")
+    # exit()
     GET_ALL(
         replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
         replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
