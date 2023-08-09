@@ -6,8 +6,8 @@ from overall import *
 from matplotlib.colors import LinearSegmentedColormap
 import ast
 from scipy.interpolate import UnivariateSpline
+from matplotlib.patches import Rectangle
 from matplotlib.colors import LogNorm
-
 
 def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False, force_WG=False):
     print("loading and intersecting")
@@ -138,6 +138,130 @@ def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True,
             pass
 
     return loci_1, loci_2
+
+def plot_raw_and_iou(replicate_1_dir, replicate_2_dir):
+    loci_1, loci_2 = load_data(
+        replicate_1_dir+"/parsed_posterior.csv",
+        replicate_2_dir+"/parsed_posterior.csv",
+        subset=True, logit_transform=False)
+
+    loci_1, loci_2 = process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False, custom_order=True) 
+    savedir = replicate_1_dir
+    boundaries = [x for x in list(np.linspace(0, 1, 16))]  # custom boundaries
+    hex_colors = sns.light_palette('navy', n_colors=len(boundaries) * 2 + 2, as_cmap=False).as_hex()
+    hex_colors = [hex_colors[i] for i in range(0, len(hex_colors), 2)]
+    colors=list(zip(boundaries, hex_colors))
+    custom_color_map = LinearSegmentedColormap.from_list(
+        name='custom_navy',
+        colors=colors)
+
+    # ####################################################################################
+    confmat = joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True)
+    confmat = confmat + 1e-6
+
+    vmin, vmax = 1e-6, confmat.max().max()
+    # Create an instance of the LogNorm class
+    norm = LogNorm(vmin=vmin, vmax=vmax)
+    # sns.set(rc={'figure.figsize':(15,15)})
+
+    p = sns.heatmap(
+    confmat.astype(float), annot=True, fmt=".0e",
+        linewidths=0.01, cbar=True, annot_kws={"size": 6, "rotation":-45},
+        vmin=vmin, vmax=vmax, cmap=custom_color_map, norm=norm)
+
+    
+    p.tick_params(axis='x', rotation=90, labelsize=10)
+    p.tick_params(axis='y', rotation=0, labelsize=10)
+
+    plt.xlabel('Replicate 2 Labels')
+    plt.ylabel("Replicate 1 Labels")
+    plt.tight_layout()
+    plt.savefig('{}/raw.pdf'.format(savedir), format='pdf')
+    plt.savefig('{}/raw.svg'.format(savedir), format='svg')
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+    plt.clf()
+
+    # ####################################################################################
+    confmat = IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False, overlap_coeff=False)
+    confmat = confmat + 1e-6
+
+    vmin, vmax = 1e-6, confmat.max().max()
+    # Create an instance of the LogNorm class
+    norm = LogNorm(vmin=vmin, vmax=vmax)
+    
+    p = sns.heatmap(
+    confmat.astype(float), annot=True, fmt=".2f",
+        linewidths=0.01, cbar=True, annot_kws={"size": 6},
+        vmin=vmin, vmax=vmax, cmap=custom_color_map, norm=norm)
+
+    # sns.set(rc={'figure.figsize':(15,15)})
+    p.tick_params(axis='x', rotation=90, labelsize=10)
+    p.tick_params(axis='y', rotation=0, labelsize=10)
+    # Iterate over the rows of the heatmap data
+    for i, row in enumerate(confmat.values):
+        # Find the column index of the maximum value in this row
+        j = row.argmax()
+        
+        # Add a green border to the cell at location (i,j)
+        p.add_patch(Rectangle((j, i), 1, 1, edgecolor='red', fill=False, lw=3))
+
+    plt.title('IoU Overlap')
+    plt.xlabel('Replicate 2 Labels')
+    plt.ylabel("Replicate 1 Labels")
+    plt.tight_layout()
+    plt.savefig('{}/iou_logscale.pdf'.format(savedir), format='pdf')
+    plt.savefig('{}/iou_logscale.svg'.format(savedir), format='svg')
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+    plt.clf()
+
+    # ####################################################################################
+    boundaries = [x**2 for x in list(np.linspace(0, 1, 16))] + [1] # custom boundaries
+    hex_colors = sns.light_palette('navy', n_colors=len(boundaries) * 2 + 2, as_cmap=False).as_hex()
+    hex_colors = [hex_colors[i] for i in range(0, len(hex_colors), 2)]
+    colors=list(zip(boundaries, hex_colors))
+    custom_color_map = LinearSegmentedColormap.from_list(
+        name='custom_navy',
+        colors=colors)
+
+    # ####################################################################################
+
+    confmat = IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False, overlap_coeff=False)
+    # confmat = confmat + 1e-6
+
+    # vmin, vmax = 1e-6, confmat.max().max()
+    # Create an instance of the LogNorm class
+    # norm = LogNorm(vmin=vmin, vmax=vmax)
+    
+    p = sns.heatmap(
+    confmat.astype(float), annot=True, fmt=".2f",
+        linewidths=0.01, cbar=True, annot_kws={"size": 6},
+        vmin=vmin, vmax=vmax, cmap=custom_color_map)#, norm=norm)
+
+    # sns.set(rc={'figure.figsize':(15,15)})
+    p.tick_params(axis='x', rotation=90, labelsize=10)
+    p.tick_params(axis='y', rotation=0, labelsize=10)
+    # Iterate over the rows of the heatmap data
+    for i, row in enumerate(confmat.values):
+        # Find the column index of the maximum value in this row
+        j = row.argmax()
+        
+        # Add a green border to the cell at location (i,j)
+        p.add_patch(Rectangle((j, i), 1, 1, edgecolor='red', fill=False, lw=3))
+
+    plt.title('IoU Overlap')
+    plt.xlabel('Replicate 2 Labels')
+    plt.ylabel("Replicate 1 Labels")
+    plt.tight_layout()
+    plt.savefig('{}/iou.pdf'.format(savedir), format='pdf')
+    plt.savefig('{}/iou.svg'.format(savedir), format='svg')
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+    plt.clf()
 
 def ct_binned_posterior_heatmap(loci_1, loci_2, savedir, n_bins=10):
     indicator_file = "{}/binned_posterior_heatmap.txt".format(savedir)
@@ -1618,6 +1742,9 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
 
     MI_rec_entropy = {}
     MI_rec = {}
+
+    naive_rec = {}
+    naive_ent = {}
     
     while loci_1.shape[1]-3 > 1 :
         bool_reprod_report, avg_r = single_point_repr(
@@ -1640,17 +1767,19 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
         NMI = NMI_from_matrix(joint)
         MI = NMI_from_matrix(joint, return_MI=True)
         loci1_entropy = calc_entropy(joint, rows=True)
+        naive_overlap = overall_overlap_ratio(loci_1, loci_2, w=0)
 
         nmi_rec["{}".format(loci_1.shape[1]-3)] = NMI
         robust_rec["{}".format(loci_1.shape[1]-3)] = general_rep_score
         avgr_rec["{}".format(loci_1.shape[1]-3)] = avg_r
-
         MI_rec["{}".format(loci_1.shape[1]-3)] = MI
-        MI_rec_entropy[loci1_entropy] = MI
+        naive_rec["{}".format(loci_1.shape[1]-3)] = naive_overlap
 
+        MI_rec_entropy[loci1_entropy] = MI
         robust_rec_entropy[loci1_entropy] = general_rep_score
         NMI_rec_entropy[loci1_entropy] = NMI
         avgr_entropy[loci1_entropy] = avg_r
+        naive_ent[loci1_entropy] = naive_overlap
 
         print(f"entropy: {loci1_entropy} | num_labels: {loci_1.shape[1]-3} | repr_score: {general_rep_score}\n\n")
         
@@ -1659,7 +1788,13 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
 
         loci_1, loci_2 = merge_clusters(joint, loci_1, loci_2, r1=True)
         loci_1, loci_2 = merge_clusters(joint, loci_1, loci_2, r1=False)
-
+    
+    with open('{}/naive_post_clustering_progress.txt'.format(savedir), 'w') as savefile:
+        savefile.write(str(naive_rec))
+        savefile.write("\n")
+        savefile.write(str(naive_ent))
+        savefile.write("\n")
+    
     with open('{}/MI_post_clustering_progress.txt'.format(savedir), 'w') as savefile:
         savefile.write(str(MI_rec))
         savefile.write("\n")
@@ -1673,6 +1808,7 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
         savefile.write("\n")
         savefile.write(str(avgr_rec))
         savefile.write("\n")
+
 
         savefile.write(str(robust_rec_entropy))
         savefile.write("\n")
@@ -1987,74 +2123,26 @@ def GET_ALL(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None
         pass
 
 def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
-
-    # post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0.75, tr=0.9)
-    # exit()
-    
-    # r_value_hists(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000, to=0.75)
-    # if "chmm" in replicate_1_dir:
-    #     compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="chmm")
-    # elif "segway" in replicate_1_dir:
-    #     compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="segway")
-
-    # # post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0.75, tr=0.8)
-    # # get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000)
-
+    # plot_raw_and_iou(replicate_1_dir, replicate_2_dir)
+    post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0.75, tr=0.9)
+    exit()
     loci_1, loci_2 = load_data(
         replicate_1_dir+"/parsed_posterior.csv",
         replicate_2_dir+"/parsed_posterior.csv",
         subset=True, logit_transform=False)
 
     loci_1, loci_2 = process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False, custom_order=True) 
-    # loci_1.columns = [s.replace("posterior","") for s in loci_1.columns]
-    # loci_2.columns = [s.replace("posterior","") for s in loci_2.columns]
-    # distance_vs_overlap_3(loci_1, loci_2, savedir, match_definition="BM")
+   
 
-    # print(loci1, loci2)
 
-    # post_clustering_keep_k_states(replicate_1_dir, replicate_2_dir, replicate_1_dir, k=5, locis=False)
-
-    # print(NMI_from_matrix(joint_prob_with_binned_posterior(loci1, loci2, n_bins=50, conditional=False, stratified=True)))
-    # print(NMI_from_matrix(joint_prob_MAP_with_posterior(loci1, loci2, n_bins=50, conditional=False, stratified=True)))
-
-    # after_SAGAconf_metrics(replicate_1_dir, replicate_2_dir, genecode_dir, savedir, rnaseq=None)
-    # before_after_saga(savedir)
-
-    # boundaries = [-1 * np.log2((1 - x)+1e-19) for x in list(np.linspace(0, 1, 100))]  # custom boundaries
-    # boundaries = boundaries / max(boundaries)
-    boundaries = [x for x in list(np.linspace(0, 1, 100))]  # custom boundaries
-    hex_colors = sns.light_palette('navy', n_colors=len(boundaries) * 2 + 2, as_cmap=False).as_hex()
-    hex_colors = [hex_colors[i] for i in range(0, len(hex_colors), 2)]
-    colors=list(zip(boundaries, hex_colors))
-    custom_color_map = LinearSegmentedColormap.from_list(
-        name='custom_navy',
-        colors=colors)
-    
-    # ####################################################################################
-    confmat = joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True)
-
-    p = sns.heatmap(
-        confmat.astype(float), annot=True, fmt=".2f",
-        linewidths=0.01,  cbar=True, annot_kws={"size": 8}, 
-        vmin=0, vmax=1, cmap=custom_color_map)
-
-    sns.set(rc={'figure.figsize':(20,15)})
-    p.tick_params(axis='x', rotation=90, labelsize=10)
-    p.tick_params(axis='y', rotation=0, labelsize=10)
-
-    # plt.title('IoU Overlap')
-    plt.xlabel('Replicate 2 Labels')
-    plt.ylabel("Replicate 1 Labels")
-    plt.tight_layout()
-    plt.show()
 
 if __name__=="__main__":  
-    # test_new_functions(
-    #     replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
-    #     replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
-    #     genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
-    #     savedir="tests/cedar_runs/chmm/GM12878_R1/")
-    # exit()
+    test_new_functions(
+        replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
+        replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
+        genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
+        savedir="tests/cedar_runs/chmm/GM12878_R1/")
+    exit()
     GET_ALL(
         replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
         replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 

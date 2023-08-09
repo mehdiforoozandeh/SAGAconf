@@ -337,14 +337,15 @@ class COMPARATIVE(object):
             "concat":"S2: Diff. data, Same model", "r1vsr2": "S1: Diff. data, Diff. model", 
             "paraminit":"S3: Same data, Diff. model"}
         
-        self.coverage_quantizer = {(0.0, 0.02):7, (0.02, 0.2):11, (0.2, 0.5):15, (0.5, 1):20}
+        self.coverage_quantizer = {(0.0, 0.02):10, (0.02, 0.2):15, (0.2, 0.5):20, (0.5, 1):25}
 
         self.var_setting_dict_inverse = {v:k for k, v in self.var_setting_dict.items()}
         self.SORT_ORDER = {"Prom": 0, "Prom_fla":1, "Enha":2, "Enha_low":3, "Biva":4, "Tran":5, "Cons":6, "Facu":7, "K9K3":8, "Quie":9}
 
     # self.navigate_results[s][m][c] = [
     #         dir, [NMI_map, NMI_post], [ovr_ratio_w0, ovr_ratio_w1000], {auc/mauc}, general_rep, {ratio_robust}, {coverage}
-    #         {nmi_rec}, {robust_rec}, {avgr_rec}, {robust_rec_entropy}, {NMI_rec_entropy}, {avgr_entropy}, {MI_entropy}, {MI_rec}]
+    #         {nmi_rec}, {robust_rec}, {avgr_rec}, {robust_rec_entropy}, {NMI_rec_entropy}, {avgr_entropy}, {MI_entropy}, {MI_rec},
+    #         {naive_entropy}, {naive_rec}]
 
     def compare_NMI(self):
         for s in self.navigate_results.keys():
@@ -457,6 +458,22 @@ class COMPARATIVE(object):
                         self.navigate_results[s][m][c].append({})  
                         self.navigate_results[s][m][c].append({})  
 
+                    progress_file = self.navigate_results[s][m][c][0] + "/naive_post_clustering_progress.txt"
+                   
+                    if os.path.exists(progress_file):
+                        with open(progress_file,"r") as f:
+                            lines = f.readlines()
+
+                        naive_rec = ast.literal_eval(lines[0][:-1])
+                        naive_entropy = ast.literal_eval(lines[1][:-1])
+
+                        self.navigate_results[s][m][c].append(naive_entropy)
+                        self.navigate_results[s][m][c].append(naive_rec)
+
+                    else:
+                        self.navigate_results[s][m][c].append({})  
+                        self.navigate_results[s][m][c].append({})
+
     def compare_ratio_robust(self):
         for s in self.navigate_results.keys():
             for m in self.navigate_results[s]:
@@ -468,7 +485,7 @@ class COMPARATIVE(object):
 
                         rlines = open(dir_robust_file, "r").readlines()
                         for l in rlines:
-                            ratio_robust[l.split(" = ")[0].replace(" reprod score", "")] = float(l.split(" = ")[1][:7])
+                            ratio_robust[l.split(" = ")[0].replace(" reprod score", "")] = float(l.split(" = ")[1][:-1])
 
                         if "general" in ratio_robust.keys():
                             self.navigate_results[s][m][c].append(ratio_robust["general"])
@@ -478,6 +495,25 @@ class COMPARATIVE(object):
 
                     else:
                         self.navigate_results[s][m][c].append(None)
+                        self.navigate_results[s][m][c].append({})
+
+    def compare_ratio_raw_overlap_perlabel(self):
+        for s in self.navigate_results.keys():
+            for m in self.navigate_results[s]:
+                for c in self.navigate_results[s][m]:
+                    
+                    if os.path.exists(self.navigate_results[s][m][c][0] + "/raw_conditional_overlap_ratio.txt"):
+                        dir_ovr_file = self.navigate_results[s][m][c][0] + "/raw_conditional_overlap_ratio.txt"
+
+                        with open(dir_ovr_file, "r") as ovrf:
+                            ovrlines = ovrf.readlines()
+                            raw_ovr = {}
+                            for i in range(2, len(ovrlines)):
+                                raw_ovr[str(ovrlines[i].split(" : ")[0])] = float(ovrlines[i].split(":")[1][:7])
+
+                        self.navigate_results[s][m][c].append(raw_ovr)
+
+                    else:
                         self.navigate_results[s][m][c].append({})
 
     def visualize_NMI(self):
@@ -780,10 +816,13 @@ class COMPARATIVE(object):
 
             # ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
             handles = [plt.Line2D([], [], marker='o', color=palette[i], linestyle='None') for i in range(len(unique_celltypes))]
-            ax.legend(handles, unique_celltypes, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
+            ax.legend(
+                handles, unique_celltypes, bbox_to_anchor=(0,1.02,1,0.2), 
+                loc="lower left", mode="expand", borderaxespad=0, ncol=5, fontsize=12)
 
             # Show the plot
-            plt.yticks(np.arange(0.5, 1.05, step=0.1))
+            plt.yticks(np.arange(0.5, 1.05, step=0.1), fontsize=12)
+            plt.xticks(fontsize=12)
             plt.tight_layout()
 
             plt.savefig("{}/{}/{}/AUC_mAUC_stripplot.pdf".format(self.maindir, self.var_setting_dict_inverse[s], "chmm"), format="pdf")
@@ -823,10 +862,12 @@ class COMPARATIVE(object):
 
             # ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
             handles = [plt.Line2D([], [], marker='o', color=palette[i], linestyle='None') for i in range(len(unique_celltypes))]
-            ax.legend(handles, unique_celltypes, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
+            ax.legend(handles, unique_celltypes, bbox_to_anchor=(0,1.02,1,0.2), 
+            loc="lower left", mode="expand", borderaxespad=0, ncol=5, fontsize=12)
 
             # Show the plot
-            plt.yticks(np.arange(0.5, 1.05, step=0.1))
+            plt.yticks(np.arange(0.5, 1.05, step=0.1), fontsize=12)
+            plt.xticks(fontsize=12)
             plt.tight_layout()
 
             plt.savefig("{}/{}/{}/AUC_mAUC_stripplot.pdf".format(self.maindir, self.var_setting_dict_inverse[s], "segway"), format="pdf")
@@ -858,7 +899,7 @@ class COMPARATIVE(object):
                             new_k = "_".join(k.split("_")[1:])
 
                             for q in self.coverage_quantizer.keys():
-                                if q[0] <= smc_coverage[k] and smc_coverage[k] < q[1]:
+                                if q[0] <= smc_coverage[k] and smc_coverage[k] <= q[1]:
                                     smc_list.append([new_k, smc_dict[k], self.coverage_quantizer[q]])
 
                         segway[s][c] = smc_list
@@ -877,15 +918,16 @@ class COMPARATIVE(object):
                             for q in self.coverage_quantizer.keys():
                                 if q[0] <= smc_coverage[k] and smc_coverage[k] < q[1]:
                                     smc_list.append([new_k, smc_dict[k], self.coverage_quantizer[q]])
-
+                                    # if smc_dict[k] == 0:
+                                        # print(s, m, c, k, smc_dict[k], smc_coverage[k])
+                                
                         chmm[s][c] = smc_list
 
         df_chmm = []
         for s in chmm.keys():
             for c in chmm[s].keys():
                 for l in chmm[s][c]:
-                    if l[1] > 0:
-                        df_chmm.append([c, self.var_setting_dict[s], l[0], l[1], l[2]])
+                    df_chmm.append([c, self.var_setting_dict[s], l[0], l[1], l[2]])
         
         df_chmm = pd.DataFrame(
             df_chmm, columns = ["CellType", "Setting", "Genomic_function", "ratio_robust", "coverage"]).sort_values(
@@ -899,8 +941,7 @@ class COMPARATIVE(object):
         for s in segway.keys():
             for c in segway[s].keys():
                 for l in segway[s][c]:
-                    if l[1] > 0:
-                        df_segway.append([c, self.var_setting_dict[s], l[0], l[1], l[2]])
+                    df_segway.append([c, self.var_setting_dict[s], l[0], l[1], l[2]])
         
         df_segway = pd.DataFrame(
             df_segway, columns = ["CellType", "Setting", "Genomic_function", "ratio_robust", "coverage"]).sort_values(
@@ -913,14 +954,15 @@ class COMPARATIVE(object):
         for s in np.unique(df_chmm["Setting"]):
             fig, ax = plt.subplots(figsize=(10, 8))
 
-
             chmmdata = df_chmm.loc[df_chmm["Setting"]==s,:]
+            
 
             order = chmmdata['Genomic_function'].unique()
             unique_coverages = chmmdata['coverage'].unique()
             unique_celltypes = chmmdata['CellType'].unique()
             palette = sns.color_palette("deep", len(unique_celltypes))
 
+                
             for coverage in unique_coverages:
                 mask = chmmdata['coverage'] == coverage
                 size = coverage
@@ -939,10 +981,12 @@ class COMPARATIVE(object):
 
             # ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
             handles = [plt.Line2D([], [], marker='o', color=palette[i], linestyle='None') for i in range(len(unique_celltypes))]
-            ax.legend(handles, unique_celltypes, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
+            ax.legend(handles, unique_celltypes, bbox_to_anchor=(0,1.02,1,0.2), 
+            loc="lower left", mode="expand", borderaxespad=0, ncol=5, fontsize=12)
             
             # Show the plot
-            plt.yticks(np.arange(0, 1.05, step=0.1))
+            plt.yticks(np.arange(0, 1.05, step=0.1), fontsize=12)
+            plt.xticks(fontsize=12)
             plt.tight_layout()
             plt.savefig("{}/{}/{}/ratio_robust_stripplot.pdf".format(self.maindir, self.var_setting_dict_inverse[s], "chmm"), format="pdf")
             plt.savefig("{}/{}/{}/ratio_robust_stripplot.svg".format(self.maindir, self.var_setting_dict_inverse[s], "chmm"), format="svg")
@@ -979,10 +1023,12 @@ class COMPARATIVE(object):
 
             # ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
             handles = [plt.Line2D([], [], marker='o', color=palette[i], linestyle='None') for i in range(len(unique_celltypes))]
-            ax.legend(handles, unique_celltypes, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
+            ax.legend(handles, unique_celltypes, bbox_to_anchor=(0,1.02,1,0.2), 
+            loc="lower left", mode="expand", borderaxespad=0, ncol=5, fontsize=12)
 
             # Show the plot
-            plt.yticks(np.arange(0, 1.05, step=0.1))
+            plt.yticks(np.arange(0, 1.05, step=0.1), fontsize=12)
+            plt.xticks(fontsize=12)
             plt.tight_layout()
             plt.savefig("{}/{}/{}/ratio_robust_stripplot.pdf".format(self.maindir, self.var_setting_dict_inverse[s], "segway"), format="pdf")
             plt.savefig("{}/{}/{}/ratio_robust_stripplot.svg".format(self.maindir, self.var_setting_dict_inverse[s], "segway"), format="svg")
@@ -990,6 +1036,165 @@ class COMPARATIVE(object):
             plt.clf()
             sns.reset_orig
             plt.style.use('default')
+
+    def visualize_raw_ovr(self):
+        chmm = {}
+        segway = {}
+
+        for s in self.navigate_results.keys():
+            for m in self.navigate_results[s].keys():
+                for c in self.navigate_results[s][m].keys():
+
+                    if m == "segway":
+                        if s not in segway.keys():
+                            segway[s] = {}
+
+                        smc_dict = self.navigate_results[s][m][c][15]
+                        smc_coverage = self.navigate_results[s][m][c][6]
+
+
+                        smc_list = []
+                        for k in smc_dict.keys():
+                            new_k = "_".join(k.split("_")[1:])
+
+                            for q in self.coverage_quantizer.keys():
+                                if q[0] <= smc_coverage[k] and smc_coverage[k] < q[1]:
+                                    smc_list.append([new_k, smc_dict[k], self.coverage_quantizer[q]])
+
+                        segway[s][c] = smc_list
+
+                    elif m == "chmm":
+                        if s not in chmm.keys():
+                            chmm[s] = {}
+                        
+                        smc_dict = self.navigate_results[s][m][c][15]
+                        smc_coverage = self.navigate_results[s][m][c][6]
+
+                        smc_list = []
+                        for k in smc_dict.keys():
+                            new_k = "_".join(k.split("_")[1:])
+                            for q in self.coverage_quantizer.keys():
+                                if q[0] <= smc_coverage[k] and smc_coverage[k] < q[1]:
+                                    smc_list.append([new_k, smc_dict[k], self.coverage_quantizer[q]])
+
+                        chmm[s][c] = smc_list
+
+        df_chmm = []
+        for s in chmm.keys():
+            for c in chmm[s].keys():
+                for l in chmm[s][c]:
+                    if l[1] > 0:
+                        df_chmm.append([c, self.var_setting_dict[s], l[0], l[1], l[2]])
+        
+        df_chmm = pd.DataFrame(
+            df_chmm, columns = ["CellType", "Setting", "Genomic_function", "raw_ovr", "coverage"]).sort_values(
+                by=["Setting", "CellType"])
+
+        df_segway = []
+        for s in segway.keys():
+            for c in segway[s].keys():
+                for l in segway[s][c]:
+                    if l[1] > 0:
+                        df_segway.append([c, self.var_setting_dict[s], l[0], l[1], l[2]])
+        
+        df_segway = pd.DataFrame(
+            df_segway, columns = ["CellType", "Setting", "Genomic_function", "raw_ovr", "coverage"]).sort_values(
+                by=["Setting", "CellType"])
+
+        ####################################################################################################################################
+        for s in np.unique(df_chmm["Setting"]):
+            plt.clf()
+            sns.reset_orig
+            plt.style.use('default')
+
+            fig, ax = plt.subplots(figsize=(10, 8))
+
+            chmmdata = df_chmm.loc[df_chmm["Setting"]==s,:]
+
+            order = chmmdata['Genomic_function'].unique()
+            unique_coverages = chmmdata['coverage'].unique()
+            unique_celltypes = chmmdata['CellType'].unique()
+            palette = sns.color_palette("deep", len(unique_celltypes))
+
+            for coverage in unique_coverages:
+                mask = chmmdata['coverage'] == coverage
+                size = coverage
+                for i, celltype in enumerate(unique_celltypes):
+                    celltype_mask = chmmdata['CellType'] == celltype
+                    data = chmmdata[mask & celltype_mask]
+                    if not data.empty:
+                        sns.stripplot(
+                            x='Genomic_function', y="raw_ovr", data=data, ax=ax, size=size, 
+                            color=palette[i], order=order, alpha=0.85)
+
+            n_categories = len(ax.get_xticks())
+
+            for i in range(n_categories):
+                ax.axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
+
+            # ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
+            handles = [plt.Line2D([], [], marker='o', color=palette[i], linestyle='None') for i in range(len(unique_celltypes))]
+            ax.legend(
+                handles, unique_celltypes, bbox_to_anchor=(0,1.02,1,0.2), 
+                loc="lower left", mode="expand", borderaxespad=0, ncol=5, fontsize=12)
+
+            # Show the plot
+            plt.yticks(np.arange(0, 1.05, step=0.2), fontsize=12)
+            plt.xticks(fontsize=12)
+            plt.tight_layout()
+
+            plt.savefig("{}/{}/{}/raw_ovr_stripplot.pdf".format(self.maindir, self.var_setting_dict_inverse[s], "chmm"), format="pdf")
+            plt.savefig("{}/{}/{}/raw_ovr_stripplot.svg".format(self.maindir, self.var_setting_dict_inverse[s], "chmm"), format="svg")
+
+            plt.clf()
+            sns.reset_orig
+            plt.style.use('default')
+
+            
+        ####################################################################################################################################
+        for s in np.unique(df_segway["Setting"]):
+            fig, ax = plt.subplots(figsize=(10, 8))
+
+            segdata = df_segway.loc[df_segway["Setting"]==s,:]
+
+            order = segdata['Genomic_function'].unique()
+            unique_coverages = segdata['coverage'].unique()
+            unique_celltypes = segdata['CellType'].unique()
+            palette = sns.color_palette("deep", len(unique_celltypes))
+
+            for coverage in unique_coverages:
+                mask = segdata['coverage'] == coverage
+                size = coverage
+                for i, celltype in enumerate(unique_celltypes):
+                    celltype_mask = segdata['CellType'] == celltype
+                    data = segdata[mask & celltype_mask]
+                    if not data.empty:
+                        sns.stripplot(
+                            x='Genomic_function', y="raw_ovr", data=data, ax=ax, size=size, 
+                            color=palette[i], order=order, alpha=0.85)
+
+            n_categories = len(ax.get_xticks())
+
+            for i in range(n_categories):
+                ax.axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
+
+            # ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
+            handles = [plt.Line2D([], [], marker='o', color=palette[i], linestyle='None') for i in range(len(unique_celltypes))]
+            ax.legend(handles, unique_celltypes, bbox_to_anchor=(0,1.02,1,0.2), 
+            loc="lower left", mode="expand", borderaxespad=0, ncol=5, fontsize=12)
+
+            # Show the plot
+            plt.yticks(np.arange(0, 1.05, step=0.2), fontsize=12)
+            plt.xticks(fontsize=12)
+            plt.tight_layout()
+
+            plt.savefig("{}/{}/{}/raw_ovr_stripplot.pdf".format(self.maindir, self.var_setting_dict_inverse[s], "segway"), format="pdf")
+            plt.savefig("{}/{}/{}/raw_ovr_stripplot.svg".format(self.maindir, self.var_setting_dict_inverse[s], "segway"), format="svg")
+
+            plt.clf()
+            sns.reset_orig
+            plt.style.use('default')
+        ####################################################################################################################################
 
     def post_clustering_comparatives(self, drop_decrease=True):
         saga_translate = {"chmm":"ChromHMM","segway":"Segway"}
@@ -1057,7 +1262,7 @@ class COMPARATIVE(object):
             return np.array(xs), np.array(ys)
         ########################################################################################################
 
-        fig, axs = plt.subplots(3, 2, figsize=(15, 10), sharex=True, sharey=True)
+        fig, axs = plt.subplots(2, 3, figsize=(15, 10), sharex=True, sharey=True)
 
         for s in entropy_DF.setting.unique():
             for m in entropy_DF.saga.unique():
@@ -1078,13 +1283,12 @@ class COMPARATIVE(object):
                         xs, ys = dd(xs, ys)
                     
                     try:
-                        axs[settings[s], methods[m]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
-                        axs[settings[s], methods[m]].plot(xs, ys, linestyle=linestyles[s], color=colors[c])
-
-                        axs[settings[s], methods[m]].set_title(f"{m} | {s}")
-                        axs[settings[s], methods[m]].set_xlabel("Entorpy")
-                        axs[settings[s], methods[m]].set_ylabel("Ratio Confident")
-                        axs[settings[s], methods[m]].legend()
+                        axs[methods[m], settings[s]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
+                        axs[methods[m], settings[s]].plot(xs, ys, linestyle=linestyles[s], color=colors[c])
+                        axs[methods[m], settings[s]].set_title(f"{m} | {s}")
+                        axs[methods[m], settings[s]].set_xlabel("Entorpy")
+                        axs[methods[m], settings[s]].set_ylabel("Ratio Confident")
+                        axs[methods[m], settings[s]].legend()
                     except:
                         pass
         
@@ -1096,7 +1300,7 @@ class COMPARATIVE(object):
         plt.style.use('default')
 
         ########################################################################################################
-        fig, axs = plt.subplots(3, 2, figsize=(15, 10), sharex=True, sharey=True)
+        fig, axs = plt.subplots(2, 3, figsize=(15, 10), sharex=True, sharey=True)
 
         for s in entropy_DF.setting.unique():
             for m in entropy_DF.saga.unique():
@@ -1117,13 +1321,12 @@ class COMPARATIVE(object):
                         xs, ys = dd(xs, ys)
                     
                     try:
-                        axs[settings[s], methods[m]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
-                        axs[settings[s], methods[m]].plot(xs, ys, linestyle=linestyles[s], color=colors[c])
-
-                        axs[settings[s], methods[m]].set_title(f"{m} | {s}")
-                        axs[settings[s], methods[m]].set_xlabel("Entorpy")
-                        axs[settings[s], methods[m]].set_ylabel("Average r_value")
-                        axs[settings[s], methods[m]].legend()
+                        axs[methods[m], settings[s]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
+                        axs[methods[m], settings[s]].plot(xs, ys, linestyle=linestyles[s], color=colors[c])
+                        axs[methods[m], settings[s]].set_title(f"{m} | {s}")
+                        axs[methods[m], settings[s]].set_xlabel("Entorpy")
+                        axs[methods[m], settings[s]].set_ylabel("Average r_value")
+                        axs[methods[m], settings[s]].legend()
                     except:
                         pass
         
@@ -1135,7 +1338,7 @@ class COMPARATIVE(object):
         plt.style.use('default')
 
         ########################################################################################################
-        fig, axs = plt.subplots(3, 2, figsize=(15, 10), sharex=True, sharey=True)
+        fig, axs = plt.subplots(2, 3, figsize=(15, 10), sharex=True, sharey=True)
 
         for s in numlabels_DF.setting.unique():
             for m in numlabels_DF.saga.unique():
@@ -1156,13 +1359,12 @@ class COMPARATIVE(object):
                         xs, ys = dd(xs, ys)
                     
                     try:
-                        axs[settings[s], methods[m]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
-                        axs[settings[s], methods[m]].plot(xs, ys, linestyle=linestyles[s], color=colors[c])
-
-                        axs[settings[s], methods[m]].set_title(f"{m} | {s}")
-                        axs[settings[s], methods[m]].set_xlabel("Number of Chromatin States")
-                        axs[settings[s], methods[m]].set_ylabel("Ratio Confident")
-                        axs[settings[s], methods[m]].legend()
+                        axs[methods[m], settings[s]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
+                        axs[methods[m], settings[s]].plot(xs, ys, linestyle=linestyles[s], color=colors[c])
+                        axs[methods[m], settings[s]].set_title(f"{m} | {s}")
+                        axs[methods[m], settings[s]].set_xlabel("Number of Chromatin States")
+                        axs[methods[m], settings[s]].set_ylabel("Ratio Confident")
+                        axs[methods[m], settings[s]].legend()
                     except:
                         pass
         
@@ -1174,7 +1376,7 @@ class COMPARATIVE(object):
         plt.style.use('default')
 
         #######################################################################################################
-        fig, axs = plt.subplots(3, 2, figsize=(15, 10), sharex=True, sharey=True)
+        fig, axs = plt.subplots(2, 3, figsize=(15, 10), sharex=True, sharey=True)
 
         for s in numlabels_DF.setting.unique():
             for m in numlabels_DF.saga.unique():
@@ -1195,13 +1397,12 @@ class COMPARATIVE(object):
                         xs, ys = dd(xs, ys)
                     
                     try:
-                        axs[settings[s], methods[m]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
-                        axs[settings[s], methods[m]].plot(xs, ys, linestyle=linestyles[s], color=colors[c])
-
-                        axs[settings[s], methods[m]].set_title(f"{m} | {s}")
-                        axs[settings[s], methods[m]].set_xlabel("Number of Chromatin States")
-                        axs[settings[s], methods[m]].set_ylabel("Average r_value")
-                        axs[settings[s], methods[m]].legend()
+                        axs[methods[m], settings[s]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
+                        axs[methods[m], settings[s]].plot(xs, ys, linestyle=linestyles[s], color=colors[c])
+                        axs[methods[m], settings[s]].set_title(f"{m} | {s}")
+                        axs[methods[m], settings[s]].set_xlabel("Number of Chromatin States")
+                        axs[methods[m], settings[s]].set_ylabel("Average r_value")
+                        axs[methods[m], settings[s]].legend()
                     except:
                         pass
         
@@ -1276,7 +1477,7 @@ class COMPARATIVE(object):
                     
             return np.array(xs), np.array(ys)
         ########################################################################################################
-        fig, axs = plt.subplots(3, 1, figsize=(7, 8), sharex=True, sharey=True)
+        fig, axs = plt.subplots(3, 1, figsize=(4, 8), sharex=True, sharey=True)
 
         for s in entropy_DF.setting.unique():
             for m in entropy_DF.saga.unique():
@@ -1319,7 +1520,7 @@ class COMPARATIVE(object):
         sns.reset_orig
         plt.style.use('default')
         ########################################################################################################
-        fig, axs = plt.subplots(3, 1, figsize=(7, 8), sharex=True, sharey=True)
+        fig, axs = plt.subplots(3, 1, figsize=(4, 8), sharex=True, sharey=True)
 
         for s in entropy_DF.setting.unique():
             for m in entropy_DF.saga.unique():
@@ -1362,7 +1563,7 @@ class COMPARATIVE(object):
         sns.reset_orig
         plt.style.use('default')
         ########################################################################################################
-        fig, axs = plt.subplots(3, 1, figsize=(7, 8), sharex=True, sharey=True)
+        fig, axs = plt.subplots(3, 1, figsize=(4, 8), sharex=True, sharey=True)
 
         for s in numlabels_DF.setting.unique():
             for m in numlabels_DF.saga.unique():
@@ -1405,7 +1606,7 @@ class COMPARATIVE(object):
         sns.reset_orig
         plt.style.use('default')
         ########################################################################################################
-        fig, axs = plt.subplots(3, 1, figsize=(7, 8), sharex=True, sharey=True)
+        fig, axs = plt.subplots(3, 1, figsize=(4, 8), sharex=True, sharey=True)
 
         for s in numlabels_DF.setting.unique():
             for m in numlabels_DF.saga.unique():
@@ -1496,10 +1697,16 @@ class COMPARATIVE(object):
 
         ########################################################################################################
 
-        fig, axs = plt.subplots(3, 2, figsize=(15, 10), sharex=True, sharey=True)
+        fig, axs = plt.subplots(2, 3, figsize=(15, 10), sharex=True, sharey=True)
 
         for s in entropy_DF.setting.unique():
             for m in entropy_DF.saga.unique():
+                
+                axs[methods[m], settings[s]].plot(
+                    [entropy_DF.entropy.min(), entropy_DF.entropy.max()], [
+                        entropy_DF.entropy.min(), entropy_DF.entropy.max()], 
+                        linestyle="dashed", color="grey")
+
                 for c in entropy_DF.celltype.unique():
                     
                     data = entropy_DF.loc[
@@ -1512,14 +1719,13 @@ class COMPARATIVE(object):
 
                     xs = np.array(data.entropy)
                     ys = np.array(data.MI)
-                
-                    axs[settings[s], methods[m]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
-                    axs[settings[s], methods[m]].plot(xs, ys, linestyle=linestyles[s], color=colors[c])
 
-                    axs[settings[s], methods[m]].set_title(f"{m} | {s}")
-                    axs[settings[s], methods[m]].set_xlabel("Entorpy")
-                    axs[settings[s], methods[m]].set_ylabel("Mutual Information")
-                    axs[settings[s], methods[m]].legend()
+                    axs[methods[m], settings[s]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
+                    axs[methods[m], settings[s]].plot(xs, ys, linestyle=linestyles[s], color=colors[c])
+                    axs[methods[m], settings[s]].set_title(f"{m} | {s}")
+                    axs[methods[m], settings[s]].set_xlabel("Entropy")
+                    axs[methods[m], settings[s]].set_ylabel("Mutual Information")
+                    axs[methods[m], settings[s]].legend()
     
         plt.tight_layout()
         plt.savefig(self.maindir+"/ent_MI.pdf", format="pdf")
@@ -1529,7 +1735,7 @@ class COMPARATIVE(object):
         plt.style.use('default')
         ########################################################################################################
 
-        fig, axs = plt.subplots(3, 2, figsize=(15, 10), sharex=True, sharey=True)
+        fig, axs = plt.subplots(2, 3, figsize=(15, 10), sharex=True, sharey=True)
 
         for s in numlabels_DF.setting.unique():
             for m in numlabels_DF.saga.unique():
@@ -1546,13 +1752,12 @@ class COMPARATIVE(object):
                     xs = np.array(data.num_labels)
                     ys = np.array(data.MI)
                     
-                    axs[settings[s], methods[m]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
-                    axs[settings[s], methods[m]].plot(xs, ys, linestyle=linestyles[s], color=colors[c])
-
-                    axs[settings[s], methods[m]].set_title(f"{m} | {s}")
-                    axs[settings[s], methods[m]].set_xlabel("Entorpy")
-                    axs[settings[s], methods[m]].set_ylabel("Mutual Information")
-                    axs[settings[s], methods[m]].legend()
+                    axs[methods[m], settings[s]].scatter(xs, ys, marker=markers[s], color=colors[c], label=c)
+                    axs[methods[m], settings[s]].plot(xs, ys, linestyle=linestyles[s], color=colors[c])
+                    axs[methods[m], settings[s]].set_title(f"{m} | {s}")
+                    axs[methods[m], settings[s]].set_xlabel("Entropy")
+                    axs[methods[m], settings[s]].set_ylabel("Mutual Information")
+                    axs[methods[m], settings[s]].legend()
         
         plt.tight_layout()
         plt.savefig(self.maindir+"/num_labels_MI.pdf", format="pdf")
@@ -1560,11 +1765,11 @@ class COMPARATIVE(object):
         plt.clf()
         sns.reset_orig
         plt.style.use('default')
+
         ########################################################################################################
-        markers = {entropy_DF.setting.unique()[0]: 'o', entropy_DF.setting.unique()[1]: '^', entropy_DF.setting.unique()[2]: 's'}
         linestyles = {
             entropy_DF.saga.unique()[0]: 'solid', 
-            entropy_DF.saga.unique()[1]: 'dotted'}
+            entropy_DF.saga.unique()[1]: 'solid'}
 
         colors = sns.color_palette('colorblind', n_colors=len(entropy_DF.saga.unique()))
         colors = dict(zip(entropy_DF.saga.unique(), colors))
@@ -1575,10 +1780,16 @@ class COMPARATIVE(object):
             entropy_DF.setting.unique()[1]: 1, 
             entropy_DF.setting.unique()[2]: 2}
         ########################################################################################################
-        fig, axs = plt.subplots(3, 1, figsize=(7, 8), sharex=True, sharey=True)
+        fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharex=True, sharey=True)
 
         for s in entropy_DF.setting.unique():
             for m in entropy_DF.saga.unique():
+
+                axs[settings[s]].plot(
+                    [entropy_DF.entropy.min(), entropy_DF.entropy.max()], [
+                        entropy_DF.entropy.min(), entropy_DF.entropy.max()], 
+                        linestyle="dashed", color="grey")
+
                 for c in entropy_DF.celltype.unique():
                     
                     data = entropy_DF.loc[
@@ -1594,7 +1805,7 @@ class COMPARATIVE(object):
                     
                     axs[settings[s]].plot(xs, ys, linestyle=linestyles[m], color=colors[m], label=m)
                     axs[settings[s]].set_title(f"{s}")
-                    axs[settings[s]].set_xlabel("Entorpy")
+                    axs[settings[s]].set_xlabel("Entropy")
                     axs[settings[s]].set_ylabel("Mutual Information")
 
         lines, labels = axs[settings[s]].get_legend_handles_labels()
@@ -1616,10 +1827,11 @@ class COMPARATIVE(object):
         sns.reset_orig
         plt.style.use('default')
         ########################################################################################################
-        fig, axs = plt.subplots(3, 1, figsize=(7, 8), sharex=True, sharey=True)
+        fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharex=True, sharey=True)
 
         for s in numlabels_DF.setting.unique():
             for m in numlabels_DF.saga.unique():
+
                 for c in numlabels_DF.celltype.unique():
                     
                     data = numlabels_DF.loc[
@@ -1653,6 +1865,44 @@ class COMPARATIVE(object):
         plt.tight_layout()
         plt.savefig(self.maindir+"/compressed_nlabels_MI.pdf", format="pdf")
         plt.savefig(self.maindir+"/compressed_nlabels_MI.svg", format="svg")
+        plt.clf()
+        sns.reset_orig
+        plt.style.use('default')
+        ########################################################################################################
+        fig, axs = plt.subplots(1, 1, figsize=(5, 5), sharex=True, sharey=True)
+
+        data = numlabels_DF.loc[
+            (numlabels_DF["celltype"] == "GM12878") &
+            (numlabels_DF["setting"] == numlabels_DF.setting.unique()[0]) &  
+            (numlabels_DF["saga"] == "ChromHMM"), :
+        ]
+        s= numlabels_DF.setting.unique()[0]
+        data = data.sort_values(by=["num_labels"], ascending=False) 
+
+        xs = np.array(data.num_labels)
+        ys = np.array(data.MI)
+        
+        axs.scatter(xs, ys, color=colors["ChromHMM"])
+        axs.plot(xs, ys, linestyle=linestyles["ChromHMM"], color=colors["ChromHMM"], label="ChromHMM")
+        axs.set_title(f"{s} | GM12878")
+        axs.set_xlabel("Number of Chromatin states")
+        axs.set_ylabel("Mutual Information")
+
+        lines, labels = axs.get_legend_handles_labels()
+
+        # Create a dictionary to store unique entries
+        unique_entries = {}
+        # Iterate over the lines and labels
+        for line, label in zip(lines, labels):
+            # Only add unique entries to the dictionary
+            if label not in unique_entries:
+                unique_entries[label] = line
+
+        # Create a custom legend using the unique entries
+        plt.legend(unique_entries.values(), unique_entries.keys())
+        plt.tight_layout()
+        plt.savefig(self.maindir+"/compressed_nlabels_MI_EXEMPLAR.pdf", format="pdf")
+        plt.savefig(self.maindir+"/compressed_nlabels_MI_EXEMPLAR.svg", format="svg")
         plt.clf()
         sns.reset_orig
         plt.style.use('default')
@@ -1760,10 +2010,10 @@ class COMPARATIVE(object):
         # Plot the data in each subplot
         for celltype, marker in markers.items():
             df = general_DF[general_DF['celltype'] == celltype]
-            sns.stripplot(x="setting", y="NMI", hue="saga", data=df, ax=axs[0], marker=marker, size=10, alpha=0.8)
-            sns.stripplot(x="setting", y="pNMI", hue="saga", data=df, ax=axs[1], marker=marker, size=10, alpha=0.8)
-            sns.stripplot(x="setting", y="overlap | w=0", hue="saga", data=df, ax=axs[2], marker=marker, size=10, alpha=0.8)
-            sns.stripplot(x="setting", y="overlap | w=1000", hue="saga", data=df, ax=axs[3], marker=marker, size=10, alpha=0.8)
+            sns.stripplot(x="setting", y="NMI", hue="saga", data=df, ax=axs[0], marker=marker, size=11, alpha=0.8)
+            sns.stripplot(x="setting", y="pNMI", hue="saga", data=df, ax=axs[1], marker=marker, size=11, alpha=0.8)
+            sns.stripplot(x="setting", y="overlap | w=0", hue="saga", data=df, ax=axs[2], marker=marker, size=11, alpha=0.8)
+            sns.stripplot(x="setting", y="overlap | w=1000", hue="saga", data=df, ax=axs[3], marker=marker, size=11, alpha=0.8)
 
         for i in range(len(general_DF.setting.unique())):
             axs[0].axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
@@ -1774,6 +2024,15 @@ class COMPARATIVE(object):
         for ax in axs:
             ax.set_xticklabels(ax.get_xticklabels(), fontsize=9)
             ax.set_xlabel('')
+        
+        axs[0].set_yticks(np.arange(0.2, 1, 0.1))
+        axs[0].tick_params(axis='y', labelsize=12)
+        axs[1].set_yticks(np.arange(0.2, 1, 0.1))
+        axs[1].tick_params(axis='y', labelsize=12)
+        axs[2].set_yticks(np.arange(0.3, 1, 0.1))
+        axs[2].tick_params(axis='y', labelsize=12)
+        axs[3].set_yticks(np.arange(0.3, 1, 0.1))
+        axs[3].tick_params(axis='y', labelsize=12)
 
         # Get the color palette used by seaborn
         palette = sns.color_palette()
@@ -1788,16 +2047,16 @@ class COMPARATIVE(object):
     
          # Add the custom legend to the first subplot
         axs[0].legend(handles=legend_elements, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
-                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=7)
+                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=9)
 
         axs[1].legend(handles=legend_elements, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
-                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=7)
+                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=9)
 
         axs[2].legend(handles=legend_elements, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
-                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=7)
+                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=9)
 
         axs[3].legend(handles=legend_elements, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
-                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=7)
+                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=9)
 
         plt.savefig(self.maindir+"/MPF2.pdf", format="pdf")
         plt.savefig(self.maindir+"/MPF2.svg", format="svg")
@@ -1834,13 +2093,15 @@ class COMPARATIVE(object):
         # Plot the data in each subplot
         for celltype, marker in markers.items():
             df = general_DF[general_DF['celltype'] == celltype]
-            sns.stripplot(x="setting", y="ratio_confident", hue="saga", data=df, ax=axs, marker=marker, size=10, alpha=0.8)
+            sns.stripplot(x="setting", y="ratio_confident", hue="saga", data=df, ax=axs, marker=marker, size=11, alpha=0.8)
 
         for i in range(len(general_DF.setting.unique())):
             axs.axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
 
         axs.set_xticklabels(axs.get_xticklabels(), fontsize=9)
         axs.set_xlabel('')
+
+        axs.tick_params(axis='y', labelsize=12)
 
         # Get the color palette used by seaborn
         palette = sns.color_palette()
@@ -1855,7 +2116,7 @@ class COMPARATIVE(object):
     
          # Add the custom legend to the first subplot
         axs.legend(handles=legend_elements, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
-                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=7)
+                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=9)
         
         plt.savefig(self.maindir+"/integ_ratiorobust.pdf", format="pdf")
         plt.savefig(self.maindir+"/integ_ratiorobust.svg", format="svg")
@@ -1903,6 +2164,8 @@ class COMPARATIVE(object):
         axs.set_xticklabels(axs.get_xticklabels(), fontsize=9)
         axs.set_xlabel('')
 
+        axs.tick_params(axis='y', labelsize=12)
+
         # Get the color palette used by seaborn
         palette = sns.color_palette()
 
@@ -1916,7 +2179,7 @@ class COMPARATIVE(object):
     
          # Add the custom legend to the first subplot
         axs.legend(handles=legend_elements, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
-                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=7)
+                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=9)
 
         plt.savefig(self.maindir+"/integ_auc_mauc.pdf", format="pdf")
         plt.savefig(self.maindir+"/integ_auc_mauc.svg", format="svg")
@@ -1950,50 +2213,53 @@ class COMPARATIVE(object):
         except:
             print("failed at load_post_clustering_progress")
         try:
-            self.post_clustering_compressed(drop_decrease=True)
+            self.compare_ratio_raw_overlap_perlabel()
         except:
-            print("failed at post_clustering_compressed")
-        try:
-            self.post_clustering_comparatives()    
-        except:
-            print("failed at post_clustering_comparatives")
-        try:
-            self.integ_ratio_robust()
-        except:
-            print("failed at integ_ratio_robust")
-        try:
-            self.integ_auc_mauc()
-        except:
-            print("failed at integ_auc_mauc")
-        try:
-            self.MPF1()
-        except:
-            print("failed at MPF1")
-        try:
-            self.MPF2()
-        except:
-            print("failed at MPF2")
-        try:
-            self.visualize_NMI()
-        except:
-            print("failed at visualize_NMI")
-        try:
-            self.visualize_ovr()
-        except:
-            print("failed at visualize_ovr")
-        try:
-            self.visualize_AUC_mAUC()
-        except:
-            print("failed at visualize_AUC_mAUC")
+            print("failed at compare_ratio_raw_overlap_perlabel")
+        # try:
+        #     self.post_clustering_compressed(drop_decrease=True)
+        # except:
+        #     print("failed at post_clustering_compressed")
+        # try:
+        #     self.post_clustering_comparatives()    
+        # except:
+        #     print("failed at post_clustering_comparatives")
+        # try:
+        #     self.integ_ratio_robust()
+        # except:
+        #     print("failed at integ_ratio_robust")
+        # try:
+        #     self.integ_auc_mauc()
+        # except:
+        #     print("failed at integ_auc_mauc")
+        # try:
+        #     self.visualize_raw_ovr()
+        # except:
+        #     print("failed at visualize_raw_ovr")
+        # try:
+        #     self.MPF2()
+        # except:
+        #     print("failed at MPF2")
+        # try:
+        #     self.visualize_NMI()
+        # except:
+        #     print("failed at visualize_NMI")
+        # try:
+        #     self.visualize_ovr()
+        # except:
+        #     print("failed at visualize_ovr")
+        # try:
+        #     self.visualize_AUC_mAUC()
+        # except:
+        #     print("failed at visualize_AUC_mAUC")
         try:
             self.visualize_robust()
         except:
             print("failed at visualize_robust")
-        try:
-            self.post_clustering_MI()
-        except:
-            print("failed at post_clustering_MI")
-
+        # try:
+        #     self.post_clustering_MI()
+        # except:
+        #     print("failed at post_clustering_MI")
 
 def merge_WG_subset(dir1, dir2, log_file):
     """
@@ -2028,10 +2294,114 @@ def merge_WG_subset(dir1, dir2, log_file):
                     # Write a log entry to the log file
                     f.write(f'Copied {file_path} to {target_path}\n')
 
+def exemplar_naive(maindir):
+
+    progress_file = maindir + "/naive_post_clustering_progress.txt"
+                   
+    if os.path.exists(progress_file):
+        with open(progress_file,"r") as f:
+            lines = f.readlines()
+
+        naive_rec = ast.literal_eval(lines[0][:-1])
+        naive_entropy = ast.literal_eval(lines[1][:-1])
+
+    ####################################################################################
+    fig, axs = plt.subplots(1, 1, figsize=(5, 5), sharex=True, sharey=True)
+
+    xs = np.array([int(k) for k in naive_rec.keys()])
+    ys = np.array(list(naive_rec.values()))
+
+    axs.scatter(xs, ys, color="blue", alpha=0.7)
+    axs.plot(xs, ys, linestyle="solid", color="blue", label="ChromHMM", alpha=0.7)
+    axs.set_title("S1: diff. data, diff models | GM12878")
+    axs.set_xlabel("Number of Chromatin states")
+    axs.set_ylabel("Naive overlap")
+
+    lines, labels = axs.get_legend_handles_labels()
+
+    # Create a dictionary to store unique entries
+    unique_entries = {}
+    # Iterate over the lines and labels
+    for line, label in zip(lines, labels):
+        # Only add unique entries to the dictionary
+        if label not in unique_entries:
+            unique_entries[label] = line
+
+    # Create a custom legend using the unique entries
+    plt.legend(unique_entries.values(), unique_entries.keys())
+    plt.tight_layout()
+    plt.savefig(maindir + "/nlabels_naive_EXEMPLAR.pdf", format="pdf")
+    plt.savefig(maindir + "/nlabels_naive_EXEMPLAR.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+    ####################################################################################
+    fig, axs = plt.subplots(1, 1, figsize=(5, 5), sharex=True, sharey=True)
+
+    xs = np.array([float(k) for k in naive_entropy.keys()])
+    ys = np.array(list(naive_entropy.values()))
+
+    axs.scatter(xs, ys, color="blue", alpha=0.7)
+    axs.plot(xs, ys, linestyle="solid", color="blue", label="ChromHMM", alpha=0.7)
+    axs.set_title("S1: diff. data, diff models | GM12878")
+    axs.set_xlabel("Entropy")
+    axs.set_ylabel("Naive overlap")
+
+    lines, labels = axs.get_legend_handles_labels()
+
+    # Create a dictionary to store unique entries
+    unique_entries = {}
+    # Iterate over the lines and labels
+    for line, label in zip(lines, labels):
+        # Only add unique entries to the dictionary
+        if label not in unique_entries:
+            unique_entries[label] = line
+
+    # Create a custom legend using the unique entries
+    plt.legend(unique_entries.values(), unique_entries.keys())
+    plt.tight_layout()
+    plt.savefig(maindir + "/ent_naive_EXEMPLAR.pdf", format="pdf")
+    plt.savefig(maindir + "/ent_naive_EXEMPLAR.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
+def coverage_legend():
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+
+    # example data
+    data = [0.01, 0.03, 0.1, 0.4, 0.6, 0.8]
+    coverage_quantizer = {(0.0, 0.02):10, (0.02, 0.2):15, (0.2, 0.5):20, (0.5, 1):25}
+
+    # create a new list for dot sizes
+    dot_sizes = []
+    for value in data:
+        for key in coverage_quantizer:
+            if key[0] <= value < key[1]:
+                dot_sizes.append(coverage_quantizer[key])
+                break
+
+    # create the strip plot
+    fig, ax = plt.subplots(figsize=(24,18))
+    ax.scatter(data, [1] * len(data), s=dot_sizes, color='black', alpha=0.8)
+
+    # create the legend
+    legend_elements = []
+    for key in coverage_quantizer:
+        legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', label=f'{key[0]} - {key[1]}', markerfacecolor='black', markersize=coverage_quantizer[key], alpha=0.8))
+
+    ax.legend(handles=legend_elements, title='Coverage Range', bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=5)
+
+    plt.show()
+
 if __name__=="__main__":
-    merge_WG_subset("tests/subset", "tests/WG", "tests/copy_log.txt")
-    comp = COMPARATIVE("tests/subset")
-    comp.ALL()
+    # exemplar_naive("tests/cedar_runs/chmm/GM12878_R1/")
+    # exit()
+
+    # merge_WG_subset("tests/subset", "tests/WG", "tests/copy_log.txt")
+    # comp = COMPARATIVE("tests/subset")
+    # comp.ALL()
     comp = COMPARATIVE("tests/WG")
     comp.ALL()
     
