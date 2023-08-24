@@ -1,4 +1,3 @@
-# import argparse
 import os, argparse
 import multiprocessing as mp
 from _utils import *

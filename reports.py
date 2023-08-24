@@ -350,12 +350,12 @@ def ct_confus(loci_1, loci_2, savedir, w=1000):
     confmat.to_csv("{}/heatmap.csv".format(savedir))
 
     conditional = overlap_matrix(loci_1, loci_2, type="conditional")
-    with open("{}/raw_conditional_overlap_ratio.txt".format(savedir), "w") as cf:
+    with open("{}/overlap_ratio.txt".format(savedir), "w") as cf:
         overall_overlap = overall_overlap_ratio(loci_1, loci_2, w=0)
-        cf.write("{} : {}\n".format("overall w=0", overall_overlap))
+        cf.write("{} : {}\n".format("naive overall w=0", overall_overlap))
 
-        overall_overlap = overall_overlap_ratio(loci_1, loci_2, w=1000)
-        cf.write("{} : {}\n".format("overall w=1000", overall_overlap))
+        overall_overlap = overall_overlap_ratio(loci_1, loci_2, w=w)
+        cf.write("{} : {}\n".format(f"overall w={w}", overall_overlap))
 
         for i in conditional.index:
             cf.write("{} : {}\n".format(i, np.max(np.array(conditional.loc[i, :]))))
@@ -405,28 +405,29 @@ def ct_granul(loci_1, loci_2, savedir):
 
     for i in range(n_rows):
         for j in range(n_cols):
-            c = list(loci_1.columns[3:])[label_being_plotted]
-            cr, ar, ovr_rec = granularity_vs_agreement_nonsymmetric(loci_1.copy(), loci_2.copy(), k=c)
+            if label_being_plotted < num_labels:
+                c = list(loci_1.columns[3:])[label_being_plotted]
+                cr, ar, ovr_rec = granularity_vs_agreement_nonsymmetric(loci_1.copy(), loci_2.copy(), k=c)
 
-            perfect_agr = [0] + [1 for i in range(len(ar) - 1)]
-            realAUC = metrics.auc(cr, ar)
-            perfectAUC = metrics.auc(cr, perfect_agr)
-            p_to_r_auc = float((realAUC)/(perfectAUC))
+                perfect_agr = [0] + [1 for i in range(len(ar) - 1)]
+                realAUC = metrics.auc(cr, ar)
+                perfectAUC = metrics.auc(cr, perfect_agr)
+                p_to_r_auc = float((realAUC)/(perfectAUC))
 
-            p_to_r_auc_record[c] = p_to_r_auc
+                p_to_r_auc_record[c] = p_to_r_auc
 
-            axs[i,j].plot(cr, ar, c="yellowgreen")
-            axs[i,j].set_title(
-                c + str(" | Real/Perfect AUC = {:.2f}".format(p_to_r_auc)), 
-                fontsize=15)
+                axs[i,j].plot(cr, ar, c="yellowgreen")
+                axs[i,j].set_title(
+                    c + str(" | Real/Perfect AUC = {:.2f}".format(p_to_r_auc)), 
+                    fontsize=15)
 
-            axs[i,j].fill_between(cr, ar, color="yellowgreen", alpha=0.4)
-            axs[i,j].fill_between(cr, perfect_agr, ar, color="palevioletred", alpha=0.4)
-            axs[i,j].set_xticks(np.arange(0, 1.1, step=0.2))
-            axs[i,j].set_yticks(np.arange(0, 1.1, step=0.2))
-            axs[i,j].tick_params(axis='both', which='major', labelsize=15) 
-            label_being_plotted+=1
-    
+                axs[i,j].fill_between(cr, ar, color="yellowgreen", alpha=0.4)
+                axs[i,j].fill_between(cr, perfect_agr, ar, color="palevioletred", alpha=0.4)
+                axs[i,j].set_xticks(np.arange(0, 1.1, step=0.2))
+                axs[i,j].set_yticks(np.arange(0, 1.1, step=0.2))
+                axs[i,j].tick_params(axis='both', which='major', labelsize=15) 
+                label_being_plotted+=1
+        
     # fig.text(0.5, 0.02, 'Coverage' , ha='center')
     # fig.text(0.02, 0.5, 'Agreement', va='center', rotation='vertical')
     plt.tight_layout()
@@ -470,13 +471,13 @@ def ct_lable_calib(loci_1, loci_2, pltsavedir):
         os.mkdir(pltsavedir+"/calib")
     calb = posterior_calibration(
         loci_1, loci_2, window_size=1000, savedir=pltsavedir+"/calib", allow_w=False)
-    calibrated_loci_1 = calb.perlabel_calibration_function()
+    calibrated_loci_1 = calb.perlabel_calibration_function(return_caliberated_matrix=False)
 
-    if os.path.exists(pltsavedir+"/calib_logit_enr") == False:
-        os.mkdir(pltsavedir+"/calib_logit_enr")
-    calb = posterior_calibration(
-        loci_1, loci_2, plot_raw=False, window_size=1000, savedir=pltsavedir+"/calib_logit_enr", allow_w=False)
-    calibrated_loci_1 = calb.perlabel_calibration_function()
+    # if os.path.exists(pltsavedir+"/calib_logit_enr") == False:
+    #     os.mkdir(pltsavedir+"/calib_logit_enr")
+    # calb = posterior_calibration(
+    #     loci_1, loci_2, plot_raw=False, window_size=1000, savedir=pltsavedir+"/calib_logit_enr", allow_w=False)
+    # calibrated_loci_1 = calb.perlabel_calibration_function()
     
     plt.close("all")
     plt.style.use('default')
@@ -658,22 +659,21 @@ def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
     
     for i in range(n_rows):
         for j in range(n_cols):
-            k = loci_1.columns[3:][label_being_plotted]
-            distance_to_corresp_k = perlabel[k]
-            nonefiltered = [x * resolution for x in distance_to_corresp_k if x is not None] 
-            matched_ratio = len(nonefiltered) / len(distance_to_corresp_k)
+            if label_being_plotted < num_labels:
+                k = loci_1.columns[3:][label_being_plotted]
+                distance_to_corresp_k = perlabel[k]
+                nonefiltered = [x * resolution for x in distance_to_corresp_k if x is not None] 
+                matched_ratio = len(nonefiltered) / len(distance_to_corresp_k)
 
-            axs[i,j].hist(
-                nonefiltered, bins=len(set(nonefiltered)), density=True, log=True, 
-                color='black', alpha=0.6, histtype="stepfilled")
+                axs[i,j].hist(
+                    nonefiltered, bins=len(set(nonefiltered)), density=True, log=True, 
+                    color='black', alpha=0.6, histtype="stepfilled")
 
-            axs[i,j].axvline(x=0, color='red', linestyle='dotted', linewidth=2)
-            axs[i,j].set_yticks(np.logspace(-6, 0, 7))
-            axs[i,j].set_title("{} | overlap ratio = {:.2f}".format(k, matched_ratio), fontsize=15)
-            axs[i,j].tick_params(axis='both', which='major', labelsize=15) 
-
-
-            label_being_plotted += 1
+                axs[i,j].axvline(x=0, color='red', linestyle='dotted', linewidth=2)
+                axs[i,j].set_yticks(np.logspace(-6, 0, 7))
+                axs[i,j].set_title("{} | overlap ratio = {:.2f}".format(k, matched_ratio), fontsize=15)
+                axs[i,j].tick_params(axis='both', which='major', labelsize=15) 
+                label_being_plotted += 1
         
     plt.tight_layout()
     plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format("subplot"), format='pdf')
@@ -927,23 +927,24 @@ def distance_vs_overlap_3(loci_1, loci_2, savedir, match_definition="BM"):
     
     for i in range(n_rows):
         for j in range(n_cols):
-            k = label_dist_dict.columns[label_being_plotted]
+            if label_being_plotted < num_labels:
+                k = label_dist_dict.columns[label_being_plotted]
 
-            xaxis = [x*resolution for x in label_dist_dict.index]
-            yaxis = list(label_dist_dict[k])
+                xaxis = [x*resolution for x in label_dist_dict.index]
+                yaxis = list(label_dist_dict[k])
 
-            axs[i,j].plot(xaxis, yaxis, color="black")
+                axs[i,j].plot(xaxis, yaxis, color="black")
 
-            axs[i,j].fill_between(xaxis, yaxis, color="black", alpha=0.4)
-            
-            # axs[i,j].axhline(y=coverage2[per_label_matches[k]], color='red', linestyle='--', linewidth=1.5)
-            axs[i,j].axvline(x=0, color='blue', linestyle='--', linewidth=1.5)
+                axs[i,j].fill_between(xaxis, yaxis, color="black", alpha=0.4)
+                
+                # axs[i,j].axhline(y=coverage2[per_label_matches[k]], color='red', linestyle='--', linewidth=1.5)
+                axs[i,j].axvline(x=0, color='blue', linestyle='--', linewidth=1.5)
 
-            axs[i,j].set_xlabel("Distance (bp)")
-            axs[i,j].set_ylabel("Probability of overlap with corresponding label")
-            axs[i,j].set_title(k)
+                axs[i,j].set_xlabel("Distance (bp)")
+                axs[i,j].set_ylabel("Probability of overlap with corresponding label")
+                axs[i,j].set_title(k)
 
-            label_being_plotted += 1
+                label_being_plotted += 1
         
     plt.tight_layout()
     plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format("subplot"), format='pdf')
@@ -1050,39 +1051,39 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
     
     for i in range(n_rows):
         for j in range(n_cols):
+            if label_being_plotted < num_labels:
+                k = loci_1.columns[3:][label_being_plotted]
 
-            k = loci_1.columns[3:][label_being_plotted]
+                matched_hist = np.histogram(boundary_distances[k], bins=max_distance, range=(0, max_distance)) #[0]is the bin size [1] is the bin edge
 
-            matched_hist = np.histogram(boundary_distances[k], bins=max_distance, range=(0, max_distance)) #[0]is the bin size [1] is the bin edge
+                cdf = []
+                for jb in range(len(matched_hist[0])):
+                    if len(cdf) == 0:
+                        cdf.append(matched_hist[0][jb])
+                    else:
+                        cdf.append((cdf[-1] + matched_hist[0][jb]))
 
-            cdf = []
-            for jb in range(len(matched_hist[0])):
-                if len(cdf) == 0:
-                    cdf.append(matched_hist[0][jb])
-                else:
-                    cdf.append((cdf[-1] + matched_hist[0][jb]))
+                cdf = np.array(cdf) / (np.sum(matched_hist[0]) + count_unmatched_boundaries[k])
+                
+                
+                axs[i, j].plot(list(matched_hist[1][:-1]*resolution), list(cdf), color="black", label="distance from boundary")
+                axs[i, j].fill_between(list(matched_hist[1][:-1]*resolution), list(cdf), color="black", alpha=0.35)
+                
+                # lendist = get_ecdf_for_label(loci_1, k, max=(max_distance+1)*resolution)
+                # if len(lendist)>0:
+                #     sns.ecdfplot(lendist, ax=axs[i, j], color="red")
 
-            cdf = np.array(cdf) / (np.sum(matched_hist[0]) + count_unmatched_boundaries[k])
-            
-            
-            axs[i, j].plot(list(matched_hist[1][:-1]*resolution), list(cdf), color="black", label="distance from boundary")
-            axs[i, j].fill_between(list(matched_hist[1][:-1]*resolution), list(cdf), color="black", alpha=0.35)
-            
-            # lendist = get_ecdf_for_label(loci_1, k, max=(max_distance+1)*resolution)
-            # if len(lendist)>0:
-            #     sns.ecdfplot(lendist, ax=axs[i, j], color="red")
+                axs[i, j].set_xticks(np.arange(0, (max_distance+1)*resolution, step=5*resolution))
+                axs[i, j].tick_params(axis='both', labelsize=11)
+                axs[i, j].tick_params(axis='x', rotation=90)
+                axs[i, j].set_yticks(np.arange(0, 1.1, step=0.2))
+                axs[i, j].set_xlabel('bp', fontsize=13)
+                axs[i, j].set_ylabel('overlap ratio',fontsize=13)
+                
+                
+                axs[i, j].set_title(k, fontsize=14)
 
-            axs[i, j].set_xticks(np.arange(0, (max_distance+1)*resolution, step=5*resolution))
-            axs[i, j].tick_params(axis='both', labelsize=11)
-            axs[i, j].tick_params(axis='x', rotation=90)
-            axs[i, j].set_yticks(np.arange(0, 1.1, step=0.2))
-            axs[i, j].set_xlabel('bp', fontsize=13)
-            axs[i, j].set_ylabel('overlap ratio',fontsize=13)
-            
-            
-            axs[i, j].set_title(k, fontsize=14)
-
-            label_being_plotted += 1
+                label_being_plotted += 1
             
     plt.tight_layout()
     plt.savefig(outdir+"/len_bound.pdf", format='pdf')
@@ -1445,7 +1446,7 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000,
 
     reproduced_loci1 = keep_reproducible_annotations(loci1, bool_reprod_report)
     write_MAPloci_in_BED(reproduced_loci1, savedir)
-    reproduced_loci1.to_csv(savedir + "/confident_posteriors.bed", sep='\t', header=True, index=False)
+    # reproduced_loci1.to_csv(savedir + "/confident_posteriors.bed", sep='\t', header=True, index=False)
 
     ##################################################################################################################
 
@@ -1453,7 +1454,7 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000,
         [loci1["chr"], loci1["start"], loci1["end"], pd.Series(bool_reprod_report)], axis=1)
     bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
         
-    bool_reprod_report.to_csv(savedir+"/boolean_reproducibility_report_POSTERIOR.csv")
+    # bool_reprod_report.to_csv(savedir+"/boolean_reproducibility_report_POSTERIOR.csv")
 
     general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
     perlabel_rec = {}
@@ -1461,16 +1462,18 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000,
     for k, v in lab_rep.items():
         perlabel_rec[k] = v[0]/ (v[0]+v[1])
 
-    with open(savedir+"/general_reproducibility_score_POSTERIOR.txt", "w") as scorefile:
-        scorefile.write("general reprod score = {}\n".format(general_rep_score))
+    with open(savedir+"/ratio_robust.txt", "w") as scorefile:
+        scorefile.write("general ratio robust = {}\n".format(general_rep_score))
         for k, v in perlabel_rec.items():
-            scorefile.write("{} reprod score = {}\n".format(k, str(v)))
+            scorefile.write("{} ratio robust = {}\n".format(k, str(v)))
 
     ##################################################################################################################
     rvalues = is_repr_posterior(
             loci1, loci2, ovr_threshold=to, window_bp=w, matching="static",
             always_include_best_match=True, return_r=True)
     
+    rvalues.to_csv(savedir+"/r_values.bed", sep='\t', header=True, index=False)
+
     avg_r = np.mean(np.array(rvalues["r_value"]))
     perlabel_r = {}
 
@@ -1480,10 +1483,10 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000,
         r_l = rvalues.loc[rvalues["MAP"] == labels[l], "r_value"]
         perlabel_r[labels[l]] = np.mean(np.array(r_l))
     
-    with open(savedir+"/r_values.txt", "w") as scorefile:
-        scorefile.write("average r_value = {}\n".format(avg_r))
+    with open(savedir+"/r_values_report.txt", "w") as scorefile:
+        scorefile.write("GW average r_value = {}\n".format(avg_r))
         for k, v in perlabel_r.items():
-            scorefile.write("{} r_value = {}\n".format(k, str(v)))
+            scorefile.write("{} average r_value = {}\n".format(k, str(v)))
 
     ##################################################################################################################
 
@@ -1882,8 +1885,8 @@ def post_clustering_keep_k_states(replicate_1_dir, replicate_2_dir, savedir, k, 
 
         if loci_1.shape[1]-3 == k:
             if write_csv:
-                loci_1.to_csv(savedir + f"/{str(k)}states_post_clustered_posterior.csv")
-            loci_1.to_csv(savedir + f"/{str(k)}states_post_clustered_posterior.bed", sep='\t', header=True, index=False)
+                loci_1.to_csv(savedir + f"/{str(k)}_states_post_clustered_posterior.csv")
+            loci_1.to_csv(savedir + f"/{str(k)}_states_post_clustered_posterior.bed", sep='\t', header=True, index=False)
 
             MAP = loci_1.iloc[:,3:].idxmax(axis=1)
             coordMAP = pd.concat([loci_1.iloc[:, :3], MAP], axis=1)
@@ -2133,8 +2136,69 @@ def test_new_functions(replicate_1_dir, replicate_2_dir, genecode_dir, savedir):
 
     loci_1, loci_2 = process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False, custom_order=True) 
    
+def quick_report(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000, to=0.75, tr=0.9):
+    if locis:
+        loci1, loci2 = replicate_1_dir, replicate_2_dir
+    else:
+        loci1, loci2 = load_data(
+            replicate_1_dir+"/parsed_posterior.csv",
+            replicate_2_dir+"/parsed_posterior.csv",
+            subset=True, logit_transform=True)
 
+        loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+    
+    ct_confus(loci1.copy(), loci2.copy(), savedir, w=w)
+    ct_granul(loci1.copy(), loci2.copy(), savedir)
+    ct_boundar(loci1.copy(), loci2.copy(), savedir, match_definition="BM", max_distance=50)
+    ##################################################################################################################
 
+    bool_reprod_report = single_point_repr(
+        loci1, loci2, ovr_threshold=to, window_bp=w, posterior=True, reproducibility_threshold=tr)
+
+    ##################################################################################################################
+
+    bool_reprod_report = pd.concat(
+        [loci1["chr"], loci1["start"], loci1["end"], pd.Series(bool_reprod_report)], axis=1)
+    bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
+
+    general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
+    perlabel_rec = {}
+    lab_rep = perlabel_is_reproduced(bool_reprod_report, loci1)
+    for k, v in lab_rep.items():
+        perlabel_rec[k] = v[0]/ (v[0]+v[1])
+
+    with open(savedir+"/ratio_robust.txt", "w") as scorefile:
+        scorefile.write("general ratio robust = {}\n".format(general_rep_score))
+        for k, v in perlabel_rec.items():
+            scorefile.write("{} ratio robust = {}\n".format(k, str(v)))
+
+    ##################################################################################################################
+    rvalues = is_repr_posterior(
+            loci1, loci2, ovr_threshold=to, window_bp=w, matching="static",
+            always_include_best_match=True, return_r=True)
+
+    avg_r = np.mean(np.array(rvalues["r_value"]))
+    perlabel_r = {}
+
+    labels = rvalues.MAP.unique()
+
+    for l in range(len(labels)):
+        r_l = rvalues.loc[rvalues["MAP"] == labels[l], "r_value"]
+        perlabel_r[labels[l]] = np.mean(np.array(r_l))
+    
+    with open(savedir+"/r_values_report.txt", "w") as scorefile:
+        scorefile.write("GW average r_value = {}\n".format(avg_r))
+        for k, v in perlabel_r.items():
+            scorefile.write("{} average r_value = {}\n".format(k, str(v)))
+
+    ##################################################################################################################
+
+    MAP_NMI =  NMI_from_matrix(joint_overlap_prob(loci1, loci2, w=0, symmetric=True))
+    POST_NMI = NMI_from_matrix(joint_prob_MAP_with_posterior(loci1, loci2, n_bins=200, conditional=False, stratified=True), posterior=True)
+
+    with open(savedir+"/NMI.txt", "w") as scorefile:
+        scorefile.write("NMI with MAP = {}\n".format(MAP_NMI))
+        scorefile.write("NMI with binned posterior of R1 (n_bins=200) = {}\n".format(POST_NMI))
 
 if __name__=="__main__":  
     test_new_functions(

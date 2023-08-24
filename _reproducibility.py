@@ -258,7 +258,6 @@ class posterior_calibration(object):
 
     def perlabel_visualize_calibration(self, bins, label_name, strat_size, scatter=False):
         
-
         if scatter:
             
             polyreg = IsotonicRegression(
@@ -332,39 +331,40 @@ class posterior_calibration(object):
             
             for i in range(n_rows):
                 for j in range(n_cols):
-                    label_name = list_binsdict[label_being_plotted]
-                    bins = bins_dict[label_name].copy()
+                    if label_being_plotted < len(list_binsdict):
+                        label_name = list_binsdict[label_being_plotted]
+                        bins = bins_dict[label_name].copy()
 
-                    polyreg = IsotonicRegression(
-                        y_min=float(np.array(bins[:, 5]).min()), y_max=float(np.array(bins[:, 5]).max()), 
-                        out_of_bounds="clip")
-                    
-                    polyreg.fit(
-                        np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), 
-                        bins[:, 5])
-                    
-                    x = np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))])
-                    y = polyreg.predict(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]))
-                    r2_y =polyreg.predict(np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)))
-                    if self.plot_raw:
-                        expected = strat_size * self.coverage_2[self.per_label_matches[label_name]]
+                        polyreg = IsotonicRegression(
+                            y_min=float(np.array(bins[:, 5]).min()), y_max=float(np.array(bins[:, 5]).max()), 
+                            out_of_bounds="clip")
                         
-
-                        y = (np.exp(y) * expected ) / strat_size
-                        r2_y = (np.exp(r2_y) * expected ) / strat_size
-                        bins[:, 5] = (np.exp(bins[:, 5]) * expected ) / strat_size
-
-                        x = expit(x)
-                        axs[i,j].plot(x, [float(expected/strat_size) for i in range(len(x))], '--', c="r")
-
-
-                    r2 = r2_score(bins[:, 5], r2_y)
+                        polyreg.fit(
+                            np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), 
+                            bins[:, 5])
                         
-                    axs[i,j].plot(x, y,c="black")
+                        x = np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))])
+                        y = polyreg.predict(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]))
+                        r2_y =polyreg.predict(np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)))
+                        if self.plot_raw:
+                            expected = strat_size * self.coverage_2[self.per_label_matches[label_name]]
+                            
 
-                    axs[i,j].set_title("{}_r2={:.2f}".format(label_name, float(r2)), fontsize=7)
+                            y = (np.exp(y) * expected ) / strat_size
+                            r2_y = (np.exp(r2_y) * expected ) / strat_size
+                            bins[:, 5] = (np.exp(bins[:, 5]) * expected ) / strat_size
 
-                    label_being_plotted+=1
+                            x = expit(x)
+                            axs[i,j].plot(x, [float(expected/strat_size) for i in range(len(x))], '--', c="r")
+
+
+                        r2 = r2_score(bins[:, 5], r2_y)
+                            
+                        axs[i,j].plot(x, y,c="black")
+
+                        axs[i,j].set_title("{}_r2={:.2f}".format(label_name, float(r2)), fontsize=7)
+
+                        label_being_plotted += 1
         
 
             xlabel = "Posterior in Replicate 1"
@@ -379,68 +379,68 @@ class posterior_calibration(object):
             plt.savefig('{}/clb_{}.svg'.format(self.savedir, "subplot"), format='svg')
             plt.clf()
 
-        colors = [i for i in get_cmap('tab20').colors]
-        ci = 0
-        for label_name, bins in bins_dict.items():
+        # colors = [i for i in get_cmap('tab20').colors]
+        # ci = 0
+        # for label_name, bins in bins_dict.items():
             
-            polyreg = IsotonicRegression(
-                    y_min=float(np.array(bins[:, 5]).min()), y_max=float(np.array(bins[:, 5]).max()), 
-                    out_of_bounds="clip")
+        #     polyreg = IsotonicRegression(
+        #             y_min=float(np.array(bins[:, 5]).min()), y_max=float(np.array(bins[:, 5]).max()), 
+        #             out_of_bounds="clip")
             
-            polyreg.fit(
-                np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), 
-                bins[:, 5])
+        #     polyreg.fit(
+        #         np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), 
+        #         bins[:, 5])
             
-            r2 = r2_score(
-                    bins[:, 5], 
-                    polyreg.predict(
-                        np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))))
+        #     r2 = r2_score(
+        #             bins[:, 5], 
+        #             polyreg.predict(
+        #                 np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))))
             
-            plt.plot(
-                np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), 
-                polyreg.predict(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))])), 
-                label="{}_r2={:.2f}".format(label_name, float(r2)), c=colors[ci])
-            ci+=1
+        #     plt.plot(
+        #         np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), 
+        #         polyreg.predict(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))])), 
+        #         label="{}_r2={:.2f}".format(label_name, float(r2)), c=colors[ci])
+        #     ci+=1
 
-        xlabel = "posterior in Replicate 1"
-        if self.oe_transform:
-            ylabel = "log(O/E) of Similarly Labeled Bins in replicate 2"
-        else:
-            ylabel = "log(Ratio) of Similarly Labeled Bins in replicate 2"
+        # xlabel = "posterior in Replicate 1"
+        # if self.oe_transform:
+        #     ylabel = "log(O/E) of Similarly Labeled Bins in replicate 2"
+        # else:
+        #     ylabel = "log(Ratio) of Similarly Labeled Bins in replicate 2"
 
 
-        plt.legend(loc='upper center', bbox_to_anchor=(0.45, -0.05),
-            fancybox=True, ncol=4, fontsize=5)
+        # plt.legend(loc='upper center', bbox_to_anchor=(0.45, -0.05),
+        #     fancybox=True, ncol=4, fontsize=5)
 
-        plt.ylabel(ylabel)
-        plt.xlabel(xlabel)
-        plt.tight_layout()
-        plt.savefig('{}/caliberation_{}.pdf'.format(self.savedir, "general"), format='pdf')
-        plt.savefig('{}/caliberation_{}.svg'.format(self.savedir, "general"), format='svg')
-        plt.clf()
-        ################################################
+        # plt.ylabel(ylabel)
+        # plt.xlabel(xlabel)
+        # plt.tight_layout()
+        # plt.savefig('{}/caliberation_{}.pdf'.format(self.savedir, "general"), format='pdf')
+        # plt.savefig('{}/caliberation_{}.svg'.format(self.savedir, "general"), format='svg')
+        # plt.clf()
+        # ################################################
         
-        with open("{}/caliberation_{}.txt".format(self.savedir, "general"), 'w') as pltxt:
-            """
-            title, xaxis, yaxis, x, y(all labels)
-            """
-            xlabel = "posterior in Replicate 1"
-            if self.oe_transform:
-                ylabel = "log(O/E) of Similarly Labeled Bins in replicate 2"
-            else:
-                ylabel = "log(Ratio) of Similarly Labeled Bins in replicate 2"
+        # with open("{}/caliberation_{}.txt".format(self.savedir, "general"), 'w') as pltxt:
+        #     """
+        #     title, xaxis, yaxis, x, y(all labels)
+        #     """
+        #     xlabel = "posterior in Replicate 1"
+        #     if self.oe_transform:
+        #         ylabel = "log(O/E) of Similarly Labeled Bins in replicate 2"
+        #     else:
+        #         ylabel = "log(Ratio) of Similarly Labeled Bins in replicate 2"
 
 
-            pltxt.write(
-                "{}\n{}\n{}\n{}".format(
-                    "Reproduciblity Plot {}".format(label_name),
-                    xlabel, 
-                    ylabel,
-                    list(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))])), 
-                )
-            )
-            for label_name, bins in bins_dict.items():
-                pltxt.write(label_name+ "\t" + str(list(bins[:, 5])) + '\n')
+        #     pltxt.write(
+        #         "{}\n{}\n{}\n{}".format(
+        #             "Reproduciblity Plot {}".format(label_name),
+        #             xlabel, 
+        #             ylabel,
+        #             list(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))])), 
+        #         )
+        #     )
+        #     for label_name, bins in bins_dict.items():
+        #         pltxt.write(label_name+ "\t" + str(list(bins[:, 5])) + '\n')
             
     def perlabel_calibration_function(self, method="isoton_reg", num_bins=500, return_caliberated_matrix=True, scale=True, scale_columnwise=False, strat_size="def"):
         perlabel_function = {}
