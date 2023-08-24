@@ -85,7 +85,9 @@ In this example, we are specifying that we want increased output verbosity (**`-
 
 A mnemonics file is a tab-separated text file with two columns. The first column contains the integer label of the original chromatin states, and the second column contains the biological label assignments. Here is an example of a mnemonics file:
 
-`old	new
+
+```
+old	new
 1	Enhancer_low
 2	Enhancer
 3	Promoter_flanking
@@ -95,7 +97,9 @@ A mnemonics file is a tab-separated text file with two columns. The first column
 7	Enhancer
 8	Enhancer
 9	Enhancer
-10	Enhancer`
+10	Enhancer
+```
+
 
 To generate your own mnemonics file, you can create a new text file and enter the integer labels and biological label assignments in the appropriate columns. Make sure to separate the columns with a tab character and to include a header row with the column names **`old`** and **`new`**.
 
