@@ -19,12 +19,12 @@ The **`SAGAconf_parser.py`** script is a command-line tool that allows you to 
 - **`posteriordir`**: This argument specifies the directory containing all posterior files. You must provide the path to this directory when running the script.
 - **`resolution`**: This argument specifies the resolution of the SAGA model in base pairs (bp). You must provide this value when running the script.
 - **`savedir`**: This argument specifies the directory where the parsed posterior file will be saved. You must provide the path to this directory when running the script.
-- ``--**saga**`: This argument specifies which SAGA model to use. You can choose between **`segway`** and **`chmm`**.
+- **`--saga`**: This argument specifies which SAGA model to use. You can choose between **`segway`** and **`chmm`**.
 
 ## Optional Arguments
 
-- `-**h**` or **`--help`**: This argument displays a help message and exits the script. You can use this argument if you need more information about how to use the script.
-- ``--**out_format**`: This argument specifies the format for saving parsed posteriors. You can choose between **`bed`** and **`csv`** formats. If you do not provide this argument, the default format **`bed`**  will be used.
+- **`-h`** or **`--help`**: This argument displays a help message and exits the script. You can use this argument if you need more information about how to use the script.
+- **`--out-format`**: This argument specifies the format for saving parsed posteriors. You can choose between **`bed`** and **`csv`** formats. If you do not provide this argument, the default format **`bed`**  will be used.
 
 ## Example Usage
 
