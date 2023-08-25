@@ -1,0 +1,11 @@
+old	new
+1	Enhancer_low
+2	Enhancer
+3	Promoter_flanking
+4	Promoter
+5	Enhancer
+6	Bivalent
+7	Enhancer
+8	FacultativeHet
+9	Quiescent
+10	Transcribed

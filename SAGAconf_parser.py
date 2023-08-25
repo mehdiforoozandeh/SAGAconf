@@ -1,7 +1,7 @@
 import os, argparse
 import multiprocessing as mp
-from _utils import *
-from _chromhmm import *
+from src._utils import *
+from src._chromhmm import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument("posteriordir", help="directory with all posterior files inside.", type=str)

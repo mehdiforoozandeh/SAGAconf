@@ -16,7 +16,7 @@ The **`SAGAconf_parser.py`** script is a command-line tool that allows you to 
 
 ## Required Arguments
 
-- **`posteriordir`**: This argument specifies the directory containing all posterior files. You must provide the path to this directory when running the script.
+- **`posteriordir`**: This argument specifies the directory containing all posterior files. You must provide the path to this directory when running the script. 
 - **`resolution`**: This argument specifies the resolution of the SAGA model in base pairs (bp). You must provide this value when running the script.
 - **`savedir`**: This argument specifies the directory where the parsed posterior file will be saved. You must provide the path to this directory when running the script.
 - **`--saga`**: This argument specifies which SAGA model to use. You can choose between **`segway`** and **`chmm`**.
@@ -25,6 +25,9 @@ The **`SAGAconf_parser.py`** script is a command-line tool that allows you to 
 
 - **`-h`** or **`--help`**: This argument displays a help message and exits the script. You can use this argument if you need more information about how to use the script.
 - **`--out-format`**: This argument specifies the format for saving parsed posteriors. You can choose between **`bed`** and **`csv`** formats. If you do not provide this argument, the default format **`bed`**  will be used.
+
+# Posterior directory
+The **`posteriordir`** argument specifies the directory containing all posterior files. This directory can have two formats: one is the default format outputted by the ChromHMM, and the other one is the format outputted by Segway. For ChromHMM, the posterior probabilities over state assignments are printed in a file ending with **`_posterior.txt`** or **`_posterior.txt.gz`** if the **`-gzip`** flag is specified. One file is generated per cell type and chromosome. For Segway, this information is delivered in a series of numbered **`BED`** files, one for each segment label.
 
 ## Example Usage
 
@@ -147,4 +150,9 @@ In this section, we will go through a real use case of SAGAconf starting from ob
     
 5. Lastly, we run SAGAconf to obtain a full reproducibility report with default parameters by running the following command:
     
-    `python SAGAconf/SAGAconf.py ChromHMM/OUTPUTSAMPLE/base/parsed_posterior.bed ChromHMM/OUTPUTSAMPLE/verif/parsed_posterior.bed ChromHMM/OUTPUTSAMPLE/sagaconf_base`
+    `python SAGAconf.py ChromHMM/OUTPUTSAMPLE/base/parsed_posterior.bed ChromHMM/OUTPUTSAMPLE/verif/parsed_posterior.bed ChromHMM/OUTPUTSAMPLE/sagaconf_base`
+
+
+You can also, execute `example/run.sh` to run the whole real use case example. Make the `example/run.sh` file executable by running the following command:
+
+`chmod +x SAGAconf/example/run.sh`

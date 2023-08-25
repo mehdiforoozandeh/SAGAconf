@@ -2,8 +2,12 @@
 .DS_Store
 bigWigToBedGraph
 __pycache__/
+dep_graphs/
+legacy/chmmisuue
+legacy/reprod_results
 files/
-legacy/
 tests/
-biovalidation/gencode.v29.primary_assembly.annotation_UCSC_names.gtf
-biointerpret/gencode.v29.primary_assembly.annotation_UCSC_names.gtf
+src/biovalidation/gencode.v29.primary_assembly.annotation_UCSC_names.gtf
+src/biointerpret/gencode.v29.primary_assembly.annotation_UCSC_names.gtf
+src/__pycache__/
+ChromHMM/

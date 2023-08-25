@@ -1,8 +1,9 @@
-from run import *
-from indepth import *
-from granul import *
-from bio_valid import *
-from overall import *
+from src.run import *
+from src.indepth import *
+from src.granul import *
+from src.bio_valid import *
+from src.overall import *
+
 from matplotlib.colors import LinearSegmentedColormap
 import ast
 from scipy.interpolate import UnivariateSpline
@@ -2206,7 +2207,6 @@ if __name__=="__main__":
         replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 
         genecode_dir="biovalidation/parsed_genecode_data_hg38_release42.csv", 
         savedir="tests/cedar_runs/chmm/GM12878_R1/")
-    exit()
     GET_ALL(
         replicate_1_dir="tests/cedar_runs/segway/GM12878_R1/", 
         replicate_2_dir="tests/cedar_runs/segway/GM12878_R2/", 
