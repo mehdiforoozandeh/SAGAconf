@@ -26,7 +26,7 @@ The **`SAGAconf_parser.py`** script is a command-line tool that allows you to 
 - **`-h`** or **`--help`**: This argument displays a help message and exits the script. You can use this argument if you need more information about how to use the script.
 - **`--out-format`**: This argument specifies the format for saving parsed posteriors. You can choose between **`bed`** and **`csv`** formats. If you do not provide this argument, the default format **`bed`**  will be used.
 
-# Posterior directory
+### Posterior directory
 The **`posteriordir`** argument specifies the directory containing all posterior files. This directory can have two formats: one is the default format outputted by the ChromHMM, and the other one is the format outputted by Segway. For ChromHMM, the posterior probabilities over state assignments are printed in a file ending with **`_posterior.txt`** or **`_posterior.txt.gz`** if the **`-gzip`** flag is specified. One file is generated per cell type and chromosome. For Segway, this information is delivered in a series of numbered **`BED`** files, one for each segment label.
 
 ## Example Usage
