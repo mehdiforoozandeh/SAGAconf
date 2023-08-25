@@ -156,4 +156,4 @@ In this section, we will go through a real use case of SAGAconf starting from ob
 You can also, execute `example/run.sh` to run the whole real use case example. Make the `example/run.sh` file executable by running the following command:
 
 `chmod +x example/run.sh`
-`.example/run.sh`
+`./example/run.sh`
