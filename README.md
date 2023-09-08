@@ -158,3 +158,39 @@ You can also, execute `example/run.sh` to run the whole real use case example. M
 `chmod +x example/run.sh`
 
 `./example/run.sh`
+
+---
+
+---
+
+## Outputs:
+
+### Output files:
+
+1. `AUC_mAUC.txt` : Area under the state_merging curve (auSMC) per chromatin state
+2. `barplot` : Area under the state_merging curve (auSMC) per chromatin state
+3. `binned_posterior_heatmap` : IoU overlap with binned posterior of base annotation
+4. `conf_progress_entropy` : Ratio_robust vs annotation entropy during state merging
+5. `conf_progress` :  Ratio_robust vs number of chromatin states during state merging
+6. `confident_segments_dense.bed` : Robust subset (dense list) of the annotation according to SAGAconf
+7. `confident_segments.bed` : Robust subset of the annotation according to SAGAconf
+8. `coverages1.txt` : Genome coverage per chromatin state (base annotation)
+9. `coverages2.txt` : Genome coverage per chromatin state (verification annotation)
+10. `granularity` : state_merging curve per chromatin state
+11. `heatmap_w` : IoU overlap with maximum-a-posterior state with w > 0
+12. `heatmap` : IoU overlap with maximum-a-posterior state with w = 0
+13. `len_bound_overall` : genome-wide overlap as a function of w 
+14. `len_bound` : overlap as a function of w per chromatin state
+15. `MI_post_clustering_progress.txt` : Change in Mutual information during state merging
+16. `naive_post_clustering_progress.txt` : Change in naive overlap during state merging
+17. `NMI.txt` : Mutual information with and without taking posterior into account
+18. `overlap_ratio.txt` : Per chromatin state naive overlap
+19. `post_clustering_progress.txt` : Change in ratio_robust during state merging
+20. `r_values_report.txt` : average r-value genome-wide and per chromatin state
+21. `r_values.bed` : r-values per genomic position
+22. `ratio_robust.txt` : ratio_robust genome-wide and per chromatin state
+
+### Output sub-directories:
+1. `calib/` : posterior calibration curves
+2. `Dist_vs_Corresp/` : overlap as a function of w
+3. `Dist_vs_Corresp3/` : correspondence as a function of w
