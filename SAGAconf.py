@@ -53,6 +53,15 @@ parser.add_argument(
 parser.add_argument(
     "-q", "--quick",  help="if True, only a subset of essential analysis are performed for quick report.", action="store_true", default=False)
 
+parser.add_argument(
+    "--r_only",  help="if True, only r_values are computed.", action="store_true", default=False)
+
+parser.add_argument(
+    "--ct_only",  help="if True, only general cellype analysis are performed.", action="store_true", default=False)
+
+parser.add_argument(
+    "--merge_only",  help="if specified, only the specified k value is used to merge base annotation states until k states. ", type=int, default=-1)
+
 args = parser.parse_args()
 
 ##############################################################################################################################
@@ -118,6 +127,45 @@ if args.quick:
     except:
         if args.verbosity:
             print("Failed to generated quick report.")
+
+elif args.r_only:
+    try:
+        loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
+        loci1, loci2 = process_data(
+            loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
+            vm=args.verif_mnemonics, match=False, custom_order=True)
+
+        get_overalls(loci1, loci2, args.savedir, locis=True, w=w, to=args.iou_threshold, tr=args.repr_threshold)
+
+    except:
+        if args.verbosity:
+            print("failed to get GW SAGAconf reproducibility results")
+
+elif args.ct_only: 
+    try:
+        loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
+        loci1, loci2 = process_data(
+            loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
+            vm=args.verif_mnemonics, match=False, custom_order=True)
+
+        get_all_ct(loci1, loci2, args.savedir, locis=True, w=w)
+
+    except:
+        if args.verbosity:
+            print("Failed to generated sample analysis.")
+
+elif args.merge_only !=-1:
+    try:
+        loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
+        loci1, loci2 = process_data(
+            loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
+            vm=args.verif_mnemonics, match=False, custom_order=True)
+
+        post_clustering_keep_k_states(loci1, loci2, args.savedir, k=args.merge_clusters, locis=True, write_csv=False)
+
+    except:
+        if args.verbosity:
+            print("Failed to merge clusters up to k")
 
 else:
     try:
