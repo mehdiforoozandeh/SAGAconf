@@ -161,6 +161,24 @@ def get_runs(maindir = "rebuttal"):
 
     if os.path.exists(maindir+"/r1vsr2/segway")==False:
         os.mkdir(maindir+"/r1vsr2/segway")
+    
+    if os.path.exists(maindir+"/concat")==False:
+        os.mkdir(maindir+"/concat")
+    
+    if os.path.exists(maindir+"/concat/chmm")==False:
+        os.mkdir(maindir+"/concat/chmm")
+
+    if os.path.exists(maindir+"/concat/segway")==False:
+        os.mkdir(maindir+"/concat/segway")
+
+    if os.path.exists(maindir+"/paraminit")==False:
+        os.mkdir(maindir+"/paraminit")
+    
+    if os.path.exists(maindir+"/paraminit/chmm")==False:
+        os.mkdir(maindir+"/paraminit/chmm")
+
+    if os.path.exists(maindir+"/paraminit/segway")==False:
+        os.mkdir(maindir+"/paraminit/segway")
 
 
     for r in list_of_runs:
