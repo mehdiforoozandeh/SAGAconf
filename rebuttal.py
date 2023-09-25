@@ -146,6 +146,7 @@ def get_listofruns(maindir="rebuttal"):
         "replicate_2_dir":"segway_runs/HeLa-S3_rep1_rs7/", 
         "savedir":"{}/paraminit/segway/HeLa-S3/".format(maindir)}
         ]
+        
     return listofruns
 
 def get_runs(maindir = "rebuttal"):
