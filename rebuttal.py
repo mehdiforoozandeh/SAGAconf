@@ -186,14 +186,14 @@ def get_runs(maindir = "rebuttal"):
         savedir = r["savedir"]
 
         if "chromhmm_runs" in r["replicate_1_dir"] and "concat" in r["replicate_1_dir"]:
-            base_mnemonics = replicate_1_dir + "/mnemonics_rep1.txt"
-            verif_mnemonics = replicate_2_dir + "/mnemonics_rep2.txt"
+            base_mnemonics = r["replicate_1_dir"] + "/mnemonics_rep1.txt"
+            verif_mnemonics = r["replicate_2_dir"] + "/mnemonics_rep2.txt"
 
             replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior_rep1.csv"
             replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior_rep2.csv"
         else:
-            base_mnemonics = replicate_1_dir + "/mnemonics.txt"
-            verif_mnemonics = replicate_2_dir + "/mnemonics.txt"
+            base_mnemonics = r["replicate_1_dir"] + "/mnemonics.txt"
+            verif_mnemonics = r["replicate_2_dir"] + "/mnemonics.txt"
 
             replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior.csv"
             replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior.csv"
