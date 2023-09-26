@@ -183,21 +183,23 @@ def get_runs(maindir = "rebuttal"):
 
 
     for r in list_of_runs:
-        replicate_1_dir, replicate_2_dir, savedir = r["replicate_1_dir"], r["replicate_2_dir"], r["savedir"]
+        savedir = r["savedir"]
 
-        if "chromhmm_runs" in replicate_1_dir and "concat" in replicate_1_dir:
+        if "chromhmm_runs" in r["replicate_1_dir"] and "concat" in r["replicate_1_dir"]:
             base_mnemonics = replicate_1_dir + "/mnemonics_rep1.txt"
             verif_mnemonics = replicate_2_dir + "/mnemonics_rep2.txt"
+
+            replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior_rep1.csv"
+            replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior_rep2.csv"
         else:
             base_mnemonics = replicate_1_dir + "/mnemonics.txt"
             verif_mnemonics = replicate_2_dir + "/mnemonics.txt"
 
-        os.system(f"python SAGAconf.py -s -tr 0.9 -bm {base_mnemonics} -vm {verif_mnemonics} --r_only {replicate_1_dir} {replicate_2_dir} {savedir}")
+            replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior.csv"
+            replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior.csv"
+
+        os.system(f"python SAGAconf.py --r_only -s -tr 0.9 -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
 
 
 if __name__ == "__main__":
     get_runs(maindir = "rebuttal")
-
-
-# python SAGAconf.py -s -tr 0.9 -bm chromhmm_runs/HeLa-S3_concat//mnemonics_rep1.txt -vm chromhmm_runs/HeLa-S3_concat/mnemonics_rep2.txt --r_only chromhmm_runs/HeLa-S3_concat/ chromhmm_runs/HeLa-S3_concat rebuttal/concat/chmm/HeLa-S3/
-# python SAGAconf.py -s -tr 0.9 -bm chromhmm_runs/HeLa-S3_concat//mnemonics_rep1.txt -vm chromhmm_runs/HeLa-S3_concat/mnemonics_rep2.txt --r_only chromhmm_runs/HeLa-S3_concat/ chromhmm_runs/HeLa-S3_concat rebuttal/concat/chmm/HeLa-S3/
