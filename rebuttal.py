@@ -200,6 +200,5 @@ def get_runs(maindir = "rebuttal"):
 
         os.system(f"python SAGAconf.py --r_only -s -tr 0.9 -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
 
-
 if __name__ == "__main__":
     get_runs(maindir = "rebuttal")
