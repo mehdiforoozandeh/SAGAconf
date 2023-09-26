@@ -146,7 +146,6 @@ def get_listofruns(maindir="rebuttal"):
         "replicate_2_dir":"segway_runs/HeLa-S3_rep1_rs7/", 
         "savedir":"{}/paraminit/segway/HeLa-S3/".format(maindir)}
         ]
-        
     return listofruns
 
 def get_runs(maindir = "rebuttal"):
@@ -198,3 +197,7 @@ def get_runs(maindir = "rebuttal"):
 
 if __name__ == "__main__":
     get_runs(maindir = "rebuttal")
+
+
+# python SAGAconf.py -s -tr 0.9 -bm chromhmm_runs/HeLa-S3_concat//mnemonics_rep1.txt -vm chromhmm_runs/HeLa-S3_concat/mnemonics_rep2.txt --r_only chromhmm_runs/HeLa-S3_concat/ chromhmm_runs/HeLa-S3_concat rebuttal/concat/chmm/HeLa-S3/
+# python SAGAconf.py -s -tr 0.9 -bm chromhmm_runs/HeLa-S3_concat//mnemonics_rep1.txt -vm chromhmm_runs/HeLa-S3_concat/mnemonics_rep2.txt --r_only chromhmm_runs/HeLa-S3_concat/ chromhmm_runs/HeLa-S3_concat rebuttal/concat/chmm/HeLa-S3/
