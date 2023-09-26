@@ -129,17 +129,17 @@ if args.quick:
             print("Failed to generated quick report.")
 
 elif args.r_only:
-    # try:
-    loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
-    loci1, loci2 = process_data(
-        loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
-        vm=args.verif_mnemonics, match=False, custom_order=True)
+    try:
+        loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
+        loci1, loci2 = process_data(
+            loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
+            vm=args.verif_mnemonics, match=False, custom_order=True)
 
-    get_overalls(loci1, loci2, args.savedir, locis=True, w=w, to=args.iou_threshold, tr=args.repr_threshold)
+        get_overalls(loci1, loci2, args.savedir, locis=True, w=w, to=args.iou_threshold, tr=args.repr_threshold)
 
-    # except:
-    #     if args.verbosity:
-    #         print("failed to get GW SAGAconf reproducibility results")
+    except:
+        if args.verbosity:
+            print("failed to get GW SAGAconf reproducibility results")
 
 elif args.ct_only: 
     try:
