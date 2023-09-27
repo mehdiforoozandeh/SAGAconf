@@ -239,6 +239,7 @@ def r_distribution_over_segment(r_value_file):
 
 if __name__ == "__main__":
     # get_runs(maindir = "rebuttal")
+    maindir = "rebuttal"
     r = {"replicate_1_dir":"chromhmm_runs/GM12878_rep1", 
         "replicate_2_dir":"chromhmm_runs/GM12878_rep2/", 
         "savedir":"{}/r1vsr2/chmm/MCF-7/".format(maindir)}
