@@ -2,6 +2,10 @@ import os
 
 def get_listofruns(maindir="rebuttal"):
     listofruns = [
+        {"replicate_1_dir":"chromhmm_runs/GM12878_rep1", 
+        "replicate_2_dir":"chromhmm_runs/GM12878_rep2/", 
+        "savedir":"{}/r1vsr2/chmm/MCF-7/".format(maindir)},
+        
         {"replicate_1_dir":"segway_runs/GM12878_rep1/", 
         "replicate_2_dir":"segway_runs/GM12878_rep2/", 
         "savedir":"{}/r1vsr2/segway/GM12878/".format(maindir)},
@@ -200,5 +204,57 @@ def get_runs(maindir = "rebuttal"):
 
         os.system(f"python SAGAconf.py --r_only -s -tr 0.9 -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
 
+def r_distribution_over_segment(r_value_file):
+    interpretation_terms = ["Prom", "Prom_fla", "Enha", "Enha_low", "Biva", "Tran", "Cons", "Facu", "K9K3", "Quie", "Unkn"]
+    r_vals = pd.read_csv(r_value_file, sep="\t")
+    all_segs = {term: [] for term in interpretation_terms}
+
+    current_map = r_vals["map"][0]
+    current_start = r_vals["start"][0]
+    all_segs = {term: [] for term in interpretation_terms}
+
+    for i in range(len(r_vals)):
+        if r_vals["map"][i] == current_map:
+
+            #middle of the segment
+            current_seg.append(
+                [
+                    r_vals["start"][i] - current_start, 
+                    r_vals["r_value"][i]
+                ]
+            )
+            
+        else:
+            #last_segment_ends
+            seg_length = r_vals["end"][i-1] - current_start
+            current_seg = np.array(current_seg)
+            current_seg[:,0] = current_seg[:,0] / seg_length
+            all_segs[translate_map_to_interpretation_term].append(current_seg)
+
+            #new_segment
+            current_map = r_vals["map"][0]
+            current_start = r_vals["start"][0]
+            current_seg = []
+
+
 if __name__ == "__main__":
-    get_runs(maindir = "rebuttal")
+    # get_runs(maindir = "rebuttal")
+    r = {"replicate_1_dir":"chromhmm_runs/GM12878_rep1", 
+        "replicate_2_dir":"chromhmm_runs/GM12878_rep2/", 
+        "savedir":"{}/r1vsr2/chmm/MCF-7/".format(maindir)}
+    savedir = r["savedir"]
+
+    if "chromhmm_runs" in r["replicate_1_dir"] and "concat" in r["replicate_1_dir"]:
+        base_mnemonics = r["replicate_1_dir"] + "/mnemonics_rep1.txt"
+        verif_mnemonics = r["replicate_2_dir"] + "/mnemonics_rep2.txt"
+
+        replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior_rep1.csv"
+        replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior_rep2.csv"
+    else:
+        base_mnemonics = r["replicate_1_dir"] + "/mnemonics.txt"
+        verif_mnemonics = r["replicate_2_dir"] + "/mnemonics.txt"
+
+        replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior.csv"
+        replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior.csv"
+
+    os.system(f"python SAGAconf.py --r_only -s -tr 0.9 -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
