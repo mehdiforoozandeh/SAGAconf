@@ -1,4 +1,6 @@
 import os
+import pandas as pd
+import numpy as np
 
 def get_listofruns(maindir="rebuttal"):
     listofruns = [
@@ -206,49 +208,46 @@ def get_runs(maindir = "rebuttal"):
 
 def r_distribution_over_segment(r_value_file):
     interpretation_terms = ["Prom", "Prom_fla", "Enha", "Enha_low", "Biva", "Tran", "Cons", "Facu", "K9K3", "Quie", "Unkn"]
-    r_vals = pd.read_csv(r_value_file, sep="\t")
+    r_vals = pd.read_csv(r_value_file, sep="\t").to_numpy()
     all_segs = {term: [] for term in interpretation_terms}
 
-    current_map = r_vals["map"][0]
-    current_start = r_vals["start"][0]
-    all_segs = {term: [] for term in interpretation_terms}
+    current_map = r_vals[0, 3]
+    current_start = r_vals[0, 1]
+    current_seg = []
 
     for i in range(len(r_vals)):
-        if r_vals["map"][i] == current_map:
-
+        if r_vals[i, 3] == current_map:
             #middle of the segment
             current_seg.append(
-                [
-                    r_vals["start"][i] - current_start, 
-                    r_vals["r_value"][i]
-                ]
-            )
+                [r_vals[i, 1] - current_start, 
+                r_vals[i, 4]])
             
         else:
             #last_segment_ends
-            seg_length = r_vals["end"][i-1] - current_start
-            current_seg = np.array(current_seg)
+            seg_length = r_vals[i-1, 2] - current_start
+            current_seg = np.reshape(np.array(current_seg), (-1, 2))
             current_seg[:,0] = current_seg[:,0] / seg_length
-            all_segs[translate_map_to_interpretation_term].append(current_seg)
+            translate_to_term = max([x for x in interpretation_terms if x in current_map], key=len)
+            all_segs[translate_to_term].append(current_seg)
 
             #new_segment
-            current_map = r_vals["map"][0]
-            current_start = r_vals["start"][0]
+            current_map = r_vals[i, 3]
+            current_start = r_vals[i, 1]
             current_seg = []
 
-
 if __name__ == "__main__":
+    # r_distribution_over_segment("tests/r_values.bed")
     # get_runs(maindir = "rebuttal")
     maindir = "rebuttal"
-    listofruns = {
+    listofruns = [
         {"replicate_1_dir":"chromhmm_runs/GM12878_rep1/", 
         "replicate_2_dir":"chromhmm_runs/GM12878_rep2/", 
         "savedir":"{}/r1vsr2/chmm/GM12878/".format(maindir)},
-        
+
         {"replicate_1_dir":"chromhmm_runs/MCF-7_rep1/", 
         "replicate_2_dir":"chromhmm_runs/MCF-7_rep2/", 
         "savedir":"{}/r1vsr2/chmm/MCF-7/".format(maindir)}
-        }
+    ]
 
     for r in listofruns:
         savedir = r["savedir"]
