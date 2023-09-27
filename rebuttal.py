@@ -240,22 +240,30 @@ def r_distribution_over_segment(r_value_file):
 if __name__ == "__main__":
     # get_runs(maindir = "rebuttal")
     maindir = "rebuttal"
-    r = {"replicate_1_dir":"chromhmm_runs/GM12878_rep1", 
+    listofruns = {
+        {"replicate_1_dir":"chromhmm_runs/GM12878_rep1/", 
         "replicate_2_dir":"chromhmm_runs/GM12878_rep2/", 
+        "savedir":"{}/r1vsr2/chmm/GM12878/".format(maindir)},
+        
+        {"replicate_1_dir":"chromhmm_runs/MCF-7_rep1/", 
+        "replicate_2_dir":"chromhmm_runs/MCF-7_rep2/", 
         "savedir":"{}/r1vsr2/chmm/MCF-7/".format(maindir)}
-    savedir = r["savedir"]
+        }
 
-    if "chromhmm_runs" in r["replicate_1_dir"] and "concat" in r["replicate_1_dir"]:
-        base_mnemonics = r["replicate_1_dir"] + "/mnemonics_rep1.txt"
-        verif_mnemonics = r["replicate_2_dir"] + "/mnemonics_rep2.txt"
+    for r in listofruns:
+        savedir = r["savedir"]
 
-        replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior_rep1.csv"
-        replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior_rep2.csv"
-    else:
-        base_mnemonics = r["replicate_1_dir"] + "/mnemonics.txt"
-        verif_mnemonics = r["replicate_2_dir"] + "/mnemonics.txt"
+        if "chromhmm_runs" in r["replicate_1_dir"] and "concat" in r["replicate_1_dir"]:
+            base_mnemonics = r["replicate_1_dir"] + "/mnemonics_rep1.txt"
+            verif_mnemonics = r["replicate_2_dir"] + "/mnemonics_rep2.txt"
 
-        replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior.csv"
-        replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior.csv"
+            replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior_rep1.csv"
+            replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior_rep2.csv"
+        else:
+            base_mnemonics = r["replicate_1_dir"] + "/mnemonics.txt"
+            verif_mnemonics = r["replicate_2_dir"] + "/mnemonics.txt"
 
-    os.system(f"python SAGAconf.py --r_only -s -tr 0.9 -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+            replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior.csv"
+            replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior.csv"
+
+        os.system(f"python SAGAconf.py --r_only -s -tr 0.9 -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
