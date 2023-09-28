@@ -1,8 +1,8 @@
-import os
+import os, pybedtools
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.interpolate import UnivariateSpline, InterpolatedUnivariateSpline, LSQUnivariateSpline
+from scipy.interpolate import UnivariateSpline
 import matplotlib.gridspec as gridspec
 
 
@@ -351,37 +351,22 @@ def get_all_r_distribution_over_segment(maindir="rebuttal"):
 
     for r in list_of_runs:
         r_val_file = r["savedir"] + "/r_value.bed"
-        r_distribution_over_segment(r_value_file)
+        r_distribution_over_segment(r_val_file)
+
+def get_overlap_with_activeregions(file1, file2):
+    # Load the bed files
+    a = pybedtools.BedTool(file1)
+    b = pybedtools.BedTool(file2)
+
+    # Intersect the bed files
+    intersected = a.intersect(b, wa=True, wb=True)
+
+    # Select the required columns
+    df = intersected.to_dataframe()
+    df = df[['chrom', 'start', 'end', 'name', 'score', 'itemRgb']]
+
+    return df
 
 if __name__ == "__main__":
-    get_all_r_distribution_over_segment(maindir = "rebuttal")
-    
     # get_runs(maindir = "rebuttal")
-    # maindir = "rebuttal"
-    # listofruns = [
-    #     {"replicate_1_dir":"chromhmm_runs/GM12878_rep1/", 
-    #     "replicate_2_dir":"chromhmm_runs/GM12878_rep2/", 
-    #     "savedir":"{}/r1vsr2/chmm/GM12878/".format(maindir)},
-
-    #     {"replicate_1_dir":"chromhmm_runs/MCF-7_rep1/", 
-    #     "replicate_2_dir":"chromhmm_runs/MCF-7_rep2/", 
-    #     "savedir":"{}/r1vsr2/chmm/MCF-7/".format(maindir)}
-    # ]
-
-    # for r in listofruns:
-    #     savedir = r["savedir"]
-
-    #     if "chromhmm_runs" in r["replicate_1_dir"] and "concat" in r["replicate_1_dir"]:
-    #         base_mnemonics = r["replicate_1_dir"] + "/mnemonics_rep1.txt"
-    #         verif_mnemonics = r["replicate_2_dir"] + "/mnemonics_rep2.txt"
-
-    #         replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior_rep1.csv"
-    #         replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior_rep2.csv"
-    #     else:
-    #         base_mnemonics = r["replicate_1_dir"] + "/mnemonics.txt"
-    #         verif_mnemonics = r["replicate_2_dir"] + "/mnemonics.txt"
-
-    #         replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior.csv"
-    #         replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior.csv"
-
-    #     os.system(f"python SAGAconf.py --r_only -s -tr 0.9 -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+    get_all_r_distribution_over_segment(maindir = "rebuttal")
