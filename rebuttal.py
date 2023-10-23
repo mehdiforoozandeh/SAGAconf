@@ -274,6 +274,8 @@ def get_runs(maindir = "rebuttal", mp=True, n_processes=10):
 
 def corresp_emiss_v_iou(r):
     savedir = r["savedir"]
+    if os.path.exists(savedir) == False:
+        os.mkdir(savedir)
     replicate_1_dir = r["replicate_1_dir"]
     replicate_2_dir = r["replicate_2_dir"]
     if "chromhmm_runs" in replicate_1_dir:
