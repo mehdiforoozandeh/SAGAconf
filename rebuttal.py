@@ -15,7 +15,7 @@ from reports import *
 
 def get_listofruns(maindir="rebuttal"):
     listofruns = [
-        {"replicate_1_dir":"chromhmm_runs/GM12878_rep1", 
+        {"replicate_1_dir":"chromhmm_runs/GM12878_rep1/", 
         "replicate_2_dir":"chromhmm_runs/GM12878_rep2/", 
         "savedir":"{}/r1vsr2/chmm/MCF-7/".format(maindir)},
         
