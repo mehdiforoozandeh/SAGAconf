@@ -266,49 +266,11 @@ def get_runs(maindir = "rebuttal", mp=True, n_processes=10):
     if mp:
         with Pool(n_processes) as p:
             p.map(get_single_run, list_of_runs)
+            p.map(get_corresp, list_of_runs)
     else:
         for r in list_of_runs:
-            get_single_run(r)
-
-def get_corresp(maindir = "rebuttal", mp=True, n_processes=10):
-    list_of_runs = get_listofruns(maindir)
-
-    if os.path.exists(maindir)==False:
-        os.mkdir(maindir)
-
-    if os.path.exists(maindir+"/r1vsr2")==False:
-        os.mkdir(maindir+"/r1vsr2")
-
-    if os.path.exists(maindir+"/r1vsr2/chmm")==False:
-        os.mkdir(maindir+"/r1vsr2/chmm")
-
-    if os.path.exists(maindir+"/r1vsr2/segway")==False:
-        os.mkdir(maindir+"/r1vsr2/segway")
-    
-    if os.path.exists(maindir+"/concat")==False:
-        os.mkdir(maindir+"/concat")
-    
-    if os.path.exists(maindir+"/concat/chmm")==False:
-        os.mkdir(maindir+"/concat/chmm")
-
-    if os.path.exists(maindir+"/concat/segway")==False:
-        os.mkdir(maindir+"/concat/segway")
-
-    if os.path.exists(maindir+"/paraminit")==False:
-        os.mkdir(maindir+"/paraminit")
-    
-    if os.path.exists(maindir+"/paraminit/chmm")==False:
-        os.mkdir(maindir+"/paraminit/chmm")
-
-    if os.path.exists(maindir+"/paraminit/segway")==False:
-        os.mkdir(maindir+"/paraminit/segway")
-
-    if mp:
-        with Pool(n_processes) as p:
-            p.map(corresp_emiss_v_iou, list_of_runs)
-    else:
-        for r in list_of_runs:
-            corresp_emiss_v_iou(r)
+            # get_single_run(r)
+            get_corresp(r)
 
 def corresp_emiss_v_iou(r):
     savedir = r["savedir"]
@@ -1270,7 +1232,8 @@ def r_dist_vs_expression3_genebody(r_value_file, expression_file, savedir, n_bin
 
 
 if __name__ == "__main__":
-    get_runs(maindir = "rebuttal", mp=True, n_processes=10)
+    # get_runs(maindir = "rebuttal", mp=True, n_processes=10)
+    get_runs(maindir = "rebuttal", mp=False, n_processes=10)
     exit()
     replicate_1_dir = "tests/rebuttal_example/GM12878_R1/parsed_posterior.csv"
     replicate_2_dir = "tests/rebuttal_example/GM12878_R2/parsed_posterior.csv"
