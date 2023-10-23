@@ -266,11 +266,11 @@ def get_runs(maindir = "rebuttal", mp=True, n_processes=10):
     if mp:
         with Pool(n_processes) as p:
             p.map(get_single_run, list_of_runs)
-            p.map(get_corresp, list_of_runs)
+            p.map(corresp_emiss_v_iou, list_of_runs)
     else:
         for r in list_of_runs:
             # get_single_run(r)
-            get_corresp(r)
+            corresp_emiss_v_iou(r)
 
 def corresp_emiss_v_iou(r):
     savedir = r["savedir"]
