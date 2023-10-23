@@ -10,6 +10,8 @@ from scipy.stats import gaussian_kde
 from matplotlib.lines import Line2D
 from src.bio_valid import *
 from scipy.stats import pearsonr
+from reports import *
+
 
 def get_listofruns(maindir="rebuttal"):
     listofruns = [
@@ -267,7 +269,55 @@ def get_runs(maindir = "rebuttal", mp=True, n_processes=10):
     else:
         for r in list_of_runs:
             get_single_run(r)
+
+def get_corresp(maindir = "rebuttal", mp=True, n_processes=10):
+    list_of_runs = get_listofruns(maindir)
+
+    if os.path.exists(maindir)==False:
+        os.mkdir(maindir)
+
+    if os.path.exists(maindir+"/r1vsr2")==False:
+        os.mkdir(maindir+"/r1vsr2")
+
+    if os.path.exists(maindir+"/r1vsr2/chmm")==False:
+        os.mkdir(maindir+"/r1vsr2/chmm")
+
+    if os.path.exists(maindir+"/r1vsr2/segway")==False:
+        os.mkdir(maindir+"/r1vsr2/segway")
     
+    if os.path.exists(maindir+"/concat")==False:
+        os.mkdir(maindir+"/concat")
+    
+    if os.path.exists(maindir+"/concat/chmm")==False:
+        os.mkdir(maindir+"/concat/chmm")
+
+    if os.path.exists(maindir+"/concat/segway")==False:
+        os.mkdir(maindir+"/concat/segway")
+
+    if os.path.exists(maindir+"/paraminit")==False:
+        os.mkdir(maindir+"/paraminit")
+    
+    if os.path.exists(maindir+"/paraminit/chmm")==False:
+        os.mkdir(maindir+"/paraminit/chmm")
+
+    if os.path.exists(maindir+"/paraminit/segway")==False:
+        os.mkdir(maindir+"/paraminit/segway")
+
+    if mp:
+        with Pool(n_processes) as p:
+            p.map(corresp_emiss_v_iou, list_of_runs)
+    else:
+        for r in list_of_runs:
+            corresp_emiss_v_iou(r)
+
+def corresp_emiss_v_iou(r):
+    savedir = r["savedir"]
+    replicate_1_dir = r["replicate_1_dir"]
+    replicate_2_dir = r["replicate_2_dir"]
+    if "chromhmm_runs" in replicate_1_dir:
+        compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="chmm")
+    else:
+        compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="segway")
 
 def r_distribution_over_segment(r_value_file, savedir, custom_bin=True):
     interpretation_terms = ["Prom", "Prom_fla", "Enha", "Enha_low", "Biva", "Tran", "Cons", "Facu", "K9K3", "Quie", "Unkn"]

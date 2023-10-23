@@ -1964,7 +1964,7 @@ def compare_corresp_methods(replicate_1_dir, replicate_2_dir, outdir, saga="chmm
     if os.path.exists(indicator_file):
         return
 
-    cos_mat = correspondence_based_on_emission(replicate_1_dir, replicate_2_dir, outdir=outdir, saga=saga, metric="cosine")
+    cos_mat = correspondence_based_on_emission(replicate_1_dir, replicate_2_dir, outdir=outdir, saga=saga, metric="eucl")
 
     ####################################################################################
     loci1, loci2 = load_data(
@@ -2004,7 +2004,7 @@ def compare_corresp_methods(replicate_1_dir, replicate_2_dir, outdir, saga="chmm
         linewidths=0.01,  cbar=True, annot_kws={"size": 6}, 
         cmap=custom_color_map, ax=ax2)
 
-    ax1.set_title("Cosine Similarity")
+    ax1.set_title("Euclidean Distance of Emission")
     ax2.set_title("IoU Overlap")
 
     for i, j in c:
