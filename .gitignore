@@ -13,3 +13,6 @@ src/biovalidation/
 src/biointerpret/gencode.v29.primary_assembly.annotation_UCSC_names.gtf
 src/__pycache__/
 ChromHMM/
+src/biointerpret/GRCh38-cCREs.bed
+src/biointerpret/Meuleman.tsv
+

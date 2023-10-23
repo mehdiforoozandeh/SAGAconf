@@ -5,7 +5,8 @@ from src.bio_valid import *
 from src.overall import *
 
 from matplotlib.colors import LinearSegmentedColormap
-import ast
+import ast, pybedtools
+import matplotlib.gridspec as gridspec
 from scipy.interpolate import UnivariateSpline
 from matplotlib.patches import Rectangle
 from matplotlib.colors import LogNorm
@@ -139,6 +140,59 @@ def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True,
             pass
 
     return loci_1, loci_2
+
+def subset_data_to_activeregions(
+    replicate_1_dir, replicate_2_dir,
+    cCREs_file="src/biointerpret/GRCh38-cCREs.bed",
+    Meuleman_file="src/biointerpret/Meuleman.tsv", restrict_to="cCRE", locis=True):
+
+    if locis:
+        loci1, loci2 = replicate_1_dir, replicate_2_dir
+    else:
+        loci1, loci2 = load_data(
+            replicate_1_dir+"/parsed_posterior.csv",
+            replicate_2_dir+"/parsed_posterior.csv",
+            subset=True, logit_transform=False)
+
+        loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+    ##################################################################################################################
+
+    bedloci1 = pybedtools.BedTool.from_dataframe(loci1)
+    bedloci2 = pybedtools.BedTool.from_dataframe(loci2)
+
+    if restrict_to == "cCRE":
+        bed_ccre = pybedtools.BedTool(cCREs_file)
+
+        # Get the intersection
+        loci1_intersect_ccre = bedloci1.intersect(bed_ccre, wa=True, wb=False).to_dataframe()
+        loci2_intersect_ccre = bedloci2.intersect(bed_ccre, wa=True, wb=False).to_dataframe()
+        loci1_intersect_ccre.columns = loci1.columns
+        loci2_intersect_ccre.columns = loci2.columns
+
+        return loci1_intersect_ccre, loci2_intersect_ccre
+
+    else:
+
+        bed_meuleman = pd.read_csv(Meuleman_file, sep="\t")
+        bed_meuleman.columns = ["chr", "start", "end", "identifier", "mean_signal", "numsamples", "summit", "core_start", "core_end", "component"]
+        bed_meuleman = pybedtools.BedTool.from_dataframe(bed_meuleman)
+
+        # Get the intersection
+        loci1_intersect_meul = bedloci1.intersect(bed_meuleman, wa=True, wb=False).to_dataframe()
+        loci2_intersect_meul = bedloci2.intersect(bed_meuleman, wa=True, wb=False).to_dataframe()
+
+        loci1_intersect_meul.columns = loci1.columns
+        loci2_intersect_meul.columns = loci2.columns
+
+        return loci1_intersect_meul, loci2_intersect_meul
+
+def get_rvals_activeregion(loci1, loci2, savedir, w=1000, restrict_to="cCRE"):
+    to = 0.75
+    rvalues = is_repr_posterior(
+        loci1, loci2, ovr_threshold=to, window_bp=w, matching="static",
+        always_include_best_match=True, return_r=True)
+
+    rvalues.to_csv(savedir+f"/r_values_{restrict_to}.bed", sep='\t', header=True, index=False)
 
 def plot_raw_and_iou(replicate_1_dir, replicate_2_dir):
     loci_1, loci_2 = load_data(
@@ -1862,7 +1916,7 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
 
     ####################################################################################################
 
-def post_clustering_keep_k_states(replicate_1_dir, replicate_2_dir, savedir, k, locis=False, write_csv=True):
+def post_clustering_keep_k_states(replicate_1_dir, replicate_2_dir, savedir, k, w, locis=False, write_csv=True, r_val=True):
 
     if locis:
         loci_1, loci_2 = replicate_1_dir, replicate_2_dir
@@ -1896,6 +1950,13 @@ def post_clustering_keep_k_states(replicate_1_dir, replicate_2_dir, savedir, k, 
             if write_csv:
                 denseMAP.to_csv(savedir + f"/{str(k)}_states_confident_segments_dense.csv")
             denseMAP.to_csv(savedir + f"/{str(k)}_states_confident_segments_dense.bed", sep='\t', header=True, index=False)
+
+            to = 0.75
+            rvalues = is_repr_posterior(
+                loci_1, loci_2, ovr_threshold=to, window_bp=w, matching="static",
+                always_include_best_match=True, return_r=True)
+
+            rvalues.to_csv(savedir+f"/r_values_{k}_states.bed", sep='\t', header=True, index=False)
             return
 
 def compare_corresp_methods(replicate_1_dir, replicate_2_dir, outdir, saga="chmm"):
@@ -2201,7 +2262,484 @@ def quick_report(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000,
         scorefile.write("NMI with MAP = {}\n".format(MAP_NMI))
         scorefile.write("NMI with binned posterior of R1 (n_bins=200) = {}\n".format(POST_NMI))
 
+def heatmaps_on_active_regions(replicate_1_dir, replicate_2_dir, cCREs_file, Meuleman_file, savedir, locis=True, w=1000):
+    if locis:
+        loci1, loci2 = replicate_1_dir, replicate_2_dir
+    else:
+        loci1, loci2 = load_data(
+            replicate_1_dir+"/parsed_posterior.csv",
+            replicate_2_dir+"/parsed_posterior.csv",
+            subset=True, logit_transform=False)
+
+        loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+    ##################################################################################################################
+
+    if os.path.exists(f"{savedir}/activeregions/") == False:
+        os.mkdir(f"{savedir}/activeregions/")
+    savedir = f"{savedir}/activeregions/"
+
+    MAP1 = loci1.iloc[:,3:].idxmax(axis=1)
+    MAP1 = pd.concat([loci1.chr, loci1.start, loci1.end, MAP1], axis=1)
+    MAP1.columns = ["chr", "start", "end", "MAP"]
+
+    MAP2 = loci2.iloc[:,3:].idxmax(axis=1)
+    MAP2 = pd.concat([loci2.chr, loci2.start, loci2.end, MAP2], axis=1)
+    MAP2.columns = ["chr", "start", "end", "MAP"]
+
+    bed_meuleman = pd.read_csv(Meuleman_file, sep="\t")
+    bed_meuleman.columns = ["chr", "start", "end", "identifier", "mean_signal", "numsamples", "summit", "core_start", "core_end", "component"]
+
+    bed_ccre = pybedtools.BedTool(cCREs_file)
+
+    bed_meuleman = pybedtools.BedTool.from_dataframe(bed_meuleman)
+    bed_MAP1 = pybedtools.BedTool.from_dataframe(MAP1)
+    bed_MAP2 = pybedtools.BedTool.from_dataframe(MAP2)
+
+    # Get the intersection
+    MAP1_intersect_ccre = bed_MAP1.intersect(bed_ccre, wa=True, wb=True).to_dataframe()
+    MAP1_intersect_meul = bed_MAP1.intersect(bed_meuleman, wa=True, wb=True).to_dataframe()
+    MAP1_intersect_meul.columns = ["chr","start","end","MAP","_chr", "_start", "_end", "identifier", "mean_signal", "numsamples", "summit", "core_start", "core_end", "component"]
+
+    MAP2_intersect_ccre = bed_MAP2.intersect(bed_ccre, wa=True, wb=True).to_dataframe()
+    MAP2_intersect_meul = bed_MAP2.intersect(bed_meuleman, wa=True, wb=True).to_dataframe()
+    MAP2_intersect_meul.columns = ["chr","start","end","MAP","_chr", "_start", "_end", "identifier", "mean_signal", "numsamples", "summit", "core_start", "core_end", "component"]
+
+    MAP1_intersect_ccre = MAP1_intersect_ccre[["chrom", "start", "end", "name"]]
+    MAP1_intersect_ccre.columns = ["chr", "start", "end", "MAP"]
+    
+    MAP1_intersect_meul = MAP1_intersect_meul[["chr", "start", "end", "MAP"]]
+    
+    MAP2_intersect_ccre = MAP2_intersect_ccre[["chrom", "start", "end", "name"]]
+    MAP2_intersect_ccre.columns = ["chr", "start", "end", "MAP"]
+    
+    MAP2_intersect_meul = MAP2_intersect_meul[["chr", "start", "end", "MAP"]]
+
+    def IoU_from_MAP(MAP1_df, MAP2_df, w):
+        num_labels1 = len(MAP1_df["MAP"].unique())
+        num_labels2 = len(MAP2_df["MAP"].unique())
+
+        states1 = list(MAP1_df["MAP"].unique())
+        states2 = list(MAP2_df["MAP"].unique())
+
+        resolution = MAP1_df["end"][0] - MAP1_df["start"][0] 
+        w = math.ceil(w/resolution)
+
+        observed_overlap = {} 
+
+        for k in states1:
+            for j in states2:
+                observed_overlap[str(k + "|" + j)] = 0
+
+        oo_mat = pd.DataFrame(np.zeros((num_labels1, num_labels2)), columns=states2, index=states1)
+        IoU = pd.DataFrame(np.zeros((num_labels1, num_labels2)), columns=states2, index=states1)
+
+        def is_conseq(MAP1_df, i, w, resolution, upstream=False):
+            statement1 = bool(MAP1_df["chr"][i] == MAP1_df["chr"][max(0, i-w)] == MAP1_df["chr"][min(i+w_i_d, len(MAP1_df)-1)])
+
+            if upstream:
+                statement2 = bool( int(MAP1_df["start"][i] - MAP1_df["start"][max(0, i-w)]) == int(w * resolution) )
+
+            else:
+                statement2 = bool( int(MAP1_df["start"][min(i+w, len(MAP1_df)-1)] - MAP1_df["start"][i]) == int(w * resolution))
+
+            if statement1 and statement2:
+                return True
+            else:
+                return False
+
+        MAP1 = list(MAP1_df["MAP"])
+        MAP2 = list(MAP2_df["MAP"])
+                    
+        if w == 0:
+            for i in range(len(MAP1)):
+                k = MAP1[i]
+                j = MAP2[i]
+                observed_overlap[str(k + "|" + j)] += 1
+            
+        else:
+            for i in range(len(MAP1)):
+                k = MAP1[i]
+                w_i_u = w
+                w_i_d = w
+                
+                while not is_conseq(MAP1_df, i, w_i_u, resolution, upstream=True):
+                    w_i_u -= 1
+                    
+            
+                while not is_conseq(MAP1_df, i, w_i_d, resolution, upstream=False):
+                    w_i_d -= 1
+
+                i_neighbors = MAP2[max(0, i-w_i_u) : min(i+w_i_d, len(MAP2)-1)]
+                            
+                for j in set(i_neighbors):
+                    observed_overlap[str(k + "|" + j)] += 1
+
+
+        for p in observed_overlap.keys():
+            oo_mat.loc[p.split("|")[0], p.split("|")[1]] = observed_overlap[p]
+        
+        joint = oo_mat / len(MAP1)
+        MAP1 = MAP1_df["MAP"]
+        MAP2 = MAP2_df["MAP"]
+
+        coverage1 = {k:len(MAP1.loc[MAP1 == k])/len(MAP1) for k in states1}
+        coverage2 = {k:len(MAP2.loc[MAP2 == k])/len(MAP2) for k in states2}
+
+        for A in states1:
+            for B in states2:
+                    IoU.loc[A, B] = (joint.loc[A, B])/(coverage1[A] + coverage2[B] - ((joint.loc[A, B])))
+
+        return IoU
+
+    iou_0_ccre = IoU_from_MAP(MAP1_intersect_ccre, MAP2_intersect_ccre, w=0)
+    iou_1k_ccre = IoU_from_MAP(MAP1_intersect_ccre, MAP2_intersect_ccre, w=1000)
+
+    iou_0_meul = IoU_from_MAP(MAP1_intersect_meul, MAP2_intersect_meul, w=0)
+    iou_1k_meul = IoU_from_MAP(MAP1_intersect_meul, MAP2_intersect_meul, w=1000)
+
+    iou_0 = IoU_from_MAP(MAP1, MAP2, w=0)
+    iou_1k = IoU_from_MAP(MAP1, MAP2, w=1000)
+
+    def plot_heatmap(confmat1, confmat2, savedir, sufix, w1, w2):
+        boundaries = [x**2 for x in list(np.linspace(0, 1, 16))] + [1] # custom boundaries
+        hex_colors = sns.light_palette('navy', n_colors=len(boundaries) * 2 + 2, as_cmap=False).as_hex()
+        hex_colors = [hex_colors[i] for i in range(0, len(hex_colors), 2)]
+        colors=list(zip(boundaries, hex_colors))
+        custom_color_map = LinearSegmentedColormap.from_list(
+            name='custom_navy',
+            colors=colors)
+
+        # Calculate the Mean Absolute Error (MAE) between the two matrices
+        mae = np.mean(np.abs(confmat1 - confmat2))
+
+        # Adjust the figure size here
+        fig, axs = plt.subplots(1, 2, figsize=(12, 6)) 
+        sns.set()
+
+        for ax, confmat, w in zip(axs, [confmat1, confmat2], [w1, w2]):
+            p = sns.heatmap(
+                confmat.astype(float), annot=True, fmt=".2f",
+                linewidths=0.01, cbar=True, annot_kws={"size": 6}, cmap=custom_color_map,
+                ax=ax)
+
+            ax.tick_params(axis='x', rotation=90, labelsize=10)
+            ax.tick_params(axis='y', rotation=0, labelsize=10)
+            ax.set_title(f'IoU Overlap {sufix} | w = {w} | MAE = {mae:.2f}')
+            ax.set_xlabel('Replicate 2 Labels')
+            ax.set_ylabel("Replicate 1 Labels")
+
+        plt.tight_layout()
+        plt.savefig('{}/IoU_{}_w{}_w{}.svg'.format(savedir, sufix, str(w1), str(w2)), format='svg')
+        plt.savefig('{}/IoU_{}_w{}_w{}.pdf'.format(savedir, sufix, str(w1), str(w2)), format='pdf')
+        sns.reset_orig()
+        plt.close("all")
+        plt.style.use('default')
+        plt.clf()
+
+    # Now you can call the function like this:
+    plot_heatmap(iou_0_ccre, iou_1k_ccre, savedir, sufix="cCRE", w1=0, w2=1000)
+    plot_heatmap(iou_0_meul, iou_1k_meul, savedir, sufix="Meuleman", w1=0, w2=1000)
+    plot_heatmap(iou_0, iou_1k, savedir, sufix="WG", w1=0, w2=1000)
+
+def overlap_vs_segment_length(replicate_1_dir, replicate_2_dir, savedir, locis=True, custom_bin=True):
+    if locis:
+        loci1, loci2 = replicate_1_dir, replicate_2_dir
+    else:
+        loci1, loci2 = load_data(
+            replicate_1_dir+"/parsed_posterior.csv",
+            replicate_2_dir+"/parsed_posterior.csv",
+            subset=True, logit_transform=False)
+
+        loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
+    ##################################################################################################################
+    if os.path.exists(f"{savedir}/overlap_vs_segmentlength/") == False:
+        os.mkdir(f"{savedir}/overlap_vs_segmentlength/")
+    savedir = f"{savedir}/overlap_vs_segmentlength/"
+
+    MAP1 = loci1.iloc[:,3:].idxmax(axis=1)
+    MAP1 = pd.concat([loci1.chr, loci1.start, loci1.end, MAP1], axis=1)
+    MAP1.columns = ["chr", "start", "end", "MAP"]
+
+    MAP2 = loci2.iloc[:,3:].idxmax(axis=1)
+    MAP2 = pd.concat([loci2.chr, loci2.start, loci2.end, MAP2], axis=1)
+    MAP2.columns = ["chr", "start", "end", "MAP"]
+    resolution = MAP1["end"][0] - MAP1["start"][0]
+    #############################################ESTABLISH CORRESPONDENCE#############################################
+    confmat = IoU_overlap(loci1, loci2, w=0, symmetric=True, soft=False)
+    
+    # define matches
+    per_label_matches = {}
+    for k in list(loci1.columns[3:]):
+        sorted_k_vector = confmat.loc[k, :].sort_values(ascending=False)
+        per_label_matches[k] = sorted_k_vector.index[0]
+    ##################################################################################################################
+    interpretation_terms = ["Prom", "Prom_fla", "Enha", "Enha_low", "Biva", "Tran", "Cons", "Facu", "K9K3", "Quie", "Unkn"]
+
+    MAP1 = MAP1.to_numpy()
+    MAP2 = MAP2.to_numpy()
+
+    all_segs = {term: [] for term in interpretation_terms}
+    # all_segs = {term: [] for term in loci1.columns[3:]}
+    ##################################################################################################################
+    i = 0
+    current_map = MAP1[i, 3]
+    current_start = MAP1[i, 1]
+    current_seg = []
+
+    is_matched = bool(MAP2[i, 3] == per_label_matches[MAP1[i, 3]])
+    #middle of the segment
+    if is_matched:
+        current_seg.append(
+            [MAP1[i, 1] - current_start, 
+            1])
+    else:
+        current_seg.append(
+            [MAP1[i, 1] - current_start, 
+            0])
+
+    for i in range(1, len(MAP1)):
+        if MAP1[i, 0] == MAP1[i-1, 0] and MAP1[i, 3] == current_map:
+            is_matched = bool(MAP2[i, 3] == per_label_matches[MAP1[i, 3]])
+            #middle of the segment
+            if is_matched:
+                current_seg.append(
+                    [MAP1[i, 1] - current_start, 
+                    1])
+            else:
+                current_seg.append(
+                    [MAP1[i, 1] - current_start, 
+                    0])
+            
+        else:
+            #last_segment_ends
+            seg_length = MAP1[i-1, 2] - current_start
+            current_seg = np.reshape(np.array(current_seg).astype(float), (-1, 2))
+
+            current_seg[:, 0] = (current_seg[:, 0] + (resolution/2)) / seg_length
+
+            if len(current_seg) < 1:
+                print(current_seg)
+
+            translate_to_term = max([x for x in interpretation_terms if x in current_map], key=len)
+            all_segs[translate_to_term].append(current_seg)
+
+            # all_segs[current_map].append(current_seg)
+
+            #new_segment
+            current_map = MAP1[i, 3]
+            current_start = MAP1[i, 1]
+            current_seg = []
+
+            is_matched = bool(MAP2[i, 3] == per_label_matches[MAP1[i, 3]])
+            #middle of the segment
+            if is_matched:
+                current_seg.append(
+                    [MAP1[i, 1] - current_start, 
+                    1])
+            else:
+                current_seg.append(
+                    [MAP1[i, 1] - current_start, 
+                    0])
+
+    ##################################################################################################################
+    def custom_binning(x, y, n_bins):
+        """
+        This function bins the input array x into n_bins and averages the corresponding values in y for each bin.
+        
+        Parameters:
+        x (array-like): Input array to be binned.
+        y (array-like): Values to be averaged over each bin of x.
+        n_bins (int): Number of bins to divide x into.
+
+        Returns:
+        binned_x (array-like): The center value of each bin.
+        avg_y (array-like): The average y value for each bin.
+        """
+        
+        # Define the range of x
+        x_range = np.linspace(np.min(x), np.max(x), n_bins+1)
+        
+        # Bin x using numpy's digitize function
+        indices = np.digitize(x, x_range)
+        
+        # Initialize an empty list to hold the average y values for each bin
+        avg_y = []
+        
+        # Initialize an empty list to hold the center value of each bin
+        binned_x = []
+        
+        # For each bin, calculate the average y value and the center value of the bin
+        for i in range(1, n_bins+1):
+            mean_y = np.mean(y[indices == i])
+
+            if np.isnan(mean_y):
+                avg_y.append(avg_y[-1])
+            else:
+                avg_y.append(mean_y)
+
+            binned_x.append((x_range[i] + x_range[i-1]) / 2)
+        
+        return binned_x, avg_y
+
+    if not custom_bin:
+        splines_100_1k = {}
+        splines_1k_10k = {}
+        splines_10k_plus = {}
+
+    else:
+        n_bins = 5
+        min_samples = 100
+        binned_100_1k = {}
+        binned_1k_10k = {}
+        binned_10k_plus = {}
+
+    for k in all_segs.keys():
+        try:
+            if len([seg for seg in all_segs[k] if 100 < (len(seg)*resolution) <= 1000]) > 0:
+                subset1 = np.concatenate([seg for seg in all_segs[k] if 100 < (len(seg)*resolution) <= 1000])
+                sorted_indices = np.argsort(subset1[:, 0])
+                subset1 = subset1[sorted_indices]
+                x1 = subset1[:, 0]
+                y1 = subset1[:, 1]
+                if len(x1) >= min_samples:
+                    if custom_bin:
+                        x1, y1 = custom_binning(x1, y1, n_bins)
+                        # print(len(x1), len(y1))
+                        binned_100_1k[k] = [x1, y1]
+                    else:
+                        splines_100_1k[k] = UnivariateSpline(x1, y1, k=5)
+
+        except:
+            pass
+
+        try:
+            if len([seg for seg in all_segs[k] if 1000 < (len(seg)*resolution) <= 10000]) > 0:
+                subset2 = np.concatenate([seg for seg in all_segs[k] if 1000 < (len(seg)*resolution) <= 10000])
+                sorted_indices = np.argsort(subset2[:, 0])
+                subset2 = subset2[sorted_indices]
+                x2 = subset2[:, 0]
+                y2 = subset2[:, 1]
+                if len(x2) >= min_samples:
+                    if custom_bin:
+                        x2, y2 = custom_binning(x2, y2, n_bins)
+                        # print(len(x2), len(y2))
+                        binned_1k_10k[k] = [x2, y2]
+                    else:
+                        splines_1k_10k[k] = UnivariateSpline(x2, y2, k=5)
+
+        except:
+            pass
+
+        try:
+            if len([seg for seg in all_segs[k] if 10000 < (len(seg)*resolution)]):
+                subset3 = np.concatenate([seg for seg in all_segs[k] if 10000 < (len(seg)*resolution)])
+                sorted_indices = np.argsort(subset3[:, 0])
+                subset3 = subset3[sorted_indices]
+                x3 = subset3[:, 0]
+                y3 = subset3[:, 1]
+                if len(x3) >= min_samples:
+                    if custom_bin:
+                        x3, y3 = custom_binning(x3, y3, n_bins)
+                        # print(len(x3), len(y3))
+                        binned_10k_plus[k] = [x3, y3]
+                    else:
+                        splines_10k_plus[k] = UnivariateSpline(x3, y3, k=5)
+
+        except:
+            pass
+    
+    # Create a new figure with 3 subplots
+    fig = plt.figure(figsize=(15, 5))
+    gs = gridspec.GridSpec(2, 3, height_ratios=[0.5, 5])
+
+    ax0 = plt.subplot(gs[1, 0])
+    ax1 = plt.subplot(gs[1, 1], sharex=ax0, sharey=ax0)
+    ax2 = plt.subplot(gs[1, 2], sharex=ax0, sharey=ax0)
+
+    # Create a color map
+    colors = plt.cm.get_cmap('rainbow', len(all_segs.keys()))
+    lines = []  # list to store the lines for legend
+    labels = []  # list to store the labels for legend
+
+    for i, k in enumerate(all_segs.keys()):
+        legend_added = False
+        # Generate x values
+        if not custom_bin:
+            x_values = np.linspace(0, 1, 100)
+
+        try:
+            # Subplot 1
+            if custom_bin:
+                x_values, y_values = binned_100_1k[k][0], binned_100_1k[k][1]
+            else:
+                y_values = splines_100_1k[k](x_values)
+
+            line, = ax0.plot(x_values, y_values, label=k, color=colors(i))
+            
+            if not legend_added:
+                lines.append(line)
+                labels.append(k)
+                legend_added = True
+
+            ax0.set_title('Segments with length < 1kb')
+            ax0.set_xlabel('Position relative to segment')
+            ax0.set_ylabel('naive overlap')
+        except:
+            pass
+
+        try:
+            # Subplot 2
+            if custom_bin:
+                x_values, y_values = binned_1k_10k[k][0], binned_1k_10k[k][1]
+            else:
+                y_values = splines_1k_10k[k](x_values)
+
+            line, = ax1.plot(x_values, y_values, label=k, color=colors(i))
+            
+            if not legend_added:
+                lines.append(line)
+                labels.append(k)
+                legend_added = True
+
+            ax1.set_title('Segments with length 1kb - 10kb')
+            ax1.set_xlabel('Position relative to segment')
+            ax1.set_ylabel('naive overlap')
+        except:
+            pass
+
+        try:
+            # Subplot 3
+            if custom_bin:
+                x_values, y_values = binned_10k_plus[k][0], binned_10k_plus[k][1]
+            else:
+                y_values = splines_10k_plus[k](x_values)
+
+            line, = ax2.plot(x_values, y_values, label=k, color=colors(i))
+            
+            if not legend_added:
+                lines.append(line)
+                labels.append(k)
+                legend_added = True
+
+            ax2.set_title('Segments with length > 10kb')
+            ax2.set_xlabel('Position relative to segment')
+            ax2.set_ylabel('naive overlap')
+        except:
+            pass
+
+    # Show the plot
+    # Create a separate subplot for the legend at the top
+    ax_legend = plt.subplot(gs[0, :])
+    ax_legend.axis('off')  # Hide the axes
+
+    # Show the legend in this subplot
+    fig.legend(lines, labels, loc='center', ncol=len(labels), bbox_to_anchor=(0.5, 0.5), bbox_transform=ax_legend.transAxes)
+    plt.tight_layout()
+    plt.savefig(f"{savedir}/naive_overlap_v_segment_length.pdf", format='pdf')
+    plt.savefig(f"{savedir}/naive_overlap_v_segment_length.svg", format='svg')
+
 if __name__=="__main__":  
+    
     test_new_functions(
         replicate_1_dir="tests/cedar_runs/chmm/GM12878_R1/", 
         replicate_2_dir="tests/cedar_runs/chmm/GM12878_R2/", 

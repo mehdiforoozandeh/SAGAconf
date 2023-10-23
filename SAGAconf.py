@@ -37,8 +37,15 @@ parser.add_argument(
 
 # parser.add_argument(
 #     "-c", "--contour", help="if specified, generate contours plots.", action="store_true", default=False)
+
 parser.add_argument(
     "-s", "--subset", help="if specified, run SAGA on just one chromosome", action="store_true", default=False)
+
+parser.add_argument(
+    "--active_regions", help="if specified, run SAGAconf on just active regions identified by cCREs or Meuleman et al.", action="store_true", default=False) 
+
+parser.add_argument(
+    "--v_seglength", help="if specified, get reproducibility as a function of position relative to segment length", action="store_true", default=False) 
 
 parser.add_argument(
     "-w", "--windowsize",  help="window size (bp) to account for around each genomic bin [default=1000bp]", type=int, default=1000)
@@ -60,7 +67,7 @@ parser.add_argument(
     "--ct_only",  help="if True, only general cellype analysis are performed.", action="store_true", default=False)
 
 parser.add_argument(
-    "--merge_only",  help="if specified, only the specified k value is used to merge base annotation states until k states. ", type=int, default=-1)
+    "--merge_only",  help="if specified, only the specified k value is used to merge base annotation states until k states. ", action="store_true", default=False)
 
 args = parser.parse_args()
 
@@ -71,7 +78,6 @@ if os.path.exists(args.savedir)==False:
         os.mkdir(args.savedir)
 
 # we need replicate_1_dir and replicate_2_dir and savedir
-
 if os.path.exists(args.savedir + "/base_replicate")==False:
     os.mkdir(args.savedir + "/base_replicate")
 
@@ -135,11 +141,74 @@ elif args.r_only:
             loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
             vm=args.verif_mnemonics, match=False, custom_order=True)
 
-        get_overalls(loci1, loci2, args.savedir, locis=True, w=w, to=args.iou_threshold, tr=args.repr_threshold)
+        # get_overalls(loci1, loci2, args.savedir, locis=True, w=w, to=args.iou_threshold, tr=args.repr_threshold)
+        rvalues = is_repr_posterior(
+            loci1, loci2, ovr_threshold=args.iou_threshold, window_bp=w, matching="static",
+            always_include_best_match=True, return_r=True)
+
+        rvalues.to_csv(args.savedir+f"/r_values.bed", sep='\t', header=True, index=False)
 
     except:
         if args.verbosity:
             print("failed to get GW SAGAconf reproducibility results")
+
+elif args.active_regions:
+    try:
+        loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
+        loci1, loci2 = process_data(
+            loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
+            vm=args.verif_mnemonics, match=False, custom_order=True)
+
+        loci1, loci2 = subset_data_to_activeregions(
+            replicate_1_dir=loci1, replicate_2_dir=loci2,
+            cCREs_file="src/biointerpret/GRCh38-cCREs.bed",
+            Meuleman_file="src/biointerpret/Meuleman.tsv", restrict_to="WG", locis=True)
+
+        get_rvals_activeregion(loci1, loci2, args.savedir, w=w, restrict_to="WG")
+
+        # subset the loci_1 and loci_2 to only active regions
+        ccre_loci1, ccre_loci2 = subset_data_to_activeregions(
+            replicate_1_dir=loci1, replicate_2_dir=loci2,
+            cCREs_file="src/biointerpret/GRCh38-cCREs.bed",
+            Meuleman_file="src/biointerpret/Meuleman.tsv", restrict_to="cCRE", locis=True)
+
+        get_rvals_activeregion(ccre_loci1, ccre_loci2, args.savedir, w=w, restrict_to="cCRE")
+
+        muel_loci1, muel_loci2 = subset_data_to_activeregions(
+            replicate_1_dir=loci1, replicate_2_dir=loci2,
+            cCREs_file="src/biointerpret/GRCh38-cCREs.bed",
+            Meuleman_file="src/biointerpret/Meuleman.tsv", restrict_to="muel", locis=True)
+
+        get_rvals_activeregion(muel_loci1, muel_loci2, args.savedir, w=w, restrict_to="muel")
+
+        # heatmaps_on_active_regions(
+        #     replicate_1_dir=loci1, 
+        #     replicate_2_dir=loci2, 
+        #     savedir=args.savedir,
+        #     cCREs_file="src/biointerpret/GRCh38-cCREs.bed",
+        #     Meuleman_file="src/biointerpret/Meuleman.tsv", 
+        #     locis=True, w=w)
+
+    except:
+        if args.verbosity:
+            print("failed to get GW SAGAconf reproducibility results on active regions!")
+
+elif args.v_seglength:
+    try:
+        loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
+        loci1, loci2 = process_data(
+            loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
+            vm=args.verif_mnemonics, match=False, custom_order=True)
+
+        overlap_vs_segment_length(
+            replicate_1_dir=loci1, 
+            replicate_2_dir=loci2, 
+            savedir=args.savedir, 
+            locis=True)
+
+    except:
+        if args.verbosity:
+            print("failed to get reproducibility results relative to segment length!")
 
 elif args.ct_only: 
     try:
@@ -154,14 +223,14 @@ elif args.ct_only:
         if args.verbosity:
             print("Failed to generated sample analysis.")
 
-elif args.merge_only !=-1:
+elif args.merge_only:
     try:
         loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
         loci1, loci2 = process_data(
             loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
             vm=args.verif_mnemonics, match=False, custom_order=True)
 
-        post_clustering_keep_k_states(loci1, loci2, args.savedir, k=args.merge_clusters, locis=True, write_csv=False)
+        post_clustering_keep_k_states(loci1, loci2, args.savedir, k=args.merge_clusters, locis=True, write_csv=False, w=w)
 
     except:
         if args.verbosity:
