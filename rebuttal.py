@@ -265,7 +265,7 @@ def get_runs(maindir = "rebuttal", mp=True, n_processes=10):
 
     if mp:
         with Pool(n_processes) as p:
-            p.map(get_single_run, list_of_runs)
+            # p.map(get_single_run, list_of_runs)
             p.map(corresp_emiss_v_iou, list_of_runs)
     else:
         for r in list_of_runs:
@@ -1235,7 +1235,7 @@ def r_dist_vs_expression3_genebody(r_value_file, expression_file, savedir, n_bin
 
 if __name__ == "__main__":
     # get_runs(maindir = "rebuttal", mp=True, n_processes=10)
-    get_runs(maindir = "rebuttal", mp=False, n_processes=10)
+    get_runs(maindir = "rebuttal", mp=True, n_processes=5)
     exit()
     replicate_1_dir = "tests/rebuttal_example/GM12878_R1/parsed_posterior.csv"
     replicate_2_dir = "tests/rebuttal_example/GM12878_R2/parsed_posterior.csv"
