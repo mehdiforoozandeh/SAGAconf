@@ -1974,11 +1974,11 @@ def compare_corresp_methods(replicate_1_dir, replicate_2_dir, outdir, saga="chmm
     
     loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False, custom_order=False)
 
+    iou = IoU_overlap(loci1, loci2)
     cos_mat = pd.DataFrame(cos_mat, columns=iou.columns, index=iou.index)
     a = Hungarian_algorithm(cos_mat)
     a = [(iou.index[i], iou.columns[j]) for i, j in a]
 
-    iou = IoU_overlap(loci1, loci2)
     c = Hungarian_algorithm(iou)
     c = [(iou.index[i], iou.columns[j]) for i, j in c]
     ####################################################################################
