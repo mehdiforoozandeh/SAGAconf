@@ -10,6 +10,7 @@ import matplotlib.gridspec as gridspec
 from scipy.interpolate import UnivariateSpline
 from matplotlib.patches import Rectangle
 from matplotlib.colors import LogNorm
+from pybedtools import BedTool
 
 def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False, force_WG=False):
     print("loading and intersecting")
@@ -140,6 +141,33 @@ def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True,
             pass
 
     return loci_1, loci_2
+
+def convert_to_GenomeBrowser_viewable_BED(initial_rvalue_bed):
+    r_vals = pd.read_csv(initial_rvalue_bed, sep="\t")
+    r_vals.columns = ["chrom", "chromStart", "chromEnd", "name", "score"]
+    r_vals["name"] = r_vals["name"].str.lower()
+    LABEL_COLOR_MAP = {
+        'prom': (1.0, 0.0, 0.0),
+        'prom_fla': (1.0, 0.26666666666666666, 0.0),
+        'enha': (1.0, 0.7647058823529411, 0.30196078431372547),
+        'enha_low': (1.0, 1.0, 0.0),
+        'biva': (0.7411764705882353, 0.7176470588235294, 0.4196078431372549),
+        'ctcf': (0.7686274509803922, 0.8823529411764706, 0.0196078431372549),
+        'tran': (0.0, 0.5019607843137255, 0.0),
+        'k9k3': (0.4, 0.803921568627451, 0.6666666666666666),
+        'facu': (0.5019607843137255, 0.0, 0.5019607843137255),
+        'cons': (0.5411764705882353, 0.5686274509803921, 0.8156862745098039),
+        'quie': (1.0, 1.0, 1.0),
+        'Unkn': (0.0, 0.0, 0.0)
+    }
+    r_vals['itemRgb'] = r_vals['name'].apply(lambda x: LABEL_COLOR_MAP["_".join(x.split('_')[1:])])
+    r_vals['itemRgb'] = r_vals['itemRgb'].apply(lambda x: ','.join([str(int(i*255)) for i in x]))
+    r_vals.insert(5, 'strand', '.')
+    r_vals['thickStart'] = r_vals['chromStart']
+    r_vals['thickEnd'] = r_vals['chromEnd']
+    r_vals = r_vals[['chrom', 'chromStart', 'chromEnd', 'name', 'score', 'strand', 'thickStart', 'thickEnd', 'itemRgb']]
+    bed = BedTool.from_dataframe(r_vals)
+    bed.saveas(initial_rvalue_bed.replace(".bed", "_UCSC_GenomeBrowser.bed"))
 
 def subset_data_to_activeregions(
     replicate_1_dir, replicate_2_dir,
@@ -1528,6 +1556,7 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000,
             always_include_best_match=True, return_r=True)
     
     rvalues.to_csv(savedir+"/r_values.bed", sep='\t', header=True, index=False)
+    convert_to_GenomeBrowser_viewable_BED(savedir+"/r_values.bed")
 
     avg_r = np.mean(np.array(rvalues["r_value"]))
     perlabel_r = {}
@@ -1957,6 +1986,8 @@ def post_clustering_keep_k_states(replicate_1_dir, replicate_2_dir, savedir, k, 
                 always_include_best_match=True, return_r=True)
 
             rvalues.to_csv(savedir+f"/r_values_{k}_states.bed", sep='\t', header=True, index=False)
+            convert_to_GenomeBrowser_viewable_BED(savedir+f"/r_values_{k}_states.bed")
+            
             return
 
 def compare_corresp_methods(replicate_1_dir, replicate_2_dir, outdir, saga="chmm"):

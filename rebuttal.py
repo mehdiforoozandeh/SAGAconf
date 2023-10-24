@@ -180,16 +180,19 @@ def get_single_run(r): # r is run_dict
         replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior.csv"
         replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior.csv"
 
-    os.system(f"python SAGAconf.py --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-    r_distribution_over_segment(f"{savedir}/r_values.bed", savedir)
-    os.system(f"python SAGAconf.py --v_seglength -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-    
-    os.system(f"python SAGAconf.py --active_regions -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-    r_distribution_activeregions2(
-    f"{savedir}/r_values_WG.bed", 
-    f"{savedir}/r_values_cCRE.bed", 
-    f"{savedir}/r_values_muel.bed", 
-    savedir)
+
+    if os.path.exists(f"{savedir}/v_segment_length.pdf")== False:
+        os.system(f"python SAGAconf.py --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        r_distribution_over_segment(f"{savedir}/r_values.bed", savedir)
+        os.system(f"python SAGAconf.py --v_seglength -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        
+    if os.path.exists(f"{savedir}/r_values_WG.bed")== False:
+        os.system(f"python SAGAconf.py --active_regions -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        r_distribution_activeregions2(
+        f"{savedir}/r_values_WG.bed", 
+        f"{savedir}/r_values_cCRE.bed", 
+        f"{savedir}/r_values_muel.bed", 
+        savedir)
 
     if "GM12878" in replicate_1_dir:
         expression_data = "src/biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv"
@@ -265,11 +268,11 @@ def get_runs(maindir = "rebuttal", mp=True, n_processes=10):
 
     if mp:
         with Pool(n_processes) as p:
-            # p.map(get_single_run, list_of_runs)
+            p.map(get_single_run, list_of_runs)
             p.map(corresp_emiss_v_iou, list_of_runs)
     else:
         for r in list_of_runs:
-            # get_single_run(r)
+            get_single_run(r)
             corresp_emiss_v_iou(r)
 
 def corresp_emiss_v_iou(r):
