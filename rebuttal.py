@@ -180,14 +180,13 @@ def get_single_run(r): # r is run_dict
         replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior.csv"
         replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior.csv"
 
-
     if os.path.exists(f"{savedir}/v_segment_length.pdf")== False:
-        os.system(f"python SAGAconf.py --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --r_only -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
         r_distribution_over_segment(f"{savedir}/r_values.bed", savedir)
-        os.system(f"python SAGAconf.py --v_seglength -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --v_seglength -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
         
     if os.path.exists(f"{savedir}/r_values_WG.bed")== False:
-        os.system(f"python SAGAconf.py --active_regions -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --active_regions -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
         r_distribution_activeregions2(
         f"{savedir}/r_values_WG.bed", 
         f"{savedir}/r_values_cCRE.bed", 
@@ -204,9 +203,9 @@ def get_single_run(r): # r is run_dict
         expression_data = "EMPTY"
     
     if expression_data != "EMPTY":
-        os.system(f"python SAGAconf.py --merge_only -k 14 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-        os.system(f"python SAGAconf.py --merge_only -k 12 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-        os.system(f"python SAGAconf.py --merge_only -k 10 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --merge_only -k 14 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --merge_only -k 12 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --merge_only -k 10 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
 
         r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
         r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
@@ -1234,7 +1233,6 @@ def r_dist_vs_expression3_genebody(r_value_file, expression_file, savedir, n_bin
     # plt.tight_layout()
     # plt.savefig(f"{savedir}/nonzero_expression_v_r_genebody.pdf", format='pdf')
     # plt.savefig(f"{savedir}/nonzero_expression_v_r_genebody.svg", format='svg')
-
 
 if __name__ == "__main__":
     # get_runs(maindir = "rebuttal", mp=True, n_processes=10)
