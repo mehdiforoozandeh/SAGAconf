@@ -6,6 +6,7 @@ from src.overall import *
 
 from matplotlib.colors import LinearSegmentedColormap
 import ast, pybedtools
+from sklearn.metrics import r2_score
 import matplotlib.gridspec as gridspec
 from scipy.interpolate import UnivariateSpline
 from matplotlib.patches import Rectangle

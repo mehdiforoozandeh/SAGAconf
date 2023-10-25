@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from multiprocessing import Pool
 from scipy.interpolate import UnivariateSpline
+from sklearn.linear_model import LinearRegression
 import matplotlib.gridspec as gridspec
 import seaborn as sns
 from scipy.stats import gaussian_kde
@@ -181,21 +182,19 @@ def get_single_run(r): # r is run_dict
         replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior.csv"
 
     try:
-        if os.path.exists(f"{savedir}/v_segment_length.pdf")== False:
-            os.system(f"python SAGAconf.py --r_only -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-            r_distribution_over_segment(f"{savedir}/r_values.bed", savedir)
-            os.system(f"python SAGAconf.py --v_seglength -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        r_distribution_over_segment(f"{savedir}/r_values.bed", savedir)
+        os.system(f"python SAGAconf.py --v_seglength -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
     except:
         pass
 
     try:
-        if os.path.exists(f"{savedir}/r_values_WG.bed")== False:
-            os.system(f"python SAGAconf.py --active_regions -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-            r_distribution_activeregions2(
-            f"{savedir}/r_values_WG.bed", 
-            f"{savedir}/r_values_cCRE.bed", 
-            f"{savedir}/r_values_muel.bed", 
-            savedir)
+        os.system(f"python SAGAconf.py --active_regions -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        r_distribution_activeregions2(
+        f"{savedir}/r_values_WG.bed", 
+        f"{savedir}/r_values_cCRE.bed", 
+        f"{savedir}/r_values_muel.bed", 
+        savedir)
     except:
         pass
 
@@ -209,9 +208,9 @@ def get_single_run(r): # r is run_dict
         expression_data = "EMPTY"
     
     if expression_data != "EMPTY":
-        os.system(f"python SAGAconf.py --merge_only -k 14 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-        os.system(f"python SAGAconf.py --merge_only -k 12 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-        os.system(f"python SAGAconf.py --merge_only -k 10 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --merge_only -k 14 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --merge_only -k 12 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --merge_only -k 10 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
 
         try:
             r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
@@ -299,10 +298,13 @@ def corresp_emiss_v_iou(r):
         os.mkdir(savedir)
     replicate_1_dir = r["replicate_1_dir"]
     replicate_2_dir = r["replicate_2_dir"]
-    if "chromhmm_runs" in replicate_1_dir:
-        compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="chmm")
-    else:
-        compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="segway")
+    try:
+        if "chromhmm_runs" in replicate_1_dir:
+            compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="chmm")
+        else:
+            compare_corresp_methods(replicate_1_dir, replicate_2_dir, savedir, saga="segway")
+    except:
+        pass
 
 def r_distribution_over_segment(r_value_file, savedir, custom_bin=True):
     interpretation_terms = ["Prom", "Prom_fla", "Enha", "Enha_low", "Biva", "Tran", "Cons", "Facu", "K9K3", "Quie", "Unkn"]
@@ -1002,7 +1004,7 @@ def r_dist_vs_expression2(r_value_file, expression_file, savedir, n_bins=20):
     plt.savefig(r_value_file.replace("r_values.bed", "exp_vs_mean_r.svg"), format='svg')
     plt.clf()
 
-def r_dist_vs_expression3(r_value_file, expression_file, savedir, n_bins=20, interpret=True):
+def r_dist_vs_expression3(r_value_file, expression_file, savedir, n_bins=20 , interpret=True):
     if os.path.exists(savedir) == False:
         os.mkdir(savedir)
 
@@ -1110,26 +1112,76 @@ def r_dist_vs_expression3(r_value_file, expression_file, savedir, n_bins=20, int
     plt.savefig(f"{savedir}/mean_expression_v_r.pdf", format='pdf')
     plt.savefig(f"{savedir}/mean_expression_v_r.svg", format='svg')
 
-    # fig2, ax2 = plt.subplots(figsize=(8, 6))
-    # # For each unique MAP value
-    # for map_value in parsed_df['MAP'].unique():
-    #     # Filter data for the current MAP value
-    #     data = parsed_df[parsed_df['MAP'] == map_value]
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+    plt.clf()
 
-    #     # Sort data by 'mean_r'
-    #     data = data.sort_values('mean_r')
+    ################################################################################################################
+    ################################################################################################################    
 
-    #     # Get the color for the current MAP value
-    #     color = map_to_color[map_value]
+    # Get the unique MAP values
+    map_values = parsed_df['MAP'].unique()
 
-    #     # Plot 2: mean_r vs non_zero_exp_fraction
-    #     sns.regplot(x=data['mean_r'], y=data['non_zero_exp_fraction'], scatter=True, color=color, label=map_value)
+    # Calculate the number of columns and rows for the subplots
+    num_labels = len(map_values)
+    n_cols = math.floor(math.sqrt(num_labels))
+    n_rows = math.ceil(num_labels / n_cols)
 
-    # plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-    # # plt.legend(loc='center', ncol=len(parsed_df['MAP'].unique()), bbox_to_anchor=(0.5, 0.5))
-    # plt.tight_layout()
-    # plt.savefig(f"{savedir}/nonzero_expression_v_r.pdf", format='pdf')
-    # plt.savefig(f"{savedir}/nonzero_expression_v_r.svg", format='svg')
+    # Create a new figure with subplots. Adjust the figsize and layout as needed.
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[16, 9])
+    fig.tight_layout(pad=5.0)
+
+    # Open a text file to store the metrics
+    with open(f"{savedir}/mean_expression_v_r_metrics.txt", "w") as f:
+        # For each unique MAP value
+        for i, map_value in enumerate(map_values):
+            # Filter data for the current MAP value
+            data = parsed_df[parsed_df['MAP'] == map_value]
+
+            # Sort data by 'mean_r'
+            data = data.sort_values('mean_r')
+
+            # Fit a linear regression model and calculate R-squared value
+            model = LinearRegression().fit(data[['mean_r']], data['mean_exp'])
+            r2 = model.score(data[['mean_r']], data['mean_exp'])
+            f.write(f"{map_value}|R2 = {r2}\n")
+
+            try:
+                # Calculate Pearson correlation coefficient
+                pearson_r, _ = pearsonr(data['mean_r'], data['mean_exp'])
+                f.write(f"{map_value}|Pearson_r = {pearson_r}\n")
+            except:
+                pearson_r = 0
+            
+            try:
+                # Calculate Spearman's rank correlation coefficient
+                spearman_rho, _ = spearmanr(data['mean_r'], data['mean_exp'])
+                f.write(f"{map_value}|Spearman's rho = {spearman_rho}\n")
+            except:
+                pass
+
+            try:
+                # Calculate Kendall's tau
+                kendall_tau, _ = kendalltau(data['mean_r'], data['mean_exp'])
+                f.write(f"{map_value}|Kendall's tau = {kendall_tau}\n")
+            except:
+                pass
+
+            # Plot mean_r vs mean_exp in a subplot using sns.regplot
+            ax = axs[i // n_cols, i % n_cols]
+            sns.regplot(x=data['mean_r'], y=data['mean_exp'], color=map_to_color[map_value], ax=ax)
+            ax.set_title(f"{map_value} | R2: {r2:.2f} | Pearson_r: {pearson_r:.2f}")
+
+    # Save the figure
+    plt.ylim(bottom=0)
+    plt.savefig(f"{savedir}/mean_expression_v_r_subplots.pdf", format='pdf')
+    plt.savefig(f"{savedir}/mean_expression_v_r_subplots.svg", format='svg')
+
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+    plt.clf()
 
 def r_dist_vs_expression3_genebody(r_value_file, expression_file, savedir, n_bins=20, interpret=True):
     if os.path.exists(savedir) == False:
@@ -1232,30 +1284,83 @@ def r_dist_vs_expression3_genebody(r_value_file, expression_file, savedir, n_bin
     plt.savefig(f"{savedir}/mean_expression_v_r_genebody.pdf", format='pdf')
     plt.savefig(f"{savedir}/mean_expression_v_r_genebody.svg", format='svg')
 
-    # fig2, ax2 = plt.subplots(figsize=(8, 6))
-    # # For each unique MAP value
-    # for map_value in parsed_df['MAP'].unique():
-    #     # Filter data for the current MAP value
-    #     data = parsed_df[parsed_df['MAP'] == map_value]
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+    plt.clf()
 
-    #     # Sort data by 'mean_r'
-    #     data = data.sort_values('mean_r')
+    ################################################################################################################
+    ################################################################################################################    
 
-    #     # Get the color for the current MAP value
-    #     color = map_to_color[map_value]
+    # Get the unique MAP values
+    map_values = parsed_df['MAP'].unique()
 
-    #     # Plot 2: mean_r vs non_zero_exp_fraction
-    #     sns.regplot(x=data['mean_r'], y=data['non_zero_exp_fraction'], scatter=True, color=color, label=map_value)
+    # Calculate the number of columns and rows for the subplots
+    num_labels = len(map_values)
+    n_cols = math.floor(math.sqrt(num_labels))
+    n_rows = math.ceil(num_labels / n_cols)
 
-    # plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-    # # plt.legend(loc='center', ncol=len(parsed_df['MAP'].unique()), bbox_to_anchor=(0.5, 0.5))
-    # plt.tight_layout()
-    # plt.savefig(f"{savedir}/nonzero_expression_v_r_genebody.pdf", format='pdf')
-    # plt.savefig(f"{savedir}/nonzero_expression_v_r_genebody.svg", format='svg')
+    # Create a new figure with subplots. Adjust the figsize and layout as needed.
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[16, 9])
+    fig.tight_layout(pad=5.0)
+
+    # Open a text file to store the metrics
+    with open(f"{savedir}/mean_expression_v_r_genebody_metrics.txt", "w") as f:
+        # For each unique MAP value
+        for i, map_value in enumerate(map_values):
+            # Filter data for the current MAP value
+            data = parsed_df[parsed_df['MAP'] == map_value]
+
+            # Sort data by 'mean_r'
+            data = data.sort_values('mean_r')
+
+            # Fit a linear regression model and calculate R-squared value
+            model = LinearRegression().fit(data[['mean_r']], data['mean_exp'])
+            r2 = model.score(data[['mean_r']], data['mean_exp'])
+            f.write(f"{map_value}|R2 = {r2}\n")
+
+            try:
+                # Calculate Pearson correlation coefficient
+                pearson_r, _ = pearsonr(data['mean_r'], data['mean_exp'])
+                f.write(f"{map_value}|Pearson_r = {pearson_r}\n")
+            except:
+                pearson_r = 0
+            
+            try:
+                # Calculate Spearman's rank correlation coefficient
+                spearman_rho, _ = spearmanr(data['mean_r'], data['mean_exp'])
+                f.write(f"{map_value}|Spearman's rho = {spearman_rho}\n")
+            except:
+                pass
+
+            try:
+                # Calculate Kendall's tau
+                kendall_tau, _ = kendalltau(data['mean_r'], data['mean_exp'])
+                f.write(f"{map_value}|Kendall's tau = {kendall_tau}\n")
+            except:
+                pass
+
+            # Plot mean_r vs mean_exp in a subplot using sns.regplot
+            ax = axs[i // n_cols, i % n_cols]
+            sns.regplot(x=data['mean_r'], y=data['mean_exp'], color=map_to_color[map_value], ax=ax)
+            ax.set_title(f"{map_value} | R2: {r2:.2f} | Pearson_r: {pearson_r:.2f}")
+
+    # Save the figure
+    plt.ylim(bottom=0)
+    plt.savefig(f"{savedir}/mean_expression_v_r_genebody_subplots.pdf", format='pdf')
+    plt.savefig(f"{savedir}/mean_expression_v_r_genebody_subplots.svg", format='svg')
+
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+    plt.clf()
 
 if __name__ == "__main__":
     # get_runs(maindir = "rebuttal", mp=True, n_processes=10)
     get_runs(maindir = "rebuttal", mp=True, n_processes=5)
+    # savedir = "tests/rebuttal_example/rebuttal_test_run/"
+    # r_dist_vs_expression3("tests/rebuttal_example/rebuttal_test_run/r_values_14_states.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
+    # r_dist_vs_expression3_genebody("tests/rebuttal_example/rebuttal_test_run/r_values_14_states.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     exit()
     replicate_1_dir = "tests/rebuttal_example/GM12878_R1/parsed_posterior.csv"
     replicate_2_dir = "tests/rebuttal_example/GM12878_R2/parsed_posterior.csv"
