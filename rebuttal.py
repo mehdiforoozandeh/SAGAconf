@@ -180,18 +180,24 @@ def get_single_run(r): # r is run_dict
         replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior.csv"
         replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior.csv"
 
-    if os.path.exists(f"{savedir}/v_segment_length.pdf")== False:
-        os.system(f"python SAGAconf.py --r_only -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-        r_distribution_over_segment(f"{savedir}/r_values.bed", savedir)
-        os.system(f"python SAGAconf.py --v_seglength -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-        
-    if os.path.exists(f"{savedir}/r_values_WG.bed")== False:
-        os.system(f"python SAGAconf.py --active_regions -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-        r_distribution_activeregions2(
-        f"{savedir}/r_values_WG.bed", 
-        f"{savedir}/r_values_cCRE.bed", 
-        f"{savedir}/r_values_muel.bed", 
-        savedir)
+    try:
+        if os.path.exists(f"{savedir}/v_segment_length.pdf")== False:
+            os.system(f"python SAGAconf.py --r_only -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+            r_distribution_over_segment(f"{savedir}/r_values.bed", savedir)
+            os.system(f"python SAGAconf.py --v_seglength -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+    except:
+        pass
+
+    try:
+        if os.path.exists(f"{savedir}/r_values_WG.bed")== False:
+            os.system(f"python SAGAconf.py --active_regions -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+            r_distribution_activeregions2(
+            f"{savedir}/r_values_WG.bed", 
+            f"{savedir}/r_values_cCRE.bed", 
+            f"{savedir}/r_values_muel.bed", 
+            savedir)
+    except:
+        pass
 
     if "GM12878" in replicate_1_dir:
         expression_data = "src/biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv"
@@ -207,17 +213,30 @@ def get_single_run(r): # r is run_dict
         os.system(f"python SAGAconf.py --merge_only -k 12 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
         os.system(f"python SAGAconf.py --merge_only -k 10 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
 
-        r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-        r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+        try:
+            r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+            r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+        except:
+            pass
 
-        r_dist_vs_expression3(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
-        r_dist_vs_expression3_genebody(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+        try:
+            r_dist_vs_expression3(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+            r_dist_vs_expression3_genebody(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+        except:
+            pass
 
-        r_dist_vs_expression3(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
-        r_dist_vs_expression3_genebody(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
-
-        r_dist_vs_expression3(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
-        r_dist_vs_expression3_genebody(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+        
+        try:
+            r_dist_vs_expression3(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
+            r_dist_vs_expression3_genebody(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
+        except:
+            pass
+        
+        try:
+            r_dist_vs_expression3(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+            r_dist_vs_expression3_genebody(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+        except:
+            pass
     
     """
     get original r_values 
