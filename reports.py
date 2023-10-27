@@ -3,7 +3,6 @@ from src.indepth import *
 from src.granul import *
 from src.bio_valid import *
 from src.overall import *
-
 from matplotlib.colors import LinearSegmentedColormap
 import ast, pybedtools
 from sklearn.metrics import r2_score
