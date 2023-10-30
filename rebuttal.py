@@ -22,7 +22,7 @@ def get_listofruns(maindir="rebuttal"):
     listofruns = [
         {"replicate_1_dir":"chromhmm_runs/GM12878_rep1/", 
         "replicate_2_dir":"chromhmm_runs/GM12878_rep2/", 
-        "savedir":"{}/r1vsr2/chmm/MCF-7/".format(maindir)},
+        "savedir":"{}/r1vsr2/chmm/GM12878/".format(maindir)},
         
         {"replicate_1_dir":"segway_runs/GM12878_rep1/", 
         "replicate_2_dir":"segway_runs/GM12878_rep2/", 
