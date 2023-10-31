@@ -187,7 +187,7 @@ def get_single_run(r): # r is run_dict
 
     try:
         print(f"trying to get original r-values for {savedir}")
-        os.system(f"python SAGAconf.py --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --r_only -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
     except:
         print(f"failed to get original r-values for {savedir}")
 
@@ -202,9 +202,9 @@ def get_single_run(r): # r is run_dict
     
     if expression_data != "EMPTY":
         print(f"trying to get expression analysis for {savedir}")
-        os.system(f"python SAGAconf.py --merge_only -k 14 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-        os.system(f"python SAGAconf.py --merge_only -k 12 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-        os.system(f"python SAGAconf.py --merge_only -k 10 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --merge_only -k 14 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --merge_only -k 12 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --merge_only -k 10 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
 
         try:
             r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
@@ -242,13 +242,13 @@ def get_single_run(r): # r is run_dict
     try:
         print(f"trying to get per-segment analysis for {savedir}")
         r_distribution_over_segment(f"{savedir}/r_values.bed", savedir)
-        os.system(f"python SAGAconf.py --v_seglength -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --v_seglength -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
     except:
         print(f"failed to get per-segment analysis for {savedir}")
 
     try:
         print(f"trying to get ccre analysis for {savedir}")
-        os.system(f"python SAGAconf.py --active_regions -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --active_regions -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
         r_distribution_activeregions2(
         f"{savedir}/r_values_WG.bed", 
         f"{savedir}/r_values_cCRE.bed", 
@@ -1639,7 +1639,7 @@ if __name__ == "__main__":
     # r_dist_vs_expression_boxplot("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression3_genebody("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # get_runs(maindir = "rebuttal", mp=True, n_processes=10)
-    get_runs(maindir = "rebuttal", mp=True, n_processes=15)
+    get_runs(maindir = "rebuttal_subset", mp=True, n_processes=15)
     # savedir = "tests/rebuttal_example/rebuttal_test_run/"
     # r_dist_vs_expression3("tests/rebuttal_example/rebuttal_test_run/r_values_14_states.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression3_genebody("tests/rebuttal_example/rebuttal_test_run/r_values_14_states.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
