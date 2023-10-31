@@ -1639,7 +1639,7 @@ if __name__ == "__main__":
     # r_dist_vs_expression_boxplot("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression3_genebody("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # get_runs(maindir = "rebuttal", mp=True, n_processes=10)
-    get_runs(maindir = "rebuttal", mp=True, n_processes=10)
+    get_runs(maindir = "rebuttal", mp=True, n_processes=15)
     # savedir = "tests/rebuttal_example/rebuttal_test_run/"
     # r_dist_vs_expression3("tests/rebuttal_example/rebuttal_test_run/r_values_14_states.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression3_genebody("tests/rebuttal_example/rebuttal_test_run/r_values_14_states.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
