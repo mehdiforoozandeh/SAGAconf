@@ -296,23 +296,22 @@ def get_subset_transc(r):
     
     if expression_data != "EMPTY":
         print(f"trying to get expression analysis for {savedir}")
-        # try:
-        if os.path.exists(f"{savedir}/r_values.bed") == False:
+        try:
             os.system(f"python SAGAconf.py -s --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-        # r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-        # r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-        r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-        conf_v_nonconf_vs_expression(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-        return
-        # except Exception as e:
-        #     print("ERROR:   ", e)
+            # r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+            # r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+            r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+            conf_v_nonconf_vs_expression(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+        except Exception as e:
+            print("ERROR:   ", e)
 
         try:
             os.system(f"python SAGAconf.py --merge_only -s -k 14 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
             # r_dist_vs_expression3(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
             # r_dist_vs_expression3_genebody(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
-            conf_v_nonconf_vs_expression(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
             r_dist_vs_expression_boxplot(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+            conf_v_nonconf_vs_expression(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+        
         except Exception as e:
             print("ERROR:   ", e)
      
@@ -320,8 +319,8 @@ def get_subset_transc(r):
             os.system(f"python SAGAconf.py --merge_only -s -k 12 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
             # r_dist_vs_expression3(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
             # r_dist_vs_expression3_genebody(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
-            conf_v_nonconf_vs_expression(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
             r_dist_vs_expression_boxplot(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
+            conf_v_nonconf_vs_expression(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
         except Exception as e:
             print("ERROR:   ", e)
         
@@ -329,8 +328,8 @@ def get_subset_transc(r):
             os.system(f"python SAGAconf.py --merge_only -s -k 10 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
             # r_dist_vs_expression3(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
             # r_dist_vs_expression3_genebody(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
-            conf_v_nonconf_vs_expression(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
             r_dist_vs_expression_boxplot(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+            conf_v_nonconf_vs_expression(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
         except Exception as e:
             print("ERROR:   ", e)
 
@@ -1561,14 +1560,14 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
 
             if len(df_confident_label) > 0 and len(df_non_confident_label) > 0:
                 metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
+                title = label + f" | Z-test -log(p) = {(-1 * np.log( metrics['zp_val'] )):.2f}" 
 
                 for ii,kk in metrics.items():
                     if ii not in agg_metrics:
                         agg_metrics[ii] = kk
                     else:
                         agg_metrics[ii] = agg_metrics[ii] + kk
-
-            title = label + f" | Z-test -log(p) = {(-1 * np.log( metrics['zp_val'] )):.2f}" 
+            
             ax.set_title(title, fontsize=8)
             ax.set_ylabel("mean_expression")
         
@@ -1603,7 +1602,11 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
 
         sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False)
 
-        agg_metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
+        try:
+            agg_metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
+        except:
+            agg_metrics = {"zp_val":1} 
+
         title = label + f" | Z-test -log(p) = {(-1 * np.log( agg_metrics['zp_val'] )):.2f}" 
         plt.title(title)
         plt.ylabel("mean_expression")
