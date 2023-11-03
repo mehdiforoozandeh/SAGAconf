@@ -1541,8 +1541,7 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
             data_to_plot.columns = ['All', 'Confident', 'Non-confident']
             
             try:
-                if not data_to_plot['All'].isna().all() and not data_to_plot['Confident'].isna().all() and not data_to_plot['Non-confident'].isna().all():
-                    sns.boxplot(data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False, ax=ax)
+                sns.boxplot(data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False, ax=ax)
             except:
                 print(data_to_plot)
 
