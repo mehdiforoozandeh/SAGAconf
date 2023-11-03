@@ -1567,6 +1567,12 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
         plt.title(title)
         plt.ylabel("mean_expression")
     
+    print("saving metrics in text format for conf_v_nonconf_vs_expression")
+    with open(f"{savedir}/conf_vs_nonconf_meanEXP_metrics.txt", "w") as f:
+        for ii, kk in agg_metrics.items():
+            f.write(f"{ii}={kk}\n")
+
+    print("creating plots for conf_v_nonconf_vs_expression")
     plt.tight_layout()
     plt.savefig(f"{savedir}/conf_vs_nonconf_meanEXP.pdf", format='pdf')
     plt.savefig(f"{savedir}/conf_vs_nonconf_meanEXP.svg", format='svg')
@@ -1575,10 +1581,6 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
     plt.close("all")
     plt.style.use('default')
     plt.clf()
-
-    with open(f"{savedir}/conf_vs_nonconf_meanEXP_metrics.txt", "w") as f:
-        for ii, kk in agg_metrics.items():
-            f.write(f"{ii}={kk}\n")
 
 def r_dist_vs_expression_boxplot(r_value_file, expression_file, savedir, n_bins=20 , interpret=True):
     if os.path.exists(savedir) == False:
@@ -1693,6 +1695,7 @@ def r_dist_vs_expression_boxplot(r_value_file, expression_file, savedir, n_bins=
         ax.set_title(f"{map_value}")
 
     # Save the figure
+    print("making plots for r_dist_vs_expression_boxplot")
     plt.ylim(bottom=0)
     plt.savefig(f"{savedir}/mean_exp_boxplot_v_r_subplots.pdf", format='pdf')
     plt.savefig(f"{savedir}/mean_exp_boxplot_v_r_subplots.svg", format='svg')
