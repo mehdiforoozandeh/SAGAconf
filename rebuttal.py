@@ -301,8 +301,8 @@ def get_subset_transc(r):
             os.system(f"python SAGAconf.py -s --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
         # r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
         # r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-        conf_v_nonconf_vs_expression(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
         r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+        conf_v_nonconf_vs_expression(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
         return
         # except Exception as e:
         #     print("ERROR:   ", e)
@@ -1535,7 +1535,9 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
             data_to_plot = pd.concat(
                 [pd.Series(np.array(df_label['TPM'])), pd.Series(np.array(df_confident_label['TPM'])), pd.Series(np.array(df_non_confident_label['TPM']))], axis=1)
             data_to_plot.columns = ['All', 'Confident', 'Non-confident']
-            sns.boxplot(data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False, ax=ax)
+            
+            if not data_to_plot['All'].isna().all() and not data_to_plot['Confident'].isna().all() and not data_to_plot['Non-confident'].isna().all():
+                sns.boxplot(data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False, ax=ax)
 
             metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
 
@@ -1561,7 +1563,9 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
         data_to_plot = pd.concat(
             [pd.Series(np.array(df_label['TPM'])), pd.Series(np.array(df_confident_label['TPM'])), pd.Series(np.array(df_non_confident_label['TPM']))], axis=1)
         data_to_plot.columns = ['All', 'Confident', 'Non-confident']
-        sns.boxplot(data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False)
+        
+        if not data_to_plot['All'].isna().all() and not data_to_plot['Confident'].isna().all() and not data_to_plot['Non-confident'].isna().all():
+            sns.boxplot(data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False)
 
         agg_metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
         title = label + f" | Z-test -log(p) = {(-1 * np.log( agg_metrics['zp_val'] )):.2f}" 
