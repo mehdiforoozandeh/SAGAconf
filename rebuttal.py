@@ -1536,9 +1536,22 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
             df_confident_label = df_confident[df_confident['MAP'] == label]
             df_non_confident_label = df_non_confident[df_non_confident['MAP'] == label]
 
-            data_to_plot = pd.concat(
-                [pd.Series(np.array(df_label['TPM'])), pd.Series(np.array(df_confident_label['TPM'])), pd.Series(np.array(df_non_confident_label['TPM']))], axis=1)
-            data_to_plot.columns = ['All', 'Confident', 'Non-confident']
+            # data_to_plot = pd.concat(
+            #     [pd.Series(np.array(df_label['TPM'])), pd.Series(np.array(df_confident_label['TPM'])), pd.Series(np.array(df_non_confident_label['TPM']))], axis=1)
+            # data_to_plot.columns = ['All', 'Confident', 'Non-confident']
+
+            df_all = df_label[['TPM']].copy()
+            df_all['Category'] = 'All'
+
+            df_confident = df_confident_label[['TPM']].copy()
+            df_confident['Category'] = 'Confident'
+
+            df_non_confident = df_non_confident_label[['TPM']].copy()
+            df_non_confident['Category'] = 'Non-confident'
+
+            data_to_plot = pd.concat([df_all, df_confident, df_non_confident])
+
+            sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False, ax=ax)
             
             try:
                 sns.boxplot(data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False, ax=ax)
@@ -1566,12 +1579,23 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
         df_confident_label = df_confident[df_confident['MAP'] == label]
         df_non_confident_label = df_non_confident[df_non_confident['MAP'] == label]
 
-        data_to_plot = pd.concat(
-            [pd.Series(np.array(df_label['TPM'])), pd.Series(np.array(df_confident_label['TPM'])), pd.Series(np.array(df_non_confident_label['TPM']))], axis=1)
-        data_to_plot.columns = ['All', 'Confident', 'Non-confident']
+        # data_to_plot = pd.concat(
+        #     [pd.Series(np.array(df_label['TPM'])), pd.Series(np.array(df_confident_label['TPM'])), pd.Series(np.array(df_non_confident_label['TPM']))], axis=1)
+        # data_to_plot.columns = ['All', 'Confident', 'Non-confident']
         
-        if not data_to_plot['All'].isna().all() and not data_to_plot['Confident'].isna().all() and not data_to_plot['Non-confident'].isna().all():
-            sns.boxplot(data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False)
+        df_all = df_label[['TPM']].copy()
+        df_all['Category'] = 'All'
+
+        df_confident = df_confident_label[['TPM']].copy()
+        df_confident['Category'] = 'Confident'
+
+        df_non_confident = df_non_confident_label[['TPM']].copy()
+        df_non_confident['Category'] = 'Non-confident'
+
+        data_to_plot = pd.concat([df_all, df_confident, df_non_confident])
+        sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False)
+
+        # sns.boxplot(data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False)
 
         agg_metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
         title = label + f" | Z-test -log(p) = {(-1 * np.log( agg_metrics['zp_val'] )):.2f}" 
