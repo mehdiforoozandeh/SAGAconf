@@ -1450,6 +1450,7 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
     if os.path.exists(savedir) == False:
         os.mkdir(savedir)
 
+    print("performing conf_v_nonconf_vs_expression")
     interpretation_terms = ["Prom", "Prom_fla", "Enha", "Enha_low", "Biva", "Tran", "Cons", "Facu", "K9K3", "Quie", "Unkn"]
     gene_coords = load_gene_coords("src/biovalidation/parsed_genecode_data_hg38_release42.csv")
     r_vals = pd.read_csv(r_value_file, sep="\t")
@@ -1583,6 +1584,7 @@ def r_dist_vs_expression_boxplot(r_value_file, expression_file, savedir, n_bins=
     if os.path.exists(savedir) == False:
         os.mkdir(savedir)
 
+    print("performing r_dist_vs_expression_boxplot")
     interpretation_terms = ["Prom", "Prom_fla", "Enha", "Enha_low", "Biva", "Tran", "Cons", "Facu", "K9K3", "Quie", "Unkn"]
     gene_coords = load_gene_coords("src/biovalidation/parsed_genecode_data_hg38_release42.csv")
     r_vals = pd.read_csv(r_value_file, sep="\t")
