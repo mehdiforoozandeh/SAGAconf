@@ -187,7 +187,7 @@ def get_single_run(r): # r is run_dict
 
     try:
         print(f"trying to get original r-values for {savedir}")
-        os.system(f"python SAGAconf.py --r_only -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
     except:
         print(f"failed to get original r-values for {savedir}")
 
@@ -202,9 +202,9 @@ def get_single_run(r): # r is run_dict
     
     if expression_data != "EMPTY":
         print(f"trying to get expression analysis for {savedir}")
-        os.system(f"python SAGAconf.py --merge_only -k 14 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-        os.system(f"python SAGAconf.py --merge_only -k 12 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-        os.system(f"python SAGAconf.py --merge_only -k 10 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --merge_only -k 14 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --merge_only -k 12 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --merge_only -k 10 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
 
         try:
             r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
@@ -242,13 +242,13 @@ def get_single_run(r): # r is run_dict
     try:
         print(f"trying to get per-segment analysis for {savedir}")
         r_distribution_over_segment(f"{savedir}/r_values.bed", savedir)
-        os.system(f"python SAGAconf.py --v_seglength -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --v_seglength -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
     except:
         print(f"failed to get per-segment analysis for {savedir}")
 
     try:
         print(f"trying to get ccre analysis for {savedir}")
-        os.system(f"python SAGAconf.py --active_regions -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --active_regions -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
         r_distribution_activeregions2(
         f"{savedir}/r_values_WG.bed", 
         f"{savedir}/r_values_cCRE.bed", 
@@ -270,7 +270,69 @@ def get_single_run(r): # r is run_dict
     get r_vs_expression + r_vs_expression_genebody for 14, 12, 10 states
     """
 
-def get_runs(maindir = "rebuttal", mp=True, n_processes=10):
+def get_subset_transc(r):
+    savedir = r["savedir"]
+    if "chromhmm_runs" in r["replicate_1_dir"] and "concat" in r["replicate_1_dir"]:
+        base_mnemonics = r["replicate_1_dir"] + "/mnemonics_rep1.txt"
+        verif_mnemonics = r["replicate_2_dir"] + "/mnemonics_rep2.txt"
+
+        replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior_rep1.csv"
+        replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior_rep2.csv"
+    else:
+        base_mnemonics = r["replicate_1_dir"] + "/mnemonics.txt"
+        verif_mnemonics = r["replicate_2_dir"] + "/mnemonics.txt"
+
+        replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior.csv"
+        replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior.csv"
+
+    if "GM12878" in replicate_1_dir:
+        expression_data = "src/biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv"
+    elif "MCF-7" in replicate_1_dir:
+        expression_data = "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl"
+    elif "K562" in replicate_1_dir:
+        expression_data = "src/biovalidation/RNA_seq/K562/preferred_default_ENCFF840UYD.tsv"
+    else:
+        expression_data = "EMPTY"
+    
+    if expression_data != "EMPTY":
+        print(f"trying to get expression analysis for {savedir}")
+        try:
+            os.system(f"python SAGAconf.py -s --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+            r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+            r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+            conf_v_nonconf_vs_expression(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+            r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+        except Exception as e:
+            print(e)
+
+        try:
+            os.system(f"python SAGAconf.py --merge_only -s -k 14 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+            r_dist_vs_expression3(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+            r_dist_vs_expression3_genebody(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+            conf_v_nonconf_vs_expression(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+            r_dist_vs_expression_boxplot(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+        except Exception as e:
+            print(e)
+     
+        try:
+            os.system(f"python SAGAconf.py --merge_only -s -k 12 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+            r_dist_vs_expression3(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
+            r_dist_vs_expression3_genebody(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
+            conf_v_nonconf_vs_expression(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
+            r_dist_vs_expression_boxplot(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
+        except Exception as e:
+            print(e)
+        
+        try:
+            os.system(f"python SAGAconf.py --merge_only -s -k 10 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+            r_dist_vs_expression3(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+            r_dist_vs_expression3_genebody(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+            conf_v_nonconf_vs_expression(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+            r_dist_vs_expression_boxplot(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+        except Exception as e:
+            print(e)
+
+def get_runs(maindir = "rebuttal", mp=True, n_processes=10, subset=False):
     list_of_runs = get_listofruns(maindir)
     random.shuffle(list_of_runs)
 
@@ -306,11 +368,18 @@ def get_runs(maindir = "rebuttal", mp=True, n_processes=10):
 
     if mp:
         with Pool(n_processes) as p:
-            p.map(get_single_run, list_of_runs)
+            if subset:
+                p.map(get_subset_transc, list_of_runs)
+            else:
+                p.map(get_single_run, list_of_runs)
+
             p.map(corresp_emiss_v_iou, list_of_runs)
     else:
         for r in list_of_runs:
-            get_single_run(r)
+            if subset:
+                get_subset_transc(r)
+            else:
+                get_single_run(r)
             corresp_emiss_v_iou(r)
 
 def corresp_emiss_v_iou(r):
@@ -1639,53 +1708,57 @@ if __name__ == "__main__":
     # r_dist_vs_expression_boxplot("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression3_genebody("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # get_runs(maindir = "rebuttal", mp=True, n_processes=10)
-    get_runs(maindir = "rebuttal_subset", mp=True, n_processes=15)
+
+    # get_runs(maindir = "rebuttal", mp=True, n_processes=15)
+    get_runs(maindir = "rebuttal_subset", mp=True, n_processes=10, subset=True)
+    exit()
+
     # savedir = "tests/rebuttal_example/rebuttal_test_run/"
     # r_dist_vs_expression3("tests/rebuttal_example/rebuttal_test_run/r_values_14_states.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression3_genebody("tests/rebuttal_example/rebuttal_test_run/r_values_14_states.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
-    exit()
-    replicate_1_dir = "tests/rebuttal_example/GM12878_R1/parsed_posterior.csv"
-    replicate_2_dir = "tests/rebuttal_example/GM12878_R2/parsed_posterior.csv"
-    savedir = "tests/rebuttal_example/rebuttal_test_run/"
-    base_mnemonics = "tests/rebuttal_example/GM12878_R1/mnemonics.txt"
-    verif_mnemonics = "tests/rebuttal_example/GM12878_R2/mnemonics.txt"
 
-    os.system(f"python SAGAconf.py --r_only -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-    r_distribution_over_segment(f"{savedir}/r_values.bed", savedir)
-    os.system(f"python SAGAconf.py --v_seglength -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+    # replicate_1_dir = "tests/rebuttal_example/GM12878_R1/parsed_posterior.csv"
+    # replicate_2_dir = "tests/rebuttal_example/GM12878_R2/parsed_posterior.csv"
+    # savedir = "tests/rebuttal_example/rebuttal_test_run/"
+    # base_mnemonics = "tests/rebuttal_example/GM12878_R1/mnemonics.txt"
+    # verif_mnemonics = "tests/rebuttal_example/GM12878_R2/mnemonics.txt"
+
+    # os.system(f"python SAGAconf.py --r_only -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+    # r_distribution_over_segment(f"{savedir}/r_values.bed", savedir)
+    # os.system(f"python SAGAconf.py --v_seglength -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
     
-    os.system(f"python SAGAconf.py --active_regions -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-    r_distribution_activeregions2(
-    f"{savedir}/r_values_WG.bed", 
-    f"{savedir}/r_values_cCRE.bed", 
-    f"{savedir}/r_values_muel.bed", 
-    savedir)
+    # os.system(f"python SAGAconf.py --active_regions -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+    # r_distribution_activeregions2(
+    # f"{savedir}/r_values_WG.bed", 
+    # f"{savedir}/r_values_cCRE.bed", 
+    # f"{savedir}/r_values_muel.bed", 
+    # savedir)
 
-    if "GM12878" in replicate_1_dir:
-        expression_data = "src/biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv"
-    elif "MCF-7" in replicate_1_dir:
-        expression_data = "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl"
-    elif "K562" in replicate_1_dir:
-        expression_data = "src/biovalidation/RNA_seq/K562/preferred_default_ENCFF840UYD.tsv"
-    else:
-        expression_data = "EMPTY"
+    # if "GM12878" in replicate_1_dir:
+    #     expression_data = "src/biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv"
+    # elif "MCF-7" in replicate_1_dir:
+    #     expression_data = "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl"
+    # elif "K562" in replicate_1_dir:
+    #     expression_data = "src/biovalidation/RNA_seq/K562/preferred_default_ENCFF840UYD.tsv"
+    # else:
+    #     expression_data = "EMPTY"
     
-    if expression_data != "EMPTY":
-        os.system(f"python SAGAconf.py --merge_only -k 14 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-        os.system(f"python SAGAconf.py --merge_only -k 12 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-        os.system(f"python SAGAconf.py --merge_only -k 10 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+    # if expression_data != "EMPTY":
+    #     os.system(f"python SAGAconf.py --merge_only -k 14 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+    #     os.system(f"python SAGAconf.py --merge_only -k 12 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+    #     os.system(f"python SAGAconf.py --merge_only -k 10 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
 
-        r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-        r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+    #     r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+    #     r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
 
-        r_dist_vs_expression3(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
-        r_dist_vs_expression3_genebody(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+    #     r_dist_vs_expression3(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+    #     r_dist_vs_expression3_genebody(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
 
-        r_dist_vs_expression3(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
-        r_dist_vs_expression3_genebody(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
+    #     r_dist_vs_expression3(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
+    #     r_dist_vs_expression3_genebody(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
 
-        r_dist_vs_expression3(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
-        r_dist_vs_expression3_genebody(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+    #     r_dist_vs_expression3(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+    #     r_dist_vs_expression3_genebody(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
 
     # os.system(f"python SAGAconf.py --merge_only -k 12 -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
     # os.system(f"python SAGAconf.py --v_seglength -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")

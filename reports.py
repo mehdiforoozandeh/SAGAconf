@@ -1946,7 +1946,6 @@ def post_clustering(replicate_1_dir, replicate_2_dir, savedir, locis=False, to=0
     ####################################################################################################
 
 def post_clustering_keep_k_states(replicate_1_dir, replicate_2_dir, savedir, k, w, locis=False, write_csv=True, r_val=True):
-
     if locis:
         loci_1, loci_2 = replicate_1_dir, replicate_2_dir
 
@@ -1987,7 +1986,6 @@ def post_clustering_keep_k_states(replicate_1_dir, replicate_2_dir, savedir, k, 
 
             rvalues.to_csv(savedir+f"/r_values_{k}_states.bed", sep='\t', header=True, index=False)
             convert_to_GenomeBrowser_viewable_BED(savedir+f"/r_values_{k}_states.bed")
-            
             return
 
 def compare_corresp_methods(replicate_1_dir, replicate_2_dir, outdir, saga="chmm"):
