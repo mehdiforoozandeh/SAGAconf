@@ -1516,6 +1516,7 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
     # map_values = df['MAP'].unique()
 
     if len(map_values) > 1:
+        print(map_values)
         # Calculate the number of columns and rows for the subplots
         num_labels = len(map_values)
         n_cols = math.floor(math.sqrt(num_labels))
