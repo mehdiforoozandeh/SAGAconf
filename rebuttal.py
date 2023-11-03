@@ -1760,7 +1760,7 @@ if __name__ == "__main__":
     # get_runs(maindir = "rebuttal", mp=True, n_processes=10)
 
     # get_runs(maindir = "rebuttal", mp=True, n_processes=15)
-    get_runs(maindir = "rebuttal_subset", mp=False, n_processes=10, subset=True)
+    get_runs(maindir = "rebuttal_subset", mp=True, n_processes=10, subset=True)
     exit()
 
     # savedir = "tests/rebuttal_example/rebuttal_test_run/"
