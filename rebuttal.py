@@ -1532,29 +1532,40 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
             else:
                 ax = axs[i // n_cols, i % n_cols]
 
-            df_label = df[df['MAP'] == label]
-            df_confident_label = df_confident[df_confident['MAP'] == label]
-            df_non_confident_label = df_non_confident[df_non_confident['MAP'] == label]
+            try:
+                df_label = df[df['MAP'] == label]
+            except:
+                df_label = pd.DataFrame(columns=["chr", "start", "end", "MAP", "r_value", "TPM"])
+
+            try:
+                df_confident_label = df_confident[df_confident['MAP'] == label]
+            except:
+                df_confident_label = pd.DataFrame(columns=["chr", "start", "end", "MAP", "r_value", "TPM"])
+
+            try:
+                df_non_confident_label = df_non_confident[df_non_confident['MAP'] == label]
+            except:
+                df_non_confident_label = pd.DataFrame(columns=["chr", "start", "end", "MAP", "r_value", "TPM"])
 
             if len(df_label) > 0:
-                df_all = df_label[['TPM']].copy()
-                df_all['Category'] = 'All'
+                df_all_ = df_label[['TPM']].copy()
+                df_all_['Category'] = 'All'
             else:
-                df_all = pd.DataFrame(columns=['TPM', 'Category'])
+                df_all_ = pd.DataFrame(columns=['TPM', 'Category'])
 
             if len(df_confident_label) > 0:
-                df_confident = df_confident_label[['TPM']].copy()
-                df_confident['Category'] = 'Confident'
+                df_confident_ = df_confident_label[['TPM']].copy()
+                df_confident_['Category'] = 'Confident'
             else:
-                df_confident = pd.DataFrame(columns=['TPM', 'Category'])
+                df_confident_ = pd.DataFrame(columns=['TPM', 'Category'])
 
             if len(df_non_confident_label) > 0:
-                df_non_confident = df_non_confident_label[['TPM']].copy()
-                df_non_confident['Category'] = 'Non-confident'
+                df_non_confident_ = df_non_confident_label[['TPM']].copy()
+                df_non_confident_['Category'] = 'Non-confident'
             else:
-                df_non_confident = pd.DataFrame(columns=['TPM', 'Category'])
+                df_non_confident_ = pd.DataFrame(columns=['TPM', 'Category'])
 
-            data_to_plot = pd.concat([df_all, df_confident, df_non_confident])
+            data_to_plot = pd.concat([df_all_, df_confident_, df_non_confident_])
 
             sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False, ax=ax)
 
@@ -1578,29 +1589,40 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
 
     else:
         label = map_values[0]
-        df_label = df[df['MAP'] == label]
-        df_confident_label = df_confident[df_confident['MAP'] == label]
-        df_non_confident_label = df_non_confident[df_non_confident['MAP'] == label]
+        try:
+            df_label = df[df['MAP'] == label]
+        except:
+            df_label = pd.DataFrame(columns=["chr", "start", "end", "MAP", "r_value", "TPM"])
+
+        try:
+            df_confident_label = df_confident[df_confident['MAP'] == label]
+        except:
+            df_confident_label = pd.DataFrame(columns=["chr", "start", "end", "MAP", "r_value", "TPM"])
+
+        try:
+            df_non_confident_label = df_non_confident[df_non_confident['MAP'] == label]
+        except:
+            df_non_confident_label = pd.DataFrame(columns=["chr", "start", "end", "MAP", "r_value", "TPM"])
 
         if len(df_label) > 0:
-            df_all = df_label[['TPM']].copy()
-            df_all['Category'] = 'All'
+            df_all_ = df_label[['TPM']].copy()
+            df_all_['Category'] = 'All'
         else:
-            df_all = pd.DataFrame(columns=['TPM', 'Category'])
+            df_all_ = pd.DataFrame(columns=['TPM', 'Category'])
 
         if len(df_confident_label) > 0:
-            df_confident = df_confident_label[['TPM']].copy()
-            df_confident['Category'] = 'Confident'
+            df_confident_ = df_confident_label[['TPM']].copy()
+            df_confident_['Category'] = 'Confident'
         else:
-            df_confident = pd.DataFrame(columns=['TPM', 'Category'])
+            df_confident_ = pd.DataFrame(columns=['TPM', 'Category'])
 
         if len(df_non_confident_label) > 0:
-            df_non_confident = df_non_confident_label[['TPM']].copy()
-            df_non_confident['Category'] = 'Non-confident'
+            df_non_confident_ = df_non_confident_label[['TPM']].copy()
+            df_non_confident_['Category'] = 'Non-confident'
         else:
-            df_non_confident = pd.DataFrame(columns=['TPM', 'Category'])
+            df_non_confident_ = pd.DataFrame(columns=['TPM', 'Category'])
 
-        data_to_plot = pd.concat([df_all, df_confident, df_non_confident])
+        data_to_plot = pd.concat([df_all_, df_confident_, df_non_confident_])
 
         sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False)
 
