@@ -297,12 +297,13 @@ def get_subset_transc(r):
     if expression_data != "EMPTY":
         print(f"trying to get expression analysis for {savedir}")
         # try:
-        os.system(f"python SAGAconf.py -s --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        if os.path.exists(f"{savedir}/r_values.bed") == False:
+            os.system(f"python SAGAconf.py -s --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
         # r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
         # r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
         conf_v_nonconf_vs_expression(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
         r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-        exit()
+        return
         # except Exception as e:
         #     print("ERROR:   ", e)
 
@@ -1716,7 +1717,7 @@ if __name__ == "__main__":
     # get_runs(maindir = "rebuttal", mp=True, n_processes=10)
 
     # get_runs(maindir = "rebuttal", mp=True, n_processes=15)
-    get_runs(maindir = "rebuttal_subset", mp=True, n_processes=10, subset=True)
+    get_runs(maindir = "rebuttal_subset", mp=False, n_processes=10, subset=True)
     exit()
 
     # savedir = "tests/rebuttal_example/rebuttal_test_run/"
