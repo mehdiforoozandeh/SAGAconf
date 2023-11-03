@@ -1562,12 +1562,14 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
                 metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
                 title = label + f" | Z-test -log(p) = {(-1 * np.log( metrics['zp_val'] )):.2f}" 
 
-                for ii,kk in metrics.items():
+                for ii, kk in metrics.items():
                     if ii not in agg_metrics:
                         agg_metrics[ii] = kk
                     else:
                         agg_metrics[ii] = agg_metrics[ii] + kk
-            
+            else:
+                title = label 
+                
             ax.set_title(title, fontsize=8)
             ax.set_ylabel("mean_expression")
         
@@ -1602,12 +1604,13 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
 
         sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False)
 
-        try:
+        if len(df_non_confident_label) > 0 and len(df_confident_label) > 0:
             agg_metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
-        except:
-            agg_metrics = {"zp_val":1} 
-
-        title = label + f" | Z-test -log(p) = {(-1 * np.log( agg_metrics['zp_val'] )):.2f}" 
+            title = label + f" | Z-test -log(p) = {(-1 * np.log( agg_metrics['zp_val'] )):.2f}" 
+        else:
+            agg_metrics = {}
+            title = label
+            
         plt.title(title)
         plt.ylabel("mean_expression")
     
