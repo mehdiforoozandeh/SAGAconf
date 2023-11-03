@@ -298,39 +298,39 @@ def get_subset_transc(r):
         print(f"trying to get expression analysis for {savedir}")
         try:
             os.system(f"python SAGAconf.py -s --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-            r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-            r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+            # r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+            # r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
             conf_v_nonconf_vs_expression(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
             r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
         except Exception as e:
-            print(e)
+            print("ERROR:   ", e)
 
         try:
             os.system(f"python SAGAconf.py --merge_only -s -k 14 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-            r_dist_vs_expression3(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
-            r_dist_vs_expression3_genebody(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+            # r_dist_vs_expression3(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+            # r_dist_vs_expression3_genebody(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
             conf_v_nonconf_vs_expression(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
             r_dist_vs_expression_boxplot(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
         except Exception as e:
-            print(e)
+            print("ERROR:   ", e)
      
         try:
             os.system(f"python SAGAconf.py --merge_only -s -k 12 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-            r_dist_vs_expression3(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
-            r_dist_vs_expression3_genebody(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
+            # r_dist_vs_expression3(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
+            # r_dist_vs_expression3_genebody(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
             conf_v_nonconf_vs_expression(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
             r_dist_vs_expression_boxplot(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
         except Exception as e:
-            print(e)
+            print("ERROR:   ", e)
         
         try:
             os.system(f"python SAGAconf.py --merge_only -s -k 10 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-            r_dist_vs_expression3(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
-            r_dist_vs_expression3_genebody(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+            # r_dist_vs_expression3(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+            # r_dist_vs_expression3_genebody(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
             conf_v_nonconf_vs_expression(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
             r_dist_vs_expression_boxplot(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
         except Exception as e:
-            print(e)
+            print("ERROR:   ", e)
 
 def get_runs(maindir = "rebuttal", mp=True, n_processes=10, subset=False):
     list_of_runs = get_listofruns(maindir)
