@@ -1527,7 +1527,10 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
 
         agg_metrics = {}
         for i, label in enumerate(map_values):
-            ax = axs[i // n_cols, i % n_cols]
+            if axs.ndim == 1:
+                ax = axs[i]
+            else:
+                ax = axs[i // n_cols, i % n_cols]
             df_label = df[df['MAP'] == label]
             df_confident_label = df_confident[df_confident['MAP'] == label]
             df_non_confident_label = df_non_confident[df_non_confident['MAP'] == label]
