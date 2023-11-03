@@ -1531,6 +1531,7 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
                 ax = axs[i]
             else:
                 ax = axs[i // n_cols, i % n_cols]
+
             df_label = df[df['MAP'] == label]
             df_confident_label = df_confident[df_confident['MAP'] == label]
             df_non_confident_label = df_non_confident[df_non_confident['MAP'] == label]
@@ -1539,8 +1540,11 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
                 [pd.Series(np.array(df_label['TPM'])), pd.Series(np.array(df_confident_label['TPM'])), pd.Series(np.array(df_non_confident_label['TPM']))], axis=1)
             data_to_plot.columns = ['All', 'Confident', 'Non-confident']
             
-            if not data_to_plot['All'].isna().all() and not data_to_plot['Confident'].isna().all() and not data_to_plot['Non-confident'].isna().all():
-                sns.boxplot(data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False, ax=ax)
+            try:
+                if not data_to_plot['All'].isna().all() and not data_to_plot['Confident'].isna().all() and not data_to_plot['Non-confident'].isna().all():
+                    sns.boxplot(data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False, ax=ax)
+            except:
+                print(data_to_plot)
 
             metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
 
