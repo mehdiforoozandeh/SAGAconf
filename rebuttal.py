@@ -1537,35 +1537,36 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
             df_confident_label = df_confident[df_confident['MAP'] == label]
             df_non_confident_label = df_non_confident[df_non_confident['MAP'] == label]
 
-            # data_to_plot = pd.concat(
-            #     [pd.Series(np.array(df_label['TPM'])), pd.Series(np.array(df_confident_label['TPM'])), pd.Series(np.array(df_non_confident_label['TPM']))], axis=1)
-            # data_to_plot.columns = ['All', 'Confident', 'Non-confident']
+            if len(df_label) > 0:
+                df_all = df_label[['TPM']].copy()
+                df_all['Category'] = 'All'
+            else:
+                df_all = pd.DataFrame(columns=['TPM', 'Category'])
 
-            df_all = df_label[['TPM']].copy()
-            df_all['Category'] = 'All'
+            if len(df_confident_label) > 0:
+                df_confident = df_confident_label[['TPM']].copy()
+                df_confident['Category'] = 'Confident'
+            else:
+                df_confident = pd.DataFrame(columns=['TPM', 'Category'])
 
-            df_confident = df_confident_label[['TPM']].copy()
-            df_confident['Category'] = 'Confident'
-
-            df_non_confident = df_non_confident_label[['TPM']].copy()
-            df_non_confident['Category'] = 'Non-confident'
+            if len(df_non_confident_label) > 0:
+                df_non_confident = df_non_confident_label[['TPM']].copy()
+                df_non_confident['Category'] = 'Non-confident'
+            else:
+                df_non_confident = pd.DataFrame(columns=['TPM', 'Category'])
 
             data_to_plot = pd.concat([df_all, df_confident, df_non_confident])
 
             sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False, ax=ax)
-            
-            # try:
-            #     sns.boxplot(data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False, ax=ax)
-            # except:
-            #     print(data_to_plot)
 
-            metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
+            if len(df_confident_label) > 0 and len(df_non_confident_label) > 0:
+                metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
 
-            for ii,kk in metrics.items():
-                if ii not in agg_metrics:
-                    agg_metrics[ii] = kk
-                else:
-                    agg_metrics[ii] = agg_metrics[ii] + kk
+                for ii,kk in metrics.items():
+                    if ii not in agg_metrics:
+                        agg_metrics[ii] = kk
+                    else:
+                        agg_metrics[ii] = agg_metrics[ii] + kk
 
             title = label + f" | Z-test -log(p) = {(-1 * np.log( metrics['zp_val'] )):.2f}" 
             ax.set_title(title, fontsize=8)
@@ -1580,23 +1581,27 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
         df_confident_label = df_confident[df_confident['MAP'] == label]
         df_non_confident_label = df_non_confident[df_non_confident['MAP'] == label]
 
-        # data_to_plot = pd.concat(
-        #     [pd.Series(np.array(df_label['TPM'])), pd.Series(np.array(df_confident_label['TPM'])), pd.Series(np.array(df_non_confident_label['TPM']))], axis=1)
-        # data_to_plot.columns = ['All', 'Confident', 'Non-confident']
-        
-        df_all = df_label[['TPM']].copy()
-        df_all['Category'] = 'All'
+        if len(df_label) > 0:
+            df_all = df_label[['TPM']].copy()
+            df_all['Category'] = 'All'
+        else:
+            df_all = pd.DataFrame(columns=['TPM', 'Category'])
 
-        df_confident = df_confident_label[['TPM']].copy()
-        df_confident['Category'] = 'Confident'
+        if len(df_confident_label) > 0:
+            df_confident = df_confident_label[['TPM']].copy()
+            df_confident['Category'] = 'Confident'
+        else:
+            df_confident = pd.DataFrame(columns=['TPM', 'Category'])
 
-        df_non_confident = df_non_confident_label[['TPM']].copy()
-        df_non_confident['Category'] = 'Non-confident'
+        if len(df_non_confident_label) > 0:
+            df_non_confident = df_non_confident_label[['TPM']].copy()
+            df_non_confident['Category'] = 'Non-confident'
+        else:
+            df_non_confident = pd.DataFrame(columns=['TPM', 'Category'])
 
         data_to_plot = pd.concat([df_all, df_confident, df_non_confident])
-        sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False)
 
-        # sns.boxplot(data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False)
+        sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False)
 
         agg_metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
         title = label + f" | Z-test -log(p) = {(-1 * np.log( agg_metrics['zp_val'] )):.2f}" 
