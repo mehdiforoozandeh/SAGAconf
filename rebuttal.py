@@ -1554,10 +1554,10 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
 
             sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False, ax=ax)
             
-            try:
-                sns.boxplot(data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False, ax=ax)
-            except:
-                print(data_to_plot)
+            # try:
+            #     sns.boxplot(data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False, ax=ax)
+            # except:
+            #     print(data_to_plot)
 
             metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
 
