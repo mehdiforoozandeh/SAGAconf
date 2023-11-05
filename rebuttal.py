@@ -188,7 +188,8 @@ def get_single_run(r): # r is run_dict
     try:
         print(f"trying to get original r-values for {savedir}")
         os.system(f"python SAGAconf.py --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-    except:
+    except Exception as e:
+        print("ERROR:   ", e)
         print(f"failed to get original r-values for {savedir}")
 
     if "GM12878" in replicate_1_dir:
@@ -207,63 +208,29 @@ def get_single_run(r): # r is run_dict
             r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
             r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
             conf_v_nonconf_vs_expression(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
-        except:
+        except Exception as e:
+            print("ERROR:   ", e)
             print(f"failed to get WG exp vs r analysis for {savedir}")
 
     try:
         print(f"trying to get per-segment analysis for {savedir}")
         r_distribution_over_segment(f"{savedir}/r_values.bed", savedir)
         os.system(f"python SAGAconf.py --v_seglength -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-    except:
+    except Exception as e:
+        print("ERROR:   ", e)
         print(f"failed to get per-segment analysis for {savedir}")
 
     try:
         print(f"trying to get ccre analysis for {savedir}")
-        os.system(f"python SAGAconf.py --active_regions -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        os.system(f"python SAGAconf.py --active_regions -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
         r_distribution_activeregions2(
-        f"{savedir}/r_values_WG.bed", 
-        f"{savedir}/r_values_cCRE.bed", 
-        f"{savedir}/r_values_muel.bed", 
-        savedir)
-    except:
+            f"{savedir}/r_values_WG.bed", 
+            f"{savedir}/r_values_cCRE.bed", 
+            f"{savedir}/r_values_muel.bed", 
+            savedir)
+    except Exception as e:
+        print("ERROR:   ", e)
         print(f"failed to get ccre analysis for {savedir}")
-
-    #     os.system(f"python SAGAconf.py --merge_only -k 14 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-    #     os.system(f"python SAGAconf.py --merge_only -k 12 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-    #     os.system(f"python SAGAconf.py --merge_only -k 10 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-
-    #     try:
-    #         r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-    #         r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-    #         conf_v_nonconf_vs_expression(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-    #         r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-    #     except:
-    #         pass
-
-    #     try:
-    #         r_dist_vs_expression3(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
-    #         r_dist_vs_expression3_genebody(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
-    #         conf_v_nonconf_vs_expression(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
-    #         r_dist_vs_expression_boxplot(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
-    #     except:
-    #         pass
-
-        
-    #     try:
-    #         r_dist_vs_expression3(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
-    #         r_dist_vs_expression3_genebody(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
-    #         conf_v_nonconf_vs_expression(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
-    #         r_dist_vs_expression_boxplot(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
-    #     except:
-    #         pass
-        
-    #     try:
-    #         r_dist_vs_expression3(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
-    #         r_dist_vs_expression3_genebody(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
-    #         conf_v_nonconf_vs_expression(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
-    #         r_dist_vs_expression_boxplot(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
-    #     except:
-    #         pass
     
     """
     get original r_values 
@@ -1832,6 +1799,8 @@ if __name__ == "__main__":
     # conf_v_nonconf_vs_expression("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression_boxplot("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression3_genebody("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
+    
+    
     get_runs(maindir = "rebuttal_WG", mp=True, n_processes=10)
 
     # get_runs(maindir = "rebuttal", mp=True, n_processes=15)
@@ -1854,10 +1823,10 @@ if __name__ == "__main__":
     
     # os.system(f"python SAGAconf.py --active_regions -v -s -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
     # r_distribution_activeregions2(
-    # f"{savedir}/r_values_WG.bed", 
-    # f"{savedir}/r_values_cCRE.bed", 
-    # f"{savedir}/r_values_muel.bed", 
-    # savedir)
+    #     f"{savedir}/r_values_WG.bed", 
+    #     f"{savedir}/r_values_cCRE.bed", 
+    #     f"{savedir}/r_values_muel.bed", 
+    #     savedir)
 
     # if "GM12878" in replicate_1_dir:
     #     expression_data = "src/biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv"
