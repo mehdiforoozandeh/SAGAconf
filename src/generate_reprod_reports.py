@@ -1,5 +1,9 @@
-from reports import *
+# from ..reports import *
 import multiprocessing as mp
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import logging, ast, sys, shutil, os
 import matplotlib.patches as mpatches
 
@@ -2395,6 +2399,697 @@ def coverage_legend():
 
     plt.show()
 
+def reprod_vs_exp(maindir):
+    "navigate celltypes, settings, and saga model directories"
+    "filter the ones with faulty output"
+    navigate_results = {}
+
+    for s in [x for x in os.listdir(maindir) if os.path.isdir("{}/{}".format(maindir, x))]:
+        navigate_results[s] = {}
+
+        for m in [xx for xx in os.listdir("{}/{}".format(maindir, s)) if os.path.isdir("{}/{}/{}".format(maindir, s, xx))]:
+            navigate_results[s][m] = {}
+
+            for c in [xxx for xxx in os.listdir("{}/{}/{}".format(maindir, s, m)) if os.path.isdir("{}/{}/{}/{}".format(maindir, s, m, xxx))]:
+                if c in ["GM12878", "K562", "MCF-7"]:
+                    navigate_results[s][m][c] = ["{}/{}/{}/{}".format(maindir, s, m, c)]
+        
+    # print(navigate_results)
+
+    var_setting_dict = {
+        "concat":"S2: Diff. data, Same model", "r1vsr2": "S1: Diff. data, Diff. model", 
+        "paraminit":"S3: Same data, Diff. model"}
+
+    def load_conf_vs_nonconf(file):
+        with open(file, "r") as f:
+            lines = f.readlines()
+            zp_val = float(lines[-1].split("=")[1])
+        return zp_val
+
+    def load_r_v_exp(file):
+        pearson = {}
+        r2 = {}
+        with open(file, "r") as f:
+            lines = f.readlines()
+            for i in range(len(lines)):
+                l = lines[i]
+                l = l.split(" = ")
+                if "Tran" in l[0]:
+                    label, metric, score = l[0].split("|")[0], l[0].split("|")[1], float(l[1])
+
+                    if metric == "Pearson_r":
+                        pearson[label] = score
+                    elif metric == "R2":
+                        r2[label] = score
+        
+        r2 = max(list(r2.values()))
+        pearson = max(list(pearson.values()))
+        return r2, pearson
+
+    for s in navigate_results.keys():
+        for m in navigate_results[s]:
+            for c in navigate_results[s][m]:
+
+                if os.path.exists(navigate_results[s][m][c][0] + "/16_states"):
+                    s16_dir = navigate_results[s][m][c][0] + "/16_states/"
+                    try:
+                        con_v_conf16 = -1 * np.log(
+                            load_conf_vs_nonconf(s16_dir + "conf_vs_nonconf_meanEXP_metrics.txt") + 1e-19
+                        )
+                    except:
+                        con_v_conf16 = None
+
+                    try:
+                        rve_r2_16, rve_pcc_16 = load_r_v_exp(s16_dir + "mean_expression_v_r_metrics.txt")
+                    except:
+                        rve_r2_16, rve_pcc_16 = None, None
+
+                    try:
+                        rve_r2_16_GB, rve_pcc_16_GB = load_r_v_exp(s16_dir + "mean_expression_v_r_genebody_metrics.txt")
+                    except:
+                        rve_r2_16_GB, rve_pcc_16_GB = None, None
+                    
+                    ################################################################################################
+
+                    s14_dir = navigate_results[s][m][c][0] + "/14_states/"
+                    try:
+                        con_v_conf14 = -1 * np.log(
+                            load_conf_vs_nonconf(s14_dir + "conf_vs_nonconf_meanEXP_metrics.txt") + 1e-19
+                        )
+                    except:
+                        con_v_conf14 = None
+
+                    try:
+                        rve_r2_14, rve_pcc_14 = load_r_v_exp(s14_dir + "mean_expression_v_r_metrics.txt")
+                    except:
+                        rve_r2_14, rve_pcc_14 = None, None
+
+                    try:
+                        rve_r2_14_GB, rve_pcc_14_GB = load_r_v_exp(s14_dir + "mean_expression_v_r_genebody_metrics.txt")
+                    except:
+                        rve_r2_14_GB, rve_pcc_14_GB = None, None
+
+                    ################################################################################################
+
+                    s12_dir = navigate_results[s][m][c][0] + "/12_states/"
+                    try:
+                        con_v_conf12 = -1 * np.log(
+                            load_conf_vs_nonconf(s12_dir + "conf_vs_nonconf_meanEXP_metrics.txt") + 1e-19
+                        )
+                    except:
+                        con_v_conf12 = None
+
+                    try:
+                        rve_r2_12, rve_pcc_12 = load_r_v_exp(s12_dir + "mean_expression_v_r_metrics.txt")
+                    except:
+                        rve_r2_12, rve_pcc_12 = None, None
+
+                    try:
+                        rve_r2_12_GB, rve_pcc_12_GB = load_r_v_exp(s12_dir + "mean_expression_v_r_genebody_metrics.txt")
+                    except:
+                        rve_r2_12_GB, rve_pcc_12_GB = None, None
+
+                    ################################################################################################
+
+                    s10_dir = navigate_results[s][m][c][0] + "/10_states/"
+                    try:
+                        con_v_conf10 = -1 * np.log(
+                            load_conf_vs_nonconf(s10_dir + "conf_vs_nonconf_meanEXP_metrics.txt") + 1e-19
+                        )
+                    except:
+                        con_v_conf10 = None
+
+                    try:
+                        rve_r2_10, rve_pcc_10 = load_r_v_exp(s10_dir + "mean_expression_v_r_metrics.txt")
+                    except:
+                        rve_r2_10, rve_pcc_10 = None, None
+
+                    try:
+                        rve_r2_10_GB, rve_pcc_10_GB = load_r_v_exp(s10_dir + "mean_expression_v_r_genebody_metrics.txt")
+                    except:
+                        rve_r2_10_GB, rve_pcc_10_GB = None, None
+                    
+                    ################################################################################################
+
+                    conf_v_conf = [con_v_conf16, con_v_conf14, con_v_conf12, con_v_conf10]
+
+                    rve_r2 = [rve_r2_16, rve_r2_14, rve_r2_12, rve_r2_10]
+                    rve_pcc = [rve_pcc_16, rve_pcc_14, rve_pcc_12, rve_pcc_10]
+
+                    GB_rve_r2 = [rve_r2_16_GB, rve_r2_14_GB, rve_r2_12_GB, rve_r2_10_GB]
+                    GB_rve_pcc = [rve_pcc_16_GB, rve_pcc_14_GB, rve_pcc_12_GB, rve_pcc_10_GB]
+
+                    navigate_results[s][m][c].append([conf_v_conf, rve_r2, rve_pcc, GB_rve_r2, GB_rve_pcc])
+
+                else:
+                    pass
+
+    # print(navigate_results)
+    chmm = []
+    segway = []
+    for s in navigate_results.keys():
+        for m in navigate_results[s]:
+            for c in navigate_results[s][m]:
+
+                if m == "chmm":
+                    # setting, ct, n_labels, con_v_conf, rve_r2, rve_pcc, GB_rve_r2, GB_rve_pcc
+                    chmm.append(
+                        [
+                            var_setting_dict[s], c, 16, navigate_results[s][m][c][1][0][0], navigate_results[s][m][c][1][1][0], 
+                            navigate_results[s][m][c][1][2][0], navigate_results[s][m][c][1][3][0], navigate_results[s][m][c][1][4][0]
+                        ]
+                    )
+
+                    chmm.append(
+                        [
+                            var_setting_dict[s], c, 14, navigate_results[s][m][c][1][0][1], navigate_results[s][m][c][1][1][1], 
+                            navigate_results[s][m][c][1][2][1], navigate_results[s][m][c][1][3][1], navigate_results[s][m][c][1][4][1]
+                        ]
+                    )
+
+                    chmm.append(
+                        [
+                            var_setting_dict[s], c, 12, navigate_results[s][m][c][1][0][2], navigate_results[s][m][c][1][1][2], 
+                            navigate_results[s][m][c][1][2][2], navigate_results[s][m][c][1][3][2], navigate_results[s][m][c][1][4][2]
+                        ]
+                    )
+
+                    chmm.append(
+                        [
+                            var_setting_dict[s], c, 10, navigate_results[s][m][c][1][0][3], navigate_results[s][m][c][1][1][3], 
+                            navigate_results[s][m][c][1][2][3], navigate_results[s][m][c][1][3][3], navigate_results[s][m][c][1][4][3]
+                        ]
+                    )
+
+                elif m == "segway":
+                    segway.append(
+                        [
+                            var_setting_dict[s], c, 16, navigate_results[s][m][c][1][0][0], navigate_results[s][m][c][1][1][0], 
+                            navigate_results[s][m][c][1][2][0], navigate_results[s][m][c][1][3][0], navigate_results[s][m][c][1][4][0]
+                        ]
+                    )
+
+                    segway.append(
+                        [
+                            var_setting_dict[s], c, 14, navigate_results[s][m][c][1][0][1], navigate_results[s][m][c][1][1][1], 
+                            navigate_results[s][m][c][1][2][1], navigate_results[s][m][c][1][3][1], navigate_results[s][m][c][1][4][1]
+                        ]
+                    )
+
+                    segway.append(
+                        [
+                            var_setting_dict[s], c, 12, navigate_results[s][m][c][1][0][2], navigate_results[s][m][c][1][1][2], 
+                            navigate_results[s][m][c][1][2][2], navigate_results[s][m][c][1][3][2], navigate_results[s][m][c][1][4][2]
+                        ]
+                    )
+
+                    segway.append(
+                        [
+                            var_setting_dict[s], c, 10, navigate_results[s][m][c][1][0][3], navigate_results[s][m][c][1][1][3], 
+                            navigate_results[s][m][c][1][2][3], navigate_results[s][m][c][1][3][3], navigate_results[s][m][c][1][4][3]
+                        ]
+                    )
+    
+    chmm = pd.DataFrame(
+        chmm, 
+        columns = ["setting", "CellType", "n_labels", "con_v_conf", "rve_r2", "rve_pcc", "GB_rve_r2", "GB_rve_pcc"]).sort_values(
+            by=["setting", "CellType"])
+
+    segway = pd.DataFrame(
+        segway, 
+        columns = ["setting", "CellType", "n_labels", "con_v_conf", "rve_r2", "rve_pcc", "GB_rve_r2", "GB_rve_pcc"]).sort_values(
+            by=["setting", "CellType"])
+
+    def visualize(df, metric):
+        fig, axs = plt.subplots(1, 1, figsize=(12, 9), sharex=False, sharey=False)
+
+        # Flatten the axs array to make it easier to iterate over
+        # axs = axs.flatten()
+
+        # Define the marker styles you want to use for each category of the 'celltype' variable
+        markers = {
+            'S3: Same data, Diff. model': 'o', 
+            'S2: Diff. data, Same model': 's',
+            "S1: Diff. data, Diff. model": "v"} 
+
+        # Plot the data in each subplot
+        for setting, marker in markers.items():
+            df_s = df[df['setting'] == setting]
+            sns.stripplot(x="n_labels", y=metric, hue="CellType", data=df_s, ax=axs, marker=marker, size=10, alpha=0.8)
+
+        for i in range(len(df.n_labels.unique())):
+            axs.axvline(i - 0.5, color="gray", linestyle="--", alpha=0.5)
+
+        # axs.set_xticklabels(axs.get_xticklabels(), fontsize=9)
+        axs.set_xlabel('Number of States', fontsize=14)
+
+        axs.tick_params(axis='y', labelsize=14)
+        axs.tick_params(axis='x', labelsize=14)
+
+        # Get the color palette used by seaborn
+        palette = sns.color_palette()
+
+        # # Create a custom legend
+        legend_elements = []
+        for i, ct in enumerate(df.CellType.unique()):
+            legend_elements.append(plt.Line2D([0], [0], color=palette[i], label=ct, marker='o', markersize=10, linestyle='None'))
+            
+        for i, setting in enumerate(df.setting.unique()):
+            legend_elements.append(plt.Line2D([0], [0], color='black', marker=markers[setting], label=setting, linestyle='None'))
+    
+        #  # Add the custom legend to the first subplot
+        axs.legend(handles=legend_elements, bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
+                mode="expand", borderaxespad=0, ncol=len(legend_elements), fontsize=9)
+
+    ####################################################################################
+
+    visualize(chmm, "rve_r2")
+    plt.ylabel("R2", fontsize=14)
+    plt.savefig(maindir+"/chmm_rve_r2.pdf", format="pdf")
+    plt.savefig(maindir+"/chmm_rve_r2.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
+    visualize(chmm, "con_v_conf")
+    plt.ylabel("Z-test -log(p)", fontsize=14)
+    plt.savefig(maindir+"/chmm_rve_con_v_conf.pdf", format="pdf")
+    plt.savefig(maindir+"/chmm_rve_con_v_conf.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
+    visualize(chmm, "rve_pcc")
+    plt.ylabel("PCC", fontsize=14)
+    plt.savefig(maindir+"/chmm_rve_pcc.pdf", format="pdf")
+    plt.savefig(maindir+"/chmm_rve_pcc.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
+    ####################################################################################
+    visualize(segway, "rve_r2")
+    plt.ylabel("R2", fontsize=14)
+    plt.savefig(maindir+"/segway_rve_r2.pdf", format="pdf")
+    plt.savefig(maindir+"/segway_rve_r2.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
+    visualize(segway, "con_v_conf")
+    plt.ylabel("Z-test -log(p)", fontsize=14)
+    plt.savefig(maindir+"/segway_rve_con_v_conf.pdf", format="pdf")
+    plt.savefig(maindir+"/segway_rve_con_v_conf.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
+    visualize(segway, "rve_pcc")
+    plt.ylabel("PCC", fontsize=14)
+    plt.savefig(maindir+"/segway_rve_pcc.pdf", format="pdf")
+    plt.savefig(maindir+"/segway_rve_pcc.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
+def reprod_vs_exp_per_label(maindir):
+    "navigate celltypes, settings, and saga model directories"
+    "filter the ones with faulty output"
+    navigate_results = {}
+
+    for s in [x for x in os.listdir(maindir) if os.path.isdir("{}/{}".format(maindir, x))]:
+        navigate_results[s] = {}
+
+        for m in [xx for xx in os.listdir("{}/{}".format(maindir, s)) if os.path.isdir("{}/{}/{}".format(maindir, s, xx))]:
+            navigate_results[s][m] = {}
+
+            for c in [xxx for xxx in os.listdir("{}/{}/{}".format(maindir, s, m)) if os.path.isdir("{}/{}/{}/{}".format(maindir, s, m, xxx))]:
+                if c in ["GM12878", "K562", "MCF-7"]:
+                    navigate_results[s][m][c] = ["{}/{}/{}/{}".format(maindir, s, m, c)]
+        
+    # print(navigate_results)
+
+    var_setting_dict = {
+        "concat":"S2: Diff. data, Same model", "r1vsr2": "S1: Diff. data, Diff. model", 
+        "paraminit":"S3: Same data, Diff. model"}
+
+    setting_inverse = {v:k for k, v in var_setting_dict.items()}
+
+    def load_r_v_exp(file):
+        pearson = {}
+        r2 = {}
+        with open(file, "r") as f:
+            lines = f.readlines()
+            for i in range(len(lines)):
+                l = lines[i]
+                l = l.split(" = ")
+                label, metric, score = l[0].split("|")[0], l[0].split("|")[1], float(l[1])
+
+                if metric == "Pearson_r":
+                    pearson[label] = score
+                elif metric == "R2":
+                    r2[label] = score
+                    
+        return r2, pearson
+
+    for s in navigate_results.keys():
+        for m in navigate_results[s]:
+            for c in navigate_results[s][m]:
+
+                if os.path.exists(navigate_results[s][m][c][0] + "/16_states"):
+                    s16_dir = navigate_results[s][m][c][0] + "/16_states/"
+
+                    try:
+                        rve_r2_16, rve_pcc_16 = load_r_v_exp(s16_dir + "mean_expression_v_r_metrics.txt")
+                    except:
+                        rve_r2_16, rve_pcc_16 = {}, {}
+
+                    try:
+                        rve_r2_16_GB, rve_pcc_16_GB = load_r_v_exp(s16_dir + "mean_expression_v_r_genebody_metrics.txt")
+                    except:
+                        rve_r2_16_GB, rve_pcc_16_GB = {}, {}
+                    
+                    ################################################################################################
+
+                    s14_dir = navigate_results[s][m][c][0] + "/14_states/"
+
+                    try:
+                        rve_r2_14, rve_pcc_14 = load_r_v_exp(s14_dir + "mean_expression_v_r_metrics.txt")
+                    except:
+                        rve_r2_14, rve_pcc_14 = {}, {}
+
+                    try:
+                        rve_r2_14_GB, rve_pcc_14_GB = load_r_v_exp(s14_dir + "mean_expression_v_r_genebody_metrics.txt")
+                    except:
+                        rve_r2_14_GB, rve_pcc_14_GB = {}, {}
+
+                    ################################################################################################
+
+                    s12_dir = navigate_results[s][m][c][0] + "/12_states/"
+
+                    try:
+                        rve_r2_12, rve_pcc_12 = load_r_v_exp(s12_dir + "mean_expression_v_r_metrics.txt")
+                    except:
+                        rve_r2_12, rve_pcc_12 = {}, {}
+
+                    try:
+                        rve_r2_12_GB, rve_pcc_12_GB = load_r_v_exp(s12_dir + "mean_expression_v_r_genebody_metrics.txt")
+                    except:
+                        rve_r2_12_GB, rve_pcc_12_GB = {}, {}
+
+                    ################################################################################################
+
+                    s10_dir = navigate_results[s][m][c][0] + "/10_states/"
+
+                    try:
+                        rve_r2_10, rve_pcc_10 = load_r_v_exp(s10_dir + "mean_expression_v_r_metrics.txt")
+                    except:
+                        rve_r2_10, rve_pcc_10 = {}, {}
+
+                    try:
+                        rve_r2_10_GB, rve_pcc_10_GB = load_r_v_exp(s10_dir + "mean_expression_v_r_genebody_metrics.txt")
+                    except:
+                        rve_r2_10_GB, rve_pcc_10_GB = {}, {}
+                    
+                    ################################################################################################
+
+                    rve_r2 = [rve_r2_16, rve_r2_14, rve_r2_12, rve_r2_10]
+                    rve_pcc = [rve_pcc_16, rve_pcc_14, rve_pcc_12, rve_pcc_10]
+
+                    GB_rve_r2 = [rve_r2_16_GB, rve_r2_14_GB, rve_r2_12_GB, rve_r2_10_GB]
+                    GB_rve_pcc = [rve_pcc_16_GB, rve_pcc_14_GB, rve_pcc_12_GB, rve_pcc_10_GB]
+
+                    navigate_results[s][m][c].append([rve_r2, rve_pcc, GB_rve_r2, GB_rve_pcc])
+
+                else:
+                    pass
+
+    chmm = []
+    segway = []
+    for s in navigate_results.keys():
+        for m in navigate_results[s]:
+            for c in navigate_results[s][m]:
+
+                if m == "chmm":
+                    # setting, ct, n_labels, state, con_v_conf, rve_r2, rve_pcc, GB_rve_r2, GB_rve_pcc
+                    for k in navigate_results[s][m][c][1][0][0].keys():
+                        if "+" in k:
+                            raise
+                        try:
+                            chmm.append(
+                                [
+                                    var_setting_dict[s], c, 16, k, navigate_results[s][m][c][1][0][0][k], navigate_results[s][m][c][1][1][0][k], 
+                                    navigate_results[s][m][c][1][2][0][k], navigate_results[s][m][c][1][3][0][k]
+                                ]
+                            )
+                        except:
+                            pass
+                    
+                    for k in navigate_results[s][m][c][1][0][1].keys():
+                        try:
+                            chmm.append(
+                                [
+                                    var_setting_dict[s], c, 14, k, navigate_results[s][m][c][1][0][1][k], navigate_results[s][m][c][1][1][1][k], 
+                                    navigate_results[s][m][c][1][2][1][k], navigate_results[s][m][c][1][3][1][k]
+                                ]
+                            )
+                        except:
+                            pass
+                    
+                    for k in navigate_results[s][m][c][1][0][2].keys():
+                        try:
+                            chmm.append(
+                                [
+                                    var_setting_dict[s], c, 12, k, navigate_results[s][m][c][1][0][2][k], navigate_results[s][m][c][1][1][2][k], 
+                                    navigate_results[s][m][c][1][2][2][k], navigate_results[s][m][c][1][3][2][k]
+                                ]
+                            )
+                        except:
+                            pass
+                    
+                    for k in navigate_results[s][m][c][1][0][3].keys():
+                        try:
+                            chmm.append(
+                                [
+                                    var_setting_dict[s], c, 10, k, navigate_results[s][m][c][1][0][3][k], navigate_results[s][m][c][1][1][3][k], 
+                                    navigate_results[s][m][c][1][2][3][k], navigate_results[s][m][c][1][3][3][k]
+                                ]
+                            )
+                        except:
+                            pass
+                
+                #############################################################################################################################
+
+                elif m == "segway":
+                    for k in navigate_results[s][m][c][1][0][0].keys():
+                        
+                        try:
+                            segway.append(
+                                [
+                                    var_setting_dict[s], c, 16, k, navigate_results[s][m][c][1][0][0][k], navigate_results[s][m][c][1][1][0][k], 
+                                    navigate_results[s][m][c][1][2][0][k], navigate_results[s][m][c][1][3][0][k]
+                                ]
+                            )
+                        except:
+                            pass
+                    
+                    for k in navigate_results[s][m][c][1][0][1].keys():
+                        try:
+                            segway.append(
+                                [
+                                    var_setting_dict[s], c, 14, k, navigate_results[s][m][c][1][0][1][k], navigate_results[s][m][c][1][1][1][k], 
+                                    navigate_results[s][m][c][1][2][1][k], navigate_results[s][m][c][1][3][1][k]
+                                ]
+                            )
+                        except:
+                            pass
+                    
+                    for k in navigate_results[s][m][c][1][0][2].keys():
+                        try:
+                            segway.append(
+                                [
+                                    var_setting_dict[s], c, 12, k, navigate_results[s][m][c][1][0][2][k], navigate_results[s][m][c][1][1][2][k], 
+                                    navigate_results[s][m][c][1][2][2][k], navigate_results[s][m][c][1][3][2][k]
+                                ]
+                            )
+                        except:
+                            pass
+                    
+                    for k in navigate_results[s][m][c][1][0][3].keys():
+                        try:
+                            segway.append(
+                                [
+                                    var_setting_dict[s], c, 10, k, navigate_results[s][m][c][1][0][3][k], navigate_results[s][m][c][1][1][3][k], 
+                                    navigate_results[s][m][c][1][2][3][k], navigate_results[s][m][c][1][3][3][k]
+                                ]
+                            )
+                        except:
+                            pass
+   
+    chmm = pd.DataFrame(
+        chmm, 
+        columns = ["Setting", "CellType", "n_labels", "State", "rve_r2", "rve_pcc", "GB_rve_r2", "GB_rve_pcc"]).sort_values(
+            by=["Setting", "CellType", "n_labels", "State"]).reset_index(drop=True)
+
+    segway = pd.DataFrame(
+        segway, 
+        columns = ["Setting", "CellType", "n_labels", "State", "rve_r2", "rve_pcc", "GB_rve_r2", "GB_rve_pcc"]).sort_values(
+            by=["Setting", "CellType", "n_labels", "State"]).reset_index(drop=True)
+
+    # print(chmm)
+    # print(segway)
+    
+    def visualize(df, score, cell_type, setting):
+        df_cell = df[(df['CellType'] == cell_type) & (df['Setting'] == setting)]
+        # Create a color palette based on the 'State' column
+        palette = ['red' if 'Tran' in state else 'grey' for state in df_cell['State']]
+
+        # Create a grid of subplots based on 'setting' and 'n_labels'
+        g = sns.FacetGrid(df_cell, row="Setting", col="n_labels", hue="CellType", margin_titles=True, sharex=False, sharey=True, height=6, aspect=0.6)
+
+        # Map the data to a bar plot with 'State' on the x-axis and the score on the y-axis
+        g.map(lambda x, y, **kwargs: sns.barplot(x=x, y=y, palette=['red' if 'Tran' in state else 'grey' for state in x], **kwargs), "State", score)
+
+        # Rotate x-axis labels
+        g.set_xticklabels(rotation=90, fontsize=9)
+
+        # Add a legend
+        # g.add_legend()
+
+        g.tight_layout()
+
+    cell_types = chmm['CellType'].unique()
+    settings = chmm['Setting'].unique()
+
+    for s in settings:
+        for c in cell_types:
+
+            visualize(chmm, "rve_r2", c, s)
+            plt.ylabel("R2", fontsize=10)
+            plt.savefig(maindir + "/" + setting_inverse[s] + "/chmm/" + c + "/rve_r2.pdf", format="pdf")
+            plt.savefig(maindir + "/" + setting_inverse[s] + "/chmm/" + c + "/rve_r2.svg", format="svg")
+            plt.clf()
+            sns.reset_orig
+            plt.style.use('default')
+
+
+            visualize(segway, "rve_r2", c, s)
+            plt.ylabel("R2", fontsize=10)
+            plt.savefig(maindir + "/" + setting_inverse[s] + "/segway/" + c + "/rve_r2.pdf", format="pdf")
+            plt.savefig(maindir + "/" + setting_inverse[s] + "/segway/" + c + "/rve_r2.svg", format="svg")
+            plt.clf()
+            sns.reset_orig
+            plt.style.use('default')
+
+            ####################################################################################
+
+            visualize(segway, "rve_pcc", c, s)
+            plt.ylabel("PCC", fontsize=10)
+            plt.savefig(maindir + "/" + setting_inverse[s] + "/segway/" + c + "/rve_pcc.pdf", format="pdf")
+            plt.savefig(maindir + "/" + setting_inverse[s] + "/segway/" + c + "/rve_pcc.svg", format="svg")
+            plt.clf()
+            sns.reset_orig
+            plt.style.use('default')
+            
+
+            visualize(segway, "rve_pcc", c, s)
+            plt.ylabel("PCC", fontsize=10)
+            plt.savefig(maindir + "/" + setting_inverse[s] + "/segway/" + c + "/rve_pcc.pdf", format="pdf")
+            plt.savefig(maindir + "/" + setting_inverse[s] + "/segway/" + c + "/rve_pcc.svg", format="svg")
+            plt.clf()
+            sns.reset_orig
+            plt.style.use('default')
+
+            ####################################################################################
+
+            visualize(segway, "GB_rve_r2", c, s)
+            plt.ylabel("R2", fontsize=10)
+            plt.savefig(maindir + "/" + setting_inverse[s] + "/segway/" + c + "/GB_rve_r2.pdf", format="pdf")
+            plt.savefig(maindir + "/" + setting_inverse[s] + "/segway/" + c + "/GB_rve_r2.svg", format="svg")
+            plt.clf()
+            sns.reset_orig
+            plt.style.use('default')
+
+            visualize(segway, "GB_rve_r2", c, s)
+            plt.ylabel("R2", fontsize=10)
+            plt.savefig(maindir + "/" + setting_inverse[s] + "/segway/" + c + "/GB_rve_r2.pdf", format="pdf")
+            plt.savefig(maindir + "/" + setting_inverse[s] + "/segway/" + c + "/GB_rve_r2.svg", format="svg")
+            plt.clf()
+            sns.reset_orig
+            plt.style.use('default')
+
+            ####################################################################################
+
+            visualize(segway, "GB_rve_pcc", c, s)
+            plt.ylabel("PCC", fontsize=10)
+            plt.savefig(maindir + "/" + setting_inverse[s] + "/segway/" + c + "/GB_rve_pcc.pdf", format="pdf")
+            plt.savefig(maindir + "/" + setting_inverse[s] + "/segway/" + c + "/GB_rve_pcc.svg", format="svg")
+            plt.clf()
+            sns.reset_orig
+            plt.style.use('default')
+
+            visualize(segway, "GB_rve_pcc", c, s)
+            plt.ylabel("PCC", fontsize=10)
+            plt.savefig(maindir + "/" + setting_inverse[s] + "/segway/" + c + "/GB_rve_pcc.pdf", format="pdf")
+            plt.savefig(maindir + "/" + setting_inverse[s] + "/segway/" + c + "/GB_rve_pcc.svg", format="svg")
+            plt.clf()
+            sns.reset_orig
+            plt.style.use('default')
+
+
+    exit()
+    ####################################################################################
+    
+    visualize(chmm, "rve_r2")
+    plt.ylabel("R2", fontsize=14)
+    plt.savefig(maindir+"/chmm_rve_r2.pdf", format="pdf")
+    plt.savefig(maindir+"/chmm_rve_r2.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
+    visualize(chmm, "con_v_conf")
+    plt.ylabel("Z-test -log(p)", fontsize=14)
+    plt.savefig(maindir+"/chmm_rve_con_v_conf.pdf", format="pdf")
+    plt.savefig(maindir+"/chmm_rve_con_v_conf.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
+    visualize(chmm, "rve_pcc")
+    plt.ylabel("PCC", fontsize=14)
+    plt.savefig(maindir+"/chmm_rve_pcc.pdf", format="pdf")
+    plt.savefig(maindir+"/chmm_rve_pcc.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
+    ####################################################################################
+    visualize(segway, "rve_r2")
+    plt.ylabel("R2", fontsize=14)
+    plt.savefig(maindir+"/segway_rve_r2.pdf", format="pdf")
+    plt.savefig(maindir+"/segway_rve_r2.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
+    visualize(segway, "con_v_conf")
+    plt.ylabel("Z-test -log(p)", fontsize=14)
+    plt.savefig(maindir+"/segway_rve_con_v_conf.pdf", format="pdf")
+    plt.savefig(maindir+"/segway_rve_con_v_conf.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
+    visualize(segway, "rve_pcc")
+    plt.ylabel("PCC", fontsize=14)
+    plt.savefig(maindir+"/segway_rve_pcc.pdf", format="pdf")
+    plt.savefig(maindir+"/segway_rve_pcc.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
+
 if __name__=="__main__":
     # exemplar_naive("tests/cedar_runs/chmm/GM12878_R1/")
     # exit()
@@ -2402,6 +3097,8 @@ if __name__=="__main__":
     # merge_WG_subset("tests/subset", "tests/WG", "tests/copy_log.txt")
     # comp = COMPARATIVE("tests/subset")
     # comp.ALL()
+    reprod_vs_exp_per_label("/Users/mforooz/Desktop/research/libbrechteam@sfu/segwayconf/gitrepo/SAGAconf/tests/Rebuttal_runs/rebuttal_subset")
+    exit()
     comp = COMPARATIVE("tests/WG")
     comp.ALL()
     

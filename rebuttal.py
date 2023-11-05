@@ -202,42 +202,13 @@ def get_single_run(r): # r is run_dict
     
     if expression_data != "EMPTY":
         print(f"trying to get expression analysis for {savedir}")
-        os.system(f"python SAGAconf.py --merge_only -k 14 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-        os.system(f"python SAGAconf.py --merge_only -k 12 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-        os.system(f"python SAGAconf.py --merge_only -k 10 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-
         try:
-            r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-            r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-            conf_v_nonconf_vs_expression(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-            r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+            r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
+            r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
+            r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
+            conf_v_nonconf_vs_expression(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
         except:
-            pass
-
-        try:
-            r_dist_vs_expression3(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
-            r_dist_vs_expression3_genebody(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
-            conf_v_nonconf_vs_expression(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
-            r_dist_vs_expression_boxplot(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
-        except:
-            pass
-
-        
-        try:
-            r_dist_vs_expression3(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
-            r_dist_vs_expression3_genebody(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
-            conf_v_nonconf_vs_expression(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
-            r_dist_vs_expression_boxplot(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
-        except:
-            pass
-        
-        try:
-            r_dist_vs_expression3(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
-            r_dist_vs_expression3_genebody(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
-            conf_v_nonconf_vs_expression(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
-            r_dist_vs_expression_boxplot(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
-        except:
-            pass
+            print(f"failed to get WG exp vs r analysis for {savedir}")
 
     try:
         print(f"trying to get per-segment analysis for {savedir}")
@@ -256,6 +227,43 @@ def get_single_run(r): # r is run_dict
         savedir)
     except:
         print(f"failed to get ccre analysis for {savedir}")
+
+    #     os.system(f"python SAGAconf.py --merge_only -k 14 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+    #     os.system(f"python SAGAconf.py --merge_only -k 12 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+    #     os.system(f"python SAGAconf.py --merge_only -k 10 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+
+    #     try:
+    #         r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+    #         r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+    #         conf_v_nonconf_vs_expression(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+    #         r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+    #     except:
+    #         pass
+
+    #     try:
+    #         r_dist_vs_expression3(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+    #         r_dist_vs_expression3_genebody(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+    #         conf_v_nonconf_vs_expression(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+    #         r_dist_vs_expression_boxplot(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+    #     except:
+    #         pass
+
+        
+    #     try:
+    #         r_dist_vs_expression3(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
+    #         r_dist_vs_expression3_genebody(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
+    #         conf_v_nonconf_vs_expression(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
+    #         r_dist_vs_expression_boxplot(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
+    #     except:
+    #         pass
+        
+    #     try:
+    #         r_dist_vs_expression3(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+    #         r_dist_vs_expression3_genebody(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+    #         conf_v_nonconf_vs_expression(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+    #         r_dist_vs_expression_boxplot(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+    #     except:
+    #         pass
     
     """
     get original r_values 
@@ -299,9 +307,10 @@ def get_subset_transc(r):
         try:
             if os.path.exists(f"{savedir}/r_values.bed") == False:
                 os.system(f"python SAGAconf.py -s --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-            # r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-            # r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-            # r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+
+            r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+            r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+            r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
             conf_v_nonconf_vs_expression(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
         except Exception as e:
             print("ERROR:   ", e)
@@ -309,9 +318,10 @@ def get_subset_transc(r):
         try:
             if os.path.exists(f"{savedir}/r_values_14_states.bed") == False:
                 os.system(f"python SAGAconf.py --merge_only -s -k 14 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-            # r_dist_vs_expression3(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
-            # r_dist_vs_expression3_genebody(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
-            # r_dist_vs_expression_boxplot(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+
+            r_dist_vs_expression3(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+            r_dist_vs_expression3_genebody(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+            r_dist_vs_expression_boxplot(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
             conf_v_nonconf_vs_expression(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
         
         except Exception as e:
@@ -320,9 +330,10 @@ def get_subset_transc(r):
         try:
             if os.path.exists(f"{savedir}/r_values_12_states.bed") == False:
                 os.system(f"python SAGAconf.py --merge_only -s -k 12 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-            # r_dist_vs_expression3(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
-            # r_dist_vs_expression3_genebody(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
-            # r_dist_vs_expression_boxplot(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
+
+            r_dist_vs_expression3(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
+            r_dist_vs_expression3_genebody(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
+            r_dist_vs_expression_boxplot(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
             conf_v_nonconf_vs_expression(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
         except Exception as e:
             print("ERROR:   ", e)
@@ -330,14 +341,15 @@ def get_subset_transc(r):
         try:
             if os.path.exists(f"{savedir}/r_values_10_states.bed") == False:
                 os.system(f"python SAGAconf.py --merge_only -s -k 10 -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-            # r_dist_vs_expression3(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
-            # r_dist_vs_expression3_genebody(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
-            # r_dist_vs_expression_boxplot(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+
+            r_dist_vs_expression3(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+            r_dist_vs_expression3_genebody(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+            r_dist_vs_expression_boxplot(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
             conf_v_nonconf_vs_expression(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
         except Exception as e:
             print("ERROR:   ", e)
 
-def get_runs(maindir = "rebuttal", mp=True, n_processes=10, subset=False):
+def get_runs(maindir = "rebuttal", mp=True, n_processes=10):
     list_of_runs = get_listofruns(maindir)
     random.shuffle(list_of_runs)
 
@@ -373,18 +385,13 @@ def get_runs(maindir = "rebuttal", mp=True, n_processes=10, subset=False):
 
     if mp:
         with Pool(n_processes) as p:
-            if subset:
-                p.map(get_subset_transc, list_of_runs)
-            else:
-                p.map(get_single_run, list_of_runs)
-
+            p.map(get_single_run, list_of_runs)
+            p.map(get_subset_transc, list_of_runs)
             p.map(corresp_emiss_v_iou, list_of_runs)
     else:
         for r in list_of_runs:
-            if subset:
-                get_subset_transc(r)
-            else:
-                get_single_run(r)
+            get_subset_transc(r)
+            get_single_run(r)
             corresp_emiss_v_iou(r)
 
 def corresp_emiss_v_iou(r):
@@ -1475,18 +1482,18 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
     # Get the intersection
     df = bed2.intersect(bed1, wa=True, wb=True).to_dataframe()
     df2 = bed2.intersect(bed1, wa=True, wb=True, v=True).to_dataframe()
-    df2["TPM"] = 0
+    # df2["TPM"] = 0
 
     df = df[["chrom", "start", "end", "name", "score", "blockSizes"]]
     df.columns = ["chr", "start", "end", "MAP", "r_value", "TPM"]
-    df2.columns = ["chr", "start", "end", "MAP", "r_value", "TPM"]
+    # df2.columns = ["chr", "start", "end", "MAP", "r_value", "TPM"]
 
     # Merge df and df2
-    df = pd.concat([df, df2])
+    # df = pd.concat([df, df2])
 
     # Sort the resulting DataFrame by 'chr' and 'start'
     df = df.sort_values(by=['chr', 'start'])
-    del df2
+    # del df2
     
     df_confident = df.loc[df["r_value"] >= alpha, :].reset_index(drop=True)
     df_non_confident = df.loc[df["r_value"] < alpha, :].reset_index(drop=True)
@@ -1570,8 +1577,23 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
                 df_non_confident_ = pd.DataFrame(columns=['TPM', 'Category'])
 
             data_to_plot = pd.concat([df_all_, df_confident_, df_non_confident_])
+            data_to_plot['TPM'] = np.log(data_to_plot['TPM'] + 1e-19)
 
-            sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False, ax=ax)
+            # sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False, ax=ax)
+
+            weights_confident = np.ones_like(data_to_plot[data_to_plot['Category'] == 'Confident']['TPM']) / len(data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'])
+            weights_non_confident = np.ones_like(data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM']) / len(data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM'])
+
+            ax.hist([data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'], 
+                    data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM']], 
+                    bins=5, stacked=True, color=['mediumaquamarine', 'lightcoral'], 
+                    weights=[weights_confident, weights_non_confident])
+
+            # Add labels and title
+            ax.set_xlabel('Log(TPM)')
+            ax.set_ylabel('Frequency')
+            # plt.title(title)
+            ax.legend(['r > 0.9', 'r < 0.9'])
 
             if len(df_confident_label) > 0 and len(df_non_confident_label) > 0:
                 metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
@@ -1586,7 +1608,7 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
                 title = label 
                 
             ax.set_title(title, fontsize=8)
-            ax.set_ylabel("mean_expression")
+            # ax.set_ylabel("mean_expression")
         
         for ii in agg_metrics.keys():
             agg_metrics[ii] = agg_metrics[ii] / len(map_values)
@@ -1627,8 +1649,27 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
             df_non_confident_ = pd.DataFrame(columns=['TPM', 'Category'])
 
         data_to_plot = pd.concat([df_all_, df_confident_, df_non_confident_])
+        data_to_plot['TPM'] = np.log(data_to_plot['TPM'] + 1e-19)
 
-        sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False)
+        # sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False)
+        plt.figure(figsize=(10, 6))
+        # plt.hist([data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'], 
+        #         data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM']], 
+                # bins=10, stacked=True, color=['mediumaquamarine', 'lightcoral'], density=True)
+
+        weights_confident = np.ones_like(data_to_plot[data_to_plot['Category'] == 'Confident']['TPM']) / len(data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'])
+        weights_non_confident = np.ones_like(data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM']) / len(data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM'])
+
+        plt.hist([data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'], 
+                data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM']], 
+                bins=5, stacked=True, color=['mediumaquamarine', 'lightcoral'], 
+                weights=[weights_confident, weights_non_confident])
+
+        # Add labels and title
+        plt.xlabel('Log(TPM)')
+        plt.ylabel('Frequency')
+        # plt.title(title)
+        plt.legend(['r > 0.9', 'r < 0.9'])
 
         if len(df_non_confident_label) > 0 and len(df_confident_label) > 0:
             agg_metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
@@ -1638,7 +1679,7 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
             title = label
             
         plt.title(title)
-        plt.ylabel("mean_expression")
+        # plt.ylabel("mean_expression")
     
     print("saving metrics in text format for conf_v_nonconf_vs_expression")
     with open(f"{savedir}/conf_vs_nonconf_meanEXP_metrics.txt", "w") as f:
@@ -1718,8 +1759,9 @@ def r_dist_vs_expression_boxplot(r_value_file, expression_file, savedir, n_bins=
     
     parsed = [] # each entry is a [r_bin_center, mean_r, MAP, mean_exp, non_zero_exp_fraction]
     for b, p in binned_positions.items():
+        r_bin_center = float(str(f"{((b[0]+b[1])/2):.3f}"))
         for l in p:
-            r_bin_center = float(str(f"{((b[0]+b[1])/2):.3f}"))
+            l = l.reset_index(drop=True)
             mean_r = l["r_value"].mean()
             # seg_name = l["MAP"].unique()[0]
             if interpret:
@@ -1728,14 +1770,18 @@ def r_dist_vs_expression_boxplot(r_value_file, expression_file, savedir, n_bins=
             else:
                 seg_name = l["MAP"].unique()[0]
 
-            mean_TPM = l["TPM"].mean()
-            non_zero_exp_fraction = len(l.loc[(l["TPM"] > 0), :]) / len(l)
+            # mean_TPM = l["TPM"].mean()
+            # non_zero_exp_fraction = len(l.loc[(l["TPM"] > 0), :]) / len(l)
 
-            entry = [r_bin_center, mean_r, seg_name, mean_TPM, non_zero_exp_fraction]
-            parsed.append(entry)
+            for t in range(len(l)):
+                entry = [r_bin_center, seg_name, l["TPM"][t]]
+                parsed.append(entry)
+
+            # entry = [r_bin_center, mean_r, seg_name, mean_TPM, non_zero_exp_fraction]
+            # parsed.append(entry)
 
     # Convert parsed list to DataFrame for easier manipulation
-    parsed_df = pd.DataFrame(parsed, columns=['r_value', 'mean_r', "MAP",  'mean_exp', 'non_zero_exp_fraction'])
+    parsed_df = pd.DataFrame(parsed, columns=['r_value', "MAP", 'TPM'])
     parsed_df = parsed_df.sort_values(by='MAP').reset_index(drop=True)
 
     map_to_color = {label: color for label, color in zip(parsed_df['MAP'].unique(), plt.cm.rainbow(np.linspace(0, 1, len(parsed_df['MAP'].unique()))))} 
@@ -1764,7 +1810,7 @@ def r_dist_vs_expression_boxplot(r_value_file, expression_file, savedir, n_bins=
         ax = axs[i // n_cols, i % n_cols]
 
         #### prompt: [[[ plot a boxplot here. particularly, for each bin, I want a boxplot with x="r_bin_center" and y="mean_exp" and the color should be according to map_value]]] ####
-        sns.boxplot(x="r_value", y="mean_exp", data=data, ax=ax, color=map_to_color[map_value], showfliers=False)
+        sns.boxplot(x="r_value", y="TPM", data=data, ax=ax, color=map_to_color[map_value], showfliers=False)
         ax.set_title(f"{map_value}")
 
     # Save the figure
@@ -1779,17 +1825,17 @@ def r_dist_vs_expression_boxplot(r_value_file, expression_file, savedir, n_bins=
     plt.clf()
 
 if __name__ == "__main__":
-    # savedir = "tests/rebuttal_example/rebuttal_test_run/"
+    savedir = "tests/rebuttal_example/rebuttal_test_run/"
     # r_dist_vs_expression4("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression4("tests/rebuttal_example/rebuttal_test_run/r_values_14_states.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression3("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # conf_v_nonconf_vs_expression("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression_boxplot("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression3_genebody("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
-    # get_runs(maindir = "rebuttal", mp=True, n_processes=10)
+    get_runs(maindir = "rebuttal_WG", mp=True, n_processes=10)
 
     # get_runs(maindir = "rebuttal", mp=True, n_processes=15)
-    get_runs(maindir = "rebuttal_subset", mp=True, n_processes=10, subset=True)
+    # get_runs(maindir = "rebuttal_subset", mp=True, n_processes=10, subset=True)
     exit()
 
     # savedir = "tests/rebuttal_example/rebuttal_test_run/"
