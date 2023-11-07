@@ -1674,14 +1674,14 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, alpha=0
                 bins=5, stacked=True, color=['mediumaquamarine', 'lightcoral'], 
                 weights=[weights_confident, weights_non_confident])
 
-        # Calculate the ratio and add it to the plot
-        counts, bins = np.histogram(data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'], bins=5)
-        counts2, _ = np.histogram(data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM'], bins=bins)
+        # # Calculate the ratio and add it to the plot
+        # counts, bins = np.histogram(data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'], bins=5)
+        # counts2, _ = np.histogram(data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM'], bins=bins)
 
-        for c1, c2, b in zip(counts, counts2, bins[:-1]):
-            if c2 != 0:
-                ratio = c1 / c2
-                plt.text(b, c1+c2, f'{ratio:.2f}', ha='center')
+        # for c1, c2, b in zip(counts, counts2, bins[:-1]):
+        #     if c2 != 0:
+        #         ratio = c1 / c2
+        #         plt.text(b, c1+c2, f'{ratio:.2f}', ha='center')
 
         # Add labels and title
         plt.xlabel('Log(TPM)')
