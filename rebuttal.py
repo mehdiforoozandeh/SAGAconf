@@ -769,6 +769,7 @@ def custom_histplot2(*args, **kwargs):
 
         ax.set_xlabel("r_value")
         ax.set_ylabel("Probability")
+        print(data[variable])
     except:
         print(data[variable])
 
