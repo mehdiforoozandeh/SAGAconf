@@ -194,11 +194,11 @@ def get_single_run(r): # r is run_dict
     #     print(f"failed to get original r-values for {savedir}")
 
     if "GM12878" in replicate_1_dir:
-        expression_data = "src/biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv"
+        expression_data = "src/biovalidation/RNA_seq/GM12878/geneExp_dict_ENCFF240WBI.pkl"
     elif "MCF-7" in replicate_1_dir:
         expression_data = "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl"
     elif "K562" in replicate_1_dir:
-        expression_data = "src/biovalidation/RNA_seq/K562/preferred_default_ENCFF840UYD.tsv"
+        expression_data = "src/biovalidation/RNA_seq/K562/geneExp_dict_ENCFF840UYD.pkl"
     else:
         expression_data = "EMPTY"
     
