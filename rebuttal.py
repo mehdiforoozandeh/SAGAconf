@@ -185,13 +185,13 @@ def get_single_run(r): # r is run_dict
         replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior.csv"
         replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior.csv"
 
-    # try:
-    #     print(f"trying to get original r-values for {savedir}")
-    #     if os.path.exists(f"{savedir}/r_values.bed") == False:
-    #         os.system(f"python SAGAconf.py --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-    # except Exception as e:
-    #     print("ERROR:   ", e)
-    #     print(f"failed to get original r-values for {savedir}")
+    try:
+        print(f"trying to get original r-values for {savedir}")
+        if os.path.exists(f"{savedir}/r_values.bed") == False:
+            os.system(f"python SAGAconf.py --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+    except Exception as e:
+        print("ERROR:   ", e)
+        print(f"failed to get original r-values for {savedir}")
 
     if "GM12878" in replicate_1_dir:
         expression_data = "src/biovalidation/RNA_seq/GM12878/geneExp_dict_ENCFF240WBI.pkl"
@@ -212,8 +212,6 @@ def get_single_run(r): # r is run_dict
         except Exception as e:
             print("ERROR:   ", e)
             print(f"failed to get WG exp vs r analysis for {savedir}")
-    return
-
 
     try:
         print(f"trying to get per-segment analysis for {savedir}")
@@ -286,26 +284,26 @@ def get_subset_transc(r):
         replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior.csv"
 
     if "GM12878" in replicate_1_dir:
-        expression_data = "src/biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv"
+        expression_data = "src/biovalidation/RNA_seq/GM12878/geneExp_dict_ENCFF240WBI.pkl"
     elif "MCF-7" in replicate_1_dir:
         expression_data = "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl"
     elif "K562" in replicate_1_dir:
-        expression_data = "src/biovalidation/RNA_seq/K562/preferred_default_ENCFF840UYD.tsv"
+        expression_data = "src/biovalidation/RNA_seq/K562/geneExp_dict_ENCFF840UYD.pkl"
     else:
         expression_data = "EMPTY"
     
     if expression_data != "EMPTY":
         print(f"trying to get expression analysis for {savedir}")
-        try:
-            if os.path.exists(f"{savedir}/r_values.bed") == False:
-                os.system(f"python SAGAconf.py -s --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        # try:
+        #     if os.path.exists(f"{savedir}/r_values.bed") == False:
+        #         os.system(f"python SAGAconf.py -s --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
 
-            r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-            r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-            r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-            conf_v_nonconf_vs_expression(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
-        except Exception as e:
-            print("ERROR:   ", e)
+        #     r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+        #     r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+        #     r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/", interpret=True)
+        #     conf_v_nonconf_vs_expression(f"{savedir}/r_values.bed", expression_data, savedir+"/16_states/")
+        # except Exception as e:
+        #     print("ERROR:   ", e)
 
         try:
             if os.path.exists(f"{savedir}/r_values_14_states.bed") == False:
@@ -314,7 +312,7 @@ def get_subset_transc(r):
             r_dist_vs_expression3(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
             r_dist_vs_expression3_genebody(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
             r_dist_vs_expression_boxplot(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
-            conf_v_nonconf_vs_expression(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/", interpret=True)
+            conf_v_nonconf_vs_expression(f"{savedir}/r_values_14_states.bed", expression_data, savedir+"/14_states/")
         
         except Exception as e:
             print("ERROR:   ", e)
@@ -326,7 +324,7 @@ def get_subset_transc(r):
             r_dist_vs_expression3(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
             r_dist_vs_expression3_genebody(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
             r_dist_vs_expression_boxplot(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
-            conf_v_nonconf_vs_expression(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/", interpret=True)
+            conf_v_nonconf_vs_expression(f"{savedir}/r_values_12_states.bed", expression_data, savedir+"/12_states/")
         except Exception as e:
             print("ERROR:   ", e)
         
@@ -337,7 +335,7 @@ def get_subset_transc(r):
             r_dist_vs_expression3(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
             r_dist_vs_expression3_genebody(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
             r_dist_vs_expression_boxplot(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
-            conf_v_nonconf_vs_expression(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/", interpret=True)
+            conf_v_nonconf_vs_expression(f"{savedir}/r_values_10_states.bed", expression_data, savedir+"/10_states/")
         except Exception as e:
             print("ERROR:   ", e)
 
@@ -378,9 +376,9 @@ def get_runs(maindir = "rebuttal", mp=True, n_processes=10):
     if mp:
         with Pool(n_processes) as p:
             # p.map(get_single_active_regions_plot, list_of_runs)
-            p.map(get_single_run, list_of_runs)
-            # p.map(get_subset_transc, list_of_runs)
-            # p.map(corresp_emiss_v_iou, list_of_runs)
+            # p.map(get_single_run, list_of_runs)
+            p.map(get_subset_transc, list_of_runs)
+            p.map(corresp_emiss_v_iou, list_of_runs)
     else:
         for r in list_of_runs:
             get_subset_transc(r)
