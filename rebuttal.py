@@ -187,7 +187,8 @@ def get_single_run(r): # r is run_dict
 
     try:
         print(f"trying to get original r-values for {savedir}")
-        os.system(f"python SAGAconf.py --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+        if os.path.exists(f"{savedir}/r_values.bed") == False:
+            os.system(f"python SAGAconf.py --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
     except Exception as e:
         print("ERROR:   ", e)
         print(f"failed to get original r-values for {savedir}")
@@ -204,14 +205,16 @@ def get_single_run(r): # r is run_dict
     if expression_data != "EMPTY":
         print(f"trying to get expression analysis for {savedir}")
         try:
-            r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
-            r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
-            r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
+            # r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
+            # r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
+            # r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
             conf_v_nonconf_vs_expression(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
         except Exception as e:
             print("ERROR:   ", e)
             print(f"failed to get WG exp vs r analysis for {savedir}")
+    return
 
+    
     try:
         print(f"trying to get per-segment analysis for {savedir}")
         r_distribution_over_segment(f"{savedir}/r_values.bed", savedir)
@@ -374,8 +377,8 @@ def get_runs(maindir = "rebuttal", mp=True, n_processes=10):
 
     if mp:
         with Pool(n_processes) as p:
-            p.map(get_single_active_regions_plot, list_of_runs)
-            # p.map(get_single_run, list_of_runs)
+            # p.map(get_single_active_regions_plot, list_of_runs)
+            p.map(get_single_run, list_of_runs)
             # p.map(get_subset_transc, list_of_runs)
             # p.map(corresp_emiss_v_iou, list_of_runs)
     else:
@@ -793,7 +796,7 @@ def r_distribution_activeregions2(r_value_file, r_value_cCREs, r_value_Meuleman,
     # Calculate coverage for each category and add as text to the plots
     for ax in g.axes.flat:
         map_val = ax.get_title().split('=')[-1].strip()  # Extract MAP value from title
-        print(map_val)
+        # print(map_val)
         # print(ax.get_title(), map_val)
         # print(map_val)
         
@@ -1487,7 +1490,7 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
 
     # Get the intersection
     df = bed2.intersect(bed1, wa=True, wb=True).to_dataframe()
-    df2 = bed2.intersect(bed1, wa=True, wb=True, v=True).to_dataframe()
+    # df2 = bed2.intersect(bed1, wa=True, wb=True, v=True).to_dataframe()
     # df2["TPM"] = 0
 
     df = df[["chrom", "start", "end", "name", "score", "blockSizes"]]
@@ -1499,6 +1502,7 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
 
     # Sort the resulting DataFrame by 'chr' and 'start'
     df = df.sort_values(by=['chr', 'start'])
+    df["TPM"] = np.log(df['TPM'] + 1e-19)
     # del df2
     
     df_confident = df.loc[df["r_value"] >= alpha, :].reset_index(drop=True)
@@ -1655,7 +1659,7 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
             df_non_confident_ = pd.DataFrame(columns=['TPM', 'Category'])
 
         data_to_plot = pd.concat([df_all_, df_confident_, df_non_confident_])
-        data_to_plot['TPM'] = np.log(data_to_plot['TPM'] + 1e-19)
+        # data_to_plot['TPM'] = np.log(data_to_plot['TPM'] + 1e-19)
 
         # sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False)
         plt.figure(figsize=(10, 6))
