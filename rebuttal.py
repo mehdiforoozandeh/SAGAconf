@@ -205,9 +205,9 @@ def get_single_run(r): # r is run_dict
     if expression_data != "EMPTY":
         print(f"trying to get expression analysis for {savedir}")
         try:
-            # r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
-            # r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
-            # r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
+            r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
+            r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
+            r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
             conf_v_nonconf_vs_expression(f"{savedir}/r_values.bed", expression_data, savedir)
         except Exception as e:
             print("ERROR:   ", e)
