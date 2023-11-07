@@ -1502,11 +1502,7 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, alpha=0
 
     # Sort the resulting DataFrame by 'chr' and 'start'
     df = df.sort_values(by=['chr', 'start'])
-    print(df["TPM"])
-    print(df["TPM"].min())
-    print(df["TPM"].max())
-    print(df["TPM"].mean())
-    df["TPM"] = np.log(df['TPM'])
+    df["TPM"] = np.log(df['TPM'] + 1e-19)
     # del df2
     
     df_confident = df.loc[df["r_value"] >= alpha, :].reset_index(drop=True)
