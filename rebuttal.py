@@ -779,9 +779,6 @@ def r_distribution_activeregions2(r_value_file, r_value_cCREs, r_value_Meuleman,
     Meuleman['source'] = 'Meuleman'
     cCREs['source'] = 'cCREs'
     combined = pd.concat([WG, Meuleman, cCREs])
-    print(combined)
-    print(combined.source.unique())
-    exit()
 
     # Create a FacetGrid object
     g = sns.FacetGrid(combined, col="MAP", hue="source", col_wrap=4, sharey=False)
@@ -793,26 +790,32 @@ def r_distribution_activeregions2(r_value_file, r_value_cCREs, r_value_Meuleman,
         coverage_cCRE = calculate_coverage(cCREs, map_val)  # You need to define this function
         coverage_Meuleman = calculate_coverage(Meuleman, map_val)  # You need to define this function
 
-        # Create a DataFrame for each source with only the rows for the current MAP value
-        WG_current = WG[WG["MAP"] == map_val]
-        cCREs_current = cCREs[cCREs["MAP"] == map_val]
-        Meuleman_current = Meuleman[Meuleman["MAP"] == map_val]
-
         # Map a custom plot to each subplot for each source separately
-        custom_histplot2("r_value", data=WG_current, color=g._colors[0], label='WG', coverage=coverage_WG, ax=ax)
-        custom_histplot2("r_value", data=cCREs_current, color=g._colors[1], label='cCREs', coverage=coverage_cCRE, ax=ax)
-        custom_histplot2("r_value", data=Meuleman_current, color=g._colors[2], label='Meuleman', coverage=coverage_Meuleman, ax=ax)
+        try:
+            WG_current = WG[WG["MAP"] == map_val]
+            custom_histplot2("r_value", data=WG_current, color=g._colors[0], label='WG', coverage=coverage_WG, ax=ax)
+            ax.text(0.02, 0.98, f'cvg_WG = {coverage_WG:.3f}', color=g._colors[0], transform=ax.transAxes, fontsize=8, verticalalignment='top')
+            line_wg = Line2D([0], [0], color=g._colors[0], lw=2)
+        except:
+            pass
 
-        # Add text to the plot
-        ax.text(0.02, 0.98, f'cvg_WG = {coverage_WG:.3f}', color=g._colors[0], transform=ax.transAxes, fontsize=8, verticalalignment='top')
-        ax.text(0.02, 0.92, f'cvg_cCRE = {coverage_cCRE:.3f}', color=g._colors[1], transform=ax.transAxes, fontsize=8, verticalalignment='top')
-        ax.text(0.02, 0.86, f'cvg_Meuleman = {coverage_Meuleman:.3f}', color=g._colors[2], transform=ax.transAxes, fontsize=8, verticalalignment='top')
+        try:
+            cCREs_current = cCREs[cCREs["MAP"] == map_val]
+            custom_histplot2("r_value", data=cCREs_current, color=g._colors[1], label='cCREs', coverage=coverage_cCRE, ax=ax)
+            ax.text(0.02, 0.92, f'cvg_cCRE = {coverage_cCRE:.3f}', color=g._colors[1], transform=ax.transAxes, fontsize=8, verticalalignment='top')
+            line_ccres = Line2D([0], [0], color=g._colors[1], lw=2)
+        except:
+            pass
 
-    # Create dummy lines for the legend
-    line_wg = Line2D([0], [0], color=g._colors[0], lw=2)
-    line_ccres = Line2D([0], [0], color=g._colors[1], lw=2)
-    line_meuleman = Line2D([0], [0], color=g._colors[2], lw=2)
+        try:
+            Meuleman_current = Meuleman[Meuleman["MAP"] == map_val]
+            custom_histplot2("r_value", data=Meuleman_current, color=g._colors[2], label='Meuleman', coverage=coverage_Meuleman, ax=ax)
+            ax.text(0.02, 0.86, f'cvg_Meuleman = {coverage_Meuleman:.3f}', color=g._colors[2], transform=ax.transAxes, fontsize=8, verticalalignment='top')
+            line_meuleman = Line2D([0], [0], color=g._colors[2], lw=2)
+        except:
+            pass
 
+    
     # Add the legend after all plots are drawn
     g.add_legend(loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=3)
 
