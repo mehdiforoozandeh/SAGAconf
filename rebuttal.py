@@ -751,32 +751,35 @@ def custom_histplot2(*args, **kwargs):
     coverage = kwargs.pop("coverage")  # Extract coverage
     ax = kwargs.pop("ax")
 
-    # Ensure the data is numeric and drop any NaN values
-    numeric_data = pd.to_numeric(data[variable], errors='coerce').dropna()
+    try:
+        # Ensure the data is numeric and drop any NaN values
+        numeric_data = pd.to_numeric(data[variable], errors='coerce').dropna()
 
-    density = gaussian_kde(numeric_data)
-    xs = np.linspace(np.min(numeric_data), np.max(numeric_data), 200)
-    density_values = density(xs)
+        density = gaussian_kde(numeric_data)
+        xs = np.linspace(np.min(numeric_data), np.max(numeric_data), 200)
+        density_values = density(xs)
 
-    # Normalize the density values so they sum up to 1
-    probabilities = density_values / np.sum(density_values)
+        # Normalize the density values so they sum up to 1
+        probabilities = density_values / np.sum(density_values)
 
-    # Multiply the probabilities by the coverage
-    probabilities *= coverage
+        # Multiply the probabilities by the coverage
+        probabilities *= coverage
 
-    ax.plot(xs, probabilities, color=color, label=label) 
+        ax.plot(xs, probabilities, color=color, label=label) 
 
-    ax.set_xlabel("r_value")
-    ax.set_ylabel("Probability")
+        ax.set_xlabel("r_value")
+        ax.set_ylabel("Probability")
+    except:
+        print(data[variable])
 
 def r_distribution_activeregions2(r_value_file, r_value_cCREs, r_value_Meuleman, savedir):
     WG = pd.read_csv(r_value_file, sep="\t")
-    # Meuleman = pd.read_csv(r_value_Meuleman, sep="\t")
+    Meuleman = pd.read_csv(r_value_Meuleman, sep="\t")
     cCREs = pd.read_csv(r_value_cCREs, sep="\t")
 
     # Combine the dataframes into one for easier plotting
     WG['source'] = 'WG'
-    # Meuleman['source'] = 'Meuleman'
+    Meuleman['source'] = 'Meuleman'
     cCREs['source'] = 'cCREs'
     combined = pd.concat([WG, Meuleman, cCREs])
 
@@ -786,32 +789,32 @@ def r_distribution_activeregions2(r_value_file, r_value_cCREs, r_value_Meuleman,
     # Calculate coverage for each category and add as text to the plots
     for ax in g.axes.flat:
         map_val = ax.get_title().split('=')[-1].strip()  # Extract MAP value from title
-        coverage_WG = calculate_coverage(WG, map_val)  # You need to define this function
-        coverage_cCRE = calculate_coverage(cCREs, map_val)  # You need to define this function
-        # coverage_Meuleman = calculate_coverage(Meuleman, map_val)  # You need to define this function
-
+        
         # Map a custom plot to each subplot for each source separately
-        try:
-            WG_current = WG[WG["MAP"] == map_val]
-            custom_histplot2("r_value", data=WG_current, color=g._colors[0], label='WG', coverage=coverage_WG, ax=ax)
-            ax.text(0.02, 0.98, f'cvg_WG = {coverage_WG:.3f}', color=g._colors[0], transform=ax.transAxes, fontsize=8, verticalalignment='top')
-            line_wg = Line2D([0], [0], color=g._colors[0], lw=2)
-        except:
-            pass
-
-        try:
-            cCREs_current = cCREs[cCREs["MAP"] == map_val]
-            custom_histplot2("r_value", data=cCREs_current, color=g._colors[1], label='cCREs', coverage=coverage_cCRE, ax=ax)
-            ax.text(0.02, 0.92, f'cvg_cCRE = {coverage_cCRE:.3f}', color=g._colors[1], transform=ax.transAxes, fontsize=8, verticalalignment='top')
-            line_ccres = Line2D([0], [0], color=g._colors[1], lw=2)
-        except:
-            pass
+        # try:
+        coverage_WG = calculate_coverage(WG, map_val)  # You need to define this function
+        WG_current = WG[WG["MAP"] == map_val]
+        custom_histplot2("r_value", data=WG_current, color=g._colors[0], label='WG', coverage=coverage_WG, ax=ax)
+        ax.text(0.02, 0.98, f'cvg_WG = {coverage_WG:.3f}', color=g._colors[0], transform=ax.transAxes, fontsize=8, verticalalignment='top')
+        line_wg = Line2D([0], [0], color=g._colors[0], lw=2)
+        # except:
+        #     pass
 
         # try:
-        #     Meuleman_current = Meuleman[Meuleman["MAP"] == map_val]
-        #     custom_histplot2("r_value", data=Meuleman_current, color=g._colors[2], label='Meuleman', coverage=coverage_Meuleman, ax=ax)
-        #     ax.text(0.02, 0.86, f'cvg_Meuleman = {coverage_Meuleman:.3f}', color=g._colors[2], transform=ax.transAxes, fontsize=8, verticalalignment='top')
-        #     line_meuleman = Line2D([0], [0], color=g._colors[2], lw=2)
+        coverage_cCRE = calculate_coverage(cCREs, map_val)  # You need to define this function
+        cCREs_current = cCREs[cCREs["MAP"] == map_val]
+        custom_histplot2("r_value", data=cCREs_current, color=g._colors[1], label='cCREs', coverage=coverage_cCRE, ax=ax)
+        ax.text(0.02, 0.92, f'cvg_cCRE = {coverage_cCRE:.3f}', color=g._colors[1], transform=ax.transAxes, fontsize=8, verticalalignment='top')
+        line_ccres = Line2D([0], [0], color=g._colors[1], lw=2)
+        # except:
+        #     pass
+
+        # try:
+        coverage_Meuleman = calculate_coverage(Meuleman, map_val)  # You need to define this function
+        Meuleman_current = Meuleman[Meuleman["MAP"] == map_val]
+        custom_histplot2("r_value", data=Meuleman_current, color=g._colors[2], label='Meuleman', coverage=coverage_Meuleman, ax=ax)
+        ax.text(0.02, 0.86, f'cvg_Meuleman = {coverage_Meuleman:.3f}', color=g._colors[2], transform=ax.transAxes, fontsize=8, verticalalignment='top')
+        line_meuleman = Line2D([0], [0], color=g._colors[2], lw=2)
         # except:
         #     pass
 
