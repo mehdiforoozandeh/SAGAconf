@@ -1586,7 +1586,7 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
                 df_non_confident_ = pd.DataFrame(columns=['TPM', 'Category'])
 
             data_to_plot = pd.concat([df_all_, df_confident_, df_non_confident_])
-            data_to_plot['TPM'] = np.log(data_to_plot['TPM'] + 1e-19)
+            # data_to_plot['TPM'] = np.log(data_to_plot['TPM'] + 1e-19)
 
             # sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False, ax=ax)
 
