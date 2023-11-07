@@ -779,6 +779,9 @@ def r_distribution_activeregions2(r_value_file, r_value_cCREs, r_value_Meuleman,
     Meuleman['source'] = 'Meuleman'
     cCREs['source'] = 'cCREs'
     combined = pd.concat([WG, Meuleman, cCREs])
+    print(combined)
+    print(combined.source.unique())
+    exit()
 
     # Create a FacetGrid object
     g = sns.FacetGrid(combined, col="MAP", hue="source", col_wrap=4, sharey=False)
