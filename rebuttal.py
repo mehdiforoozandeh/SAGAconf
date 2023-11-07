@@ -789,12 +789,12 @@ def r_distribution_activeregions2(r_value_file, r_value_cCREs, r_value_Meuleman,
     # Calculate coverage for each category and add as text to the plots
     for ax in g.axes.flat:
         map_val = ax.get_title().split('=')[-1].strip()  # Extract MAP value from title
+        print(ax.get_title(), map_val)
         
         # Map a custom plot to each subplot for each source separately
         # try:
         coverage_WG = calculate_coverage(WG, map_val)  # You need to define this function
         WG_current = WG[WG["MAP"] == map_val]
-        print(WG_current)
         custom_histplot2("r_value", data=WG_current, color=g._colors[0], label='WG', coverage=coverage_WG, ax=ax)
         ax.text(0.02, 0.98, f'cvg_WG = {coverage_WG:.3f}', color=g._colors[0], transform=ax.transAxes, fontsize=8, verticalalignment='top')
         line_wg = Line2D([0], [0], color=g._colors[0], lw=2)
@@ -804,7 +804,6 @@ def r_distribution_activeregions2(r_value_file, r_value_cCREs, r_value_Meuleman,
         # try:
         coverage_cCRE = calculate_coverage(cCREs, map_val)  # You need to define this function
         cCREs_current = cCREs[cCREs["MAP"] == map_val]
-        print(cCREs_current)
         custom_histplot2("r_value", data=cCREs_current, color=g._colors[1], label='cCREs', coverage=coverage_cCRE, ax=ax)
         ax.text(0.02, 0.92, f'cvg_cCRE = {coverage_cCRE:.3f}', color=g._colors[1], transform=ax.transAxes, fontsize=8, verticalalignment='top')
         line_ccres = Line2D([0], [0], color=g._colors[1], lw=2)
@@ -814,7 +813,6 @@ def r_distribution_activeregions2(r_value_file, r_value_cCREs, r_value_Meuleman,
         # try:
         coverage_Meuleman = calculate_coverage(Meuleman, map_val)  # You need to define this function
         Meuleman_current = Meuleman[Meuleman["MAP"] == map_val]
-        print(Meuleman_current)
         custom_histplot2("r_value", data=Meuleman_current, color=g._colors[2], label='Meuleman', coverage=coverage_Meuleman, ax=ax)
         ax.text(0.02, 0.86, f'cvg_Meuleman = {coverage_Meuleman:.3f}', color=g._colors[2], transform=ax.transAxes, fontsize=8, verticalalignment='top')
         line_meuleman = Line2D([0], [0], color=g._colors[2], lw=2)
