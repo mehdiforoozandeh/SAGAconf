@@ -1466,7 +1466,7 @@ def r_dist_vs_expression3_genebody(r_value_file, expression_file, savedir, n_bin
     plt.style.use('default')
     plt.clf()
 
-def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=20 , interpret=True, alpha=0.9):
+def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, alpha=0.9):
     if os.path.exists(savedir) == False:
         os.mkdir(savedir)
 
@@ -1502,7 +1502,11 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
 
     # Sort the resulting DataFrame by 'chr' and 'start'
     df = df.sort_values(by=['chr', 'start'])
-    df["TPM"] = np.log(df['TPM'] + 1e-19)
+    print(df["TPM"])
+    print(df["TPM"].min())
+    print(df["TPM"].max())
+    print(df["TPM"].mean())
+    df["TPM"] = np.log(df['TPM'])
     # del df2
     
     df_confident = df.loc[df["r_value"] >= alpha, :].reset_index(drop=True)
