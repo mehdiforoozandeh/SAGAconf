@@ -245,6 +245,28 @@ def get_single_run(r): # r is run_dict
     get r_vs_expression + r_vs_expression_genebody for 14, 12, 10 states
     """
 
+def get_single_active_regions_plot(r):
+    savedir = r["savedir"]
+    if "chromhmm_runs" in r["replicate_1_dir"] and "concat" in r["replicate_1_dir"]:
+        base_mnemonics = r["replicate_1_dir"] + "/mnemonics_rep1.txt"
+        verif_mnemonics = r["replicate_2_dir"] + "/mnemonics_rep2.txt"
+
+        replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior_rep1.csv"
+        replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior_rep2.csv"
+    else:
+        base_mnemonics = r["replicate_1_dir"] + "/mnemonics.txt"
+        verif_mnemonics = r["replicate_2_dir"] + "/mnemonics.txt"
+
+        replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior.csv"
+        replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior.csv"
+
+    if os.path.exists(f"{savedir}/r_values_WG.bed"):
+        r_distribution_activeregions2(
+                f"{savedir}/r_values_WG.bed", 
+                f"{savedir}/r_values_cCRE.bed", 
+                f"{savedir}/r_values_muel.bed", 
+                savedir)
+    
 def get_subset_transc(r):
     savedir = r["savedir"]
     if "chromhmm_runs" in r["replicate_1_dir"] and "concat" in r["replicate_1_dir"]:
@@ -352,9 +374,10 @@ def get_runs(maindir = "rebuttal", mp=True, n_processes=10):
 
     if mp:
         with Pool(n_processes) as p:
-            p.map(get_single_run, list_of_runs)
-            p.map(get_subset_transc, list_of_runs)
-            p.map(corresp_emiss_v_iou, list_of_runs)
+
+            # p.map(get_single_run, list_of_runs)
+            # p.map(get_subset_transc, list_of_runs)
+            # p.map(corresp_emiss_v_iou, list_of_runs)
     else:
         for r in list_of_runs:
             get_subset_transc(r)
