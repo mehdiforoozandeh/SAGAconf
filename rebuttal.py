@@ -751,6 +751,9 @@ def custom_histplot2(*args, **kwargs):
     coverage = kwargs.pop("coverage")  # Extract coverage
     ax = kwargs.pop("ax")
 
+    # Ensure the data is numeric and drop any NaN values
+    numeric_data = pd.to_numeric(data[variable], errors='coerce').dropna()
+
     # Check if all values are equal
     if numeric_data.nunique() == 1:
         ax.axvline(x=numeric_data.iloc[0], color=color, label=label)
@@ -769,7 +772,7 @@ def custom_histplot2(*args, **kwargs):
 
     ax.set_xlabel("r_value")
     ax.set_ylabel("Probability")
-    
+
 def r_distribution_activeregions2(r_value_file, r_value_cCREs, r_value_Meuleman, savedir):
     WG = pd.read_csv(r_value_file, sep="\t")
     Meuleman = pd.read_csv(r_value_Meuleman, sep="\t")
