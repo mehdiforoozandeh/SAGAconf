@@ -1834,16 +1834,18 @@ def r_dist_vs_expression_boxplot(r_value_file, expression_file, savedir, n_bins=
     plt.clf()
 
 if __name__ == "__main__":
-    savedir = "tests/rebuttal_example/rebuttal_test_run/"
+    savedir = "rebuttal_WG/r1vsr2/chmm/GM12878/"
     # r_dist_vs_expression4("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression4("tests/rebuttal_example/rebuttal_test_run/r_values_14_states.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression3("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
-    # conf_v_nonconf_vs_expression("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
+
+    conf_v_nonconf_vs_expression("rebuttal_WG/r1vsr2/chmm/GM12878/r_values.bed", "src/biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv", savedir, interpret=True)
+    
     # r_dist_vs_expression_boxplot("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression3_genebody("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     
     
-    get_runs(maindir = "rebuttal_WG", mp=True, n_processes=10)
+    # get_runs(maindir = "rebuttal_WG", mp=True, n_processes=10)
 
     # get_runs(maindir = "rebuttal", mp=True, n_processes=15)
     # get_runs(maindir = "rebuttal_subset", mp=True, n_processes=10, subset=True)
