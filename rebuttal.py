@@ -771,12 +771,12 @@ def custom_histplot2(*args, **kwargs):
 
 def r_distribution_activeregions2(r_value_file, r_value_cCREs, r_value_Meuleman, savedir):
     WG = pd.read_csv(r_value_file, sep="\t")
-    Meuleman = pd.read_csv(r_value_Meuleman, sep="\t")
+    # Meuleman = pd.read_csv(r_value_Meuleman, sep="\t")
     cCREs = pd.read_csv(r_value_cCREs, sep="\t")
 
     # Combine the dataframes into one for easier plotting
     WG['source'] = 'WG'
-    Meuleman['source'] = 'Meuleman'
+    # Meuleman['source'] = 'Meuleman'
     cCREs['source'] = 'cCREs'
     combined = pd.concat([WG, Meuleman, cCREs])
 
@@ -788,7 +788,7 @@ def r_distribution_activeregions2(r_value_file, r_value_cCREs, r_value_Meuleman,
         map_val = ax.get_title().split('=')[-1].strip()  # Extract MAP value from title
         coverage_WG = calculate_coverage(WG, map_val)  # You need to define this function
         coverage_cCRE = calculate_coverage(cCREs, map_val)  # You need to define this function
-        coverage_Meuleman = calculate_coverage(Meuleman, map_val)  # You need to define this function
+        # coverage_Meuleman = calculate_coverage(Meuleman, map_val)  # You need to define this function
 
         # Map a custom plot to each subplot for each source separately
         try:
@@ -807,13 +807,13 @@ def r_distribution_activeregions2(r_value_file, r_value_cCREs, r_value_Meuleman,
         except:
             pass
 
-        try:
-            Meuleman_current = Meuleman[Meuleman["MAP"] == map_val]
-            custom_histplot2("r_value", data=Meuleman_current, color=g._colors[2], label='Meuleman', coverage=coverage_Meuleman, ax=ax)
-            ax.text(0.02, 0.86, f'cvg_Meuleman = {coverage_Meuleman:.3f}', color=g._colors[2], transform=ax.transAxes, fontsize=8, verticalalignment='top')
-            line_meuleman = Line2D([0], [0], color=g._colors[2], lw=2)
-        except:
-            pass
+        # try:
+        #     Meuleman_current = Meuleman[Meuleman["MAP"] == map_val]
+        #     custom_histplot2("r_value", data=Meuleman_current, color=g._colors[2], label='Meuleman', coverage=coverage_Meuleman, ax=ax)
+        #     ax.text(0.02, 0.86, f'cvg_Meuleman = {coverage_Meuleman:.3f}', color=g._colors[2], transform=ax.transAxes, fontsize=8, verticalalignment='top')
+        #     line_meuleman = Line2D([0], [0], color=g._colors[2], lw=2)
+        # except:
+        #     pass
 
     
     # Add the legend after all plots are drawn
