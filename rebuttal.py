@@ -185,13 +185,13 @@ def get_single_run(r): # r is run_dict
         replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior.csv"
         replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior.csv"
 
-    try:
-        print(f"trying to get original r-values for {savedir}")
-        if os.path.exists(f"{savedir}/r_values.bed") == False:
-            os.system(f"python SAGAconf.py --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-    except Exception as e:
-        print("ERROR:   ", e)
-        print(f"failed to get original r-values for {savedir}")
+    # try:
+    #     print(f"trying to get original r-values for {savedir}")
+    #     if os.path.exists(f"{savedir}/r_values.bed") == False:
+    #         os.system(f"python SAGAconf.py --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+    # except Exception as e:
+    #     print("ERROR:   ", e)
+    #     print(f"failed to get original r-values for {savedir}")
 
     if "GM12878" in replicate_1_dir:
         expression_data = "src/biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.tsv"
@@ -214,7 +214,7 @@ def get_single_run(r): # r is run_dict
             print(f"failed to get WG exp vs r analysis for {savedir}")
     return
 
-    
+
     try:
         print(f"trying to get per-segment analysis for {savedir}")
         r_distribution_over_segment(f"{savedir}/r_values.bed", savedir)
@@ -1536,7 +1536,6 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, n_bins=
     # map_values = df['MAP'].unique()
 
     if len(map_values) > 1:
-        print(map_values)
         # Calculate the number of columns and rows for the subplots
         num_labels = len(map_values)
         n_cols = math.floor(math.sqrt(num_labels))
