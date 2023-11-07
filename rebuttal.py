@@ -789,10 +789,9 @@ def r_distribution_activeregions2(r_value_file, r_value_cCREs, r_value_Meuleman,
 
     # Calculate coverage for each category and add as text to the plots
     for ax in g.axes.flat:
-        map_val = combined.MAP.unique() #
-        # ax.get_title().split('=')[-1].strip()  # Extract MAP value from title
+        map_val = ax.get_title().split('=')[-1].strip()  # Extract MAP value from title
         # print(ax.get_title(), map_val)
-        print(map_val)
+        # print(map_val)
         
         # Map a custom plot to each subplot for each source separately
         # try:
