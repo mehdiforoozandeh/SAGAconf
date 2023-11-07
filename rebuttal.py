@@ -185,13 +185,13 @@ def get_single_run(r): # r is run_dict
         replicate_1_dir = r["replicate_1_dir"] + "/parsed_posterior.csv"
         replicate_2_dir = r["replicate_2_dir"] + "/parsed_posterior.csv"
 
-    try:
-        print(f"trying to get original r-values for {savedir}")
-        if os.path.exists(f"{savedir}/r_values.bed") == False:
-            os.system(f"python SAGAconf.py --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
-    except Exception as e:
-        print("ERROR:   ", e)
-        print(f"failed to get original r-values for {savedir}")
+    # try:
+    #     print(f"trying to get original r-values for {savedir}")
+    #     if os.path.exists(f"{savedir}/r_values.bed") == False:
+    #         os.system(f"python SAGAconf.py --r_only -v -bm {base_mnemonics} -vm {verif_mnemonics} {replicate_1_dir} {replicate_2_dir} {savedir}")
+    # except Exception as e:
+    #     print("ERROR:   ", e)
+    #     print(f"failed to get original r-values for {savedir}")
 
     if "GM12878" in replicate_1_dir:
         expression_data = "src/biovalidation/RNA_seq/GM12878/geneExp_dict_ENCFF240WBI.pkl"
@@ -205,14 +205,15 @@ def get_single_run(r): # r is run_dict
     if expression_data != "EMPTY":
         print(f"trying to get expression analysis for {savedir}")
         try:
-            r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
-            r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
-            r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
+            # r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
+            # r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
+            # r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
             conf_v_nonconf_vs_expression(f"{savedir}/r_values.bed", expression_data, savedir)
         except Exception as e:
             print("ERROR:   ", e)
             print(f"failed to get WG exp vs r analysis for {savedir}")
-
+    return
+    
     try:
         print(f"trying to get per-segment analysis for {savedir}")
         r_distribution_over_segment(f"{savedir}/r_values.bed", savedir)
@@ -376,9 +377,9 @@ def get_runs(maindir = "rebuttal", mp=True, n_processes=10):
     if mp:
         with Pool(n_processes) as p:
             # p.map(get_single_active_regions_plot, list_of_runs)
-            # p.map(get_single_run, list_of_runs)
-            p.map(get_subset_transc, list_of_runs)
-            p.map(corresp_emiss_v_iou, list_of_runs)
+            p.map(get_single_run, list_of_runs)
+            # p.map(get_subset_transc, list_of_runs)
+            # p.map(corresp_emiss_v_iou, list_of_runs)
     else:
         for r in list_of_runs:
             get_subset_transc(r)
@@ -1655,7 +1656,7 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, alpha=0
         else:
             df_non_confident_ = pd.DataFrame(columns=['TPM', 'Category'])
 
-        data_to_plot = pd.concat([df_all_, df_confident_, df_non_confident_])
+        data_to_plot = pd.concat([df_confident_, df_non_confident_])
         # data_to_plot['TPM'] = np.log(data_to_plot['TPM'] + 1e-19)
 
         # sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False)
@@ -1667,10 +1668,30 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, alpha=0
         weights_confident = np.ones_like(data_to_plot[data_to_plot['Category'] == 'Confident']['TPM']) / len(data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'])
         weights_non_confident = np.ones_like(data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM']) / len(data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM'])
 
-        plt.hist([data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'], 
-                data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM']], 
-                bins=5, stacked=True, color=['mediumaquamarine', 'lightcoral'], 
-                weights=[weights_confident, weights_non_confident])
+        bins = np.linspace(data_to_plot['TPM'].min(), data_to_plot['TPM'].max(), 5)
+
+        # Plot the histogram for 'Confident' category
+        plt.hist(data_to_plot[
+            data_to_plot['Category'] == 'Confident']['TPM'], bins, 
+            alpha=0.8, label='Confident', color='mediumaquamarine', weights=weights_confident, rwidth=0.5, align="left")
+
+        # Plot the histogram for 'Non-confident' category
+        plt.hist(
+            data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM'], bins, 
+            alpha=0.8, label='Non-confident', color='lightcoral', weights=weights_non_confident, rwidth=0.5, align="mid")
+
+        # sns.histplot(data=data_to_plot, x='TPM', hue='Category', bins=5, palette=['mediumaquamarine', 'lightcoral'], multiple="dodge")
+
+        plt.xlabel('Log(TPM)')
+        plt.ylabel('Frequency')
+
+        plt.legend(['r > 0.9', 'r < 0.9'], loc='upper right')
+
+
+        # plt.hist([data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'], 
+        #         data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM']], 
+        #         bins=5, stacked=True, color=['mediumaquamarine', 'lightcoral'], 
+        #         weights=[weights_confident, weights_non_confident])
 
         # # Calculate the ratio and add it to the plot
         # counts, bins = np.histogram(data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'], bins=5)
@@ -1682,10 +1703,9 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, alpha=0
         #         plt.text(b, c1+c2, f'{ratio:.2f}', ha='center')
 
         # Add labels and title
-        plt.xlabel('Log(TPM)')
-        plt.ylabel('Frequency')
+        
         # plt.title(title)
-        plt.legend(['r > 0.9', 'r < 0.9'])
+        # plt.legend()
 
         if len(df_non_confident_label) > 0 and len(df_confident_label) > 0:
             agg_metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
@@ -1841,7 +1861,9 @@ def r_dist_vs_expression_boxplot(r_value_file, expression_file, savedir, n_bins=
     plt.clf()
 
 if __name__ == "__main__":
-    savedir = "rebuttal_WG/r1vsr2/chmm/GM12878/"
+    # savedir = "rebuttal_WG/r1vsr2/chmm/GM12878/"
+    # savedir = "tests/rebuttal_example/rebuttal_test_run/"
+
     # r_dist_vs_expression4("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression4("tests/rebuttal_example/rebuttal_test_run/r_values_14_states.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression3("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
@@ -1849,6 +1871,8 @@ if __name__ == "__main__":
     # conf_v_nonconf_vs_expression("rebuttal_WG/r1vsr2/chmm/GM12878/r_values.bed", "src/biovalidation/RNA_seq/GM12878/geneExp_dict_ENCFF240WBI.pkl", savedir)
     
     # r_dist_vs_expression_boxplot("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
+    # conf_v_nonconf_vs_expression("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/GM12878/geneExp_dict_ENCFF240WBI.pkl", savedir)
+    
     # r_dist_vs_expression3_genebody("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     
     
