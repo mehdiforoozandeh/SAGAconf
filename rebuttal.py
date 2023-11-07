@@ -1839,7 +1839,7 @@ if __name__ == "__main__":
     # r_dist_vs_expression4("tests/rebuttal_example/rebuttal_test_run/r_values_14_states.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression3("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
 
-    conf_v_nonconf_vs_expression("rebuttal_WG/r1vsr2/chmm/GM12878/r_values.bed", "src/biovalidation/RNA_seq/GM12878/preferred_default_ENCFF240WBI.pkl", savedir)
+    conf_v_nonconf_vs_expression("rebuttal_WG/r1vsr2/chmm/GM12878/r_values.bed", "src/biovalidation/RNA_seq/GM12878/geneExp_dict_ENCFF240WBI.pkl", savedir)
     
     # r_dist_vs_expression_boxplot("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression3_genebody("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
