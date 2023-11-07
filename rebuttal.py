@@ -770,8 +770,8 @@ def custom_histplot2(*args, **kwargs):
         ax.set_xlabel("r_value")
         ax.set_ylabel("Probability")
     except:
-        # print(data[variable])
-        pass
+        print(data[variable])
+        # pass
 
 def r_distribution_activeregions2(r_value_file, r_value_cCREs, r_value_Meuleman, savedir):
     WG = pd.read_csv(r_value_file, sep="\t")
