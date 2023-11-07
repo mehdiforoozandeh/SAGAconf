@@ -769,7 +769,6 @@ def custom_histplot2(*args, **kwargs):
 
         ax.set_xlabel("r_value")
         ax.set_ylabel("Probability")
-        print(data[variable])
     except:
         print(data[variable])
 
@@ -783,7 +782,8 @@ def r_distribution_activeregions2(r_value_file, r_value_cCREs, r_value_Meuleman,
     Meuleman['source'] = 'Meuleman'
     cCREs['source'] = 'cCREs'
     combined = pd.concat([WG, Meuleman, cCREs])
-
+    print(combined)
+    exit()
     # Create a FacetGrid object
     g = sns.FacetGrid(combined, col="MAP", hue="source", col_wrap=4, sharey=False)
 
