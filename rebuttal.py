@@ -205,15 +205,15 @@ def get_single_run(r): # r is run_dict
     if expression_data != "EMPTY":
         print(f"trying to get expression analysis for {savedir}")
         try:
-            # r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
+            r_dist_vs_expression3(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
             # r_dist_vs_expression3_genebody(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
-            # r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
+            r_dist_vs_expression_boxplot(f"{savedir}/r_values.bed", expression_data, savedir, interpret=True)
             conf_v_nonconf_vs_expression(f"{savedir}/r_values.bed", expression_data, savedir)
         except Exception as e:
             print("ERROR:   ", e)
             print(f"failed to get WG exp vs r analysis for {savedir}")
     return
-    
+
     try:
         print(f"trying to get per-segment analysis for {savedir}")
         r_distribution_over_segment(f"{savedir}/r_values.bed", savedir)
@@ -1114,7 +1114,7 @@ def r_dist_vs_expression2(r_value_file, expression_file, savedir, n_bins=20):
     plt.savefig(r_value_file.replace("r_values.bed", "exp_vs_mean_r.svg"), format='svg')
     plt.clf()
 
-def r_dist_vs_expression3(r_value_file, expression_file, savedir, n_bins=20 , interpret=True):
+def r_dist_vs_expression3_binned(r_value_file, expression_file, savedir, n_bins=20 , interpret=True):
     if os.path.exists(savedir) == False:
         os.mkdir(savedir)
 
@@ -1287,6 +1287,120 @@ def r_dist_vs_expression3(r_value_file, expression_file, savedir, n_bins=20 , in
     plt.ylim(bottom=0)
     plt.savefig(f"{savedir}/mean_expression_v_r_subplots.pdf", format='pdf')
     plt.savefig(f"{savedir}/mean_expression_v_r_subplots.svg", format='svg')
+
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+    plt.clf()
+
+def r_dist_vs_expression3(r_value_file, expression_file, savedir, n_bins=20 , interpret=True):
+    if os.path.exists(savedir) == False:
+        os.mkdir(savedir)
+
+    interpretation_terms = ["Prom", "Prom_fla", "Enha", "Enha_low", "Biva", "Tran", "Cons", "Facu", "K9K3", "Quie", "Unkn"]
+    gene_coords = load_gene_coords("src/biovalidation/parsed_genecode_data_hg38_release42.csv")
+    r_vals = pd.read_csv(r_value_file, sep="\t")
+    if "tsv" in expression_file:
+        data = load_transcription_data(
+            expression_file, 
+            gene_coords, csv=True)
+
+    elif "pkl" in expression_file:
+        data = load_transcription_data(
+            expression_file, 
+            gene_coords, csv=False)
+    
+    # Convert DataFrame to BedTool
+    bed1 = pybedtools.BedTool.from_dataframe(data)
+    bed2 = pybedtools.BedTool.from_dataframe(r_vals)
+
+    # Get the intersection
+    df = bed2.intersect(bed1, wa=True, wb=True).to_dataframe()
+    # df2 = bed2.intersect(bed1, wa=True, wb=True, v=True).to_dataframe()
+    # df2["TPM"] = 0
+
+    df = df[["chrom", "start", "end", "name", "score", "blockSizes"]]
+    df.columns = ["chr", "start", "end", "MAP", "r_value", "TPM"]
+    # df2.columns = ["chr", "start", "end", "MAP", "r_value", "TPM"]
+
+    # Merge df and df2
+    # df = pd.concat([df, df2])
+    # df["TPM"] = np.log(df["TPM"] + 1e-19)
+
+    # Sort the resulting DataFrame by 'chr' and 'start'
+    df = df.sort_values(by=['chr', 'start'])
+
+    # df["TPM"] = np.log10(df["TPM"] + 1e-6)
+    # del df2
+
+    unique_labels = df['MAP'].unique()
+
+    perlabel = {}
+    grouped = df.groupby('MAP')
+    for _, group in grouped:
+        perlabel[str(group.MAP.unique()[0])] = group
+
+    # Get the unique MAP values
+    map_values = df['MAP'].unique()
+    map_to_color = {
+        label: color for label, color in zip(df['MAP'].unique(), plt.cm.rainbow(np.linspace(0, 1, len(df['MAP'].unique()))))}
+
+    ################################################################################################
+
+    # Calculate the number of columns and rows for the subplots
+    num_labels = len(map_values)
+    n_cols = math.floor(math.sqrt(num_labels))
+    n_rows = math.ceil(num_labels / n_cols)
+
+    # Create a new figure with subplots. Adjust the figsize and layout as needed.
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[16, 9])
+    fig.tight_layout(pad=5.0)
+
+    # Open a text file to store the metrics
+    with open(f"{savedir}/exp_v_r_metrics.txt", "w") as f:
+        # For each unique MAP value
+        for i, map_value in enumerate(map_values):
+            # Filter data for the current MAP value
+            data = perlabel[map_value]#parsed_df[parsed_df['MAP'] == map_value]
+
+            # Sort data by 'mean_r'
+            data = data.sort_values('r_value')
+
+            # Fit a linear regression model and calculate R-squared value
+            model = LinearRegression().fit(data[['r_value']], data['TPM'])
+            r2 = model.score(data[['r_value']], data['TPM'])
+            f.write(f"{map_value}|R2 = {r2}\n")
+
+            try:
+                # Calculate Pearson correlation coefficient
+                pearson_r, _ = pearsonr(data['r_value'], data['TPM'])
+                f.write(f"{map_value}|Pearson_r = {pearson_r}\n")
+            except:
+                pearson_r = 0
+            
+            try:
+                # Calculate Spearman's rank correlation coefficient
+                spearman_rho, _ = spearmanr(data['r_value'], data['TPM'])
+                f.write(f"{map_value}|Spearman's rho = {spearman_rho}\n")
+            except:
+                pass
+
+            try:
+                # Calculate Kendall's tau
+                kendall_tau, _ = kendalltau(data['r_value'], data['TPM'])
+                f.write(f"{map_value}|Kendall's tau = {kendall_tau}\n")
+            except:
+                pass
+
+            # Plot mean_r vs mean_exp in a subplot using sns.regplot
+            ax = axs[i // n_cols, i % n_cols]
+            sns.regplot(x=data['r_value'], y=data['TPM'], scatter=False, color=map_to_color[map_value], ax=ax)
+            ax.set_title(f"{map_value} | R2: {r2:.2f} | Pearson_r: {pearson_r:.2f}")
+
+    # Save the figure
+    plt.ylim(bottom=0)
+    plt.savefig(f"{savedir}/exp_v_r_subplots.pdf", format='pdf')
+    plt.savefig(f"{savedir}/exp_v_r_subplots.svg", format='svg')
 
     sns.reset_orig
     plt.close("all")
@@ -1531,8 +1645,33 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, alpha=0
 
         return {"mean_diff":mean_diff, "t_pval":t_pval, "u_pval":u_pval, "wilcoxon":p, "zp_val":zp_val}
 
-    map_values = [t for t in df['MAP'].unique() if "Tran" in t]
-    # map_values = df['MAP'].unique()
+    print("saving metrics in text format for conf_v_nonconf_vs_expression")
+    with open(f"{savedir}/conf_vs_nonconf_meanEXP_metrics.txt", "w") as f:
+
+        for label in df['MAP'].unique():
+            try:
+                df_confident_label = df_confident[df_confident['MAP'] == label]
+            except:
+                df_confident_label = pd.DataFrame(columns=["chr", "start", "end", "MAP", "r_value", "TPM"])
+
+            try:
+                df_non_confident_label = df_non_confident[df_non_confident['MAP'] == label]
+            except:
+                df_non_confident_label = pd.DataFrame(columns=["chr", "start", "end", "MAP", "r_value", "TPM"])
+
+            agg_metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
+            for ii, kk in agg_metrics.items():
+                f.write(f"{label}|{ii}={kk}\n")
+
+            if len(df_non_confident_label) > 0:
+                c_n_ratio = len(df_confident_label) / len(df_non_confident_label)
+            else:
+                c_n_ratio = np.nan
+
+            f.write(f"{label}|conf_nonconf_ratio={c_n_ratio}\n")
+
+    # map_values = [t for t in df['MAP'].unique() if "Tran" in t]
+    map_values = df['MAP'].unique()
 
     if len(map_values) > 1:
         # Calculate the number of columns and rows for the subplots
@@ -1541,7 +1680,7 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, alpha=0
         n_rows = math.ceil(num_labels / n_cols)
 
         # Create a new figure with subplots. Adjust the figsize and layout as needed.
-        fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[n_rows*4, n_cols*3])
+        fig, axs = plt.subplots(n_rows, n_cols, sharex=False, sharey=False, figsize=[n_rows*4, n_cols*3])
         fig.tight_layout(pad=5.0)
 
         agg_metrics = {}
@@ -1585,41 +1724,47 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, alpha=0
                 df_non_confident_ = pd.DataFrame(columns=['TPM', 'Category'])
 
             data_to_plot = pd.concat([df_all_, df_confident_, df_non_confident_])
-            # data_to_plot['TPM'] = np.log(data_to_plot['TPM'] + 1e-19)
 
-            # sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False, ax=ax)
+            weights_confident = np.ones_like(
+                data_to_plot[data_to_plot['Category'] == 'Confident']['TPM']) / len(data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'])
 
-            weights_confident = np.ones_like(data_to_plot[data_to_plot['Category'] == 'Confident']['TPM']) / len(data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'])
-            weights_non_confident = np.ones_like(data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM']) / len(data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM'])
+            weights_non_confident = np.ones_like(
+                data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM']) / len(data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM'])
 
-            ax.hist([data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'], 
-                    data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM']], 
-                    bins=5, stacked=True, color=['mediumaquamarine', 'lightcoral'], 
-                    weights=[weights_confident, weights_non_confident])
+            # Define the number of bins
+            bins = np.linspace(data_to_plot['TPM'].min(), data_to_plot['TPM'].max() + 1e-10, 6)
+
+            # Calculate the bin centers
+            bin_centers = bins[:-1] + np.diff(bins)/2
+
+            # Calculate the histogram for 'Confident' category
+            hist_confident, _ = np.histogram(data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'], bins, weights=weights_confident)
+
+            # Calculate the histogram for 'Non-confident' category
+            hist_non_confident, _ = np.histogram(data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM'], bins, weights=weights_non_confident)
+
+            # Plot the bar plot for 'Confident' category
+            ax.bar(bin_centers - 0.25, hist_confident, width=0.5, label='Confident', color='mediumaquamarine', align='center')
+
+            # Plot the bar plot for 'Non-confident' category
+            ax.bar(bin_centers + 0.25, hist_non_confident, width=0.5, label='Non-confident', color='lightcoral', align='center')
+
+            # Set x-ticks to show ranges
+            ax.set_xticks(bin_centers)
+            ax.set_xticklabels([f'({bins[i]:.1f}, {bins[i+1]:.1f})' for i in range(len(bins)-1)], rotation=30)
+
+            # Add vertical lines to separate pairs of bins
+            # for x in bins[1:-1]:
+            #     ax.axvline(x, color='grey', linestyle='--')
 
             # Add labels and title
             ax.set_xlabel('Log(TPM)')
             ax.set_ylabel('Frequency')
-            # plt.title(title)
-            ax.legend(['r > 0.9', 'r < 0.9'])
+            ax.legend(['r > 0.9', 'r < 0.9'], loc='upper left')
 
-            if len(df_confident_label) > 0 and len(df_non_confident_label) > 0:
-                metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
-                title = label + f" | Z-test -log(p) = {(-1 * np.log( metrics['zp_val'] )):.2f}" 
-
-                for ii, kk in metrics.items():
-                    if ii not in agg_metrics:
-                        agg_metrics[ii] = kk
-                    else:
-                        agg_metrics[ii] = agg_metrics[ii] + kk
-            else:
-                title = label 
+            title = label 
                 
             ax.set_title(title, fontsize=8)
-            # ax.set_ylabel("mean_expression")
-        
-        for ii in agg_metrics.keys():
-            agg_metrics[ii] = agg_metrics[ii] / len(map_values)
 
     else:
         label = map_values[0]
@@ -1659,69 +1804,59 @@ def conf_v_nonconf_vs_expression(r_value_file, expression_file, savedir, alpha=0
         data_to_plot = pd.concat([df_confident_, df_non_confident_])
         # data_to_plot['TPM'] = np.log(data_to_plot['TPM'] + 1e-19)
 
-        # sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False)
-        plt.figure(figsize=(10, 6))
-        # plt.hist([data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'], 
+                # plt.hist([data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'], 
         #         data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM']], 
                 # bins=10, stacked=True, color=['mediumaquamarine', 'lightcoral'], density=True)
+        # sns.boxplot(x='Category', y='TPM', data=data_to_plot, palette=['grey', 'mediumaquamarine', 'lightcoral'], showfliers=False)
 
-        weights_confident = np.ones_like(data_to_plot[data_to_plot['Category'] == 'Confident']['TPM']) / len(data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'])
-        weights_non_confident = np.ones_like(data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM']) / len(data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM'])
+        plt.figure(figsize=(10, 6))
 
-        bins = np.linspace(data_to_plot['TPM'].min(), data_to_plot['TPM'].max(), 5)
+        weights_confident = np.ones_like(
+            data_to_plot[data_to_plot['Category'] == 'Confident']['TPM']) / len(data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'])
 
-        # Plot the histogram for 'Confident' category
-        plt.hist(data_to_plot[
-            data_to_plot['Category'] == 'Confident']['TPM'], bins, 
-            alpha=0.8, label='Confident', color='mediumaquamarine', weights=weights_confident, rwidth=0.5, align="left")
+        weights_non_confident = np.ones_like(
+            data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM']) / len(data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM'])
 
-        # Plot the histogram for 'Non-confident' category
-        plt.hist(
-            data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM'], bins, 
-            alpha=0.8, label='Non-confident', color='lightcoral', weights=weights_non_confident, rwidth=0.5, align="mid")
+        # Define the number of bins
+        bins = np.linspace(data_to_plot['TPM'].min(), data_to_plot['TPM'].max() + 1e-10, 6)
 
-        # sns.histplot(data=data_to_plot, x='TPM', hue='Category', bins=5, palette=['mediumaquamarine', 'lightcoral'], multiple="dodge")
+        # Calculate the bin centers
+        bin_centers = bins[:-1] + np.diff(bins)/2
+
+        # Calculate the histogram for 'Confident' category
+        hist_confident, _ = np.histogram(data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'], bins, weights=weights_confident)
+
+        # Calculate the histogram for 'Non-confident' category
+        hist_non_confident, _ = np.histogram(data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM'], bins, weights=weights_non_confident)
+
+        # Plot the bar plot for 'Confident' category
+        plt.bar(bin_centers - 0.25, hist_confident, width=0.5, label='Confident', color='mediumaquamarine', align='center')
+
+        # Plot the bar plot for 'Non-confident' category
+        plt.bar(bin_centers + 0.25, hist_non_confident, width=0.5, label='Non-confident', color='lightcoral', align='center')
+
+        # Set x-ticks to show ranges
+        plt.xticks(bin_centers, [f'({bins[i]:.1f}, {bins[i+1]:.1f})' for i in range(len(bins)-1)])
+
+        plt.legend(['r > 0.9', 'r < 0.9'], loc='upper left')
+
+        # Add vertical lines to separate pairs of bins
+        # for x in bins[1:-1]:
+        #     plt.axvline(x, color='grey', linestyle='--')
 
         plt.xlabel('Log(TPM)')
         plt.ylabel('Frequency')
 
-        plt.legend(['r > 0.9', 'r < 0.9'], loc='upper right')
-
-
-        # plt.hist([data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'], 
-        #         data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM']], 
-        #         bins=5, stacked=True, color=['mediumaquamarine', 'lightcoral'], 
-        #         weights=[weights_confident, weights_non_confident])
-
-        # # Calculate the ratio and add it to the plot
-        # counts, bins = np.histogram(data_to_plot[data_to_plot['Category'] == 'Confident']['TPM'], bins=5)
-        # counts2, _ = np.histogram(data_to_plot[data_to_plot['Category'] == 'Non-confident']['TPM'], bins=bins)
-
-        # for c1, c2, b in zip(counts, counts2, bins[:-1]):
-        #     if c2 != 0:
-        #         ratio = c1 / c2
-        #         plt.text(b, c1+c2, f'{ratio:.2f}', ha='center')
-
-        # Add labels and title
-        
-        # plt.title(title)
-        # plt.legend()
-
-        if len(df_non_confident_label) > 0 and len(df_confident_label) > 0:
-            agg_metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
-            title = label + f" | Z-test -log(p) = {(-1 * np.log( agg_metrics['zp_val'] )):.2f}" 
-        else:
-            agg_metrics = {}
-            title = label
+        # if len(df_non_confident_label) > 0 and len(df_confident_label) > 0:
+        #     agg_metrics = comparison_metrics(df_confident_label['TPM'], df_non_confident_label['TPM'])
+        #     title = label + f" | Z-test -log(p) = {(-1 * np.log( agg_metrics['zp_val'] )):.2f}" 
+        # else:
+        #     agg_metrics = {}
+        title = label
             
         plt.title(title)
         # plt.ylabel("mean_expression")
     
-    print("saving metrics in text format for conf_v_nonconf_vs_expression")
-    with open(f"{savedir}/conf_vs_nonconf_meanEXP_metrics.txt", "w") as f:
-        for ii, kk in agg_metrics.items():
-            f.write(f"{ii}={kk}\n")
-
     print("creating plots for conf_v_nonconf_vs_expression")
     plt.tight_layout()
     plt.savefig(f"{savedir}/conf_vs_nonconf_meanEXP.pdf", format='pdf')
@@ -1775,8 +1910,8 @@ def r_dist_vs_expression_boxplot(r_value_file, expression_file, savedir, n_bins=
     unique_labels = df['MAP'].unique()
     binned_positions = {}
 
-    r_range = 1
-    for b in np.arange(0, 1, float(r_range/n_bins)):
+    r_range = df["r_value"].max() - df["r_value"].min()
+    for b in np.arange(df["r_value"].min(), df["r_value"].max(), float(r_range/n_bins)):
         bin_range = (b, b + float(r_range/n_bins))
 
         subset = df.loc[
@@ -1795,7 +1930,7 @@ def r_dist_vs_expression_boxplot(r_value_file, expression_file, savedir, n_bins=
     
     parsed = [] # each entry is a [r_bin_center, mean_r, MAP, mean_exp, non_zero_exp_fraction]
     for b, p in binned_positions.items():
-        r_bin_center = float(str(f"{((b[0]+b[1])/2):.3f}"))
+        r_bin_center = float(str(f"{((b[0]+b[1])/2):.2f}"))
         for l in p:
             l = l.reset_index(drop=True)
             mean_r = l["r_value"].mean()
@@ -1831,7 +1966,7 @@ def r_dist_vs_expression_boxplot(r_value_file, expression_file, savedir, n_bins=
     n_rows = math.ceil(num_labels / n_cols)
 
     # Create a new figure with subplots. Adjust the figsize and layout as needed.
-    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[16, 9])
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=False, figsize=[16, 9])
     fig.tight_layout(pad=5.0)
 
     # Open a text file to store the metrics
@@ -1846,7 +1981,9 @@ def r_dist_vs_expression_boxplot(r_value_file, expression_file, savedir, n_bins=
         ax = axs[i // n_cols, i % n_cols]
 
         #### prompt: [[[ plot a boxplot here. particularly, for each bin, I want a boxplot with x="r_bin_center" and y="mean_exp" and the color should be according to map_value]]] ####
-        sns.boxplot(x="r_value", y="TPM", data=data, ax=ax, color=map_to_color[map_value], showfliers=False)
+        # sns.boxplot(x="r_value", y="TPM", data=data, ax=ax, color=map_to_color[map_value], showfliers=False)
+        sns.barplot(x="r_value", y="TPM", data=data, ax=ax, color=map_to_color[map_value], errorbar="sd")
+        ax.set_ylim(bottom=0)
         ax.set_title(f"{map_value}")
 
     # Save the figure
@@ -1862,7 +1999,7 @@ def r_dist_vs_expression_boxplot(r_value_file, expression_file, savedir, n_bins=
 
 if __name__ == "__main__":
     # savedir = "rebuttal_WG/r1vsr2/chmm/GM12878/"
-    # savedir = "tests/rebuttal_example/rebuttal_test_run/"
+    savedir = "tests/rebuttal_example/rebuttal_test_run/"
 
     # r_dist_vs_expression4("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # r_dist_vs_expression4("tests/rebuttal_example/rebuttal_test_run/r_values_14_states.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
@@ -1870,13 +2007,12 @@ if __name__ == "__main__":
 
     # conf_v_nonconf_vs_expression("rebuttal_WG/r1vsr2/chmm/GM12878/r_values.bed", "src/biovalidation/RNA_seq/GM12878/geneExp_dict_ENCFF240WBI.pkl", savedir)
     
-    # r_dist_vs_expression_boxplot("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
+    r_dist_vs_expression_boxplot("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     # conf_v_nonconf_vs_expression("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/GM12878/geneExp_dict_ENCFF240WBI.pkl", savedir)
     
     # r_dist_vs_expression3_genebody("tests/rebuttal_example/rebuttal_test_run/r_values.bed", "src/biovalidation/RNA_seq/MCF-7/geneExp_dict_ENCFF721BRA.pkl", savedir, interpret=True)
     
-    
-    get_runs(maindir = "rebuttal_WG", mp=True, n_processes=10)
+    # get_runs(maindir = "rebuttal_WG", mp=True, n_processes=10)
 
     # get_runs(maindir = "rebuttal", mp=True, n_processes=15)
     # get_runs(maindir = "rebuttal_subset", mp=True, n_processes=10, subset=True)
