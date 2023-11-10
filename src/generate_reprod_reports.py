@@ -3089,6 +3089,235 @@ def reprod_vs_exp_per_label(maindir):
     sns.reset_orig
     plt.style.use('default')
 
+def r_v_exp_aggregate(maindir):
+    "navigate celltypes, settings, and saga model directories"
+    "filter the ones with faulty output"
+    navigate_results = {}
+
+    for s in [x for x in os.listdir(maindir) if os.path.isdir("{}/{}".format(maindir, x))]:
+        navigate_results[s] = {}
+
+        for m in [xx for xx in os.listdir("{}/{}".format(maindir, s)) if os.path.isdir("{}/{}/{}".format(maindir, s, xx))]:
+            navigate_results[s][m] = {}
+
+            for c in [xxx for xxx in os.listdir("{}/{}/{}".format(maindir, s, m)) if os.path.isdir("{}/{}/{}/{}".format(maindir, s, m, xxx))]:
+                if c in ["GM12878", "K562", "MCF-7"]:
+                    navigate_results[s][m][c] = ["{}/{}/{}/{}".format(maindir, s, m, c)]
+        
+    # print(navigate_results)
+
+    var_setting_dict = {
+        "concat":"S2: Diff. data, Same model", "r1vsr2": "S1: Diff. data, Diff. model", 
+        "paraminit":"S3: Same data, Diff. model"}
+    
+    setting_inverse = {v:k for k,v in var_setting_dict.items()}
+
+    def load_conf_vs_nonconf(file):
+        zp_val = {}
+        c_n_ratio = {}
+
+        with open(file, "r") as f:
+            lines = f.readlines()
+            for i in range(len(lines)):
+                l = lines[i]
+                l = l.split("=")
+                label, metric, score = l[0].split("|")[0], l[0].split("|")[1], float(l[1])
+
+                if metric == "zp_val":
+                    zp_val[label] = -1 * np.log(score + 1e-19)
+
+                elif metric == "conf_nonconf_ratio":
+                    c_n_ratio[label] = score
+
+        return zp_val, c_n_ratio
+
+    def load_r_v_exp(file):
+        pearson = {}
+        r2 = {}
+        with open(file, "r") as f:
+            lines = f.readlines()
+            for i in range(len(lines)):
+                l = lines[i]
+                l = l.split(" = ")
+                label, metric, score = l[0].split("|")[0], l[0].split("|")[1], float(l[1])
+
+                if metric == "Pearson_r":
+                    pearson[label] = score
+                elif metric == "R2":
+                    r2[label] = score
+        
+        # r2 = max(list(r2.values()))
+        # pearson = max(list(pearson.values()))
+        return r2, pearson
+
+    for s in navigate_results.keys():
+        for m in navigate_results[s]:
+            for c in navigate_results[s][m]:
+
+                s16_dir = navigate_results[s][m][c][0]
+                # try:
+                zpval, cnratio = load_conf_vs_nonconf(s16_dir + "/conf_vs_nonconf_meanEXP_metrics.txt")
+                # except:
+                    # zpval, cnratio = None, None
+
+                # try:
+                rve_r2_16, rve_pcc_16 = load_r_v_exp(s16_dir + "/exp_v_r_metrics.txt")
+                # except:
+                #     rve_r2_16, rve_pcc_16 = None, None
+
+                metrics = []
+                if zpval.keys() == cnratio.keys() == rve_r2_16.keys() == rve_pcc_16.keys():
+                    for k in zpval.keys():
+                        metrics.append([
+                            k, zpval[k], cnratio[k], rve_r2_16[k], rve_pcc_16[k]
+                        ])
+                
+                # print(metrics)
+                navigate_results[s][m][c].append(metrics)
+                    # pd.DataFrame(metrics, columns = ["state", "zpval", "cnratio", "r2", "pcc"])
+                # )
+    
+    chmm = []
+    segway = []
+    for s in navigate_results.keys():
+        for m in navigate_results[s]:
+            for c in navigate_results[s][m]:
+                metrics = navigate_results[s][m][c][1]
+                if m == "chmm":
+                    for k in metrics:
+                        chmm.append(
+                            [var_setting_dict[s], c, k[0], k[1], k[2], k[3], k[4]]
+                        )
+
+                else:
+                    for k in metrics:
+                        segway.append(
+                            [var_setting_dict[s], c, k[0], k[1], k[2], k[3], k[4]]
+                        )
+
+    chmm = pd.DataFrame(chmm, columns=["setting", "celltype", "state", "-log(p)", "cnratio", "R2", "PCC"])
+    segway = pd.DataFrame(segway, columns=["setting", "celltype", "state", "-log(p)", "cnratio", "R2", "PCC"])
+
+    def visualize_r2(saga_list): # chmm or segway
+        """
+        This function creates a multi-panel figure (mpf) with a barplot for each subpanel.
+        The x-axis of each subpanel represents the 'state', and the y-axis represents the 'r2' value.
+        Each row in the mpf corresponds to a different 'celltype', and each column corresponds to a different 'setting'.
+        """
+        celltypes = saga_list['celltype'].unique()
+        settings = saga_list['setting'].unique()
+
+        fig, axs = plt.subplots(len(celltypes), len(settings), figsize=(15, 9))
+
+        for i, celltype in enumerate(celltypes):
+            for j, setting in enumerate(settings):
+                data = saga_list[(saga_list['celltype'] == celltype) & (saga_list['setting'] == setting)]
+                sns.barplot(x='state', y='R2', data=data, ax=axs[i, j], color="grey")
+                axs[i, j].set_title(f'{celltype} - {setting}')
+                axs[i, j].tick_params(axis='x', rotation=90)
+
+        plt.tight_layout()
+
+    def visualize_pcc(saga_list): # chmm or segway
+        """
+        This function creates a multi-panel figure (mpf) with a barplot for each subpanel.
+        The x-axis of each subpanel represents the 'state', and the y-axis represents the 'pcc' value.
+        Each row in the mpf corresponds to a different 'celltype', and each column corresponds to a different 'setting'.
+        """
+        celltypes = saga_list['celltype'].unique()
+        settings = saga_list['setting'].unique()
+
+        fig, axs = plt.subplots(len(celltypes), len(settings), figsize=(15, 9))
+
+        for i, celltype in enumerate(celltypes):
+            for j, setting in enumerate(settings):
+                data = saga_list[(saga_list['celltype'] == celltype) & (saga_list['setting'] == setting)]
+                sns.barplot(x='state', y='PCC', data=data, ax=axs[i, j], color="grey")
+                axs[i, j].set_title(f'{celltype} - {setting}')
+                axs[i, j].tick_params(axis='x', rotation=90)
+
+        plt.tight_layout()
+    
+    def visualize_cnratio(saga_list): # chmm or segway
+        """
+        Multi-panel figure (mpf); barplot; subpanel-x:state, subpanel-y: cnratio, mpf-rows: celltypes; mpf-columns: settings
+        """
+        celltypes = saga_list['celltype'].unique()
+        settings = saga_list['setting'].unique()
+
+        fig, axs = plt.subplots(len(celltypes), len(settings), figsize=(15, 9))
+
+        for i, celltype in enumerate(celltypes):
+            for j, setting in enumerate(settings):
+                data = saga_list[(saga_list['celltype'] == celltype) & (saga_list['setting'] == setting)]
+                sns.barplot(x='state', y='cnratio', data=data, ax=axs[i, j], color="grey")
+                axs[i, j].set_title(f'{celltype} - {setting}')
+                axs[i, j].tick_params(axis='x', rotation=90)
+
+        plt.tight_layout()
+
+    def visualize_zpval(saga_list): # chmm or segway
+        """
+        Multi-panel figure (mpf); barplot; subpanel-x:state, subpanel-y: cnratio, mpf-rows: celltypes; mpf-columns: settings
+        """
+        celltypes = saga_list['celltype'].unique()
+        settings = saga_list['setting'].unique()
+
+        fig, axs = plt.subplots(len(celltypes), len(settings), figsize=(15, 9))
+
+        for i, celltype in enumerate(celltypes):
+            for j, setting in enumerate(settings):
+                data = saga_list[(saga_list['celltype'] == celltype) & (saga_list['setting'] == setting)]
+                sns.barplot(x='state', y='-log(p)', data=data, ax=axs[i, j], color="grey")
+                axs[i, j].set_title(f'{celltype} - {setting}')
+                axs[i, j].tick_params(axis='x', rotation=90)
+
+        plt.tight_layout()
+
+    visualize_r2(segway)
+    plt.savefig(maindir + "/segway_rve_r2.pdf", format="pdf")
+    plt.savefig(maindir + "/segway_rve_r2.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+        
+    visualize_pcc(segway)
+    plt.savefig(maindir + "/segway_rve_pcc.pdf", format="pdf")
+    plt.savefig(maindir + "/segway_rve_pcc.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
+    visualize_zpval(segway)
+    plt.savefig(maindir + "/segway_rve_zpval.pdf", format="pdf")
+    plt.savefig(maindir + "/segway_rve_zpval.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
+    ##################
+
+    visualize_r2(chmm)
+    plt.savefig(maindir + "/chmm_rve_r2.pdf", format="pdf")
+    plt.savefig(maindir + "/chmm_rve_r2.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+        
+    visualize_pcc(chmm)
+    plt.savefig(maindir + "/chmm_rve_pcc.pdf", format="pdf")
+    plt.savefig(maindir + "/chmm_rve_pcc.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
+    visualize_zpval(chmm)
+    plt.savefig(maindir + "/chmm_rve_zpval.pdf", format="pdf")
+    plt.savefig(maindir + "/chmm_rve_zpval.svg", format="svg")
+    plt.clf()
+    sns.reset_orig
+    plt.style.use('default')
+
 
 if __name__=="__main__":
     # exemplar_naive("tests/cedar_runs/chmm/GM12878_R1/")
@@ -3097,7 +3326,7 @@ if __name__=="__main__":
     # merge_WG_subset("tests/subset", "tests/WG", "tests/copy_log.txt")
     # comp = COMPARATIVE("tests/subset")
     # comp.ALL()
-    reprod_vs_exp_per_label("/Users/mforooz/Desktop/research/libbrechteam@sfu/segwayconf/gitrepo/SAGAconf/tests/Rebuttal_runs/rebuttal_subset")
+    r_v_exp_aggregate("/Users/mforooz/Desktop/research/libbrechteam@sfu/segwayconf/gitrepo/SAGAconf/tests/Rebuttal_runs/rebuttal_WG")
     exit()
     comp = COMPARATIVE("tests/WG")
     comp.ALL()
