@@ -1,7 +1,10 @@
 # SAGAconf User Manual
 
 [Paper](https://bit.ly/scgrp "SAGAconf paper")
+
+
 [Blog Post](https://bit.ly/scmbp "SAGAconf Blog Post")
+
 
 ## Introduction
 
