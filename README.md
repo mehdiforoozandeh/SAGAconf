@@ -1,5 +1,10 @@
 # SAGAconf User Manual
 
+
+Paper: bit.ly/scgrp
+Blog Post: bit.ly/scmbp
+
+
 ## Introduction
 
 SAGAconf is a software that assigns calibrated confidence scores to chromatin state annotations, addressing the problem of reproducibility of SAGA annotations. It uses an integrative approach to derive a reproducibility score (r-value) at each genomic position, allowing for the identification of a confident and reliable subset from genome annotation while removing irreproducible predictions. Thus, SAGAconf allows a researcher to select only the reliable predictions from a chromatin annotation for use in downstream analyses. SAGAconf is independent of SAGA methodology, taking as input only posterior probability matrix.
