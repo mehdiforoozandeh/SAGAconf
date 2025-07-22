@@ -195,16 +195,16 @@ elif args.active_regions:
 
 elif args.v_seglength:
     # try:
-        loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
-        loci1, loci2 = process_data(
-            loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
-            vm=args.verif_mnemonics, match=False, custom_order=True)
+    loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
+    loci1, loci2 = process_data(
+        loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
+        vm=args.verif_mnemonics, match=False, custom_order=True)
 
-        overlap_vs_segment_length(
-            replicate_1_dir=loci1, 
-            replicate_2_dir=loci2, 
-            savedir=args.savedir, 
-            locis=True)
+    overlap_vs_segment_length(
+        replicate_1_dir=loci1, 
+        replicate_2_dir=loci2, 
+        savedir=args.savedir, 
+        locis=True)
 
     # except:
     #     if args.verbosity:
@@ -212,12 +212,12 @@ elif args.v_seglength:
 
 elif args.ct_only: 
     # try:
-        loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
-        loci1, loci2 = process_data(
-            loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
-            vm=args.verif_mnemonics, match=False, custom_order=True)
+    loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
+    loci1, loci2 = process_data(
+        loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
+        vm=args.verif_mnemonics, match=False, custom_order=True)
 
-        get_all_ct(loci1, loci2, args.savedir, locis=True, w=w)
+    get_all_ct(loci1, loci2, args.savedir, locis=True, w=w)
 
     # except:
     #     if args.verbosity:
@@ -225,12 +225,12 @@ elif args.ct_only:
 
 elif args.merge_only:
     # try:
-        loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
-        loci1, loci2 = process_data(
-            loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
-            vm=args.verif_mnemonics, match=False, custom_order=True)
+    loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
+    loci1, loci2 = process_data(
+        loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
+        vm=args.verif_mnemonics, match=False, custom_order=True)
 
-        post_clustering_keep_k_states(loci1, loci2, args.savedir, k=args.merge_clusters, locis=True, write_csv=False, w=w)
+    post_clustering_keep_k_states(loci1, loci2, args.savedir, k=args.merge_clusters, locis=True, write_csv=False, w=w)
 
     # except:
     #     if args.verbosity:
@@ -264,12 +264,12 @@ else:
 
     if args.merge_clusters !=-1:
         # try:
-            loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
-            loci1, loci2 = process_data(
-                loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
-                vm=args.verif_mnemonics, match=False, custom_order=True)
+        loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
+        loci1, loci2 = process_data(
+            loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
+            vm=args.verif_mnemonics, match=False, custom_order=True)
 
-            post_clustering_keep_k_states(loci1, loci2, args.savedir, k=args.merge_clusters, locis=True, write_csv=False)
+        post_clustering_keep_k_states(loci1, loci2, args.savedir, k=args.merge_clusters, locis=True, write_csv=False)
 
         # except:
         #     if args.verbosity:
