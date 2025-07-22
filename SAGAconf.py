@@ -238,12 +238,12 @@ elif args.merge_only:
 
 else:
     # try:
-        loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
-        loci1, loci2 = process_data(
-            loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
-            vm=args.verif_mnemonics, match=False, custom_order=True)
+    loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
+    loci1, loci2 = process_data(
+        loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
+        vm=args.verif_mnemonics, match=False, custom_order=True)
 
-        get_all_ct(loci1, loci2, args.savedir, locis=True, w=w)
+    get_all_ct(loci1, loci2, args.savedir, locis=True, w=w)
 
     # except:
     #     if args.verbosity:
@@ -251,12 +251,12 @@ else:
 
 
     # try:
-        loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
-        loci1, loci2 = process_data(
-            loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
-            vm=args.verif_mnemonics, match=False, custom_order=True)
+    loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
+    loci1, loci2 = process_data(
+        loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
+        vm=args.verif_mnemonics, match=False, custom_order=True)
 
-        post_clustering(loci1, loci2, args.savedir, locis=True, to=args.iou_threshold, tr=args.repr_threshold)
+    post_clustering(loci1, loci2, args.savedir, locis=True, to=args.iou_threshold, tr=args.repr_threshold)
 
     # except:
     #     if args.verbosity:
