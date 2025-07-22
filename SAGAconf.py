@@ -122,7 +122,7 @@ issubset = args.subset
 ##############################################################################################################################
 
 if args.quick:
-    try:
+    # try:
         loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
         loci1, loci2 = process_data(
             loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
@@ -130,12 +130,12 @@ if args.quick:
 
         quick_report(loci1, loci2, args.savedir, locis=True,  w=w, to=args.iou_threshold, tr=args.repr_threshold)
 
-    except:
-        if args.verbosity:
-            print("Failed to generated quick report.")
+    # except:
+    #     if args.verbosity:
+    #         print("Failed to generated quick report.")
 
 elif args.r_only:
-    try:
+    # try:
         loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
         loci1, loci2 = process_data(
             loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
@@ -148,12 +148,12 @@ elif args.r_only:
 
         rvalues.to_csv(args.savedir+f"/r_values.bed", sep='\t', header=True, index=False)
 
-    except:
-        if args.verbosity:
-            print("failed to get GW SAGAconf reproducibility results")
+    # except:
+    #     if args.verbosity:
+    #         print("failed to get GW SAGAconf reproducibility results")
 
 elif args.active_regions:
-    try:
+    # try:
         loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
         loci1, loci2 = process_data(
             loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
@@ -189,12 +189,12 @@ elif args.active_regions:
         #     Meuleman_file="src/biointerpret/Meuleman.tsv", 
         #     locis=True, w=w)
 
-    except:
-        if args.verbosity:
-            print("failed to get GW SAGAconf reproducibility results on active regions!")
+    # except:
+    #     if args.verbosity:
+    #         print("failed to get GW SAGAconf reproducibility results on active regions!")
 
 elif args.v_seglength:
-    try:
+    # try:
         loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
         loci1, loci2 = process_data(
             loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
@@ -206,12 +206,12 @@ elif args.v_seglength:
             savedir=args.savedir, 
             locis=True)
 
-    except:
-        if args.verbosity:
-            print("failed to get reproducibility results relative to segment length!")
+    # except:
+    #     if args.verbosity:
+    #         print("failed to get reproducibility results relative to segment length!")
 
 elif args.ct_only: 
-    try:
+    # try:
         loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
         loci1, loci2 = process_data(
             loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
@@ -219,12 +219,12 @@ elif args.ct_only:
 
         get_all_ct(loci1, loci2, args.savedir, locis=True, w=w)
 
-    except:
-        if args.verbosity:
-            print("Failed to generated sample analysis.")
+    # except:
+    #     if args.verbosity:
+    #         print("Failed to generated sample analysis.")
 
 elif args.merge_only:
-    try:
+    # try:
         loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
         loci1, loci2 = process_data(
             loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
@@ -232,12 +232,12 @@ elif args.merge_only:
 
         post_clustering_keep_k_states(loci1, loci2, args.savedir, k=args.merge_clusters, locis=True, write_csv=False, w=w)
 
-    except:
-        if args.verbosity:
-            print("Failed to merge clusters up to k")
+    # except:
+    #     if args.verbosity:
+    #         print("Failed to merge clusters up to k")
 
 else:
-    try:
+    # try:
         loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
         loci1, loci2 = process_data(
             loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
@@ -245,12 +245,12 @@ else:
 
         get_all_ct(loci1, loci2, args.savedir, locis=True, w=w)
 
-    except:
-        if args.verbosity:
-            print("Failed to generated sample analysis.")
+    # except:
+    #     if args.verbosity:
+    #         print("Failed to generated sample analysis.")
 
 
-    try:
+    # try:
         loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
         loci1, loci2 = process_data(
             loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
@@ -258,12 +258,12 @@ else:
 
         post_clustering(loci1, loci2, args.savedir, locis=True, to=args.iou_threshold, tr=args.repr_threshold)
 
-    except:
-        if args.verbosity:
-            print("Failed to perform post-clustering")
+    # except:
+    #     if args.verbosity:
+    #         print("Failed to perform post-clustering")
 
     if args.merge_clusters !=-1:
-        try:
+        # try:
             loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
             loci1, loci2 = process_data(
                 loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
@@ -271,11 +271,11 @@ else:
 
             post_clustering_keep_k_states(loci1, loci2, args.savedir, k=args.merge_clusters, locis=True, write_csv=False)
 
-        except:
-            if args.verbosity:
-                print("Failed to merge clusters up to k")
+        # except:
+        #     if args.verbosity:
+        #         print("Failed to merge clusters up to k")
         
-    try:
+    # try:
         loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
         loci1, loci2 = process_data(
             loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
@@ -283,9 +283,9 @@ else:
 
         get_overalls(loci1, loci2, args.savedir, locis=True, w=w, to=args.iou_threshold, tr=args.repr_threshold)
 
-    except:
-        if args.verbosity:
-            print("failed to get GW SAGAconf reproducibility results")
+    # except:
+    #     if args.verbosity:
+    #         print("failed to get GW SAGAconf reproducibility results")
 
 ##############################################################################################################################
 
