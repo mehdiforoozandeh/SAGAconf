@@ -731,6 +731,9 @@ def intersect_parsed_posteriors(parsed_df_dir_1, parsed_df_dir_2):
                 chrdf2[i] = chrdf2[i].replace("_1", "")
         df2.chr = np.array(chrdf2)
 
+    print(df1)
+    print(df2)
+    exit()
     intersect = pd.merge(
         df1, 
         df2, 
