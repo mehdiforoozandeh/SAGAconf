@@ -249,6 +249,33 @@ else:
         if args.verbosity:
             print("Failed to generated sample analysis.")
 
+    def rval_hist(rvalues, savedir):
+        labels = rvalues.MAP.unique()
+        fig, axs = plt.subplots(len(labels), 1, figsize=(15, 15), sharex=True, sharey=False)
+
+        bin_edges = list(np.arange(0, 1, 0.01))
+        for l in range(len(labels)):
+            data = rvalues.loc[rvalues["MAP"] == labels[l], "r_value"]
+            weights = np.ones_like(data) / len(data)
+            
+            axs[l].hist(data, bins=bin_edges, color="black", alpha=0.6,
+                    label=labels[l], weights=weights)
+
+            axs[l].text(0.02, 0.95, labels[l], transform=axs[l].transAxes,
+                        horizontalalignment='left', verticalalignment='top',
+                        fontsize=8)
+            # axs[l].set_xlabel("r_value")
+            # axs[l].set_ylabel("Proportion")
+            axs[l].tick_params(axis='y', labelsize=8)
+            axs[l].set_xlim([0, 1])
+
+        plt.tight_layout()
+        plt.savefig('{}/rval_hist.pdf'.format(savedir), format='pdf')
+        plt.savefig('{}/rval_hist.svg'.format(savedir), format='svg')
+        sns.reset_orig
+        plt.close("all")
+        plt.style.use('default')
+        plt.clf()
 
     # try:
     #     loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
@@ -293,6 +320,8 @@ else:
                 always_include_best_match=True, return_r=True)
 
         rvalues.to_csv(args.savedir+f"/r_values.bed", sep='\t', header=True, index=False)
+        rval_hist(rvalues, args.savedir)
+        
     except:
         if args.verbosity:
             print("failed to get GW SAGAconf reproducibility results")
