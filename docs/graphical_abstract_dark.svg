@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 440" width="1200" height="440" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="SAGAconf compares two replicate chromatin state annotations, assigns each genomic bin an r-value, and keeps the reproducible calls.">
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#0D1117"/><line x1="0" y1="0" x2="0" y2="6" stroke="#3D444D" stroke-width="1.5"/></pattern><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9198A1"/></marker></defs>
+<rect x="1" y="1" width="1198" height="438" rx="16" fill="#161B22" stroke="#3D444D"/>
+<text x="40" y="62" font-size="34" font-weight="700" fill="#E6EDF3">SAGAconf</text>
+<text x="40" y="90" font-size="16" fill="#9198A1">Which chromatin state calls can you trust? Reproducibility across replicates, turned into a calibrated score per genomic bin.</text>
+<circle cx="51" cy="145" r="11" fill="#4493F8"/>
+<text x="51" y="149.5" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">1</text>
+<text x="70" y="150" font-size="16" font-weight="600" fill="#E6EDF3">Two replicate annotations</text>
+<text x="40" y="190" font-size="12" fill="#9198A1">base replicate</text>
+<rect x="40" y="198" width="40" height="22" fill="#D1495B"/>
+<rect x="80" y="198" width="30" height="22" fill="#EDAE49"/>
+<rect x="110" y="198" width="60" height="22" fill="#00798C"/>
+<rect x="170" y="198" width="25" height="22" fill="#3D444D"/>
+<rect x="195" y="198" width="45" height="22" fill="#EDAE49"/>
+<rect x="240" y="198" width="20" height="22" fill="#7B5EA7"/>
+<rect x="260" y="198" width="50" height="22" fill="#00798C"/>
+<rect x="310" y="198" width="50" height="22" fill="#3D444D"/>
+<rect x="40" y="198" width="320" height="22" rx="3" fill="none" stroke="#3D444D"/>
+<text x="40" y="254" font-size="12" fill="#9198A1">verification replicate</text>
+<rect x="40" y="262" width="38" height="22" fill="#D1495B"/>
+<rect x="78" y="262" width="34" height="22" fill="#EDAE49"/>
+<rect x="112" y="262" width="55" height="22" fill="#00798C"/>
+<rect x="167" y="262" width="30" height="22" fill="#7B5EA7"/>
+<rect x="197" y="262" width="40" height="22" fill="#EDAE49"/>
+<rect x="237" y="262" width="25" height="22" fill="#D1495B"/>
+<rect x="262" y="262" width="48" height="22" fill="#00798C"/>
+<rect x="310" y="262" width="50" height="22" fill="#3D444D"/>
+<rect x="40" y="262" width="320" height="22" rx="3" fill="none" stroke="#3D444D"/>
+<text x="40" y="316" font-size="12" fill="#9198A1">from any SAGA method (ChromHMM, Segway, …): posteriors, K states</text>
+<rect x="40" y="338" width="12" height="12" rx="2" fill="#D1495B"/>
+<text x="57" y="348" font-size="12" fill="#9198A1">Prom</text>
+<rect x="104" y="338" width="12" height="12" rx="2" fill="#EDAE49"/>
+<text x="121" y="348" font-size="12" fill="#9198A1">Enha</text>
+<rect x="168" y="338" width="12" height="12" rx="2" fill="#00798C"/>
+<text x="185" y="348" font-size="12" fill="#9198A1">Tran</text>
+<rect x="232" y="338" width="12" height="12" rx="2" fill="#7B5EA7"/>
+<text x="249" y="348" font-size="12" fill="#9198A1">Facu</text>
+<rect x="296" y="338" width="12" height="12" rx="2" fill="#3D444D"/>
+<text x="313" y="348" font-size="12" fill="#9198A1">Quie</text>
+<line x1="378" y1="265" x2="438" y2="265" stroke="#9198A1" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="455" y="120" width="300" height="280" rx="12" fill="none" stroke="#4493F8" stroke-width="2"/>
+<circle cx="486" cy="145" r="11" fill="#4493F8"/>
+<text x="486" y="149.5" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">2</text>
+<text x="505" y="150" font-size="16" font-weight="600" fill="#E6EDF3">SAGAconf</text>
+<rect x="479" y="180" width="16" height="16" fill="#4493F8" fill-opacity="0.91" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="495" y="180" width="16" height="16" fill="#4493F8" fill-opacity="0.13" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="511" y="180" width="16" height="16" fill="#4493F8" fill-opacity="0.08" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="527" y="180" width="16" height="16" fill="#4493F8" fill-opacity="0.08" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="543" y="180" width="16" height="16" fill="#4493F8" fill-opacity="0.13" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="479" y="196" width="16" height="16" fill="#4493F8" fill-opacity="0.17" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="495" y="196" width="16" height="16" fill="#4493F8" fill-opacity="0.82" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="511" y="196" width="16" height="16" fill="#4493F8" fill-opacity="0.13" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="527" y="196" width="16" height="16" fill="#4493F8" fill-opacity="0.08" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="543" y="196" width="16" height="16" fill="#4493F8" fill-opacity="0.08" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="479" y="212" width="16" height="16" fill="#4493F8" fill-opacity="0.08" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="495" y="212" width="16" height="16" fill="#4493F8" fill-opacity="0.13" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="511" y="212" width="16" height="16" fill="#4493F8" fill-opacity="0.86" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="527" y="212" width="16" height="16" fill="#4493F8" fill-opacity="0.17" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="543" y="212" width="16" height="16" fill="#4493F8" fill-opacity="0.08" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="479" y="228" width="16" height="16" fill="#4493F8" fill-opacity="0.08" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="495" y="228" width="16" height="16" fill="#4493F8" fill-opacity="0.17" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="511" y="228" width="16" height="16" fill="#4493F8" fill-opacity="0.49" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="527" y="228" width="16" height="16" fill="#4493F8" fill-opacity="0.45" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="543" y="228" width="16" height="16" fill="#4493F8" fill-opacity="0.08" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="479" y="244" width="16" height="16" fill="#4493F8" fill-opacity="0.13" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="495" y="244" width="16" height="16" fill="#4493F8" fill-opacity="0.08" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="511" y="244" width="16" height="16" fill="#4493F8" fill-opacity="0.08" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="527" y="244" width="16" height="16" fill="#4493F8" fill-opacity="0.08" stroke="#3D444D" stroke-width="0.5"/>
+<rect x="543" y="244" width="16" height="16" fill="#4493F8" fill-opacity="0.95" stroke="#3D444D" stroke-width="0.5"/>
+<text x="575" y="194" font-size="14" font-weight="600" fill="#E6EDF3">Match states</text>
+<text x="575" y="212" font-size="12" fill="#9198A1">IoU overlap between replicates</text>
+<text x="575" y="252" font-size="14" font-weight="600" fill="#E6EDF3">Score every bin</text>
+<text x="575" y="270" font-size="12" fill="#9198A1">r-value: reproducibility score</text>
+<text x="575" y="310" font-size="14" font-weight="600" fill="#E6EDF3">Keep confident calls</text>
+<text x="575" y="328" font-size="12" fill="#9198A1">r-value ≥ α (default 0.8)</text>
+<text x="479" y="376" font-size="12" fill="#9198A1">+ granularity, misalignment, and calibration reports</text>
+<line x1="772" y1="265" x2="832" y2="265" stroke="#9198A1" stroke-width="2" marker-end="url(#arrow)"/>
+<circle cx="856" cy="145" r="11" fill="#4493F8"/>
+<text x="856" y="149.5" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">3</text>
+<text x="875" y="150" font-size="16" font-weight="600" fill="#E6EDF3">Confident annotation</text>
+<text x="845" y="190" font-size="12" fill="#9198A1">r-value per bin</text>
+<rect x="846" y="201.733" width="6" height="66.2667" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="854" y="202.9" width="6" height="65.1" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="862" y="200.567" width="6" height="67.4333" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="870" y="201.733" width="6" height="66.2667" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="878" y="209.2" width="6" height="58.8" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="886" y="209.2" width="6" height="58.8" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="894" y="201.733" width="6" height="66.2667" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="902" y="202.9" width="6" height="65.1" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="910" y="209.2" width="6" height="58.8" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="918" y="209.2" width="6" height="58.8" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="926" y="202.9" width="6" height="65.1" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="934" y="200.567" width="6" height="67.4333" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="942" y="201.733" width="6" height="66.2667" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="950" y="202.9" width="6" height="65.1" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="958" y="200.567" width="6" height="67.4333" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="966" y="201.733" width="6" height="66.2667" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="974" y="248.4" width="6" height="19.6" rx="1" fill="#9198A1" fill-opacity="0.45"/>
+<rect x="982" y="248.4" width="6" height="19.6" rx="1" fill="#9198A1" fill-opacity="0.45"/>
+<rect x="990" y="248.4" width="6" height="19.6" rx="1" fill="#9198A1" fill-opacity="0.45"/>
+<rect x="998" y="248.4" width="6" height="19.6" rx="1" fill="#9198A1" fill-opacity="0.45"/>
+<rect x="1006" y="200.567" width="6" height="67.4333" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="1014" y="209.2" width="6" height="58.8" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="1022" y="209.2" width="6" height="58.8" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="1030" y="200.567" width="6" height="67.4333" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="1038" y="201.733" width="6" height="66.2667" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="1046" y="248.4" width="6" height="19.6" rx="1" fill="#9198A1" fill-opacity="0.45"/>
+<rect x="1054" y="248.4" width="6" height="19.6" rx="1" fill="#9198A1" fill-opacity="0.45"/>
+<rect x="1062" y="248.4" width="6" height="19.6" rx="1" fill="#9198A1" fill-opacity="0.45"/>
+<rect x="1070" y="202.9" width="6" height="65.1" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="1078" y="200.567" width="6" height="67.4333" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="1086" y="201.733" width="6" height="66.2667" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="1094" y="202.9" width="6" height="65.1" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="1102" y="200.567" width="6" height="67.4333" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="1110" y="209.2" width="6" height="58.8" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="1118" y="209.2" width="6" height="58.8" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="1126" y="200.567" width="6" height="67.4333" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="1134" y="201.733" width="6" height="66.2667" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="1142" y="202.9" width="6" height="65.1" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="1150" y="200.567" width="6" height="67.4333" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<rect x="1158" y="201.733" width="6" height="66.2667" rx="1" fill="#4493F8" fill-opacity="1.00"/>
+<line x1="845" y1="212" x2="1165" y2="212" stroke="#E6EDF3" stroke-dasharray="5 4"/>
+<text x="839" y="216" font-size="12" fill="#E6EDF3" text-anchor="end">α</text>
+<text x="845" y="296" font-size="12" fill="#9198A1">base annotation, reproducible calls only</text>
+<rect x="845" y="304" width="40" height="22" fill="#D1495B"/>
+<rect x="885" y="304" width="30" height="22" fill="#EDAE49"/>
+<rect x="915" y="304" width="60" height="22" fill="#00798C"/>
+<rect x="975" y="304" width="25" height="22" fill="url(#hatch)" stroke="#9198A1" stroke-dasharray="3 2"/>
+<rect x="1000" y="304" width="45" height="22" fill="#EDAE49"/>
+<rect x="1045" y="304" width="20" height="22" fill="url(#hatch)" stroke="#9198A1" stroke-dasharray="3 2"/>
+<rect x="1065" y="304" width="50" height="22" fill="#00798C"/>
+<rect x="1115" y="304" width="50" height="22" fill="#3D444D"/>
+<rect x="845" y="304" width="320" height="22" rx="3" fill="none" stroke="#3D444D"/>
+<rect x="845" y="338" width="12" height="12" rx="2" fill="url(#hatch)" stroke="#9198A1" stroke-dasharray="3 2"/>
+<text x="862" y="348" font-size="12" fill="#9198A1">irreproducible, filtered out</text>
+</svg>

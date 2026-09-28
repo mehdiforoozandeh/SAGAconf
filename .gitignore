@@ -6,7 +6,6 @@ dep_graphs/
 legacy/chmmisuue
 legacy/reprod_results
 files/
-tests/
 sagaconf/biovalidation/gencode.v29.primary_assembly.annotation_UCSC_names.gtf
 sagaconf/biovalidation/RNA_seq/
 sagaconf/biovalidation/
