@@ -16,6 +16,7 @@ import filecmp
 import hashlib
 import json
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -33,6 +34,13 @@ DETERMINISTIC_ENV = {
     "OPENBLAS_NUM_THREADS": "1",
     "MKL_NUM_THREADS": "1",
 }
+# On AVX-512 CPUs, numpy 1.26 np.exp on a strided float64 view (e.g. bins[:, 5] in
+# posterior_calibration) returns last-bit-different results depending on the array's memory
+# alignment, so legacy is not repeatable run to run. Disabling the AVX-512 dispatch makes it
+# repeatable; both legacy and new run under the same setting.
+if platform.machine() in ("x86_64", "AMD64"):
+    DETERMINISTIC_ENV["NPY_DISABLE_CPU_FEATURES"] = (
+        "AVX512F AVX512CD AVX512_SKX AVX512_CLX AVX512_CNL AVX512_ICL AVX512_SPR")
 
 
 def run_case(checkout, script, args, rundir, logdir, tag):
