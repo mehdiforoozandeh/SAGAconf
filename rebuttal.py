@@ -9,9 +9,9 @@ import matplotlib.gridspec as gridspec
 import seaborn as sns
 from scipy.stats import gaussian_kde
 from matplotlib.lines import Line2D
-from src.bio_valid import *
+from sagaconf.bio_valid import *
 from scipy.stats import pearsonr
-from reports import *
+from sagaconf.reports import *
 from scipy.stats import ttest_ind, mannwhitneyu, ks_2samp, wilcoxon, zscore
 from numpy import mean, var
 from math import sqrt

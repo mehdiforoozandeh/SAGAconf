@@ -7,12 +7,12 @@ legacy/chmmisuue
 legacy/reprod_results
 files/
 tests/
-src/biovalidation/gencode.v29.primary_assembly.annotation_UCSC_names.gtf
-src/biovalidation/RNA_seq/
-src/biovalidation/
-src/biointerpret/gencode.v29.primary_assembly.annotation_UCSC_names.gtf
-src/__pycache__/
+sagaconf/biovalidation/gencode.v29.primary_assembly.annotation_UCSC_names.gtf
+sagaconf/biovalidation/RNA_seq/
+sagaconf/biovalidation/
+sagaconf/biointerpret/gencode.v29.primary_assembly.annotation_UCSC_names.gtf
+sagaconf/__pycache__/
 ChromHMM/
-src/biointerpret/GRCh38-cCREs.bed
-src/biointerpret/Meuleman.tsv
+sagaconf/biointerpret/GRCh38-cCREs.bed
+sagaconf/biointerpret/Meuleman.tsv
 

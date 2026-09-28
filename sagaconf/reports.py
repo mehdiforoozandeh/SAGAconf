@@ -1,8 +1,8 @@
-from src.run import *
-from src.indepth import *
-from src.granul import *
-from src.bio_valid import *
-from src.overall import *
+from .run import *
+from .indepth import *
+from .granul import *
+from .bio_valid import *
+from .overall import *
 from matplotlib.colors import LinearSegmentedColormap
 import ast, pybedtools
 from sklearn.metrics import r2_score
