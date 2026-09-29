@@ -146,6 +146,11 @@ def main():
     p.add_argument("--self-check", action="store_true", help="also run legacy twice")
     p.add_argument("--allow-traceback-frames", action="store_true",
                    help="accept stderr that differs only in traceback file/line frames")
+    p.add_argument("--run-side", choices=["legacy", "new", "legacy_again"],
+                   help="only run this side of each case (to run sides as parallel jobs)")
+    p.add_argument("--compare-only", action="store_true",
+                   help="compare sides already run with --run-side; a *_newcli case reuses its "
+                        "twin's legacy runs, which are the same command")
     a = p.parse_args()
 
     data = os.path.abspath(a.data)
@@ -165,13 +170,37 @@ def main():
         stage = {k: v.replace("{data}", data) for k, v in c.get("stage", {}).items()}
         new_stage = {k: v.replace("{data}", data) for k, v in c.get("new_stage", c.get("stage", {})).items()}
         base = os.path.join(a.workdir, c["name"])
-        if os.path.exists(base):
-            shutil.rmtree(base)
-        ref, cand = os.path.join(base, "legacy"), os.path.join(base, "new")
-        rc_ref, t_ref, log_ref = run_case(a.legacy, c["script"], args, ref, logdir,
-                                          c["name"] + ".legacy", stage)
-        rc_new, t_new, log_new = run_case(a.new, new_script, new_args, cand, logdir,
-                                          c["name"] + ".new", new_stage)
+        if a.run_side:
+            side_dir = os.path.join(base, a.run_side)
+            if os.path.exists(side_dir):
+                shutil.rmtree(side_dir)
+            checkout, script, sargs, sstage = (
+                (a.new, new_script, new_args, new_stage) if a.run_side == "new"
+                else (a.legacy, c["script"], args, stage))
+            rc, t, _ = run_case(checkout, script, sargs, side_dir, logdir,
+                                c["name"] + "." + a.run_side, sstage)
+            with open(side_dir + ".rc", "w") as fh:
+                fh.write("%d %.1f\n" % (rc, t))
+            print("RAN  %-28s side=%s exit=%d %.0fs" % (c["name"], a.run_side, rc, t), flush=True)
+            continue
+        if a.compare_only:
+            twin = c["name"][:-len("_newcli")] if c["name"].endswith("_newcli") else c["name"]
+            lbase = base if os.path.exists(os.path.join(base, "legacy.rc")) else os.path.join(a.workdir, twin)
+            ltag = c["name"] if lbase == base else twin
+            ref, cand = os.path.join(lbase, "legacy"), os.path.join(base, "new")
+            rc_ref, t_ref = [float(x) for x in open(ref + ".rc").read().split()]
+            rc_new, t_new = [float(x) for x in open(cand + ".rc").read().split()]
+            rc_ref, rc_new = int(rc_ref), int(rc_new)
+            log_ref = tuple(os.path.join(logdir, ltag + ".legacy" + e) for e in (".stdout", ".stderr"))
+            log_new = tuple(os.path.join(logdir, c["name"] + ".new" + e) for e in (".stdout", ".stderr"))
+        else:
+            if os.path.exists(base):
+                shutil.rmtree(base)
+            ref, cand = os.path.join(base, "legacy"), os.path.join(base, "new")
+            rc_ref, t_ref, log_ref = run_case(a.legacy, c["script"], args, ref, logdir,
+                                              c["name"] + ".legacy", stage)
+            rc_new, t_new, log_new = run_case(a.new, new_script, new_args, cand, logdir,
+                                              c["name"] + ".new", new_stage)
 
         files, problems = compare_trees(ref, cand, stage, new_stage)
         problems += compare_streams(log_ref, log_new)
@@ -181,7 +210,14 @@ def main():
         problems += ["expected file missing from legacy output: " + e for e in missing]
         if not files:
             problems.append("legacy wrote no files")
-        if a.self_check:
+        if a.compare_only and os.path.exists(os.path.join(lbase, "legacy_again.rc")):
+            ref2 = os.path.join(lbase, "legacy_again")
+            log_ref2 = tuple(os.path.join(logdir, ltag + ".legacy_again" + e) for e in (".stdout", ".stderr"))
+            problems += ["legacy is not deterministic: " + x for x in
+                         compare_trees(ref, ref2, stage, stage)[1] + compare_streams(log_ref, log_ref2)]
+        elif a.compare_only and a.self_check:
+            problems.append("self-check requested but no legacy_again run found")
+        elif a.self_check:
             ref2 = os.path.join(base, "legacy_again")
             _, _, log_ref2 = run_case(a.legacy, c["script"], args, ref2, logdir,
                                       c["name"] + ".legacy_again", stage)
@@ -204,6 +240,8 @@ def main():
             "PASS" if ok else "FAIL", c["name"], len(files), t_ref, t_new,
             "" if ok else "  (%d problems, first: %s)" % (len(problems), problems[0])), flush=True)
 
+    if a.run_side:
+        return
     with open(os.path.join(a.workdir, "gate_report.json"), "w") as fh:
         json.dump(report, fh, indent=1)
     print("%d/%d cases passed; report: %s" % (
