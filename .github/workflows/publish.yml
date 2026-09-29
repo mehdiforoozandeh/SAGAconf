@@ -1,11 +1,11 @@
 name: publish
 
-# Push a tag like v1.0.1 to publish to PyPI. Run it by hand to publish to TestPyPI.
-# Both use PyPI Trusted Publishing: no API token is stored in the repository.
+# Push a tag like v1.0.1 to build SAGAconf and publish it to PyPI. It uses PyPI Trusted
+# Publishing (pending publisher: workflow publish.yml, environment pypi), so no API token
+# is stored in the repository.
 on:
   push:
     tags: ["v[0-9]*"]
-  workflow_dispatch:
 
 jobs:
   build:
@@ -24,7 +24,7 @@ jobs:
   publish:
     needs: build
     runs-on: ubuntu-latest
-    environment: ${{ github.event_name == 'push' && 'pypi' || 'testpypi' }}
+    environment: pypi
     permissions:
       id-token: write
     steps:
@@ -33,5 +33,3 @@ jobs:
           name: dist
           path: dist/
       - uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: ${{ github.event_name == 'push' && 'https://upload.pypi.org/legacy/' || 'https://test.pypi.org/legacy/' }}
