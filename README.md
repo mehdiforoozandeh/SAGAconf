@@ -1,3 +1,8 @@
+> **Deprecated.** This `legacy` branch keeps SAGAconf exactly as it was used for the paper
+> ([Genome Research, 2024](https://doi.org/10.1101/gr.278343.123)), for reference only. It is not
+> maintained. Use the [`main` branch](https://github.com/mehdiforoozandeh/SAGAconf) instead. The
+> tag `v0-legacy` marks the original commit.
+
 # SAGAconf User Manual
 
 [Paper](https://bit.ly/scgrp "SAGAconf paper")
