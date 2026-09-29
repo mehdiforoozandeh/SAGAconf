@@ -1,5 +1,5 @@
 """Byte-identity gate: run legacy SAGAconf and the new SAGAconf on the same inputs and
-compare every file they write.
+compare every file they write and everything they print.
 
 Usage:
     python tests/golden/gate.py --legacy /path/to/legacy/checkout --new /path/to/new/checkout \
@@ -7,8 +7,14 @@ Usage:
 
 Each case runs in a fresh, empty working directory, so files written relative to the
 working directory are compared too. A case passes only if both runs exit with the same
-code, write the same set of files, every file is byte-identical, and every file listed in
-the case's "expect" field exists. With --self-check, legacy is also run twice to prove the
+code, write the same set of files, every file is byte-identical, stdout and stderr are
+byte-identical, and every file listed in the case's "expect" field exists. The one exception
+is Python traceback frames ('File "...", line N, in f' and the source line under it): they
+name file paths and line numbers, which move whenever code moves. They count as a difference
+unless --allow-traceback-frames is given; the exception type and message must always match.
+A case's optional "stage" maps paths inside the working directory to input files that are
+symlinked there before the run (for code that reads cwd-relative paths); staged paths are
+not compared. With --self-check, legacy is also run twice to prove the
 comparison is deterministic.
 """
 import argparse
@@ -17,6 +23,7 @@ import hashlib
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -43,17 +50,53 @@ if platform.machine() in ("x86_64", "AMD64"):
         "AVX512F AVX512CD AVX512_SKX AVX512_CLX AVX512_CNL AVX512_ICL AVX512_SPR")
 
 
-def run_case(checkout, script, args, rundir, logdir, tag):
+def run_case(checkout, script, args, rundir, logdir, tag, stage):
     os.makedirs(rundir)
     for d in case_dirs_to_create(args):
         os.makedirs(os.path.join(rundir, d), exist_ok=True)
+    for rel, src in stage.items():
+        os.makedirs(os.path.dirname(os.path.join(rundir, rel)), exist_ok=True)
+        os.symlink(src, os.path.join(rundir, rel))
     env = dict(os.environ, **DETERMINISTIC_ENV)
     env.pop("PYTHONPATH", None)
     cmd = [sys.executable, RUNNER, os.path.join(checkout, script)] + args
+    logs = (os.path.join(logdir, tag + ".stdout"), os.path.join(logdir, tag + ".stderr"))
     t0 = time.time()
-    with open(os.path.join(logdir, tag + ".log"), "w") as log:
-        rc = subprocess.call(cmd, cwd=rundir, env=env, stdout=log, stderr=subprocess.STDOUT)
-    return rc, time.time() - t0
+    with open(logs[0], "w") as out, open(logs[1], "w") as err:
+        rc = subprocess.call(cmd, cwd=rundir, env=env, stdout=out, stderr=err)
+    return rc, time.time() - t0, logs
+
+
+TRACEBACK_FRAME = re.compile(r'^  File "[^"]*", line \d+, in .*$')
+
+
+def strip_traceback_frames(lines):
+    out, skip_source = [], False
+    for line in lines:
+        if TRACEBACK_FRAME.match(line):
+            skip_source = True
+            continue
+        if skip_source and line.startswith("    "):
+            skip_source = False
+            continue
+        skip_source = False
+        out.append(line)
+    return out
+
+
+def compare_streams(ref_logs, cand_logs):
+    problems = []
+    for name, a, b in zip(("stdout", "stderr"), ref_logs, cand_logs):
+        if filecmp.cmp(a, b, shallow=False):
+            continue
+        la, lb = open(a).read().splitlines(), open(b).read().splitlines()
+        if strip_traceback_frames(la) == strip_traceback_frames(lb):
+            problems.append("TRACEBACK_FRAMES_ONLY %s differs only in traceback frames" % name)
+            continue
+        n = next((i for i, (x, y) in enumerate(zip(la, lb)) if x != y), min(len(la), len(lb)))
+        problems.append("%s differs at line %d: legacy=%r new=%r" % (
+            name, n + 1, la[n] if n < len(la) else "<end>", lb[n] if n < len(lb) else "<end>"))
+    return problems
 
 
 def case_dirs_to_create(args):
@@ -61,11 +104,13 @@ def case_dirs_to_create(args):
     return [a.rstrip("/") for a in args if a.endswith("/") and not os.path.isabs(a)]
 
 
-def list_files(root):
+def list_files(root, skip=()):
     out = []
     for dirpath, _, files in os.walk(root):
         for f in files:
-            out.append(os.path.relpath(os.path.join(dirpath, f), root))
+            rel = os.path.relpath(os.path.join(dirpath, f), root)
+            if rel not in skip:
+                out.append(rel)
     return sorted(out)
 
 
@@ -77,8 +122,8 @@ def sha256(path):
     return h.hexdigest()
 
 
-def compare_trees(a, b):
-    fa, fb = list_files(a), list_files(b)
+def compare_trees(a, b, skip_a=(), skip_b=()):
+    fa, fb = list_files(a, skip_a), list_files(b, skip_b)
     problems = []
     only_a = sorted(set(fa) - set(fb))
     only_b = sorted(set(fb) - set(fa))
@@ -99,6 +144,8 @@ def main():
     p.add_argument("--workdir", required=True, help="empty scratch directory for runs")
     p.add_argument("--only", nargs="*", help="run only these case names")
     p.add_argument("--self-check", action="store_true", help="also run legacy twice")
+    p.add_argument("--allow-traceback-frames", action="store_true",
+                   help="accept stderr that differs only in traceback file/line frames")
     a = p.parse_args()
 
     data = os.path.abspath(a.data)
@@ -115,14 +162,19 @@ def main():
         args = [x.replace("{data}", data) for x in c["args"]]
         new_args = [x.replace("{data}", data) for x in c.get("new_args", c["args"])]
         new_script = c.get("new_script", c["script"])
+        stage = {k: v.replace("{data}", data) for k, v in c.get("stage", {}).items()}
+        new_stage = {k: v.replace("{data}", data) for k, v in c.get("new_stage", c.get("stage", {})).items()}
         base = os.path.join(a.workdir, c["name"])
         if os.path.exists(base):
             shutil.rmtree(base)
         ref, cand = os.path.join(base, "legacy"), os.path.join(base, "new")
-        rc_ref, t_ref = run_case(a.legacy, c["script"], args, ref, logdir, c["name"] + ".legacy")
-        rc_new, t_new = run_case(a.new, new_script, new_args, cand, logdir, c["name"] + ".new")
+        rc_ref, t_ref, log_ref = run_case(a.legacy, c["script"], args, ref, logdir,
+                                          c["name"] + ".legacy", stage)
+        rc_new, t_new, log_new = run_case(a.new, new_script, new_args, cand, logdir,
+                                          c["name"] + ".new", new_stage)
 
-        files, problems = compare_trees(ref, cand)
+        files, problems = compare_trees(ref, cand, stage, new_stage)
+        problems += compare_streams(log_ref, log_new)
         if rc_ref != rc_new:
             problems.insert(0, "exit codes differ: legacy=%d new=%d" % (rc_ref, rc_new))
         missing = [e for e in c.get("expect", []) if not os.path.exists(os.path.join(ref, e))]
@@ -131,8 +183,12 @@ def main():
             problems.append("legacy wrote no files")
         if a.self_check:
             ref2 = os.path.join(base, "legacy_again")
-            run_case(a.legacy, c["script"], args, ref2, logdir, c["name"] + ".legacy_again")
-            problems += ["legacy is not deterministic: " + x for x in compare_trees(ref, ref2)[1]]
+            _, _, log_ref2 = run_case(a.legacy, c["script"], args, ref2, logdir,
+                                      c["name"] + ".legacy_again", stage)
+            problems += ["legacy is not deterministic: " + x for x in
+                         compare_trees(ref, ref2, stage, stage)[1] + compare_streams(log_ref, log_ref2)]
+        if a.allow_traceback_frames:
+            problems = [x for x in problems if "TRACEBACK_FRAMES_ONLY" not in x]
 
         ok = not problems
         failed += not ok
@@ -142,6 +198,7 @@ def main():
             "seconds_legacy": round(t_ref, 1), "seconds_new": round(t_new, 1),
             "problems": problems[:50], "n_problems": len(problems),
             "sha256": {f: sha256(os.path.join(ref, f)) for f in files},
+            "sha256_stdout": sha256(log_ref[0]), "sha256_stderr": sha256(log_ref[1]),
         })
         print("%s %-28s files=%-4d legacy=%.0fs new=%.0fs%s" % (
             "PASS" if ok else "FAIL", c["name"], len(files), t_ref, t_new,

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sagaconf"
-version = "0.1.0"
+version = "1.0.1"
 description = "Calibrated confidence scores (r-values) for chromatin state annotations from SAGA methods."
 readme = "README.md"
 license = "MIT"
