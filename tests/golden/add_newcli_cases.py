@@ -22,6 +22,10 @@ def translate(case):
             out.append(RENAME.get(a, a))
     if case["script"] == "SAGAconf_parser.py":
         return ["parse"] + out
+    if "active-regions" in modes:
+        # The legacy script reads these cwd-relative paths; pass the same ones explicitly.
+        out = ["--ccre-file", "src/biointerpret/GRCh38-cCREs.bed",
+               "--meuleman-file", "src/biointerpret/Meuleman.tsv"] + out
     return ["run"] + (["--mode", modes[0]] if modes else []) + out
 
 

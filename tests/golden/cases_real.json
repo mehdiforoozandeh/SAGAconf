@@ -447,9 +447,6 @@
   ],
   "stage": {
    "src/biointerpret/GRCh38-cCREs.bed": "{data}/../annotations/GRCh38-cCREs.bed"
-  },
-  "new_stage": {
-   "sagaconf/biointerpret/GRCh38-cCREs.bed": "{data}/../annotations/GRCh38-cCREs.bed"
   }
  },
  {
@@ -469,14 +466,15 @@
   "stage": {
    "src/biointerpret/GRCh38-cCREs.bed": "{data}/../annotations/GRCh38-cCREs.bed"
   },
-  "new_stage": {
-   "sagaconf/biointerpret/GRCh38-cCREs.bed": "{data}/../annotations/GRCh38-cCREs.bed"
-  },
   "new_script": "sagaconf/__main__.py",
   "new_args": [
    "run",
    "--mode",
    "active-regions",
+   "--ccre-file",
+   "src/biointerpret/GRCh38-cCREs.bed",
+   "--meuleman-file",
+   "src/biointerpret/Meuleman.tsv",
    "--chr21-only",
    "--base-mnemonics",
    "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",

@@ -26,8 +26,6 @@ MODES = ("full", "quick", "rvalues", "celltype", "seglength", "merge", "active-r
 # Legacy boolean flags, in the order the original script checked them.
 LEGACY_MODE_FLAGS = (("quick", "quick"), ("r_only", "rvalues"), ("active_regions", "active-regions"),
                      ("v_seglength", "seglength"), ("ct_only", "celltype"), ("merge_only", "merge"))
-DEFAULT_CCRE_FILE = "sagaconf/biointerpret/GRCh38-cCREs.bed"
-DEFAULT_MEULEMAN_FILE = "sagaconf/biointerpret/Meuleman.tsv"
 
 
 def parse_posteriors(posteriordir, resolution, savedir, saga, out_format="bed"):
@@ -45,12 +43,13 @@ def parse_posteriors(posteriordir, resolution, savedir, saga, out_format="bed"):
 
 def run_sagaconf(base, verif, savedir, mode="full", base_mnemonics="NA", verif_mnemonics="NA",
                  chr21_only=False, window_size=1000, iou_threshold=0.75, repr_threshold=0.8,
-                 merge_k=-1, verbose=False, ccre_file=DEFAULT_CCRE_FILE,
-                 meuleman_file=DEFAULT_MEULEMAN_FILE):
+                 merge_k=-1, verbose=False, ccre_file=None, meuleman_file=None):
     """Compare a base and a verification annotation; write the results to savedir.
 
     base, verif: parsed posterior files (.bed or .csv), as written by `sagaconf parse`.
     base_mnemonics, verif_mnemonics: state-name files, or "NA" for none.
+    ccre_file, meuleman_file: region files for mode "active-regions"; the Meuleman step
+    is skipped when meuleman_file is None.
     """
     os.makedirs(savedir, exist_ok=True)
     # Work on copies inside savedir; they are removed at the end.
@@ -93,7 +92,7 @@ def run_sagaconf(base, verif, savedir, mode="full", base_mnemonics="NA", verif_m
         loci1, loci2 = subset_data_to_activeregions(
             replicate_1_dir=loci1, replicate_2_dir=loci2, restrict_to="WG", **regions)
         get_rvals_activeregion(loci1, loci2, savedir, w=w, restrict_to="WG")
-        for restrict_to in ("cCRE", "muel"):
+        for restrict_to in ("cCRE", "muel") if meuleman_file else ("cCRE",):
             sub1, sub2 = subset_data_to_activeregions(
                 replicate_1_dir=loci1, replicate_2_dir=loci2, restrict_to=restrict_to, **regions)
             get_rvals_activeregion(sub1, sub2, savedir, w=w, restrict_to=restrict_to)
@@ -238,8 +237,8 @@ def build_parser():
                    help="r-value needed to call a bin reproduced (alpha in the paper) [default: 0.8]")
     r.add_argument("-k", "--merge-k", dest="merge_k", type=int, default=-1, metavar="K",
                    help="merge base states down to K states")
-    r.add_argument("--ccre-file", default=DEFAULT_CCRE_FILE, help="cCRE BED file for --mode active-regions")
-    r.add_argument("--meuleman-file", default=DEFAULT_MEULEMAN_FILE, help="Meuleman et al. DHS index for --mode active-regions")
+    r.add_argument("--ccre-file", help="cCRE BED file; required for --mode active-regions")
+    r.add_argument("--meuleman-file", help="Meuleman et al. DHS index for --mode active-regions (optional)")
     r.add_argument("-v", "--verbose", action="store_true", help="report which analysis steps failed")
     # Old SAGAconf.py flag names keep working.
     for flag, dest in (("--verbosity", "verbose"), ("--base_mnemonics", "base_mnemonics"),
@@ -271,6 +270,8 @@ def main(argv=None):
         parse_posteriors(args.posteriordir, args.resolution, args.outdir, args.saga, args.out_format)
     else:
         mode = _resolve_mode(args, parser.error)
+        if mode == "active-regions" and not args.ccre_file:
+            parser.error("--mode active-regions needs --ccre-file")
         run_sagaconf(args.base, args.verif, args.outdir, mode=mode,
                      base_mnemonics=args.base_mnemonics, verif_mnemonics=args.verif_mnemonics,
                      chr21_only=args.chr21_only, window_size=args.window_size,
@@ -335,7 +336,10 @@ def legacy_run_main():
                  base_mnemonics=args.base_mnemonics, verif_mnemonics=args.verif_mnemonics,
                  chr21_only=args.subset, window_size=args.windowsize,
                  iou_threshold=args.iou_threshold, repr_threshold=args.repr_threshold,
-                 merge_k=args.merge_clusters, verbose=args.verbosity)
+                 merge_k=args.merge_clusters, verbose=args.verbosity,
+                 # The original script read these paths relative to the working directory.
+                 ccre_file="src/biointerpret/GRCh38-cCREs.bed",
+                 meuleman_file="src/biointerpret/Meuleman.tsv")
 
 
 def legacy_parse_main():
