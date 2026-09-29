@@ -8,10 +8,10 @@ jobs:
   byte-identity:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0  # the tests read the legacy code from tag v0-legacy
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - run: pip install -r tests/golden/requirements.lock
