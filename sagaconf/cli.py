@@ -121,7 +121,7 @@ def run_sagaconf(base, verif, savedir, mode="full", base_mnemonics="NA", verif_m
         if merge_k != -1:
             try:
                 loci1, loci2 = load(False)
-                post_clustering_keep_k_states(loci1, loci2, savedir, k=merge_k, locis=True, write_csv=False)
+                post_clustering_keep_k_states(loci1, loci2, savedir, k=merge_k, locis=True, write_csv=False, w=w)
             except Exception:
                 if verbose:
                     print("Failed to merge clusters up to k")

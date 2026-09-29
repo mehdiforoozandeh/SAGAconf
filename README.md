@@ -159,7 +159,6 @@ Each plot is written as PDF and SVG. Each `.txt` file next to a plot holds the p
 These issues come from the version of SAGAconf that the paper used. This release keeps them,
 so that its results match that version exactly. Fixes will come in later releases.
 
-- In `full` mode, `-k` does not merge states.
 - In `full` mode without mnemonics, SAGAconf does not write the genome-wide results
   (including `confident_segments.bed` and the UCSC track). Give `-bm` and `-vm` to get them.
 - In `merge` mode, SAGAconf can stop with a `KeyError` after it writes the merge reports.
