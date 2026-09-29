@@ -153,6 +153,27 @@
   ]
  },
  {
+  "name": "A_chmm_S1_active_regions",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "--active_regions",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "stage": {
+   "src/biointerpret/GRCh38-cCREs.bed": "{data}/../annotations/GRCh38-cCREs.bed"
+  },
+  "new_stage": {
+   "sagaconf/biointerpret/GRCh38-cCREs.bed": "{data}/../annotations/GRCh38-cCREs.bed"
+  }
+ },
+ {
   "name": "A_chmm_S3_default",
   "script": "SAGAconf.py",
   "args": [

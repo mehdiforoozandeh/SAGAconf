@@ -1,16 +1,11 @@
-from .reports import *
 import argparse
+import numpy as np
+import os
+import seaborn as sns
+from matplotlib import pyplot as plt
+from .overall import is_repr_posterior
+from .reports import get_all_ct, get_overalls, get_rvals_activeregion, load_data, overlap_vs_segment_length, post_clustering_keep_k_states, process_data, quick_report, subset_data_to_activeregions
 
-"""
-# TODO:
-1. the input files should be in BED3+k format
-2. the main output file should be in BED format of confident segments
-3. the savedir should look sth like this:
-    a. the BED of confident segments
-    b. analysis/ directory where everything else reside
-4. remove the replicate dirs that are temporarily created
-5. add the option to post_cluster the annotations up to a certain point to get better reproducibility.
-"""
 
 def main():
     parser = argparse.ArgumentParser()
@@ -331,74 +326,6 @@ def main():
 
     os.system(f"rm -rf {replicate_1_dir}")
     os.system(f"rm -rf {replicate_2_dir}")
-
-    # listofres = os.listdir(args.savedir)
-    # main_res = ["confident_segments", "states_post_clustered_posterior"]
-    # os.mkdir(args.savedir + "/analysis")
-    # for r in listofres:
-    #     if main_res[0] not in r and main_res[1] not in r:
-    #         os.system(f"mv {args.savedir}/{r} {args.savedir}/analysis/")
-
-    ##############################################################################################################################
-
-    # try:
-    #     loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
-    #     loci1, loci2 = process_data(
-    #         loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
-    #         vm=args.verif_mnemonics, match=False, custom_order=True)
-
-    #     get_all_labels(loci1, loci2, args.savedir, locis=True)
-    # except:
-    #     if args.verbosity:
-    #         print("Failed to generated some of the label-specific analysis.")
-    # 
-    #    
-    # try:
-    #     loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
-    #     loci1, loci2 = process_data(
-    #         loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
-    #         vm=args.verif_mnemonics, match=False, custom_order=True)
-
-    #     get_all_bioval(
-    #         loci1, loci2, 
-    #         args.savedir,
-    #         genecode_dir=args.genecode, 
-    #         rnaseq=args.rnaseq, locis=True)
-    # except:
-    #     if args.verbosity:
-    #         print("failed to perform biological validation results")
-
-
-    # if args.contour:
-    #     try:
-    #         loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=False, force_WG=False)
-    #         loci1, loci2 = process_data(
-    #             loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
-    #             vm=args.verif_mnemonics, match=False, custom_order=True)
-
-    #         get_contour(loci1, loci2, args.savedir, locis=True)
-    #     except:
-    #         if args.verbosity:
-    #             print("failed to generate overall reproducibility contours")
-    # try:
-    #     gather_labels(args.base, args.savedir, contour=args.contour)
-
-    # except:
-    #     if args.verbosity:
-    #         print("failed to gather per-label results")
-
-    # try:
-    #     loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=issubset, logit_transform=True, force_WG=False)
-    #     loci1, loci2 = process_data(
-    #         loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem, bm=args.base_mnemonics, 
-    #         vm=args.verif_mnemonics, match=False, custom_order=True)
-
-    #     after_SAGAconf_metrics(loci1, loci2, args.genecode, args.savedir, rnaseq=None, locis=True, w=w, to=args.iou_threshold, tr=args.repr_threshold)
-    #     before_after_saga(args.savedir)
-
-    # except:
-    #     if args.verbosity:
-    #         print("failed to generate before vs. after SAGAconf results")
 
 
 if __name__ == "__main__":

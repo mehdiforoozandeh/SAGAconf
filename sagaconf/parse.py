@@ -1,7 +1,7 @@
-import os, argparse
-import multiprocessing as mp
-from ._utils import *
-from ._chromhmm import *
+import argparse
+from ._chromhmm import ChrHMM_read_posteriordir
+from ._utils import mp_inplace_binning
+
 
 def main():
     parser = argparse.ArgumentParser()
