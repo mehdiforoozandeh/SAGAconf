@@ -126,7 +126,8 @@
   ],
   "expect": [
    "out/r_values.bed"
-  ]
+  ],
+  "fixed_by": "UCSC track colors for unnamed or merged states (fix 2)"
  },
  {
   "name": "run_default_newcli",
@@ -145,7 +146,8 @@
    "{data}/parsed/base.bed",
    "{data}/parsed/verif.bed",
    "out"
-  ]
+  ],
+  "fixed_by": "UCSC track colors for unnamed or merged states (fix 2)"
  },
  {
   "name": "run_default_mnem",
@@ -205,7 +207,8 @@
   ],
   "expect": [
    "out/r_values.bed"
-  ]
+  ],
+  "fixed_by": "-k merges states in full mode (fix 1); UCSC track colors for unnamed or merged states (fix 2)"
  },
  {
   "name": "run_default_k3_newcli",
@@ -228,7 +231,8 @@
    "{data}/parsed/base.bed",
    "{data}/parsed/verif.bed",
    "out"
-  ]
+  ],
+  "fixed_by": "-k merges states in full mode (fix 1); UCSC track colors for unnamed or merged states (fix 2)"
  },
  {
   "name": "run_subset",
@@ -241,7 +245,8 @@
   ],
   "expect": [
    "out/r_values.bed"
-  ]
+  ],
+  "fixed_by": "UCSC track colors for unnamed or merged states (fix 2)"
  },
  {
   "name": "run_subset_newcli",
@@ -262,7 +267,8 @@
    "{data}/parsed/base.bed",
    "{data}/parsed/verif.bed",
    "out"
-  ]
+  ],
+  "fixed_by": "UCSC track colors for unnamed or merged states (fix 2)"
  },
  {
   "name": "run_csv_input",
@@ -529,7 +535,8 @@
    "{data}/parsed/base.bed",
    "{data}/parsed/verif.bed",
    "out"
-  ]
+  ],
+  "fixed_by": "UCSC track colors for unnamed or merged states (fix 2)"
  },
  {
   "name": "run_merge_only_newcli",
@@ -560,7 +567,8 @@
    "{data}/parsed/base.bed",
    "{data}/parsed/verif.bed",
    "out"
-  ]
+  ],
+  "fixed_by": "UCSC track colors for unnamed or merged states (fix 2)"
  },
  {
   "name": "run_merge_only_nomnem",
@@ -572,7 +580,8 @@
    "{data}/parsed/base.bed",
    "{data}/parsed/verif.bed",
    "out"
-  ]
+  ],
+  "fixed_by": "UCSC track colors for unnamed or merged states (fix 2)"
  },
  {
   "name": "run_merge_only_nomnem_newcli",
@@ -595,6 +604,7 @@
    "{data}/parsed/base.bed",
    "{data}/parsed/verif.bed",
    "out"
-  ]
+  ],
+  "fixed_by": "UCSC track colors for unnamed or merged states (fix 2)"
  }
 ]
