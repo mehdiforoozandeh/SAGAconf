@@ -1,5 +1,5 @@
-# Kept so `python SAGAconf_parser.py ...` still works from a clone. The code lives in sagaconf/parse.py.
-from sagaconf.parse import main
+# Kept so `python SAGAconf_parser.py ...` works as before. New interface: `sagaconf parse` (sagaconf/cli.py).
+from sagaconf.cli import legacy_parse_main
 
 if __name__ == "__main__":
-    main()
+    legacy_parse_main()

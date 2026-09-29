@@ -26,7 +26,6 @@ dependencies = [
 
 [project.scripts]
 sagaconf = "sagaconf.cli:main"
-sagaconf-parse = "sagaconf.parse:main"
 
 [project.urls]
 Homepage = "https://github.com/mehdiforoozandeh/SAGAconf"
