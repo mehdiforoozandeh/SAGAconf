@@ -1,18 +1,11 @@
-
 .DS_Store
-bigWigToBedGraph
 __pycache__/
-dep_graphs/
-legacy/chmmisuue
-legacy/reprod_results
-files/
-tests/
-src/biovalidation/gencode.v29.primary_assembly.annotation_UCSC_names.gtf
-src/biovalidation/RNA_seq/
-src/biovalidation/
-src/biointerpret/gencode.v29.primary_assembly.annotation_UCSC_names.gtf
-src/__pycache__/
-ChromHMM/
-src/biointerpret/GRCh38-cCREs.bed
-src/biointerpret/Meuleman.tsv
-
+*.egg-info/
+build/
+dist/
+# Region files that SAGAconf.py --active_regions reads relative to the working directory
+src/biointerpret/
+# Outputs of example/run.sh
+example/ChromHMM/
+example/ChromHMM.zip
+example/sagaconf_base/

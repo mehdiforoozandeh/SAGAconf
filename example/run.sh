@@ -1,5 +1,7 @@
 
 #!/bin/bash
+# Needs the sagaconf command (pip install sagaconf), Java, curl and unzip.
+set -e
 
 # Change to the example directory
 cd "$(dirname "$0")"
@@ -24,9 +26,9 @@ rm -r ./ChromHMM/OUTPUTSAMPLE/POSTERIOR
 
 # Parse posteriors from ChromHMM/OUTPUTSAMPLE/base and ChromHMM/OUTPUTSAMPLE/verif into the standard format required by SAGAconf
 echo "Parsing posteriors from ChromHMM/OUTPUTSAMPLE/base and ChromHMM/OUTPUTSAMPLE/verif into the standard format required by SAGAconf..."
-python ../SAGAconf_parser.py --saga chmm ./ChromHMM/OUTPUTSAMPLE/base 200 ./ChromHMM/OUTPUTSAMPLE/base
-python ../SAGAconf_parser.py --saga chmm ./ChromHMM/OUTPUTSAMPLE/verif 200 ./ChromHMM/OUTPUTSAMPLE/verif
+sagaconf parse --saga chmm ./ChromHMM/OUTPUTSAMPLE/base 200 ./ChromHMM/OUTPUTSAMPLE/base
+sagaconf parse --saga chmm ./ChromHMM/OUTPUTSAMPLE/verif 200 ./ChromHMM/OUTPUTSAMPLE/verif
 
 # Run SAGAconf to obtain a full reproducibility report with default parameters
 echo "Running SAGAconf to obtain a full reproducibility report with default parameters..."
-python ../SAGAconf.py ./ChromHMM/OUTPUTSAMPLE/base/parsed_posterior.bed ./ChromHMM/OUTPUTSAMPLE/verif/parsed_posterior.bed ./sagaconf_base
+sagaconf run ./ChromHMM/OUTPUTSAMPLE/base/parsed_posterior.bed ./ChromHMM/OUTPUTSAMPLE/verif/parsed_posterior.bed ./sagaconf_base

@@ -1,0 +1,808 @@
+[
+ {
+  "name": "A_chmm_S1_default",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ]
+ },
+ {
+  "name": "A_chmm_S1_default_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--chr21-only",
+   "--base-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "--verif-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "A_chmm_S1_nomnem",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ]
+ },
+ {
+  "name": "A_chmm_S1_nomnem_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--chr21-only",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "A_chmm_S1_k5",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "-k",
+   "5",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ]
+ },
+ {
+  "name": "A_chmm_S1_k5_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "-k",
+   "5",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--chr21-only",
+   "--merge-k",
+   "5",
+   "--base-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "--verif-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "A_chmm_S1_quick",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "-q",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "A_chmm_S1_quick_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "-q",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--mode",
+   "quick",
+   "--chr21-only",
+   "--base-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "--verif-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "A_chmm_S1_r_only",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "--r_only",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ]
+ },
+ {
+  "name": "A_chmm_S1_r_only_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "--r_only",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--mode",
+   "rvalues",
+   "--chr21-only",
+   "--base-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "--verif-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "A_chmm_S1_r_params",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "--r_only",
+   "-w",
+   "2000",
+   "-to",
+   "0.5",
+   "-tr",
+   "0.9",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ]
+ },
+ {
+  "name": "A_chmm_S1_r_params_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "--r_only",
+   "-w",
+   "2000",
+   "-to",
+   "0.5",
+   "-tr",
+   "0.9",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--mode",
+   "rvalues",
+   "--chr21-only",
+   "--window-size",
+   "2000",
+   "--iou-threshold",
+   "0.5",
+   "--repr-threshold",
+   "0.9",
+   "--base-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "--verif-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "A_chmm_S1_ct_only",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "--ct_only",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "A_chmm_S1_ct_only_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "--ct_only",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--mode",
+   "celltype",
+   "--chr21-only",
+   "--base-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "--verif-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "A_chmm_S1_v_seglength",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "--v_seglength",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "A_chmm_S1_v_seglength_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "--v_seglength",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--mode",
+   "seglength",
+   "--chr21-only",
+   "--base-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "--verif-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "A_chmm_S1_merge_only",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "--merge_only",
+   "-k",
+   "5",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "A_chmm_S1_merge_only_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "--merge_only",
+   "-k",
+   "5",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--mode",
+   "merge",
+   "--chr21-only",
+   "--merge-k",
+   "5",
+   "--base-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "--verif-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "A_chmm_S1_active_regions",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "--active_regions",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "stage": {
+   "src/biointerpret/GRCh38-cCREs.bed": "{data}/../annotations/GRCh38-cCREs.bed"
+  }
+ },
+ {
+  "name": "A_chmm_S1_active_regions_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "--active_regions",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "stage": {
+   "src/biointerpret/GRCh38-cCREs.bed": "{data}/../annotations/GRCh38-cCREs.bed"
+  },
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--mode",
+   "active-regions",
+   "--ccre-file",
+   "src/biointerpret/GRCh38-cCREs.bed",
+   "--meuleman-file",
+   "src/biointerpret/Meuleman.tsv",
+   "--chr21-only",
+   "--base-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "--verif-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "A_chmm_S3_default",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep1_rs5/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep1_rs5/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ]
+ },
+ {
+  "name": "A_chmm_S3_default_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep1_rs5/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep1_rs5/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--chr21-only",
+   "--base-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "--verif-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep1_rs5/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep1_rs5/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "A_segway_S1_default",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "-bm",
+   "{data}/segway_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/segway_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/segway_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/segway_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ]
+ },
+ {
+  "name": "A_segway_S1_default_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "-bm",
+   "{data}/segway_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/segway_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/segway_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/segway_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--chr21-only",
+   "--base-mnemonics",
+   "{data}/segway_runs/GM12878_rep1/mnemonics.txt",
+   "--verif-mnemonics",
+   "{data}/segway_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/segway_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/segway_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "A_segway_S2_default",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "-bm",
+   "{data}/segway_runs/GM12878_concat_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/segway_runs/GM12878_concat_rep2/mnemonics.txt",
+   "{data}/segway_runs/GM12878_concat_rep1/parsed_posterior.csv",
+   "{data}/segway_runs/GM12878_concat_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ]
+ },
+ {
+  "name": "A_segway_S2_default_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "-bm",
+   "{data}/segway_runs/GM12878_concat_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/segway_runs/GM12878_concat_rep2/mnemonics.txt",
+   "{data}/segway_runs/GM12878_concat_rep1/parsed_posterior.csv",
+   "{data}/segway_runs/GM12878_concat_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--chr21-only",
+   "--base-mnemonics",
+   "{data}/segway_runs/GM12878_concat_rep1/mnemonics.txt",
+   "--verif-mnemonics",
+   "{data}/segway_runs/GM12878_concat_rep2/mnemonics.txt",
+   "{data}/segway_runs/GM12878_concat_rep1/parsed_posterior.csv",
+   "{data}/segway_runs/GM12878_concat_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "A_segway_S3_default",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "-bm",
+   "{data}/segway_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/segway_runs/GM12878_rep1_rs5/mnemonics.txt",
+   "{data}/segway_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/segway_runs/GM12878_rep1_rs5/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ]
+ },
+ {
+  "name": "A_segway_S3_default_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "-bm",
+   "{data}/segway_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/segway_runs/GM12878_rep1_rs5/mnemonics.txt",
+   "{data}/segway_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/segway_runs/GM12878_rep1_rs5/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--chr21-only",
+   "--base-mnemonics",
+   "{data}/segway_runs/GM12878_rep1/mnemonics.txt",
+   "--verif-mnemonics",
+   "{data}/segway_runs/GM12878_rep1_rs5/mnemonics.txt",
+   "{data}/segway_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/segway_runs/GM12878_rep1_rs5/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "A_segway_S1_merge_only",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "--merge_only",
+   "-k",
+   "5",
+   "-bm",
+   "{data}/segway_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/segway_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/segway_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/segway_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "A_segway_S1_merge_only_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "--merge_only",
+   "-k",
+   "5",
+   "-bm",
+   "{data}/segway_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/segway_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/segway_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/segway_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--mode",
+   "merge",
+   "--chr21-only",
+   "--merge-k",
+   "5",
+   "--base-mnemonics",
+   "{data}/segway_runs/GM12878_rep1/mnemonics.txt",
+   "--verif-mnemonics",
+   "{data}/segway_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/segway_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/segway_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "B_chmm_S1_default",
+  "script": "SAGAconf.py",
+  "args": [
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ]
+ },
+ {
+  "name": "B_chmm_S1_default_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-bm",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--base-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep1/mnemonics.txt",
+   "--verif-mnemonics",
+   "{data}/chromhmm_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/chromhmm_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/chromhmm_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "B_segway_S1_default",
+  "script": "SAGAconf.py",
+  "args": [
+   "-bm",
+   "{data}/segway_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/segway_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/segway_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/segway_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ]
+ },
+ {
+  "name": "B_segway_S1_default_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-bm",
+   "{data}/segway_runs/GM12878_rep1/mnemonics.txt",
+   "-vm",
+   "{data}/segway_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/segway_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/segway_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--base-mnemonics",
+   "{data}/segway_runs/GM12878_rep1/mnemonics.txt",
+   "--verif-mnemonics",
+   "{data}/segway_runs/GM12878_rep2/mnemonics.txt",
+   "{data}/segway_runs/GM12878_rep1/parsed_posterior.csv",
+   "{data}/segway_runs/GM12878_rep2/parsed_posterior.csv",
+   "out"
+  ]
+ }
+]

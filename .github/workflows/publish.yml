@@ -1,0 +1,35 @@
+name: publish
+
+# Push a tag like v1.0.1 to build SAGAconf and publish it to PyPI. It uses PyPI Trusted
+# Publishing (pending publisher: workflow publish.yml, environment pypi), so no API token
+# is stored in the repository.
+on:
+  push:
+    tags: ["v[0-9]*"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - run: pip install build && python -m build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1

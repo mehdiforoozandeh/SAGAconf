@@ -1,0 +1,600 @@
+[
+ {
+  "name": "parse_chmm_bed",
+  "script": "SAGAconf_parser.py",
+  "args": [
+   "--saga",
+   "chmm",
+   "{data}/chmm/base",
+   "200",
+   "out/"
+  ],
+  "expect": [
+   "out/parsed_posterior.bed"
+  ]
+ },
+ {
+  "name": "parse_chmm_bed_newcli",
+  "script": "SAGAconf_parser.py",
+  "args": [
+   "--saga",
+   "chmm",
+   "{data}/chmm/base",
+   "200",
+   "out/"
+  ],
+  "expect": [
+   "out/parsed_posterior.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "parse",
+   "--saga",
+   "chmm",
+   "{data}/chmm/base",
+   "200",
+   "out/"
+  ]
+ },
+ {
+  "name": "parse_chmm_csv",
+  "script": "SAGAconf_parser.py",
+  "args": [
+   "--saga",
+   "chmm",
+   "--out_format",
+   "csv",
+   "{data}/chmm/verif",
+   "200",
+   "out/"
+  ],
+  "expect": [
+   "out/parsed_posterior.csv"
+  ]
+ },
+ {
+  "name": "parse_chmm_csv_newcli",
+  "script": "SAGAconf_parser.py",
+  "args": [
+   "--saga",
+   "chmm",
+   "--out_format",
+   "csv",
+   "{data}/chmm/verif",
+   "200",
+   "out/"
+  ],
+  "expect": [
+   "out/parsed_posterior.csv"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "parse",
+   "--saga",
+   "chmm",
+   "--out-format",
+   "csv",
+   "{data}/chmm/verif",
+   "200",
+   "out/"
+  ]
+ },
+ {
+  "name": "parse_segway_bed",
+  "script": "SAGAconf_parser.py",
+  "args": [
+   "--saga",
+   "segway",
+   "{data}/segway/base",
+   "200",
+   "out/"
+  ],
+  "expect": [
+   "out/parsed_posterior.bed"
+  ]
+ },
+ {
+  "name": "parse_segway_bed_newcli",
+  "script": "SAGAconf_parser.py",
+  "args": [
+   "--saga",
+   "segway",
+   "{data}/segway/base",
+   "200",
+   "out/"
+  ],
+  "expect": [
+   "out/parsed_posterior.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "parse",
+   "--saga",
+   "segway",
+   "{data}/segway/base",
+   "200",
+   "out/"
+  ]
+ },
+ {
+  "name": "run_default",
+  "script": "SAGAconf.py",
+  "args": [
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ]
+ },
+ {
+  "name": "run_default_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ]
+ },
+ {
+  "name": "run_default_mnem",
+  "script": "SAGAconf.py",
+  "args": [
+   "-v",
+   "-bm",
+   "{data}/mnemonics/base.txt",
+   "-vm",
+   "{data}/mnemonics/verif.txt",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ]
+ },
+ {
+  "name": "run_default_mnem_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-v",
+   "-bm",
+   "{data}/mnemonics/base.txt",
+   "-vm",
+   "{data}/mnemonics/verif.txt",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--verbose",
+   "--base-mnemonics",
+   "{data}/mnemonics/base.txt",
+   "--verif-mnemonics",
+   "{data}/mnemonics/verif.txt",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ]
+ },
+ {
+  "name": "run_default_k3",
+  "script": "SAGAconf.py",
+  "args": [
+   "-k",
+   "3",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ]
+ },
+ {
+  "name": "run_default_k3_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-k",
+   "3",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--merge-k",
+   "3",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ]
+ },
+ {
+  "name": "run_subset",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ]
+ },
+ {
+  "name": "run_subset_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-s",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--chr21-only",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ]
+ },
+ {
+  "name": "run_csv_input",
+  "script": "SAGAconf.py",
+  "args": [
+   "--r_only",
+   "{data}/parsed/base.csv",
+   "{data}/parsed/verif.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ]
+ },
+ {
+  "name": "run_csv_input_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "--r_only",
+   "{data}/parsed/base.csv",
+   "{data}/parsed/verif.csv",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--mode",
+   "rvalues",
+   "{data}/parsed/base.csv",
+   "{data}/parsed/verif.csv",
+   "out"
+  ]
+ },
+ {
+  "name": "run_quick",
+  "script": "SAGAconf.py",
+  "args": [
+   "-q",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ]
+ },
+ {
+  "name": "run_quick_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-q",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--mode",
+   "quick",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ]
+ },
+ {
+  "name": "run_r_only",
+  "script": "SAGAconf.py",
+  "args": [
+   "--r_only",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ]
+ },
+ {
+  "name": "run_r_only_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "--r_only",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--mode",
+   "rvalues",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ]
+ },
+ {
+  "name": "run_r_only_params",
+  "script": "SAGAconf.py",
+  "args": [
+   "--r_only",
+   "-w",
+   "2000",
+   "-to",
+   "0.5",
+   "-tr",
+   "0.9",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ]
+ },
+ {
+  "name": "run_r_only_params_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "--r_only",
+   "-w",
+   "2000",
+   "-to",
+   "0.5",
+   "-tr",
+   "0.9",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--mode",
+   "rvalues",
+   "--window-size",
+   "2000",
+   "--iou-threshold",
+   "0.5",
+   "--repr-threshold",
+   "0.9",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ]
+ },
+ {
+  "name": "run_ct_only",
+  "script": "SAGAconf.py",
+  "args": [
+   "--ct_only",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ]
+ },
+ {
+  "name": "run_ct_only_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "--ct_only",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--mode",
+   "celltype",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ]
+ },
+ {
+  "name": "run_v_seglength",
+  "script": "SAGAconf.py",
+  "args": [
+   "--v_seglength",
+   "-bm",
+   "{data}/mnemonics/base.txt",
+   "-vm",
+   "{data}/mnemonics/verif.txt",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ]
+ },
+ {
+  "name": "run_v_seglength_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "--v_seglength",
+   "-bm",
+   "{data}/mnemonics/base.txt",
+   "-vm",
+   "{data}/mnemonics/verif.txt",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--mode",
+   "seglength",
+   "--base-mnemonics",
+   "{data}/mnemonics/base.txt",
+   "--verif-mnemonics",
+   "{data}/mnemonics/verif.txt",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ]
+ },
+ {
+  "name": "run_v_seglength_nomnem",
+  "script": "SAGAconf.py",
+  "args": [
+   "--v_seglength",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ]
+ },
+ {
+  "name": "run_v_seglength_nomnem_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "--v_seglength",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--mode",
+   "seglength",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ]
+ },
+ {
+  "name": "run_merge_only",
+  "script": "SAGAconf.py",
+  "args": [
+   "--merge_only",
+   "-k",
+   "3",
+   "-bm",
+   "{data}/mnemonics/base.txt",
+   "-vm",
+   "{data}/mnemonics/verif.txt",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ]
+ },
+ {
+  "name": "run_merge_only_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "--merge_only",
+   "-k",
+   "3",
+   "-bm",
+   "{data}/mnemonics/base.txt",
+   "-vm",
+   "{data}/mnemonics/verif.txt",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--mode",
+   "merge",
+   "--merge-k",
+   "3",
+   "--base-mnemonics",
+   "{data}/mnemonics/base.txt",
+   "--verif-mnemonics",
+   "{data}/mnemonics/verif.txt",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ]
+ },
+ {
+  "name": "run_merge_only_nomnem",
+  "script": "SAGAconf.py",
+  "args": [
+   "--merge_only",
+   "-k",
+   "3",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ]
+ },
+ {
+  "name": "run_merge_only_nomnem_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "--merge_only",
+   "-k",
+   "3",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--mode",
+   "merge",
+   "--merge-k",
+   "3",
+   "{data}/parsed/base.bed",
+   "{data}/parsed/verif.bed",
+   "out"
+  ]
+ }
+]

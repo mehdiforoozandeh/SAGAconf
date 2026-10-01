@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sagaconf"
+version = "1.0.1"
+description = "Calibrated confidence scores (r-values) for chromatin state annotations from SAGA methods."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Mehdi Foroozandeh" }]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.21,<2",
+    "pandas>=1.3",
+    "scipy>=1.7",
+    "scikit-learn>=0.24",
+    "matplotlib>=3.4",
+    "seaborn>=0.11",
+    "pybedtools>=0.9",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.scripts]
+sagaconf = "sagaconf.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/mehdiforoozandeh/SAGAconf"
+
+[tool.setuptools.packages.find]
+include = ["sagaconf"]
