@@ -164,9 +164,16 @@ def convert_to_GenomeBrowser_viewable_BED(initial_rvalue_bed):
         'facu': (0.5019607843137255, 0.0, 0.5019607843137255),
         'cons': (0.5411764705882353, 0.5686274509803921, 0.8156862745098039),
         'quie': (1.0, 1.0, 1.0),
-        'Unkn': (0.0, 0.0, 0.0)
+        'unkn': (0.0, 0.0, 0.0)
     }
-    r_vals['itemRgb'] = r_vals['name'].apply(lambda x: LABEL_COLOR_MAP["_".join(x.split('_')[1:])])
+
+    def label_color(name):
+        # "3_enha" -> "enha"; a merged state "0_enha_low+1_quie" takes its first part's color;
+        # names without a mnemonic (e.g. "posterior3") get the "unkn" color.
+        key = "_".join(name.split('_')[1:]).split('+')[0]
+        return LABEL_COLOR_MAP.get(key, LABEL_COLOR_MAP['unkn'])
+
+    r_vals['itemRgb'] = r_vals['name'].apply(label_color)
     r_vals['itemRgb'] = r_vals['itemRgb'].apply(lambda x: ','.join([str(int(i*255)) for i in x]))
     r_vals.insert(5, 'strand', '.')
     r_vals['thickStart'] = r_vals['chromStart']

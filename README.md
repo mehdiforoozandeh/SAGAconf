@@ -41,8 +41,7 @@ sagaconf run base/parsed_posterior.bed verif/parsed_posterior.bed results/
 ```
 
 `results/r_values.bed` holds one r-value per bin. `results/confident_segments.bed` holds the
-reproducible subset of the base annotation (this file needs mnemonics; see
-[Known issues](#known-issues)).
+reproducible subset of the base annotation.
 
 To run the full example on ChromHMM's sample data, run [`example/run.sh`](example/run.sh).
 
@@ -154,15 +153,15 @@ old	new
 
 Each plot is written as PDF and SVG. Each `.txt` file next to a plot holds the plotted values.
 
-## Known issues
+## Changes from the paper version
 
-These issues come from the version of SAGAconf that the paper used. This release keeps them,
-so that its results match that version exactly. Fixes will come in later releases.
+The results match the version that the paper used, except for these fixes:
 
-- In `full` mode, `-k` does not merge states.
-- In `full` mode without mnemonics, SAGAconf does not write the genome-wide results
-  (including `confident_segments.bed` and the UCSC track). Give `-bm` and `-vm` to get them.
-- In `merge` mode, SAGAconf can stop with a `KeyError` after it writes the merge reports.
+- In `full` mode, `-k` now merges states. Before, it did nothing.
+- Without mnemonics, `full` mode now writes the genome-wide results (including
+  `confident_segments.bed` and the UCSC track). Before, it skipped them.
+- In `merge` mode, SAGAconf now writes the UCSC track for merged states. Before, it stopped
+  with a `KeyError`.
 
 ## Legacy interface
 

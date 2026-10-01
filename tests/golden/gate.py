@@ -14,7 +14,9 @@ name file paths and line numbers, which move whenever code moves. They count as 
 unless --allow-traceback-frames is given; the exception type and message must always match.
 A case's optional "stage" maps paths inside the working directory to input files that are
 symlinked there before the run (for code that reads cwd-relative paths); staged paths are
-not compared. With --self-check, legacy is also run twice to prove the
+not compared. A case with a "fixed_by" note is one a bug fix changes on purpose: it must
+differ from legacy, but only by added files, a crash that no longer happens, or extra printed
+lines; no file that legacy wrote may change. With --self-check, legacy is also run twice to prove the
 comparison is deterministic.
 """
 import argparse
@@ -225,6 +227,17 @@ def main():
                          compare_trees(ref, ref2, stage, stage)[1] + compare_streams(log_ref, log_ref2)]
         if a.allow_traceback_frames:
             problems = [x for x in problems if "TRACEBACK_FRAMES_ONLY" not in x]
+        if c.get("fixed_by"):
+            # A bug fix changes this case on purpose. It must change something, and it may
+            # only add files, stop a crash (exit code, stderr, leftover temporary copies) or
+            # print more; every file legacy wrote must keep its exact bytes.
+            allowed = ("only in candidate: ", "exit codes differ", "stdout differs", "stderr differs",
+                       "TRACEBACK_FRAMES_ONLY", "only in reference: out/base_replicate/",
+                       "only in reference: out/verification_replicate/")
+            if not problems:
+                problems = ["fixed_by case is still identical to legacy: " + c["fixed_by"]]
+            else:
+                problems = [x for x in problems if not x.startswith(allowed)]
 
         ok = not problems
         failed += not ok
