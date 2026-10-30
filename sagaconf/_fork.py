@@ -37,6 +37,7 @@ def _child(prelude, step, d, fds):
         os.dup2(fds[0], 1)
         os.dup2(fds[1], 2)
         prelude()
+        _async["pid"], _async["pending"] = os.getpid(), []
         if step(d) is False:  # a step that handles its own failure reports it this way
             code = 1
     except BaseException:
@@ -45,6 +46,8 @@ def _child(prelude, step, d, fds):
         sys.stdout.flush()
         sys.stderr.flush()
     except BaseException:
+        code = 1
+    if not _drain():
         code = 1
     os._exit(code)
 
@@ -134,7 +137,51 @@ def run_steps(steps, savedir, preludes, costs, workers=MAX_WORKERS, quiet=False)
     preludes[len(steps)]()
 
 
+# In a step's child, figures are saved by their own children while the step goes on; the step's
+# child waits for them (and renames their files into place) before it finishes.
+_async = {"pid": None, "pending": []}
+
+
+def _drain():
+    ok = True
+    for pid, fds, parts in _async["pending"]:
+        ok = _svg_child_ok(pid, fds) and ok
+    for pid, fds, parts in _async["pending"]:
+        for tmp, final in parts:
+            if ok:
+                os.replace(tmp, final)
+            elif os.path.lexists(tmp):
+                os.remove(tmp)
+    _async["pending"] = []
+    return ok
+
+
 def savefig_pdf_svg(pdf, svg):
+    """Same as plt.savefig(pdf, format='pdf'); plt.savefig(svg, format='svg')."""
+    parts = [(pdf + ".sagaconf_part", pdf), (svg + ".sagaconf_part", svg)]
+    if _async["pid"] != os.getpid() or not _usable() or any(os.path.lexists(t) for t, _ in parts):
+        return _savefig_pdf_svg(pdf, svg)
+    from matplotlib import pyplot as plt
+    sys.stdout.flush()
+    sys.stderr.flush()
+    fds = (os.memfd_create("sagaconf_out"), os.memfd_create("sagaconf_err"))
+    pid = os.fork()
+    if pid == 0:
+        code = 0
+        try:
+            os.dup2(fds[0], 1)
+            os.dup2(fds[1], 2)
+            _async["pid"] = None
+            _savefig_pdf_svg(parts[0][0], parts[1][0], last=True)
+            sys.stdout.flush()
+            sys.stderr.flush()
+        except BaseException:
+            code = 1
+        os._exit(code)
+    _async["pending"].append((pid, fds, parts))
+
+
+def _savefig_pdf_svg(pdf, svg, last=False):
     """Same as plt.savefig(pdf, format='pdf'); plt.savefig(svg, format='svg').
 
     Saving draws the figure without changing it (no layout engine is left set), so the SVG is
@@ -144,6 +191,8 @@ def savefig_pdf_svg(pdf, svg):
     """
     from matplotlib import pyplot as plt
     pid, tmp = None, svg + ".sagaconf_part"
+    if last:
+        _skip_predraw(plt.gcf())
     if _usable() and not os.path.lexists(tmp):
         sys.stdout.flush()
         sys.stderr.flush()
@@ -154,14 +203,18 @@ def savefig_pdf_svg(pdf, svg):
             try:
                 os.dup2(fds[0], 1)
                 os.dup2(fds[1], 2)
-                plt.savefig(tmp, format='svg')
+                _skip_predraw(plt.gcf())
+                plt.gcf().savefig(tmp, format='svg')  # this process ends after saving
                 sys.stdout.flush()
                 sys.stderr.flush()
             except BaseException:
                 code = 1
             os._exit(code)
     try:
-        plt.savefig(pdf, format='pdf')
+        if last:  # the process ends after saving: pyplot's redraw after saving changes nothing
+            plt.gcf().savefig(pdf, format='pdf')
+        else:
+            plt.savefig(pdf, format='pdf')
     finally:
         ok = pid is not None and _svg_child_ok(pid, fds)
         if pid is not None and (not ok or sys.exc_info()[0] is not None) and os.path.lexists(tmp):
@@ -170,6 +223,16 @@ def savefig_pdf_svg(pdf, svg):
         os.replace(tmp, svg)
     else:
         plt.savefig(svg, format='svg')
+
+
+def _skip_predraw(fig):
+    # tight_layout leaves a PlaceHolderLayoutEngine, which makes savefig draw the figure once
+    # with drawing disabled before drawing it for real; that pass lays out nothing (the
+    # placeholder's execute is a no-op) and the real draw does the same work again. In a
+    # process that ends after saving, the figure is saved without it.
+    from matplotlib.layout_engine import PlaceHolderLayoutEngine
+    if type(fig.get_layout_engine()) is PlaceHolderLayoutEngine:
+        fig.set_layout_engine(None)
 
 
 def _svg_child_ok(pid, fds):

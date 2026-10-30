@@ -1,5 +1,14 @@
+import threading
+
 import numpy as np
 import pandas as pd
+
+
+def _read_parsed(path):
+    if ".bed" in path.lower():
+        return pd.read_csv(path, sep="\t", on_bad_lines="skip", encoding_errors="ignore")
+    elif ".csv" in path.lower():
+        return pd.read_csv(path, on_bad_lines="skip", encoding_errors="ignore").drop("Unnamed: 0", axis=1)
 
 
 def intersect_parsed_posteriors(parsed_df_dir_1, parsed_df_dir_2):
@@ -11,15 +20,31 @@ def intersect_parsed_posteriors(parsed_df_dir_1, parsed_df_dir_2):
         parsed_df_dir_1 = parsed_df_dir_1.replace("parsed_posterior.csv", "parsed_posterior_rep1.csv")
         parsed_df_dir_2 = parsed_df_dir_2.replace("parsed_posterior.csv", "parsed_posterior_rep2.csv")
     
-    if ".bed" in parsed_df_dir_1.lower():
-        df1 = pd.read_csv(parsed_df_dir_1, sep="\t", on_bad_lines="skip", encoding_errors="ignore")
-    elif ".csv" in parsed_df_dir_1.lower():
-        df1 = pd.read_csv(parsed_df_dir_1, on_bad_lines="skip", encoding_errors="ignore").drop("Unnamed: 0", axis=1)
+    # pandas' C parser releases the GIL: the second file is read in a thread while this one
+    # reads the first. Its result (or error) is taken only where the sequential read was.
+    second = {}
 
-    if ".bed" in parsed_df_dir_2.lower():
-        df2 = pd.read_csv(parsed_df_dir_2, sep="\t", on_bad_lines="skip", encoding_errors="ignore")
-    elif ".csv" in parsed_df_dir_2.lower():
-        df2 = pd.read_csv(parsed_df_dir_2, on_bad_lines="skip", encoding_errors="ignore").drop("Unnamed: 0", axis=1)
+    def read_second():
+        try:
+            second["df"] = _read_parsed(parsed_df_dir_2)
+        except BaseException as e:
+            second["error"] = e
+
+    reader = None
+    if any(e in parsed_df_dir_2.lower() for e in (".bed", ".csv")):
+        reader = threading.Thread(target=read_second)
+        reader.start()
+    try:
+        if any(e in parsed_df_dir_1.lower() for e in (".bed", ".csv")):
+            df1 = _read_parsed(parsed_df_dir_1)
+    finally:
+        if reader is not None:
+            reader.join()
+
+    if reader is not None:
+        if "error" in second:
+            raise second["error"]
+        df2 = second["df"]
 
 
     df1.iloc[:, 3:] = df1.iloc[:, 3:].astype("float16")

@@ -11,6 +11,7 @@ from pybedtools import BedTool
 from scipy.interpolate import UnivariateSpline
 from sklearn import metrics
 from ._fork import run_steps, savefig_pdf_svg
+from ._utils import to_tsv
 from ._load import load_data, process_data
 from ._cluster_matching import IoU_overlap, joint_overlap_prob, overall_overlap_ratio, overlap_matrix
 from ._reproducibility import NMI_from_matrix, joint_prob_MAP_with_posterior, joint_prob_with_binned_posterior, posterior_calibration
@@ -52,7 +53,10 @@ def convert_to_GenomeBrowser_viewable_BED(initial_rvalue_bed):
     r_vals['thickStart'] = r_vals['chromStart']
     r_vals['thickEnd'] = r_vals['chromEnd']
     r_vals = r_vals[['chrom', 'chromStart', 'chromEnd', 'name', 'score', 'strand', 'thickStart', 'thickEnd', 'itemRgb']]
-    bed = BedTool.from_dataframe(r_vals)
+    # BedTool.from_dataframe(r_vals): the same temporary file, written by to_tsv
+    tmp = BedTool._tmp()
+    to_tsv(r_vals, tmp, header=False, na_rep=".")
+    bed = BedTool(tmp)
     bed.saveas(initial_rvalue_bed.replace(".bed", "_UCSC_GenomeBrowser.bed"))
 
 
@@ -518,7 +522,7 @@ def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
     def overall(savedir):
         nonefiltered = [x * resolution for x in distance_to_corresp if x is not None] 
         matched_ratio = len(nonefiltered) / len(distance_to_corresp)
-        plt.hist(nonefiltered, bins=len(set(nonefiltered)), density=True, log=True, color='black', alpha=0.6, histtype="stepfilled")
+        plt.hist(_as_hist_input(nonefiltered), bins=len(set(nonefiltered)), density=True, log=True, color='black', alpha=0.6, histtype="stepfilled")
         plt.axvline(x=0, color='red', linestyle='dotted', linewidth=1.5)
         plt.yticks(np.logspace(-6, 0, 7))
         plt.xlabel("Distance (bp)")
@@ -546,7 +550,7 @@ def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
             nonefiltered = [x * resolution for x in distance_to_corresp_k if x is not None] 
             matched_ratio = len(nonefiltered) / len(distance_to_corresp_k)
 
-            plt.hist(nonefiltered, bins=len(set(nonefiltered)), density=True, log=True, color='black', alpha=0.6, histtype="stepfilled")
+            plt.hist(_as_hist_input(nonefiltered), bins=len(set(nonefiltered)), density=True, log=True, color='black', alpha=0.6, histtype="stepfilled")
             plt.axvline(x=0, color='red', linestyle='dotted', linewidth=1.5)
             plt.yticks(np.logspace(-6, 0, 7))
             plt.xlabel("Distance (bp)")
@@ -578,7 +582,7 @@ def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
                     matched_ratio = len(nonefiltered) / len(distance_to_corresp_k)
 
                     axs[i,j].hist(
-                        nonefiltered, bins=len(set(nonefiltered)), density=True, log=True, 
+                        _as_hist_input(nonefiltered), bins=len(set(nonefiltered)), density=True, log=True, 
                         color='black', alpha=0.6, histtype="stepfilled")
 
                     axs[i,j].axvline(x=0, color='red', linestyle='dotted', linewidth=2)
@@ -596,6 +600,12 @@ def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
     figs = [overall] + [label_fig(k) for k in perlabel.keys()] + [subplot]
     run_steps(figs, savedir, [lambda: None] + [_reset_plot] * len(figs),
               costs=[1] * (len(figs) - 1) + [3], workers=FIG_WORKERS, quiet=True)
+
+
+def _as_hist_input(values):
+    # hist turns a list of ints into one int64 array element by element (slow on millions of
+    # bins); handing it that array directly takes the same path from there on.
+    return np.array(values, dtype=np.int64) if values else values
 
 
 def _reset_plot():
@@ -993,7 +1003,7 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000,
                 loci1, loci2, ovr_threshold=to, window_bp=w, matching="static",
                 always_include_best_match=True, return_r=True)
     
-        rvalues.to_csv(savedir+"/r_values.bed", sep='\t', header=True, index=False)
+        to_tsv(rvalues, savedir+"/r_values.bed", header=True)
         convert_to_GenomeBrowser_viewable_BED(savedir+"/r_values.bed")
 
         avg_r = np.mean(np.array(rvalues["r_value"]))

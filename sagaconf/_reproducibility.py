@@ -238,6 +238,19 @@ class posterior_calibration(object):
         #     for label_name, bins in bins_dict.items():
         #         pltxt.write(label_name+ "\t" + str(list(bins[:, 5])) + '\n')
             
+    def _map2_codes(self):
+        """(codes of MAPestimate2, {label: code}) when the posteriors and MAPestimate2 share one
+        unnamed 0..n-1 index (the concat in _label_bins then aligns them row by row), else None."""
+        if not hasattr(self, "_map2_codes_cache"):
+            cache = None
+            idx = self.loci_1.index
+            if idx.equals(pd.RangeIndex(len(idx))) and idx.name is None and self.loci_1.columns.is_unique \
+                    and self.MAPestimate2.index.equals(idx) and self.MAPestimate2.index.name is None:
+                codes, uniques = pd.factorize(np.array(self.MAPestimate2, dtype=object))
+                cache = (codes, {u: i for i, u in enumerate(uniques)})
+            self._map2_codes_cache = cache
+        return self._map2_codes_cache
+
     def _label_bins(self, k, strat_size):
         """The calibration bins of label k (perlabel_calibration_function's per-label computation)."""
         kth_label = self.loci_1.columns[3 + k]
@@ -245,6 +258,41 @@ class posterior_calibration(object):
         bins = []
             
         posterior_vector_1 = self.loci_1[kth_label]
+
+        if not self.allow_w and self._map2_codes() is not None:
+            # the same sort, of the posteriors alone; MAP2 is compared as factorized codes
+            codes, code_of = self._map2_codes()
+            sorted_pv1 = posterior_vector_1.sort_values()
+            pv1_sorted = sorted_pv1.to_numpy()
+            map2_sorted = codes[sorted_pv1.index.to_numpy()]
+            kth_cumsum = np.concatenate([[0], np.cumsum(map2_sorted == code_of.get(kth_label, -2), dtype=np.int64)])
+            match_cumsum = np.concatenate([[0], np.cumsum(map2_sorted == code_of.get(match_label, -2), dtype=np.int64)])
+            n = len(pv1_sorted)
+            for b in range(0, n, strat_size):
+                e = min(b + strat_size, n)
+                observed = int(match_cumsum[e] - match_cumsum[b])
+                n_kth = int(kth_cumsum[e] - kth_cumsum[b])
+                expected = self.coverage_2[match_label] * (e - b) if self.oe_transform else None
+
+                if self.oe_transform:
+                    if observed==0:
+                        oe = np.log(
+                            (observed + 1)/
+                            (expected + 1))
+
+                    else:
+                        oe = np.log((observed)/(expected))
+                else:
+                    oe = float(observed)/float(e - b)
+
+                bins.append([
+                    float(pv1_sorted[b]), 
+                    float(pv1_sorted[e - 1]),
+                    e - b,
+                    n_kth,
+                    (e - b) - n_kth,
+                    oe])
+            return np.array(bins)
 
         vector_pair = pd.concat([posterior_vector_1, self.MAPestimate2], axis=1)
 
@@ -256,7 +304,7 @@ class posterior_calibration(object):
         else:
             vector_pair = vector_pair.sort_values("pv1").reset_index(drop=True)
 
-        MAP2 = list(self.MAPestimate2)
+        MAP2 = list(self.MAPestimate2) if self.allow_w else None  # only the window branch uses it
         map2_sorted = vector_pair["map2"].to_numpy()
         pv1_sorted = vector_pair["pv1"].to_numpy()
         kth_cumsum = np.concatenate([[0], np.cumsum(map2_sorted == kth_label, dtype=np.int64)])

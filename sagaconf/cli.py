@@ -13,7 +13,6 @@ import os
 import shutil
 import sys
 import threading
-from importlib.metadata import PackageNotFoundError, version
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -21,7 +20,7 @@ from matplotlib import pyplot as plt
 from ._chromhmm import ChrHMM_read_posteriordir
 from ._fork import run_steps, savefig_pdf_svg
 from ._load import load_data, process_data
-from ._utils import mp_inplace_binning
+from ._utils import mp_inplace_binning, to_tsv
 
 
 def _import_reports():
@@ -30,6 +29,7 @@ def _import_reports():
     global sns, is_repr_posterior, after_ct_steps, get_all_ct, get_overalls, get_rvals_activeregion
     global overlap_vs_segment_length, post_clustering_keep_k_states, quick_report, subset_data_to_activeregions
     import seaborn as sns
+    import matplotlib.backends.backend_pdf, matplotlib.backends.backend_svg  # else each forked figure imports them
     from .overall import is_repr_posterior
     from .reports import (after_ct_steps, get_all_ct, get_overalls, get_rvals_activeregion,
                           overlap_vs_segment_length, post_clustering_keep_k_states,
@@ -123,7 +123,7 @@ def _run_sagaconf(base, verif, savedir, mode, base_mnemonics, verif_mnemonics, c
 
     elif mode == "rvalues":
         loci1, loci2 = load(True)
-        r_values(loci1, loci2).to_csv(savedir + "/r_values.bed", sep='\t', header=True, index=False)
+        to_tsv(r_values(loci1, loci2), savedir + "/r_values.bed", header=True)
 
     elif mode == "active-regions":
         loci1, loci2 = load(False)
@@ -181,7 +181,7 @@ def _run_sagaconf(base, verif, savedir, mode, base_mnemonics, verif_mnemonics, c
 
         def rvals(d):
             rvalues = r_values(*last["loci"])
-            rvalues.to_csv(d + "/r_values.bed", sep='\t', header=True, index=False)
+            to_tsv(rvalues, d + "/r_values.bed", header=True)
             _rval_hist(rvalues, d)
 
         sample_msg, gw_msg = "Failed to generated sample analysis.", "failed to get GW SAGAconf reproducibility results"
@@ -203,7 +203,11 @@ def _run_sagaconf(base, verif, savedir, mode, base_mnemonics, verif_mnemonics, c
             def cached_rvals(d):
                 printed, loci1, loci2 = loaded[True]
                 remember((loci1.copy(), loci2.copy()))
-                rvals(d)
+                rvalues = r_values(*last["loci"])
+                # the BED and the histogram are independent: written in parallel, in this order
+                run_steps([lambda d: to_tsv(rvalues, d + "/r_values.bed", header=True),
+                           lambda d: _rval_hist(rvalues, d)],
+                          d, [lambda: None, lambda: None, _reset_after_hist], costs=[1, 2], quiet=True)
 
             after_ct = after_ct_steps(8)
             run_steps([guarded(lambda d: get_all_ct(*last["loci"], d, locis=True, w=w), sample_msg),
@@ -261,6 +265,13 @@ def _rval_hist(rvalues, savedir):
     plt.clf()
 
 
+def _reset_after_hist():
+    # the plot state _rval_hist leaves behind
+    plt.close("all")
+    plt.style.use('default')
+    plt.clf()
+
+
 # ---- `sagaconf` command ----------------------------------------------------------------------
 
 def _hidden_alias(parser, flag, dest, **kw):
@@ -269,6 +280,7 @@ def _hidden_alias(parser, flag, dest, **kw):
 
 
 def build_parser():
+    from importlib.metadata import PackageNotFoundError, version  # 0.1 s; only `sagaconf` needs it
     try:
         pkg_version = version("sagaconf")
     except PackageNotFoundError:

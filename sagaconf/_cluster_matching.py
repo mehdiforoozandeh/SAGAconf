@@ -157,13 +157,14 @@ def IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False, overlap_coeff=F
         coverage1, coverage2 = soft_coverage(loci_1, loci_2)
 
     else:
-        joint = joint_overlap_prob(loci_1, loci_2, w=w, symmetric=symmetric, maps=maps)
-
         if maps is not None:
             MAP1, MAP2 = maps
         else:
             MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
             MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
+
+        # joint_overlap_prob would compute the same MAPs again
+        joint = joint_overlap_prob(loci_1, loci_2, w=w, symmetric=symmetric, maps=(MAP1, MAP2))
 
         coverage1 = _coverage(MAP1, loci_1)
         coverage2 = _coverage(MAP2, loci_2)
