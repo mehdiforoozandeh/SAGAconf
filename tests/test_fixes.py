@@ -7,6 +7,8 @@ import os
 import subprocess
 import sys
 
+import pytest
+
 from sagaconf._utils import mp_inplace_binning
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -43,3 +45,21 @@ def test_segway_last_line_without_newline(tmp_path):
                                "chr1\t0\t100\t37\nchr1\t100\t200\t63"])
     parsed = mp_inplace_binning(d, 100)
     assert list(parsed["posterior1"]) == [0.37, 0.63]
+
+
+def test_segway_misaligned_states_raise(tmp_path):
+    # posterior1 lacks the bin chr1:100-200, so its 0.9 would shift onto chr1:100-200.
+    d = _segway_dir(tmp_path, ["chr1\t0\t100\t40\nchr1\t100\t200\t90\nchr1\t200\t300\t10\n",
+                               "chr1\t0\t100\t60\nchr1\t200\t300\t90\n"])
+    with pytest.raises(ValueError) as e:
+        mp_inplace_binning(d, 100)
+    msg = str(e.value)
+    assert "posterior0.bedGraph has 3 bins and posterior1.bedGraph has 2 bins" in msg
+    assert "bin 1: chr1:100-200 in posterior0.bedGraph, but chr1:200-300 in posterior1.bedGraph" in msg
+
+
+def test_segway_aligned_states_with_wide_intervals_pass(tmp_path):
+    # The same bins, reached through a wide interval in one file and narrow ones in the other.
+    d = _segway_dir(tmp_path, ["chr1\t0\t300\t50\n", "chr1\t0\t100\t50\nchr1\t100\t300\t50\n"])
+    parsed = mp_inplace_binning(d, 100)
+    assert list(parsed["posterior1"]) == [0.5, 0.5, 0.5]

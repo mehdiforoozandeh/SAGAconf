@@ -1,28 +1,8 @@
 import functools
-import itertools
 import multiprocessing as mp
 import numpy as np
 import os
 import pandas as pd
-
-
-def check_coord_match(df_1, df_2):
-    matched_sofar=True
-
-    if len(df_1) == len(df_2):
-        for i in range(len(df_1)):
-            match_statement = bool(
-                df_1['chr'][i] == df_2['chr'][i] and
-                df_1['start'][i] == df_2['start'][i] and
-                df_1['end'][i] == df_2['end'][i] 
-            )
-            if match_statement == False:
-                matched_sofar == False
-                break
-    else:
-        matched_sofar == False
-    
-    return matched_sofar
 
 
 def inplace_binning(posterior_file, resolution): 
@@ -81,22 +61,42 @@ def mp_inplace_binning(posterior_dir, resolution, assert_coord_match=False, m_p=
             parsed_list.append(inplace_binning(pfile, resolution))
 
     print("parsed all individual files")
-    match_statement = True
-    if assert_coord_match:
-        print("asserting coordinate match between different posteriorIDs")
-        for comb in itertools.combinations(range(len(parsed_list)), 2):
-            if check_coord_match(parsed_list[comb[0]], parsed_list[comb[1]]) == False:
-                match_statement = False
+    # The state columns are joined by row position below, so every file must have the same
+    # bins; otherwise values land on the wrong coordinates. This check always runs, so
+    # assert_coord_match is ignored (the old optional check could never fail).
+    def coords(d):
+        return (np.asarray(d['chr'].astype(str)), np.asarray(pd.to_numeric(d['start'])),
+                np.asarray(pd.to_numeric(d['end'])))
 
-    if match_statement:
-        print("concatenating results")
-        parsed_posterior = [parsed_list[0]['chr'], parsed_list[0]['start'], parsed_list[0]['end']]
-        for d in parsed_list:
-            parsed_posterior.append(d.iloc[:, -1])
-        
-        parsed_posterior = pd.concat(parsed_posterior, axis=1)
-    
-        return parsed_posterior
+    def describe(c, f, i):
+        if i >= len(c[0]):
+            return "no bin in %s" % f
+        return "%s:%d-%d in %s" % (c[0][i], c[1][i], c[2][i], f)
+
+    ref_file, ref = os.path.basename(posterior_file_list[0]), coords(parsed_list[0])
+    for pfile, d in zip(posterior_file_list[1:], parsed_list[1:]):
+        c = coords(d)
+        n = min(len(ref[0]), len(c[0]))
+        same = (ref[0][:n] == c[0][:n]) & (ref[1][:n] == c[1][:n]) & (ref[2][:n] == c[2][:n])
+        if same.all() and len(ref[0]) == len(c[0]):
+            continue
+        i = int(np.argmin(same)) if not same.all() else n
+        f = os.path.basename(pfile)
+        raise ValueError(
+            "Segway posterior files are not aligned: %s has %d bins and %s has %d bins after "
+            "binning at %d bp. First difference at bin %d: %s, but %s. Every posterior file must "
+            "cover the same regions with the same bin boundaries."
+            % (ref_file, len(ref[0]), f, len(c[0]), resolution, i,
+               describe(ref, ref_file, i), describe(c, f, i)))
+
+    print("concatenating results")
+    parsed_posterior = [parsed_list[0]['chr'], parsed_list[0]['start'], parsed_list[0]['end']]
+    for d in parsed_list:
+        parsed_posterior.append(d.iloc[:, -1])
+
+    parsed_posterior = pd.concat(parsed_posterior, axis=1)
+
+    return parsed_posterior
 
 
 def logit(p):
