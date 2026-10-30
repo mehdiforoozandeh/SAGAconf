@@ -50,6 +50,9 @@ def granularity_vs_agreement_nonsymmetric(loci_1, loci_2, k, disregard_posterior
     num_labels = loci_1.shape[1]-3
     MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
     MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
+    if disregard_posterior and _onehot_merging_is_exact(loci_1, loci_2, MAP1, MAP2):
+        return _granularity_from_counts(loci_1, loci_2, k, MAP1, MAP2)
+
     if disregard_posterior:
         # to avoid MAP changes during the merging process, disregard probability granularity and convert 
         # to hard zero vs one matrix
@@ -94,6 +97,46 @@ def granularity_vs_agreement_nonsymmetric(loci_1, loci_2, k, disregard_posterior
 
         coverage_record.append(jth_order_cov)
         agreement_record.append(jth_order_agr)
+    return coverage_record, agreement_record, sorted_k_vector.index
+
+
+def _onehot_merging_is_exact(loci_1, loci_2, MAP1, MAP2):
+    """True if the hard 0/1 matrices keep each row's MAP and merged-column names cannot clash,
+    so every MAP2 after merging is the merged label for rows whose MAP2 was merged, else MAP2."""
+    labels1, labels2 = loci_1.columns[3:], loci_2.columns[3:]
+    return (labels1.is_unique and labels2.is_unique and len(labels2) > 0
+            and all(isinstance(c, str) for c in labels1) and all(isinstance(c, str) and "+" not in c for c in labels2)
+            and len(MAP1) == len(MAP2) and len(MAP1) > 0
+            and not MAP1.isna().any() and not MAP2.isna().any()
+            and isinstance(MAP1.index, pd.RangeIndex) and MAP1.index.start == 0 and MAP1.index.step == 1
+            and isinstance(MAP2.index, pd.RangeIndex) and MAP2.index.start == 0 and MAP2.index.step == 1)
+
+
+def _granularity_from_counts(loci_1, loci_2, k, MAP1, MAP2):
+    """granularity_vs_agreement_nonsymmetric with disregard_posterior, from integer counts.
+
+    The IoU of the 0/1 matrices depends only on the MAPs, which binarising keeps. Merging the
+    first j+1 labels of sorted_k_vector makes MAP2 the merged label exactly where the original
+    MAP2 is one of them, so the agreement and coverage counts are cumulative label counts."""
+    confmat = IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False, maps=(MAP1, MAP2))
+    sorted_k_vector = confmat.loc[k,:].sort_values(ascending=False)
+
+    rank2 = sorted_k_vector.index.get_indexer(pd.Index(MAP2.to_numpy(), dtype=object))
+    is_k = MAP1.to_numpy() == k
+    n_k = int(np.count_nonzero(is_k))
+    cov_counts = np.cumsum(np.bincount(rank2, minlength=len(sorted_k_vector)))
+    agr_counts = np.cumsum(np.bincount(rank2[is_k], minlength=len(sorted_k_vector)))
+
+    coverage_record = [0]
+    agreement_record = [0]
+    for j in range(0, len(sorted_k_vector)):
+        hit = int(agr_counts[j])
+        try:
+            agr = float(hit / (hit + (n_k - hit)))
+        except:
+            agr = 0
+        coverage_record.append(int(cov_counts[j]) / len(MAP2))
+        agreement_record.append(agr)
     return coverage_record, agreement_record, sorted_k_vector.index
 
 

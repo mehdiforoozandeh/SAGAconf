@@ -7,8 +7,11 @@
 SAGAconf_parser.py interfaces (flags, help text and error messages) for existing pipelines.
 """
 import argparse
+import contextlib
+import io
 import os
 import shutil
+import sys
 from importlib.metadata import PackageNotFoundError, version
 
 import numpy as np
@@ -68,11 +71,23 @@ def run_sagaconf(base, verif, savedir, mode="full", base_mnemonics="NA", verif_m
 
     w = window_size
 
+    loaded = {}
+
     def load(logit_transform):
-        loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=chr21_only,
-                                 logit_transform=logit_transform, force_WG=False)
-        return process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem,
-                            bm=base_mnemonics, vm=verif_mnemonics, match=False, custom_order=True)
+        # Full mode loads the same files more than once: later loads replay what the first
+        # one printed and get copies, since later steps may change the frames in place.
+        if logit_transform in loaded:
+            printed, loci1, loci2 = loaded[logit_transform]
+            sys.stdout.write(printed)
+            return loci1.copy(), loci2.copy()
+        out = _Tee(sys.stdout)
+        with contextlib.redirect_stdout(out):
+            loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=chr21_only,
+                                     logit_transform=logit_transform, force_WG=False)
+            loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem,
+                                        bm=base_mnemonics, vm=verif_mnemonics, match=False, custom_order=True)
+        loaded[logit_transform] = (out.getvalue(), loci1.copy(), loci2.copy())
+        return loci1, loci2
 
     def r_values(loci1, loci2):
         return is_repr_posterior(loci1, loci2, ovr_threshold=iou_threshold, window_bp=w,
@@ -143,6 +158,18 @@ def run_sagaconf(base, verif, savedir, mode="full", base_mnemonics="NA", verif_m
 
     shutil.rmtree(replicate_1_dir, ignore_errors=True)
     shutil.rmtree(replicate_2_dir, ignore_errors=True)
+
+
+class _Tee(io.StringIO):
+    """Writes through to a stream and keeps a copy of what was written."""
+
+    def __init__(self, stream):
+        super().__init__()
+        self.stream = stream
+
+    def write(self, s):
+        self.stream.write(s)
+        return super().write(s)
 
 
 def _copy_posterior(path, replicate_dir):

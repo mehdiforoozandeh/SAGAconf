@@ -439,14 +439,25 @@ def joint_prob_with_binned_posterior(loci1, loci2, n_bins=50, conditional=False,
 
             vector_pair = vector_pair.sort_values("pv1").reset_index(drop=True)
 
+            # label codes of map2, to count each bin's labels in one pass
+            labels2 = loci2.columns[3:]
+            codes2 = labels2.get_indexer(pd.Index(vector_pair["map2"].to_numpy(), dtype=object)) \
+                if labels2.is_unique else None
+
             for b in range(0, vector_pair.shape[0], strat_size):
                 subset_pair_vector = vector_pair.iloc[b:b+strat_size,:]
+                if codes2 is not None:
+                    bin_codes = codes2[b:b+strat_size]
+                    bin_counts = np.bincount(bin_codes[bin_codes >= 0], minlength=len(labels2))
                 
                 for r2_label in range(len(loci2.columns[3:])):
-                    intersection_l_r = len(
-                        subset_pair_vector.loc[
-                        subset_pair_vector["map2"]==loci2.columns[3:][r2_label],:
-                        ]) / (len(loci1) * num_labels)
+                    if codes2 is not None:
+                        intersection_l_r = int(bin_counts[r2_label]) / (len(loci1) * num_labels)
+                    else:
+                        intersection_l_r = len(
+                            subset_pair_vector.loc[
+                            subset_pair_vector["map2"]==loci2.columns[3:][r2_label],:
+                            ]) / (len(loci1) * num_labels)
                     
                     P_r = (len(subset_pair_vector) / len(loci1))
 
