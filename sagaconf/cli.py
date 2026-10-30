@@ -289,13 +289,15 @@ def main(argv=None):
         mode = _resolve_mode(args, parser.error)
         if mode == "active-regions" and not args.ccre_file:
             parser.error("--mode active-regions needs --ccre-file")
-        _exit_if_failed(run_sagaconf(
-            args.base, args.verif, args.outdir, mode=mode,
-            base_mnemonics=args.base_mnemonics, verif_mnemonics=args.verif_mnemonics,
-            chr21_only=args.chr21_only, window_size=args.window_size,
-            iou_threshold=args.iou_threshold, repr_threshold=args.repr_threshold,
-            merge_k=args.merge_k, verbose=args.verbose, ccre_file=args.ccre_file,
-            meuleman_file=args.meuleman_file))
+        # The call starts its own line so a crash prints the same traceback as before.
+        failed = (
+            run_sagaconf(args.base, args.verif, args.outdir, mode=mode,
+                         base_mnemonics=args.base_mnemonics, verif_mnemonics=args.verif_mnemonics,
+                         chr21_only=args.chr21_only, window_size=args.window_size,
+                         iou_threshold=args.iou_threshold, repr_threshold=args.repr_threshold,
+                         merge_k=args.merge_k, verbose=args.verbose, ccre_file=args.ccre_file,
+                         meuleman_file=args.meuleman_file))
+        _exit_if_failed(failed)
 
 
 # ---- legacy entry points (SAGAconf.py, SAGAconf_parser.py) ------------------------------------
@@ -350,15 +352,17 @@ def legacy_run_main():
 
     args = parser.parse_args()
     mode = next((mode for flag, mode in LEGACY_MODE_FLAGS if getattr(args, flag)), "full")
-    _exit_if_failed(run_sagaconf(
-        args.base, args.verif, args.savedir, mode=mode,
-        base_mnemonics=args.base_mnemonics, verif_mnemonics=args.verif_mnemonics,
-        chr21_only=args.subset, window_size=args.windowsize,
-        iou_threshold=args.iou_threshold, repr_threshold=args.repr_threshold,
-        merge_k=args.merge_clusters, verbose=args.verbosity,
-        # The original script read these paths relative to the working directory.
-        ccre_file="src/biointerpret/GRCh38-cCREs.bed",
-        meuleman_file="src/biointerpret/Meuleman.tsv"))
+    # The call starts its own line so a crash prints the same traceback as before.
+    failed = (
+        run_sagaconf(args.base, args.verif, args.savedir, mode=mode,
+                     base_mnemonics=args.base_mnemonics, verif_mnemonics=args.verif_mnemonics,
+                     chr21_only=args.subset, window_size=args.windowsize,
+                     iou_threshold=args.iou_threshold, repr_threshold=args.repr_threshold,
+                     merge_k=args.merge_clusters, verbose=args.verbosity,
+                     # The original script read these paths relative to the working directory.
+                     ccre_file="src/biointerpret/GRCh38-cCREs.bed",
+                     meuleman_file="src/biointerpret/Meuleman.tsv"))
+    _exit_if_failed(failed)
 
 
 def legacy_parse_main():
