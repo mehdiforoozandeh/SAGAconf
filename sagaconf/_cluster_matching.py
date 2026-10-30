@@ -70,10 +70,36 @@ def joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True):
 
     oo_mat = pd.DataFrame(np.zeros((num_labels1, num_labels2)), columns=loci_2.columns[3:], index=loci_1.columns[3:])
 
+    # integer counts by label code; same counts as the per-position loops below
+    labels1, labels2 = loci_1.columns[3:], loci_2.columns[3:]
+    codes1 = labels1.get_indexer(pd.Index(MAP1, dtype=object)) if labels1.is_unique else None
+    codes2 = labels2.get_indexer(pd.Index(MAP2, dtype=object)) if labels2.is_unique else None
+    fast = (codes1 is not None and codes2 is not None and len(MAP1) == len(MAP2) and len(MAP1) > 0
+            and codes1.min() >= 0 and codes2.min() >= 0 and (w == 0 or symmetric == False))
+
     MAP1 = list(MAP1)
     MAP2 = list(MAP2)
-                
-    if w == 0:
+
+    if fast:
+        n = len(MAP1)
+        if w == 0:
+            counts = np.bincount(codes1 * num_labels2 + codes2, minlength=num_labels1 * num_labels2)
+            counts = counts.reshape(num_labels1, num_labels2)
+        else:
+            pos = np.arange(n)
+            leftmost = np.maximum(0, pos - w)
+            rightmost = np.maximum(np.minimum(pos + w, n - 1), leftmost)
+            counts = np.zeros((num_labels1, num_labels2), dtype=np.int64)
+            for b in range(num_labels2):
+                cs = np.concatenate([[0], np.cumsum(codes2 == b, dtype=np.int64)])
+                present = cs[rightmost] - cs[leftmost] > 0
+                counts[:, b] = np.bincount(codes1[present], minlength=num_labels1)
+        for a in range(num_labels1):
+            for b in range(num_labels2):
+                if counts[a, b] > 0:
+                    observed_overlap[str(labels1[a] + "|" + labels2[b])] += int(counts[a, b])
+
+    elif w == 0:
         for i in range(len(MAP1)):
             k = MAP1[i]
             j = MAP2[i]

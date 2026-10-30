@@ -262,6 +262,10 @@ class posterior_calibration(object):
                 vector_pair = vector_pair.sort_values("pv1").reset_index(drop=True)
 
             MAP2 = list(self.MAPestimate2)
+            map2_sorted = vector_pair["map2"].to_numpy()
+            pv1_sorted = vector_pair["pv1"].to_numpy()
+            kth_cumsum = np.concatenate([[0], np.cumsum(map2_sorted == kth_label, dtype=np.int64)])
+            match_cumsum = np.concatenate([[0], np.cumsum(map2_sorted == match_label, dtype=np.int64)])
             for b in range(0, vector_pair.shape[0], strat_size):
                 # [bin_start, bin_end, num_values_in_bin, num_agreement, num_mislabeled, ratio_agreement]
                 if self.allow_w:
@@ -280,9 +284,30 @@ class posterior_calibration(object):
                             observed += 1
                     
                 else:
-                    subset_vector_pair = vector_pair.iloc[b:b+strat_size, :]
-                    observed = len(subset_vector_pair.loc[subset_vector_pair["map2"] == match_label])
-                    
+                    e = min(b + strat_size, vector_pair.shape[0])
+                    observed = int(match_cumsum[e] - match_cumsum[b])
+                    n_kth = int(kth_cumsum[e] - kth_cumsum[b])
+                    expected = self.coverage_2[match_label] * (e - b) if self.oe_transform else None
+
+                    if self.oe_transform:
+                        if observed==0:
+                            oe = np.log(
+                                (observed + 1)/
+                                (expected + 1))
+
+                        else:
+                            oe = np.log((observed)/(expected))
+                    else:
+                        oe = float(observed)/float(e - b)
+
+                    bins.append([
+                        float(pv1_sorted[b]), 
+                        float(pv1_sorted[e - 1]),
+                        e - b,
+                        n_kth,
+                        (e - b) - n_kth,
+                        oe])
+                    continue
                 
                 if self.oe_transform:
                     expected = self.coverage_2[match_label] * len(subset_vector_pair)

@@ -20,13 +20,21 @@ def get_coverage(loci, query_label="all"):
 def get_agr_nonsymmetric(MAP1, MAP2, query_label1, query_label2):
     record = [0,0] # [agreement_count, disagreement_count]
 
-    for i in range(len(MAP1)):
-        if MAP1[i] == query_label1:
+    if isinstance(MAP1.index, pd.RangeIndex) and MAP1.index.start == 0 and MAP1.index.step == 1 \
+            and len(MAP2) >= len(MAP1) and isinstance(MAP2.index, pd.RangeIndex) \
+            and MAP2.index.start == 0 and MAP2.index.step == 1:
+        sel = MAP1.to_numpy() == query_label1
+        hit = int(np.count_nonzero(MAP2.to_numpy()[:len(MAP1)][sel] == query_label2))
+        record[0] = hit
+        record[1] = int(np.count_nonzero(sel)) - hit
+    else:
+        for i in range(len(MAP1)):
+            if MAP1[i] == query_label1:
 
-            if MAP2[i] == query_label2:
-                record[0] += 1
-            else:
-                record[1] += 1
+                if MAP2[i] == query_label2:
+                    record[0] += 1
+                else:
+                    record[1] += 1
 
     try:
         agr = float(record[0] / (record[0] + record[1]))
@@ -74,11 +82,13 @@ def granularity_vs_agreement_nonsymmetric(loci_1, loci_2, k, disregard_posterior
 
             query_label = query_label + "+" + str(sorted_k_vector.index[j])
     
-        MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
+        if j == 0:  # loci_1 does not change inside this loop
+            MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
         MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
 
         jth_order_agr = get_agr_nonsymmetric(MAP1, MAP2, query_label1=k, query_label2=query_label)
-        jth_order_cov = get_coverage(loci_2, query_label=query_label)
+        # same as get_coverage(loci_2, query_label=query_label), reusing MAP2
+        jth_order_cov = len(MAP2.loc[MAP2 == query_label]) / len(MAP2)
 
         coverage_record.append(jth_order_cov)
         agreement_record.append(jth_order_agr)

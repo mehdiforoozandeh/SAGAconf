@@ -113,6 +113,14 @@ def logit(p):
 def logit_array(array2D):
     array2D = np.array(array2D)
 
+    if array2D.ndim == 2 and array2D.dtype.kind == "f" and array2D.size > 0 and not np.isnan(array2D).any():
+        # logit depends only on the value: apply it once per distinct value
+        uniq, inverse = np.unique(array2D, return_inverse=True)
+        mapped = np.empty(len(uniq), dtype=array2D.dtype)
+        for k in range(len(uniq)):
+            mapped[k] = logit(uniq[k])
+        return mapped[inverse].reshape(array2D.shape)
+
     for i in range(array2D.shape[0]):
         for j in range(array2D.shape[1]):
             array2D[i,j] = logit(array2D[i,j])

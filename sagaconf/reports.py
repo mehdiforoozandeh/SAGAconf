@@ -492,8 +492,33 @@ def overall_boundary(loci_1, loci_2, savedir, match_definition="BM"):
     #========================================================================================#
     listofws = []
     overlaprecord = []
-    
-    for w in range(max_distance):
+
+    # label codes: m counts positions whose window holds the best match of their MAP1 label
+    codes1, uniq1 = pd.factorize(np.array(MAP1, dtype=object))
+    codes2, uniq2 = pd.factorize(np.array(MAP2, dtype=object))
+    fast = (len(MAP1) == len(MAP2) and len(MAP1) > 0 and codes1.min() >= 0 and codes2.min() >= 0
+            and all(u in per_label_matches for u in uniq1))
+    if fast:
+        pos_of = {u: c for c, u in enumerate(uniq2)}
+        target = np.array([pos_of.get(per_label_matches[u], -1) for u in uniq1], dtype=np.int64)[codes1]
+        cumsums = [np.concatenate([[0], np.cumsum(codes2 == c, dtype=np.int64)]) for c in range(len(uniq2))]
+        positions = np.arange(len(MAP1))
+        for w in range(max_distance):
+            if w == 0:
+                hit = target == codes2
+            else:
+                leftmost = np.maximum(0, positions - w)
+                rightmost = np.maximum(np.minimum(positions + w, len(MAP2) - 1), leftmost)
+                hit = np.zeros(len(MAP1), dtype=bool)
+                for c in range(len(uniq2)):
+                    sel = target == c
+                    hit[sel] = cumsums[c][rightmost[sel]] - cumsums[c][leftmost[sel]] > 0
+            m = int(np.count_nonzero(hit))
+
+            listofws.append(w)
+            overlaprecord.append(float(m) / len(loci_1))
+
+    for w in (range(max_distance) if not fast else ()):
         m = 0
         for i in range(len(MAP1)):
             k = MAP1[i]
@@ -828,6 +853,12 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
     for k in list(loci_1.columns[3:]):
         boundary_distances[k] = []
         count_unmatched_boundaries[k] = 0
+
+    # positional lists index like the RangeIndex Series, without per-item pandas overhead
+    if isinstance(MAP1.index, pd.RangeIndex) and MAP1.index.start == 0 and MAP1.index.step == 1 \
+            and isinstance(MAP2.index, pd.RangeIndex) and MAP2.index.start == 0 and MAP2.index.step == 1:
+        MAP1 = list(MAP1)
+        MAP2 = list(MAP2)
 
     for i in range(len(MAP1)-1):
         # if MAP1[i] != MAP1[i+1]: 
