@@ -7,6 +7,8 @@ import os
 import subprocess
 import sys
 
+from sagaconf._utils import mp_inplace_binning
+
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HEADER = "chr\tstart\tend\tposterior0\tposterior1\n"
 
@@ -28,3 +30,16 @@ def test_full_mode_exits_nonzero_when_a_step_fails(tmp_path):
         assert r.returncode == 1, r.stderr
         assert "analysis step(s) failed" in r.stderr
         assert "r-values" in r.stderr
+
+
+def _segway_dir(tmp_path, files):
+    for i, text in enumerate(files):
+        (tmp_path / ("posterior%d.bedGraph" % i)).write_text("track type=bedGraph\n" + text)
+    return str(tmp_path)
+
+
+def test_segway_last_line_without_newline(tmp_path):
+    d = _segway_dir(tmp_path, ["chr1\t0\t100\t63\nchr1\t100\t200\t37\n",
+                               "chr1\t0\t100\t37\nchr1\t100\t200\t63"])
+    parsed = mp_inplace_binning(d, 100)
+    assert list(parsed["posterior1"]) == [0.37, 0.63]

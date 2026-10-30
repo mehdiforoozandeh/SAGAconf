@@ -33,7 +33,7 @@ def inplace_binning(posterior_file, resolution):
         for il in range(1, len(lines)):
             l = lines[il]
             ll = l.split('\t')
-            ll[-1] = float(int(ll[-1][:-1])/100)
+            ll[-1] = float(int(ll[-1].rstrip("\n"))/100)  # the last line may lack a newline
             posterior_list.append(ll)
 
     new_posterior_list = []
