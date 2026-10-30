@@ -9,6 +9,7 @@ SAGAconf_parser.py interfaces (flags, help text and error messages) for existing
 import argparse
 import os
 import shutil
+import sys
 from importlib.metadata import PackageNotFoundError, version
 
 import numpy as np
@@ -50,6 +51,7 @@ def run_sagaconf(base, verif, savedir, mode="full", base_mnemonics="NA", verif_m
     base_mnemonics, verif_mnemonics: state-name files, or "NA" for none.
     ccre_file, meuleman_file: region files for mode "active-regions"; the Meuleman step
     is skipped when meuleman_file is None.
+    Returns the analysis steps that failed in mode "full" (empty when all succeeded).
     """
     os.makedirs(savedir, exist_ok=True)
     # Work on copies inside savedir; they are removed at the end.
@@ -78,6 +80,7 @@ def run_sagaconf(base, verif, savedir, mode="full", base_mnemonics="NA", verif_m
         return is_repr_posterior(loci1, loci2, ovr_threshold=iou_threshold, window_bp=w,
                                  matching="static", always_include_best_match=True, return_r=True)
 
+    failed = []
     if mode == "quick":
         loci1, loci2 = load(True)
         quick_report(loci1, loci2, savedir, locis=True, w=w, to=iou_threshold, tr=repr_threshold)
@@ -111,10 +114,12 @@ def run_sagaconf(base, verif, savedir, mode="full", base_mnemonics="NA", verif_m
 
     else:  # full
         # Each step is independent: a failure is reported with -v and the next step still runs.
+        # Failed steps are returned so the command can exit non-zero (GitHub issue #4).
         try:
             loci1, loci2 = load(True)
             get_all_ct(loci1, loci2, savedir, locis=True, w=w)
-        except Exception:
+        except Exception as e:
+            failed.append("sample analysis (%s: %s)" % (type(e).__name__, e))
             if verbose:
                 print("Failed to generated sample analysis.")
 
@@ -122,14 +127,16 @@ def run_sagaconf(base, verif, savedir, mode="full", base_mnemonics="NA", verif_m
             try:
                 loci1, loci2 = load(False)
                 post_clustering_keep_k_states(loci1, loci2, savedir, k=merge_k, locis=True, write_csv=False, w=w)
-            except Exception:
+            except Exception as e:
+                failed.append("merging states to k (%s: %s)" % (type(e).__name__, e))
                 if verbose:
                     print("Failed to merge clusters up to k")
 
         try:
             loci1, loci2 = load(True)
             get_overalls(loci1, loci2, savedir, locis=True, w=w, to=iou_threshold, tr=repr_threshold)
-        except Exception:
+        except Exception as e:
+            failed.append("genome-wide reproducibility (%s: %s)" % (type(e).__name__, e))
             if verbose:
                 print("failed to get GW SAGAconf reproducibility results")
 
@@ -137,12 +144,22 @@ def run_sagaconf(base, verif, savedir, mode="full", base_mnemonics="NA", verif_m
             rvalues = r_values(loci1, loci2)
             rvalues.to_csv(savedir + "/r_values.bed", sep='\t', header=True, index=False)
             _rval_hist(rvalues, savedir)
-        except Exception:
+        except Exception as e:
+            failed.append("r-values (%s: %s)" % (type(e).__name__, e))
             if verbose:
                 print("failed to get GW SAGAconf reproducibility results")
 
     shutil.rmtree(replicate_1_dir, ignore_errors=True)
     shutil.rmtree(replicate_2_dir, ignore_errors=True)
+    return failed
+
+
+def _exit_if_failed(failed):
+    if failed:
+        print("SAGAconf: %d analysis step(s) failed:" % len(failed), file=sys.stderr)
+        for step in failed:
+            print("  " + step, file=sys.stderr)
+        sys.exit(1)
 
 
 def _copy_posterior(path, replicate_dir):
@@ -272,12 +289,13 @@ def main(argv=None):
         mode = _resolve_mode(args, parser.error)
         if mode == "active-regions" and not args.ccre_file:
             parser.error("--mode active-regions needs --ccre-file")
-        run_sagaconf(args.base, args.verif, args.outdir, mode=mode,
-                     base_mnemonics=args.base_mnemonics, verif_mnemonics=args.verif_mnemonics,
-                     chr21_only=args.chr21_only, window_size=args.window_size,
-                     iou_threshold=args.iou_threshold, repr_threshold=args.repr_threshold,
-                     merge_k=args.merge_k, verbose=args.verbose, ccre_file=args.ccre_file,
-                     meuleman_file=args.meuleman_file)
+        _exit_if_failed(run_sagaconf(
+            args.base, args.verif, args.outdir, mode=mode,
+            base_mnemonics=args.base_mnemonics, verif_mnemonics=args.verif_mnemonics,
+            chr21_only=args.chr21_only, window_size=args.window_size,
+            iou_threshold=args.iou_threshold, repr_threshold=args.repr_threshold,
+            merge_k=args.merge_k, verbose=args.verbose, ccre_file=args.ccre_file,
+            meuleman_file=args.meuleman_file))
 
 
 # ---- legacy entry points (SAGAconf.py, SAGAconf_parser.py) ------------------------------------
@@ -332,14 +350,15 @@ def legacy_run_main():
 
     args = parser.parse_args()
     mode = next((mode for flag, mode in LEGACY_MODE_FLAGS if getattr(args, flag)), "full")
-    run_sagaconf(args.base, args.verif, args.savedir, mode=mode,
-                 base_mnemonics=args.base_mnemonics, verif_mnemonics=args.verif_mnemonics,
-                 chr21_only=args.subset, window_size=args.windowsize,
-                 iou_threshold=args.iou_threshold, repr_threshold=args.repr_threshold,
-                 merge_k=args.merge_clusters, verbose=args.verbosity,
-                 # The original script read these paths relative to the working directory.
-                 ccre_file="src/biointerpret/GRCh38-cCREs.bed",
-                 meuleman_file="src/biointerpret/Meuleman.tsv")
+    _exit_if_failed(run_sagaconf(
+        args.base, args.verif, args.savedir, mode=mode,
+        base_mnemonics=args.base_mnemonics, verif_mnemonics=args.verif_mnemonics,
+        chr21_only=args.subset, window_size=args.windowsize,
+        iou_threshold=args.iou_threshold, repr_threshold=args.repr_threshold,
+        merge_k=args.merge_clusters, verbose=args.verbosity,
+        # The original script read these paths relative to the working directory.
+        ccre_file="src/biointerpret/GRCh38-cCREs.bed",
+        meuleman_file="src/biointerpret/Meuleman.tsv"))
 
 
 def legacy_parse_main():
