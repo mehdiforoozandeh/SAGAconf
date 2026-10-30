@@ -43,9 +43,9 @@ def inplace_binning(posterior_file, resolution):
 
             for j in range(int(posterior_list[i][1]), int(posterior_list[i][2]), resolution):
                 if int(j + resolution) > int(posterior_list[i][2]):
-                    inner_list.append([posterior_list[i][0], j, (posterior_list[i][2]), int(posterior_list[i][3])])
+                    inner_list.append([posterior_list[i][0], j, (posterior_list[i][2]), posterior_list[i][3]])
                 else:
-                    inner_list.append([posterior_list[i][0], j, int(j + resolution), int(posterior_list[i][3])])
+                    inner_list.append([posterior_list[i][0], j, int(j + resolution), posterior_list[i][3]])
 
             for k in inner_list:
                 new_posterior_list.append(k)
