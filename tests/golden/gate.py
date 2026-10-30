@@ -16,7 +16,9 @@ A case's optional "stage" maps paths inside the working directory to input files
 symlinked there before the run (for code that reads cwd-relative paths); staged paths are
 not compared. A case with a "fixed_by" note is one a bug fix changes on purpose: it must
 differ from legacy, but only by added files, a crash that no longer happens, or extra printed
-lines; no file that legacy wrote may change. With --self-check, legacy is also run twice to prove the
+lines; no file that legacy wrote may change. A case with a "segway_binning" entry is a Segway
+parse that the fix for GitHub issue #4 changes: its parsed file may differ from legacy only in
+values from intervals wider than the resolution (see verify_segway_binning.py). With --self-check, legacy is also run twice to prove the
 comparison is deterministic.
 """
 import argparse
@@ -30,6 +32,8 @@ import shutil
 import subprocess
 import sys
 import time
+
+import verify_segway_binning
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 RUNNER = os.path.join(HERE, "run_deterministic.py")
@@ -227,6 +231,15 @@ def main():
                          compare_trees(ref, ref2, stage, stage)[1] + compare_streams(log_ref, log_ref2)]
         if a.allow_traceback_frames:
             problems = [x for x in problems if "TRACEBACK_FRAMES_ONLY" not in x]
+        if c.get("segway_binning"):
+            # The Segway binning fix (GitHub issue #4) changes this case's parsed file on
+            # purpose; verify_segway_binning.py checks it changed only where the fix intends.
+            sb = c["segway_binning"]
+            problems = [x for x in problems if x != "bytes differ: " + sb["file"]]
+            if os.path.exists(os.path.join(ref, sb["file"])) and os.path.exists(os.path.join(cand, sb["file"])):
+                problems += ["segway binning: " + x for x in verify_segway_binning.check(
+                    sb["posteriordir"].replace("{data}", data), sb["resolution"],
+                    os.path.join(ref, sb["file"]), os.path.join(cand, sb["file"]))]
         if c.get("fixed_by"):
             # A bug fix changes this case on purpose. It must change something, and it may
             # only add files, stop a crash (exit code, stderr, leftover temporary copies) or

@@ -5,6 +5,7 @@
 Layout written:
     chmm/{base,verif}/     ChromHMM-style *_chrN_posterior.txt files (chr21, chr22)
     segway/{base,verif}/   Segway-style posterior{i}.bedGraph files (integer percent)
+    segway_wide/{base,verif}/   the same, with one label made only of intervals wider than RES
     parsed/{base,verif}.bed and .csv   parsed posteriors, as SAGAconf_parser.py writes them
     mnemonics/{base,verif}.txt
 The real-data gate uses the same cases on posteriors from the paper's runs.
@@ -64,6 +65,19 @@ def main(out):
                             end += 1
                         f.write("%s\t%d\t%d\t%d\n" % (chrom, start * RES, (end + 1) * RES, pct[start]))
                         start = end + 1
+
+        # The same posteriors, one bin per interval, except label K-1, which has only
+        # intervals wider than RES (GitHub issue #4: the parser rounded their probabilities).
+        d = os.path.join(out, "segway_wide", rep)
+        os.makedirs(d, exist_ok=True)
+        for k in range(K):
+            step = 2 if k == K - 1 else 1
+            with open(os.path.join(d, "posterior%d.bedGraph" % k), "w") as f:
+                f.write("track type=bedGraph name=posterior%d\n" % k)
+                for chrom, p in post[rep].items():
+                    pct = np.rint(p[:, k] * 100).astype(int)
+                    for start in range(0, len(pct), step):
+                        f.write("%s\t%d\t%d\t%d\n" % (chrom, start * RES, (start + step) * RES, pct[start]))
 
         d = os.path.join(out, "mnemonics")
         os.makedirs(d, exist_ok=True)
