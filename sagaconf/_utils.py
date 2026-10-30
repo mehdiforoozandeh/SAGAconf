@@ -114,6 +114,20 @@ def logit_array(array2D):
     array2D = np.array(array2D)
 
     if array2D.ndim == 2 and array2D.dtype.kind == "f" and array2D.size > 0 and not np.isnan(array2D).any():
+        # values that are all float16 numbers (the loaded posteriors) index a table by their bits
+        with np.errstate(all="ignore"):
+            half = array2D.astype(np.float16)
+        if np.array_equal(half, array2D):
+            bits = half.view(np.uint16)
+            present = np.zeros(1 << 16, dtype=bool)
+            present[bits] = True
+            codes = np.flatnonzero(present)
+            values = codes.astype(np.uint16).view(np.float16).astype(array2D.dtype)
+            table = np.empty(1 << 16, dtype=array2D.dtype)
+            for k in range(len(codes)):
+                table[codes[k]] = logit(values[k])
+            return table[bits]
+
         # logit depends only on the value: apply it once per distinct value
         uniq, inverse = np.unique(array2D, return_inverse=True)
         mapped = np.empty(len(uniq), dtype=array2D.dtype)

@@ -132,3 +132,50 @@ def run_steps(steps, savedir, preludes, costs, workers=MAX_WORKERS, quiet=False)
         _replay(fds[i][1], sys.stderr)
         _merge(dirs[i], savedir)
     preludes[len(steps)]()
+
+
+def savefig_pdf_svg(pdf, svg):
+    """Same as plt.savefig(pdf, format='pdf'); plt.savefig(svg, format='svg').
+
+    Saving draws the figure without changing it (no layout engine is left set), so the SVG is
+    drawn in a forked child, from the same figure state, into a temporary file while this
+    process draws the PDF; it is renamed to svg once the PDF is saved. If the child fails or
+    prints anything, the SVG is saved here, after the PDF, instead.
+    """
+    from matplotlib import pyplot as plt
+    pid, tmp = None, svg + ".sagaconf_part"
+    if _usable() and not os.path.lexists(tmp):
+        sys.stdout.flush()
+        sys.stderr.flush()
+        fds = (os.memfd_create("sagaconf_out"), os.memfd_create("sagaconf_err"))
+        pid = os.fork()
+        if pid == 0:
+            code = 0
+            try:
+                os.dup2(fds[0], 1)
+                os.dup2(fds[1], 2)
+                plt.savefig(tmp, format='svg')
+                sys.stdout.flush()
+                sys.stderr.flush()
+            except BaseException:
+                code = 1
+            os._exit(code)
+    try:
+        plt.savefig(pdf, format='pdf')
+    finally:
+        ok = pid is not None and _svg_child_ok(pid, fds)
+        if pid is not None and (not ok or sys.exc_info()[0] is not None) and os.path.lexists(tmp):
+            os.remove(tmp)
+    if ok:
+        os.replace(tmp, svg)
+    else:
+        plt.savefig(svg, format='svg')
+
+
+def _svg_child_ok(pid, fds):
+    status = os.waitpid(pid, 0)[1]
+    ok = (os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0
+          and not os.fstat(fds[0]).st_size and not os.fstat(fds[1]).st_size)
+    os.close(fds[0])
+    os.close(fds[1])
+    return ok

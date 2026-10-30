@@ -11,7 +11,8 @@ from sklearn.metrics import r2_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import PolynomialFeatures
-from ._cluster_matching import overlap_matrix
+from ._cluster_matching import _coverage, overlap_matrix
+from ._fork import run_steps, savefig_pdf_svg
 
 
 class posterior_calibration(object):
@@ -49,8 +50,9 @@ class posterior_calibration(object):
 
         self.MAPestimate1 = self.loci_1.iloc[:,3:].idxmax(axis=1)
         self.MAPestimate2 = self.loci_2.iloc[:,3:].idxmax(axis=1)
-        self.coverage_1 = {k:len(self.MAPestimate1.loc[self.MAPestimate1 == k]) / len(self.MAPestimate1) for k in self.loci_1.columns[3:]}
-        self.coverage_2 = {k:len(self.MAPestimate2.loc[self.MAPestimate2 == k]) / len(self.MAPestimate2) for k in self.loci_2.columns[3:]}
+        # {k: len(MAP.loc[MAP == k]) / len(MAP)}, counted in one pass
+        self.coverage_1 = _coverage(self.MAPestimate1, self.loci_1)
+        self.coverage_2 = _coverage(self.MAPestimate2, self.loci_2)
 
     def perlabel_visualize_calibration(self, bins, label_name, strat_size, scatter=False):
         
@@ -90,8 +92,7 @@ class posterior_calibration(object):
         plt.ylabel(ylabel)
         plt.xlabel(xlabel)
         plt.tight_layout()
-        plt.savefig('{}/caliberation_{}.pdf'.format(self.savedir, label_name.replace("|","")), format='pdf')
-        plt.savefig('{}/caliberation_{}.svg'.format(self.savedir, label_name.replace("|","")), format='svg')
+        savefig_pdf_svg('{}/caliberation_{}.pdf'.format(self.savedir, label_name.replace("|","")), '{}/caliberation_{}.svg'.format(self.savedir, label_name.replace("|","")))
         plt.clf()
 
         with open("{}/caliberation_{}.txt".format(self.savedir, label_name.replace("|","")), 'w') as pltxt:
@@ -171,8 +172,7 @@ class posterior_calibration(object):
 
 
             plt.tight_layout()
-            plt.savefig('{}/clb_{}.pdf'.format(self.savedir, "subplot"), format='pdf')
-            plt.savefig('{}/clb_{}.svg'.format(self.savedir, "subplot"), format='svg')
+            savefig_pdf_svg('{}/clb_{}.pdf'.format(self.savedir, "subplot"), '{}/clb_{}.svg'.format(self.savedir, "subplot"))
             plt.clf()
 
         # colors = [i for i in get_cmap('tab20').colors]
@@ -238,80 +238,53 @@ class posterior_calibration(object):
         #     for label_name, bins in bins_dict.items():
         #         pltxt.write(label_name+ "\t" + str(list(bins[:, 5])) + '\n')
             
-    def perlabel_calibration_function(self, method="isoton_reg", num_bins=500, return_caliberated_matrix=True, scale=True, scale_columnwise=False, strat_size="def"):
-        perlabel_function = {}
-        bins_dict = {}
-        new_matrix = [self.loci_1.iloc[:,:3]]
-        strat_size = int(len(self.loci_1)/num_bins)
-
-        for k in range(self.num_labels):
-            kth_label = self.loci_1.iloc[:,3:].columns[k]
-            match_label = self.per_label_matches[kth_label]
-            bins = []
-                
-            posterior_vector_1 = self.loci_1.iloc[:,3:][kth_label]
-
-            vector_pair = pd.concat([posterior_vector_1, self.MAPestimate2], axis=1)
-
-            vector_pair.columns=["pv1", "map2"]
-
-            if self.allow_w:
-                vector_pair = vector_pair.sort_values("pv1").reset_index()
-
-            else:
-                vector_pair = vector_pair.sort_values("pv1").reset_index(drop=True)
-
-            MAP2 = list(self.MAPestimate2)
-            map2_sorted = vector_pair["map2"].to_numpy()
-            pv1_sorted = vector_pair["pv1"].to_numpy()
-            kth_cumsum = np.concatenate([[0], np.cumsum(map2_sorted == kth_label, dtype=np.int64)])
-            match_cumsum = np.concatenate([[0], np.cumsum(map2_sorted == match_label, dtype=np.int64)])
-            for b in range(0, vector_pair.shape[0], strat_size):
-                # [bin_start, bin_end, num_values_in_bin, num_agreement, num_mislabeled, ratio_agreement]
-                if self.allow_w:
-                    subset_vector_pair = vector_pair.iloc[b:b+strat_size, :]
-                    subset_vector_pair = subset_vector_pair.reset_index(drop=True)
-                    
-                    observed = 0
-                    for i in range(len(subset_vector_pair)):
+    def _label_bins(self, k, strat_size):
+        """The calibration bins of label k (perlabel_calibration_function's per-label computation)."""
+        kth_label = self.loci_1.columns[3 + k]
+        match_label = self.per_label_matches[kth_label]
+        bins = []
             
-                        leftmost = max(0, subset_vector_pair["index"][i] - self.window_bin)
-                        rightmost = min(len(MAP2), subset_vector_pair["index"][i] + self.window_bin)
+        posterior_vector_1 = self.loci_1[kth_label]
 
-                        neighbors_i = MAP2[leftmost:rightmost]
+        vector_pair = pd.concat([posterior_vector_1, self.MAPestimate2], axis=1)
 
-                        if match_label in neighbors_i:
-                            observed += 1
-                    
-                else:
-                    e = min(b + strat_size, vector_pair.shape[0])
-                    observed = int(match_cumsum[e] - match_cumsum[b])
-                    n_kth = int(kth_cumsum[e] - kth_cumsum[b])
-                    expected = self.coverage_2[match_label] * (e - b) if self.oe_transform else None
+        vector_pair.columns=["pv1", "map2"]
 
-                    if self.oe_transform:
-                        if observed==0:
-                            oe = np.log(
-                                (observed + 1)/
-                                (expected + 1))
+        if self.allow_w:
+            vector_pair = vector_pair.sort_values("pv1").reset_index()
 
-                        else:
-                            oe = np.log((observed)/(expected))
-                    else:
-                        oe = float(observed)/float(e - b)
+        else:
+            vector_pair = vector_pair.sort_values("pv1").reset_index(drop=True)
 
-                    bins.append([
-                        float(pv1_sorted[b]), 
-                        float(pv1_sorted[e - 1]),
-                        e - b,
-                        n_kth,
-                        (e - b) - n_kth,
-                        oe])
-                    continue
+        MAP2 = list(self.MAPestimate2)
+        map2_sorted = vector_pair["map2"].to_numpy()
+        pv1_sorted = vector_pair["pv1"].to_numpy()
+        kth_cumsum = np.concatenate([[0], np.cumsum(map2_sorted == kth_label, dtype=np.int64)])
+        match_cumsum = np.concatenate([[0], np.cumsum(map2_sorted == match_label, dtype=np.int64)])
+        for b in range(0, vector_pair.shape[0], strat_size):
+            # [bin_start, bin_end, num_values_in_bin, num_agreement, num_mislabeled, ratio_agreement]
+            if self.allow_w:
+                subset_vector_pair = vector_pair.iloc[b:b+strat_size, :]
+                subset_vector_pair = subset_vector_pair.reset_index(drop=True)
                 
-                if self.oe_transform:
-                    expected = self.coverage_2[match_label] * len(subset_vector_pair)
+                observed = 0
+                for i in range(len(subset_vector_pair)):
+        
+                    leftmost = max(0, subset_vector_pair["index"][i] - self.window_bin)
+                    rightmost = min(len(MAP2), subset_vector_pair["index"][i] + self.window_bin)
 
+                    neighbors_i = MAP2[leftmost:rightmost]
+
+                    if match_label in neighbors_i:
+                        observed += 1
+                
+            else:
+                e = min(b + strat_size, vector_pair.shape[0])
+                observed = int(match_cumsum[e] - match_cumsum[b])
+                n_kth = int(kth_cumsum[e] - kth_cumsum[b])
+                expected = self.coverage_2[match_label] * (e - b) if self.oe_transform else None
+
+                if self.oe_transform:
                     if observed==0:
                         oe = np.log(
                             (observed + 1)/
@@ -319,77 +292,141 @@ class posterior_calibration(object):
 
                     else:
                         oe = np.log((observed)/(expected))
-
-                    bins.append([
-                        float(subset_vector_pair["pv1"][subset_vector_pair.index[0]]), 
-                        float(subset_vector_pair["pv1"][subset_vector_pair.index[-1]]),
-                        len(subset_vector_pair),
-                        len(subset_vector_pair.loc[subset_vector_pair["map2"] == kth_label]),
-                        len(subset_vector_pair) - len(subset_vector_pair.loc[subset_vector_pair["map2"] == kth_label]),
-                        oe])
                 else:
-                    bins.append([
-                        float(subset_vector_pair["pv1"][subset_vector_pair.index[0]]), 
-                        float(subset_vector_pair["pv1"][subset_vector_pair.index[-1]]),
-                        len(subset_vector_pair),
-                        len(subset_vector_pair.loc[subset_vector_pair["map2"] == kth_label]),
-                        len(subset_vector_pair) - len(subset_vector_pair.loc[subset_vector_pair["map2"] == kth_label]),
-                        float(observed)/float(len(subset_vector_pair))]) 
+                    oe = float(observed)/float(e - b)
 
-            bins = np.array(bins)
-            bins_dict[kth_label] = bins
-            self.perlabel_visualize_calibration(bins.copy(), kth_label, strat_size, scatter=True)
-
-            if method=="spline":
-                f = UnivariateSpline(
-                    x= np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]),
-                    y=bins[:, 5], ext=3)
-
-                r2 = r2_score(
-                    bins[:, 5], 
-                    f(
-                        np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))
-                    ))
-                
-                print("R2 score for {}: {}".format(kth_label, r2))
-
-            else:
-                if method=="isoton_reg":
-                    polyreg = IsotonicRegression(
-                    y_min=float(np.array(bins[:, 5]).min()), y_max=float(np.array(bins[:, 5]).max()), 
-                    out_of_bounds="clip")
-
-                if method == "poly_reg":
-                    make_pipeline(PolynomialFeatures(3), LinearRegression())
-                
-                polyreg.fit(
-                np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), #x_train is the mean of each bin
-                bins[:, 5]) # y_train is oe/ratio_correctly_labeled at each bin
-
-                r2 = r2_score(
-                    bins[:, 5], 
-                    polyreg.predict(
-                        np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))))
-                
-                print("R2 score for {}: {}".format(kth_label, r2))
+                bins.append([
+                    float(pv1_sorted[b]), 
+                    float(pv1_sorted[e - 1]),
+                    e - b,
+                    n_kth,
+                    (e - b) - n_kth,
+                    oe])
+                continue
             
-            if return_caliberated_matrix:
-                x = np.array(self.loci_1.iloc[:,3:][kth_label])
-                if method == "spline":
-                    calibrated_array = f(np.array(x))
-                else:
-                    calibrated_array = polyreg.predict(
-                        np.reshape(np.array(x), (-1,1)))
+            if self.oe_transform:
+                expected = self.coverage_2[match_label] * len(subset_vector_pair)
 
-                new_matrix.append(pd.DataFrame(calibrated_array, columns=[kth_label]))
-                
+                if observed==0:
+                    oe = np.log(
+                        (observed + 1)/
+                        (expected + 1))
+
+                else:
+                    oe = np.log((observed)/(expected))
+
+                bins.append([
+                    float(subset_vector_pair["pv1"][subset_vector_pair.index[0]]), 
+                    float(subset_vector_pair["pv1"][subset_vector_pair.index[-1]]),
+                    len(subset_vector_pair),
+                    len(subset_vector_pair.loc[subset_vector_pair["map2"] == kth_label]),
+                    len(subset_vector_pair) - len(subset_vector_pair.loc[subset_vector_pair["map2"] == kth_label]),
+                    oe])
             else:
-                if method == "spline":
-                    perlabel_function[k] = [f, r2]
+                bins.append([
+                    float(subset_vector_pair["pv1"][subset_vector_pair.index[0]]), 
+                    float(subset_vector_pair["pv1"][subset_vector_pair.index[-1]]),
+                    len(subset_vector_pair),
+                    len(subset_vector_pair.loc[subset_vector_pair["map2"] == kth_label]),
+                    len(subset_vector_pair) - len(subset_vector_pair.loc[subset_vector_pair["map2"] == kth_label]),
+                    float(observed)/float(len(subset_vector_pair))]) 
+
+        return np.array(bins)
+
+    def perlabel_calibration_function(self, method="isoton_reg", num_bins=500, return_caliberated_matrix=True, scale=True, scale_columnwise=False, strat_size="def", general_in_parallel=False):
+        """general_in_parallel: draw the summary figure in a forked child while the per-label
+        figures are drawn (it is a new figure: the per-label ones do not change it); the per-label
+        results then stay in their child, and None is returned."""
+        perlabel_function = {}
+        bins_dict = {}
+        new_matrix = [self.loci_1.iloc[:,:3]]
+        strat_size = int(len(self.loci_1)/num_bins)
+
+        precomputed = None
+        if general_in_parallel and not return_caliberated_matrix:
+            try:
+                precomputed = [self._label_bins(k, strat_size) for k in range(self.num_labels)]
+            except Exception:  # the sequential run below fails at the same point
+                precomputed = None
+
+        def per_label():
+            for k in range(self.num_labels):
+                kth_label = self.loci_1.columns[3 + k]
+                match_label = self.per_label_matches[kth_label]
+                bins = precomputed[k] if precomputed is not None else self._label_bins(k, strat_size)
+                bins_dict[kth_label] = bins
+                self.perlabel_visualize_calibration(bins.copy(), kth_label, strat_size, scatter=True)
+
+                if method=="spline":
+                    f = UnivariateSpline(
+                        x= np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]),
+                        y=bins[:, 5], ext=3)
+
+                    r2 = r2_score(
+                        bins[:, 5], 
+                        f(
+                            np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))
+                        ))
+                
+                    print("R2 score for {}: {}".format(kth_label, r2))
 
                 else:
-                    perlabel_function[k] = [polyreg, r2]
+                    if method=="isoton_reg":
+                        polyreg = IsotonicRegression(
+                        y_min=float(np.array(bins[:, 5]).min()), y_max=float(np.array(bins[:, 5]).max()), 
+                        out_of_bounds="clip")
 
+                    if method == "poly_reg":
+                        make_pipeline(PolynomialFeatures(3), LinearRegression())
+                
+                    polyreg.fit(
+                    np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), #x_train is the mean of each bin
+                    bins[:, 5]) # y_train is oe/ratio_correctly_labeled at each bin
+
+                    r2 = r2_score(
+                        bins[:, 5], 
+                        polyreg.predict(
+                            np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))))
+                
+                    print("R2 score for {}: {}".format(kth_label, r2))
+            
+                if return_caliberated_matrix:
+                    x = np.array(self.loci_1[kth_label])
+                    if method == "spline":
+                        calibrated_array = f(np.array(x))
+                    else:
+                        calibrated_array = polyreg.predict(
+                            np.reshape(np.array(x), (-1,1)))
+
+                    new_matrix.append(pd.DataFrame(calibrated_array, columns=[kth_label]))
+                
+                else:
+                    if method == "spline":
+                        perlabel_function[k] = [f, r2]
+
+                    else:
+                        perlabel_function[k] = [polyreg, r2]
+
+
+        if precomputed is not None:
+            all_bins = {}
+            for k in range(self.num_labels):
+                all_bins[self.loci_1.columns[3 + k]] = precomputed[k]
+            savedir = self.savedir
+
+            def labels_step(d):
+                self.savedir = d
+                per_label()
+
+            def general_step(d):
+                self.savedir = d
+                self.general_visualize_calibration(all_bins, strat_size)
+
+            run_steps([labels_step, general_step], savedir, [lambda: None] * 3, costs=[2, 1], quiet=True)
+            self.savedir = savedir
+            return None
+
+        per_label()
         self.general_visualize_calibration(bins_dict, strat_size)
 
         if return_caliberated_matrix:
@@ -499,18 +536,33 @@ def joint_prob_with_binned_posterior(loci1, loci2, n_bins=50, conditional=False,
 
         joint = np.zeros((len(xlabels), len(ylabels)))
 
+        # label codes of MAP2, to count each bin's labels in one pass (rows align by position)
+        labels2 = pd.Index(ylabels, dtype=object)
+        codes2 = labels2.get_indexer(pd.Index(MAP2.to_numpy(), dtype=object)) \
+            if labels2.is_unique and loci1.index.equals(MAP2.index) and loci1.index.is_unique else None
+
         for i in range(joint.shape[0]):
             parsed_i = xlabels[i].split("|")
             r1_label, r1_bin_start, r1_bin_end = parsed_i[0], float(parsed_i[1]), float(parsed_i[2])
 
-            r1_bin_subset = loci1.loc[(r1_bin_start <= loci1[r1_label]) & (loci1[r1_label] < r1_bin_end), :] 
-            r1_bin_subset_MAP2 = MAP2.loc[r1_bin_subset.index].reset_index(drop=True)
+            in_bin = (r1_bin_start <= loci1[r1_label]) & (loci1[r1_label] < r1_bin_end)
+            if codes2 is not None:
+                bin_codes = codes2[in_bin.to_numpy()]
+                n_bin = len(bin_codes)
+                bin_counts = np.bincount(bin_codes[bin_codes >= 0], minlength=len(ylabels))
+            else:
+                r1_bin_subset = loci1.loc[in_bin, :]
+                r1_bin_subset_MAP2 = MAP2.loc[r1_bin_subset.index].reset_index(drop=True)
+                n_bin = len(r1_bin_subset)
 
             for j in range(joint.shape[1]):
-                r2_label = ylabels[j] 
-                P_r = (len(r1_bin_subset) / len(loci1))
+                r2_label = ylabels[j]
+                P_r = (n_bin / len(loci1))
                 # P_l = coverage2[r2_label]
-                intersection_l_r = len(r1_bin_subset_MAP2.loc[r1_bin_subset_MAP2 == r2_label]) / (len(loci1) * num_labels)
+                if codes2 is not None:
+                    intersection_l_r = int(bin_counts[j]) / (len(loci1) * num_labels)
+                else:
+                    intersection_l_r = len(r1_bin_subset_MAP2.loc[r1_bin_subset_MAP2 == r2_label]) / (len(loci1) * num_labels)
                 
                 if conditional:
                     if intersection_l_r * P_r > 0:

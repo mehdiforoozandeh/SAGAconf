@@ -142,13 +142,17 @@ def _coverage(MAP, loci):
     return {k: int(counts[i])/len(loci) for i, k in enumerate(labels)}
 
 
-def IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False, overlap_coeff=False, maps=None):
+def IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False, overlap_coeff=False, maps=None, parts=None):
+    """parts: (joint, coverage1, coverage2) of an earlier call with the same arguments, to reuse."""
     num_labels1 = len(loci_1.columns) - 3
     num_labels2 = len(loci_2.columns) - 3
     
     IoU = pd.DataFrame(np.zeros((num_labels1, num_labels2)), columns=loci_2.columns[3:], index=loci_1.columns[3:])
 
-    if soft and w == 0:
+    if parts is not None:
+        joint, coverage1, coverage2 = parts
+
+    elif soft and w == 0:
         joint = soft_joint_prob(loci_1, loci_2)
         coverage1, coverage2 = soft_coverage(loci_1, loci_2)
 

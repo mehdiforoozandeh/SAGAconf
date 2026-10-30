@@ -12,19 +12,28 @@ import io
 import os
 import shutil
 import sys
+import threading
 from importlib.metadata import PackageNotFoundError, version
 
 import numpy as np
-import seaborn as sns
 from matplotlib import pyplot as plt
 
 from ._chromhmm import ChrHMM_read_posteriordir
-from ._fork import run_steps
+from ._fork import run_steps, savefig_pdf_svg
+from ._load import load_data, process_data
 from ._utils import mp_inplace_binning
-from .overall import is_repr_posterior
-from .reports import (after_ct_steps, get_all_ct, get_overalls, get_rvals_activeregion, load_data,
-                      overlap_vs_segment_length, post_clustering_keep_k_states, process_data,
-                      quick_report, subset_data_to_activeregions)
+
+
+def _import_reports():
+    # seaborn, scipy and sklearn take seconds to import: run_sagaconf imports them in a thread
+    # while it loads the data (they print nothing and change no state the load uses).
+    global sns, is_repr_posterior, after_ct_steps, get_all_ct, get_overalls, get_rvals_activeregion
+    global overlap_vs_segment_length, post_clustering_keep_k_states, quick_report, subset_data_to_activeregions
+    import seaborn as sns
+    from .overall import is_repr_posterior
+    from .reports import (after_ct_steps, get_all_ct, get_overalls, get_rvals_activeregion,
+                          overlap_vs_segment_length, post_clustering_keep_k_states,
+                          quick_report, subset_data_to_activeregions)
 
 MODES = ("full", "quick", "rvalues", "celltype", "seglength", "merge", "active-regions")
 # Legacy boolean flags, in the order the original script checked them.
@@ -55,6 +64,17 @@ def run_sagaconf(base, verif, savedir, mode="full", base_mnemonics="NA", verif_m
     ccre_file, meuleman_file: region files for mode "active-regions"; the Meuleman step
     is skipped when meuleman_file is None.
     """
+    importer = threading.Thread(target=_import_reports)
+    importer.start()
+    try:
+        _run_sagaconf(base, verif, savedir, mode, base_mnemonics, verif_mnemonics, chr21_only, window_size,
+                      iou_threshold, repr_threshold, merge_k, verbose, ccre_file, meuleman_file, importer)
+    finally:
+        importer.join()
+
+
+def _run_sagaconf(base, verif, savedir, mode, base_mnemonics, verif_mnemonics, chr21_only, window_size,
+                  iou_threshold, repr_threshold, merge_k, verbose, ccre_file, meuleman_file, importer):
     os.makedirs(savedir, exist_ok=True)
     # Work on copies inside savedir; they are removed at the end.
     replicate_1_dir = savedir + "/base_replicate"
@@ -82,11 +102,14 @@ def run_sagaconf(base, verif, savedir, mode="full", base_mnemonics="NA", verif_m
             sys.stdout.write(printed)
             return loci1.copy(), loci2.copy()
         out = _Tee(sys.stdout)
-        with contextlib.redirect_stdout(out):
-            loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=chr21_only,
-                                     logit_transform=logit_transform, force_WG=False)
-            loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem,
-                                        bm=base_mnemonics, vm=verif_mnemonics, match=False, custom_order=True)
+        try:
+            with contextlib.redirect_stdout(out):
+                loci1, loci2 = load_data(posterior1_dir, posterior2_dir, subset=chr21_only,
+                                         logit_transform=logit_transform, force_WG=False)
+                loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=mnem,
+                                            bm=base_mnemonics, vm=verif_mnemonics, match=False, custom_order=True)
+        finally:
+            importer.join()
         loaded[logit_transform] = (out.getvalue(), loci1.copy(), loci2.copy())
         return loci1, loci2
 
@@ -145,13 +168,16 @@ def run_sagaconf(base, verif, savedir, mode="full", base_mnemonics="NA", verif_m
             return loci
 
         def sample(d):
-            get_all_ct(*remember(load(True)), d, locis=True, w=w)
+            loci = remember(load(True))  # load first: it waits for the thread importing the step
+            get_all_ct(*loci, d, locis=True, w=w)
 
         def merge(d):
-            post_clustering_keep_k_states(*remember(load(False)), d, k=merge_k, locis=True, write_csv=False, w=w)
+            loci = remember(load(False))  # load first: it waits for the thread importing the step
+            post_clustering_keep_k_states(*loci, d, k=merge_k, locis=True, write_csv=False, w=w)
 
         def overalls(d):
-            get_overalls(*remember(load(True)), d, locis=True, w=w, to=iou_threshold, tr=repr_threshold)
+            loci = remember(load(True))  # load first: it waits for the thread importing the step
+            get_overalls(*loci, d, locis=True, w=w, to=iou_threshold, tr=repr_threshold)
 
         def rvals(d):
             rvalues = r_values(*last["loci"])
@@ -228,8 +254,7 @@ def _rval_hist(rvalues, savedir):
         axs[l].set_xlim([0, 1])
 
     plt.tight_layout()
-    plt.savefig('{}/rval_hist.pdf'.format(savedir), format='pdf')
-    plt.savefig('{}/rval_hist.svg'.format(savedir), format='svg')
+    savefig_pdf_svg('{}/rval_hist.pdf'.format(savedir), '{}/rval_hist.svg'.format(savedir))
     sns.reset_orig
     plt.close("all")
     plt.style.use('default')
