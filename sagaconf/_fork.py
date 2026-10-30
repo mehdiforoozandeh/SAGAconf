@@ -37,7 +37,8 @@ def _child(prelude, step, d, fds):
         os.dup2(fds[0], 1)
         os.dup2(fds[1], 2)
         prelude()
-        step(d)
+        if step(d) is False:  # a step that handles its own failure reports it this way
+            code = 1
     except BaseException:
         code = 1
     try:

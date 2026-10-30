@@ -19,9 +19,10 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 
 from ._chromhmm import ChrHMM_read_posteriordir
+from ._fork import run_steps
 from ._utils import mp_inplace_binning
 from .overall import is_repr_posterior
-from .reports import (get_all_ct, get_overalls, get_rvals_activeregion, load_data,
+from .reports import (after_ct_steps, get_all_ct, get_overalls, get_rvals_activeregion, load_data,
                       overlap_vs_segment_length, post_clustering_keep_k_states, process_data,
                       quick_report, subset_data_to_activeregions)
 
@@ -126,35 +127,62 @@ def run_sagaconf(base, verif, savedir, mode="full", base_mnemonics="NA", verif_m
 
     else:  # full
         # Each step is independent: a failure is reported with -v and the next step still runs.
-        try:
-            loci1, loci2 = load(True)
-            get_all_ct(loci1, loci2, savedir, locis=True, w=w)
-        except Exception:
-            if verbose:
-                print("Failed to generated sample analysis.")
+        # The r-values step uses the frames of the last load that succeeded.
+        last = {}
 
+        def guarded(fn, message):
+            def step(d):
+                try:
+                    fn(d)
+                except Exception:
+                    if verbose:
+                        print(message)
+                    return False
+            return step
+
+        def remember(loci):
+            last["loci"] = loci
+            return loci
+
+        def sample(d):
+            get_all_ct(*remember(load(True)), d, locis=True, w=w)
+
+        def merge(d):
+            post_clustering_keep_k_states(*remember(load(False)), d, k=merge_k, locis=True, write_csv=False, w=w)
+
+        def overalls(d):
+            get_overalls(*remember(load(True)), d, locis=True, w=w, to=iou_threshold, tr=repr_threshold)
+
+        def rvals(d):
+            rvalues = r_values(*last["loci"])
+            rvalues.to_csv(d + "/r_values.bed", sep='\t', header=True, index=False)
+            _rval_hist(rvalues, d)
+
+        sample_msg, gw_msg = "Failed to generated sample analysis.", "failed to get GW SAGAconf reproducibility results"
+        steps = [guarded(sample, sample_msg)]
         if merge_k != -1:
-            try:
-                loci1, loci2 = load(False)
-                post_clustering_keep_k_states(loci1, loci2, savedir, k=merge_k, locis=True, write_csv=False, w=w)
-            except Exception:
-                if verbose:
-                    print("Failed to merge clusters up to k")
+            steps.append(guarded(merge, "Failed to merge clusters up to k"))
+        steps += [guarded(overalls, gw_msg), guarded(rvals, gw_msg)]
 
-        try:
-            loci1, loci2 = load(True)
-            get_overalls(loci1, loci2, savedir, locis=True, w=w, to=iou_threshold, tr=repr_threshold)
-        except Exception:
-            if verbose:
-                print("failed to get GW SAGAconf reproducibility results")
+        if merge_k != -1 or set(os.listdir(savedir)) - {"base_replicate", "verification_replicate"}:
+            for step in steps:
+                step(savedir)
+        elif guarded(lambda d: remember(load(True)), sample_msg)(savedir) is False:
+            for step in steps[1:]:
+                step(savedir)
+        else:
+            # The data is loaded; get_all_ct, get_overalls and the r-values step run in parallel,
+            # each from the state a sequential run would give it (the r-values step gets the
+            # frames get_overalls' load returns: copies of the cached load).
+            def cached_rvals(d):
+                printed, loci1, loci2 = loaded[True]
+                remember((loci1.copy(), loci2.copy()))
+                rvals(d)
 
-        try:
-            rvalues = r_values(loci1, loci2)
-            rvalues.to_csv(savedir + "/r_values.bed", sep='\t', header=True, index=False)
-            _rval_hist(rvalues, savedir)
-        except Exception:
-            if verbose:
-                print("failed to get GW SAGAconf reproducibility results")
+            after_ct = after_ct_steps(8)
+            run_steps([guarded(lambda d: get_all_ct(*last["loci"], d, locis=True, w=w), sample_msg),
+                       steps[1], guarded(cached_rvals, gw_msg)],
+                      savedir, [lambda: None, after_ct, after_ct, after_ct], costs=[3, 2, 1])
 
     shutil.rmtree(replicate_1_dir, ignore_errors=True)
     shutil.rmtree(replicate_2_dir, ignore_errors=True)

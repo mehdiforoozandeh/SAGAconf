@@ -1019,6 +1019,21 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
     plt.clf()
 
 
+def after_ct_steps(i):
+    """Restores the global state the first i get_all_ct steps leave behind (all 8: i=8)."""
+    # Each step ends by resetting the plot state (ct_lable_calib without plt.clf()); sns.set in
+    # the first step also re-maps the matplotlib color codes.
+    def prelude():
+        if i == 0:
+            return
+        sns.set_color_codes("deep")
+        plt.close("all")
+        plt.style.use('default')
+        if i != 3:
+            plt.clf()
+    return prelude
+
+
 def get_all_ct(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000):
     if locis:
         loci1, loci2 = replicate_1_dir, replicate_2_dir
@@ -1049,20 +1064,7 @@ def get_all_ct(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000):
             step(savedir)
         return
 
-    def after(i):
-        # Global state left by steps[:i]: each step ends by resetting the plot state (ct_lable_calib
-        # without plt.clf()); sns.set in the first step also re-maps the matplotlib color codes.
-        def prelude():
-            if i == 0:
-                return
-            sns.set_color_codes("deep")
-            plt.close("all")
-            plt.style.use('default')
-            if i != 3:
-                plt.clf()
-        return prelude
-
-    run_steps(steps, savedir, [after(i) for i in range(len(steps) + 1)],
+    run_steps(steps, savedir, [after_ct_steps(i) for i in range(len(steps) + 1)],
               costs=[3, 3, 7, 6, 3, 1, 20, 4])
 
 
