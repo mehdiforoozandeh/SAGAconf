@@ -91,7 +91,12 @@
   ],
   "expect": [
    "out/parsed_posterior.bed"
-  ]
+  ],
+  "segway_binning": {
+   "posteriordir": "{data}/segway/base",
+   "resolution": 200,
+   "file": "out/parsed_posterior.bed"
+  }
  },
  {
   "name": "parse_segway_bed_newcli",
@@ -106,12 +111,64 @@
   "expect": [
    "out/parsed_posterior.bed"
   ],
+  "segway_binning": {
+   "posteriordir": "{data}/segway/base",
+   "resolution": 200,
+   "file": "out/parsed_posterior.bed"
+  },
   "new_script": "sagaconf/__main__.py",
   "new_args": [
    "parse",
    "--saga",
    "segway",
    "{data}/segway/base",
+   "200",
+   "out/"
+  ]
+ },
+ {
+  "name": "parse_segway_wide_bed",
+  "script": "SAGAconf_parser.py",
+  "args": [
+   "--saga",
+   "segway",
+   "{data}/segway_wide/base",
+   "200",
+   "out/"
+  ],
+  "expect": [
+   "out/parsed_posterior.bed"
+  ],
+  "segway_binning": {
+   "posteriordir": "{data}/segway_wide/base",
+   "resolution": 200,
+   "file": "out/parsed_posterior.bed"
+  }
+ },
+ {
+  "name": "parse_segway_wide_bed_newcli",
+  "script": "SAGAconf_parser.py",
+  "args": [
+   "--saga",
+   "segway",
+   "{data}/segway_wide/base",
+   "200",
+   "out/"
+  ],
+  "expect": [
+   "out/parsed_posterior.bed"
+  ],
+  "segway_binning": {
+   "posteriordir": "{data}/segway_wide/base",
+   "resolution": 200,
+   "file": "out/parsed_posterior.bed"
+  },
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "parse",
+   "--saga",
+   "segway",
+   "{data}/segway_wide/base",
    "200",
    "out/"
   ]
@@ -140,14 +197,14 @@
   "expect": [
    "out/r_values.bed"
   ],
+  "fixed_by": "UCSC track colors for unnamed or merged states (fix 2)",
   "new_script": "sagaconf/__main__.py",
   "new_args": [
    "run",
    "{data}/parsed/base.bed",
    "{data}/parsed/verif.bed",
    "out"
-  ],
-  "fixed_by": "UCSC track colors for unnamed or merged states (fix 2)"
+  ]
  },
  {
   "name": "run_default_mnem",
@@ -196,6 +253,73 @@
   ]
  },
  {
+  "name": "run_segway_wide",
+  "script": "SAGAconf.py",
+  "args": [
+   "-bm",
+   "{data}/mnemonics/base.txt",
+   "-vm",
+   "{data}/mnemonics/verif.txt",
+   "{data}/parsed/wide_base.bed",
+   "{data}/parsed/wide_verif.bed",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed",
+   "out/Dist_vs_Corresp/dist_vs_corresp_1_Quie.pdf",
+   "out/Dist_vs_Corresp/dist_vs_corresp_1_Quie.svg",
+   "out/Dist_vs_Corresp/dist_vs_corresp_2_Tran.pdf",
+   "out/Dist_vs_Corresp/dist_vs_corresp_2_Tran.svg",
+   "out/Dist_vs_Corresp/dist_vs_corresp_4_Facu.pdf",
+   "out/Dist_vs_Corresp/dist_vs_corresp_4_Facu.svg",
+   "out/Dist_vs_Corresp/dist_vs_corresp_5_Enha_low.pdf",
+   "out/Dist_vs_Corresp/dist_vs_corresp_5_Enha_low.svg",
+   "out/Dist_vs_Corresp/dist_vs_corresp_subplot.pdf",
+   "out/Dist_vs_Corresp/dist_vs_corresp_subplot.svg",
+   "out/Dist_vs_Corresp_3/dist_vs_corresp_subplot.pdf",
+   "out/Dist_vs_Corresp_3/dist_vs_corresp_subplot.svg"
+  ]
+ },
+ {
+  "name": "run_segway_wide_newcli",
+  "script": "SAGAconf.py",
+  "args": [
+   "-bm",
+   "{data}/mnemonics/base.txt",
+   "-vm",
+   "{data}/mnemonics/verif.txt",
+   "{data}/parsed/wide_base.bed",
+   "{data}/parsed/wide_verif.bed",
+   "out"
+  ],
+  "expect": [
+   "out/r_values.bed",
+   "out/Dist_vs_Corresp/dist_vs_corresp_1_Quie.pdf",
+   "out/Dist_vs_Corresp/dist_vs_corresp_1_Quie.svg",
+   "out/Dist_vs_Corresp/dist_vs_corresp_2_Tran.pdf",
+   "out/Dist_vs_Corresp/dist_vs_corresp_2_Tran.svg",
+   "out/Dist_vs_Corresp/dist_vs_corresp_4_Facu.pdf",
+   "out/Dist_vs_Corresp/dist_vs_corresp_4_Facu.svg",
+   "out/Dist_vs_Corresp/dist_vs_corresp_5_Enha_low.pdf",
+   "out/Dist_vs_Corresp/dist_vs_corresp_5_Enha_low.svg",
+   "out/Dist_vs_Corresp/dist_vs_corresp_subplot.pdf",
+   "out/Dist_vs_Corresp/dist_vs_corresp_subplot.svg",
+   "out/Dist_vs_Corresp_3/dist_vs_corresp_subplot.pdf",
+   "out/Dist_vs_Corresp_3/dist_vs_corresp_subplot.svg"
+  ],
+  "new_script": "sagaconf/__main__.py",
+  "new_args": [
+   "run",
+   "--base-mnemonics",
+   "{data}/mnemonics/base.txt",
+   "--verif-mnemonics",
+   "{data}/mnemonics/verif.txt",
+   "{data}/parsed/wide_base.bed",
+   "{data}/parsed/wide_verif.bed",
+   "out"
+  ]
+ },
+ {
   "name": "run_default_k3",
   "script": "SAGAconf.py",
   "args": [
@@ -223,6 +347,7 @@
   "expect": [
    "out/r_values.bed"
   ],
+  "fixed_by": "-k merges states in full mode (fix 1); UCSC track colors for unnamed or merged states (fix 2)",
   "new_script": "sagaconf/__main__.py",
   "new_args": [
    "run",
@@ -231,8 +356,7 @@
    "{data}/parsed/base.bed",
    "{data}/parsed/verif.bed",
    "out"
-  ],
-  "fixed_by": "-k merges states in full mode (fix 1); UCSC track colors for unnamed or merged states (fix 2)"
+  ]
  },
  {
   "name": "run_subset",
@@ -260,6 +384,7 @@
   "expect": [
    "out/r_values.bed"
   ],
+  "fixed_by": "UCSC track colors for unnamed or merged states (fix 2)",
   "new_script": "sagaconf/__main__.py",
   "new_args": [
    "run",
@@ -267,8 +392,7 @@
    "{data}/parsed/base.bed",
    "{data}/parsed/verif.bed",
    "out"
-  ],
-  "fixed_by": "UCSC track colors for unnamed or merged states (fix 2)"
+  ]
  },
  {
   "name": "run_csv_input",
@@ -553,6 +677,7 @@
    "{data}/parsed/verif.bed",
    "out"
   ],
+  "fixed_by": "UCSC track colors for unnamed or merged states (fix 2)",
   "new_script": "sagaconf/__main__.py",
   "new_args": [
    "run",
@@ -567,8 +692,7 @@
    "{data}/parsed/base.bed",
    "{data}/parsed/verif.bed",
    "out"
-  ],
-  "fixed_by": "UCSC track colors for unnamed or merged states (fix 2)"
+  ]
  },
  {
   "name": "run_merge_only_nomnem",
@@ -594,6 +718,7 @@
    "{data}/parsed/verif.bed",
    "out"
   ],
+  "fixed_by": "UCSC track colors for unnamed or merged states (fix 2)",
   "new_script": "sagaconf/__main__.py",
   "new_args": [
    "run",
@@ -604,7 +729,6 @@
    "{data}/parsed/base.bed",
    "{data}/parsed/verif.bed",
    "out"
-  ],
-  "fixed_by": "UCSC track colors for unnamed or merged states (fix 2)"
+  ]
  }
 ]

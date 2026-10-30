@@ -45,6 +45,14 @@ def data(tmp_path_factory, legacy):
                             "--out_format", fmt, str(dest / "chmm" / rep), "200", str(work)],
                            check=True, capture_output=True)
             shutil.move(str(work / ("parsed_posterior." + fmt)), str(dest / "parsed" / (rep + "." + fmt)))
+    # The run_segway_wide case (GitHub issue #4) starts from this repository's Segway parser:
+    # the legacy parser writes 0 for most of label 5, and the run then drops output files.
+    for rep in ("base", "verif"):
+        work = dest / ("tmp_wide_" + rep)
+        work.mkdir()
+        subprocess.run([sys.executable, os.path.join(REPO, "SAGAconf_parser.py"), "--saga", "segway",
+                        str(dest / "segway_wide" / rep), "200", str(work)], check=True, capture_output=True)
+        shutil.move(str(work / "parsed_posterior.bed"), str(dest / "parsed" / ("wide_" + rep + ".bed")))
     return str(dest)
 
 
