@@ -18,6 +18,8 @@ from .granul import granularity_vs_agreement_nonsymmetric, merge_clusters
 from .overall import condense_segments, is_repr_posterior, keep_reproducible_annotations, perlabel_is_reproduced, single_point_repr, write_MAPloci_in_BED
 from .run import intersect_parsed_posteriors, read_mnemonics
 
+FIG_WORKERS = 8
+
 
 def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False, force_WG=False):
     print("loading and intersecting")
@@ -646,22 +648,23 @@ def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
                 elif matched==False and w==(max_distance-1):
                     distance_to_corresp.append(None)
     
-    nonefiltered = [x * resolution for x in distance_to_corresp if x is not None] 
-    matched_ratio = len(nonefiltered) / len(distance_to_corresp)
-    plt.hist(nonefiltered, bins=len(set(nonefiltered)), density=True, log=True, color='black', alpha=0.6, histtype="stepfilled")
-    plt.axvline(x=0, color='red', linestyle='dotted', linewidth=1.5)
-    plt.yticks(np.logspace(-6, 0, 7))
-    plt.xlabel("Distance (bp)")
-    plt.ylabel("Matched label density (log scale)")
-    plt.title("Correspondence vs. Distance -- Overall | overlap ratio = {:.2f}".format(matched_ratio))
-    plt.tight_layout()
-    plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format("overall"), format='pdf')
-    plt.savefig(savedir+"/dist_vs_corresp_{}.svg".format("overall"), format='svg')
+    # Every figure starts from the plot state the one before it resets to, so the figures are
+    # drawn in forked children (the same calls each), committed in order.
+    def overall(savedir):
+        nonefiltered = [x * resolution for x in distance_to_corresp if x is not None] 
+        matched_ratio = len(nonefiltered) / len(distance_to_corresp)
+        plt.hist(nonefiltered, bins=len(set(nonefiltered)), density=True, log=True, color='black', alpha=0.6, histtype="stepfilled")
+        plt.axvline(x=0, color='red', linestyle='dotted', linewidth=1.5)
+        plt.yticks(np.logspace(-6, 0, 7))
+        plt.xlabel("Distance (bp)")
+        plt.ylabel("Matched label density (log scale)")
+        plt.title("Correspondence vs. Distance -- Overall | overlap ratio = {:.2f}".format(matched_ratio))
+        plt.tight_layout()
+        plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format("overall"), format='pdf')
+        plt.savefig(savedir+"/dist_vs_corresp_{}.svg".format("overall"), format='svg')
 
-    sns.reset_orig
-    plt.close("all")
-    plt.style.use('default')
-    plt.clf()
+        sns.reset_orig
+        _reset_plot()
 
 
     #========================================================================================#
@@ -673,58 +676,67 @@ def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
         perlabel[MAP1[i]].append(distance_to_corresp[i])
 
     #========================================================================================#
-    for k in perlabel.keys():
-        distance_to_corresp_k = perlabel[k]
-        nonefiltered = [x * resolution for x in distance_to_corresp_k if x is not None] 
-        matched_ratio = len(nonefiltered) / len(distance_to_corresp_k)
+    def label_fig(k):
+        def fig(savedir):
+            distance_to_corresp_k = perlabel[k]
+            nonefiltered = [x * resolution for x in distance_to_corresp_k if x is not None] 
+            matched_ratio = len(nonefiltered) / len(distance_to_corresp_k)
 
-        plt.hist(nonefiltered, bins=len(set(nonefiltered)), density=True, log=True, color='black', alpha=0.6, histtype="stepfilled")
-        plt.axvline(x=0, color='red', linestyle='dotted', linewidth=1.5)
-        plt.yticks(np.logspace(-6, 0, 7))
-        plt.xlabel("Distance (bp)")
-        plt.ylabel("Matched label density (log scale)")
-        plt.title("Correspondence vs. Distance -- {} | overlap ratio = {:.2f}".format(k, matched_ratio))
-        plt.tight_layout()
-        plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format(k), format='pdf')
-        plt.savefig(savedir+"/dist_vs_corresp_{}.svg".format(k), format='svg')
+            plt.hist(nonefiltered, bins=len(set(nonefiltered)), density=True, log=True, color='black', alpha=0.6, histtype="stepfilled")
+            plt.axvline(x=0, color='red', linestyle='dotted', linewidth=1.5)
+            plt.yticks(np.logspace(-6, 0, 7))
+            plt.xlabel("Distance (bp)")
+            plt.ylabel("Matched label density (log scale)")
+            plt.title("Correspondence vs. Distance -- {} | overlap ratio = {:.2f}".format(k, matched_ratio))
+            plt.tight_layout()
+            plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format(k), format='pdf')
+            plt.savefig(savedir+"/dist_vs_corresp_{}.svg".format(k), format='svg')
 
-        sns.reset_orig
-        plt.close("all")
-        plt.style.use('default')
-        plt.clf()
+            sns.reset_orig
+            _reset_plot()
+        return fig
 
 
     #========================================================================================#
-    num_labels = loci_1.shape[1]-3
-    n_cols = math.floor(math.sqrt(num_labels))
-    n_rows = math.ceil(num_labels / n_cols)
+    def subplot(savedir):
+        num_labels = loci_1.shape[1]-3
+        n_cols = math.floor(math.sqrt(num_labels))
+        n_rows = math.ceil(num_labels / n_cols)
 
-    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[25, 16])
-    label_being_plotted = 0
+        fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[25, 16])
+        label_being_plotted = 0
     
-    for i in range(n_rows):
-        for j in range(n_cols):
-            if label_being_plotted < num_labels:
-                k = loci_1.columns[3:][label_being_plotted]
-                distance_to_corresp_k = perlabel[k]
-                nonefiltered = [x * resolution for x in distance_to_corresp_k if x is not None] 
-                matched_ratio = len(nonefiltered) / len(distance_to_corresp_k)
+        for i in range(n_rows):
+            for j in range(n_cols):
+                if label_being_plotted < num_labels:
+                    k = loci_1.columns[3:][label_being_plotted]
+                    distance_to_corresp_k = perlabel[k]
+                    nonefiltered = [x * resolution for x in distance_to_corresp_k if x is not None] 
+                    matched_ratio = len(nonefiltered) / len(distance_to_corresp_k)
 
-                axs[i,j].hist(
-                    nonefiltered, bins=len(set(nonefiltered)), density=True, log=True, 
-                    color='black', alpha=0.6, histtype="stepfilled")
+                    axs[i,j].hist(
+                        nonefiltered, bins=len(set(nonefiltered)), density=True, log=True, 
+                        color='black', alpha=0.6, histtype="stepfilled")
 
-                axs[i,j].axvline(x=0, color='red', linestyle='dotted', linewidth=2)
-                axs[i,j].set_yticks(np.logspace(-6, 0, 7))
-                axs[i,j].set_title("{} | overlap ratio = {:.2f}".format(k, matched_ratio), fontsize=15)
-                axs[i,j].tick_params(axis='both', which='major', labelsize=15) 
-                label_being_plotted += 1
+                    axs[i,j].axvline(x=0, color='red', linestyle='dotted', linewidth=2)
+                    axs[i,j].set_yticks(np.logspace(-6, 0, 7))
+                    axs[i,j].set_title("{} | overlap ratio = {:.2f}".format(k, matched_ratio), fontsize=15)
+                    axs[i,j].tick_params(axis='both', which='major', labelsize=15) 
+                    label_being_plotted += 1
         
-    plt.tight_layout()
-    plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format("subplot"), format='pdf')
-    plt.savefig(savedir+"/dist_vs_corresp_{}.svg".format("subplot"), format='svg')
+        plt.tight_layout()
+        plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format("subplot"), format='pdf')
+        plt.savefig(savedir+"/dist_vs_corresp_{}.svg".format("subplot"), format='svg')
 
-    sns.reset_orig
+        sns.reset_orig
+        _reset_plot()
+
+    figs = [overall] + [label_fig(k) for k in perlabel.keys()] + [subplot]
+    run_steps(figs, savedir, [lambda: None] + [_reset_plot] * len(figs),
+              costs=[1] * (len(figs) - 1) + [3], workers=FIG_WORKERS, quiet=True)
+
+
+def _reset_plot():
     plt.close("all")
     plt.style.use('default')
     plt.clf()
@@ -1065,7 +1077,7 @@ def get_all_ct(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000):
         return
 
     run_steps(steps, savedir, [after_ct_steps(i) for i in range(len(steps) + 1)],
-              costs=[3, 3, 7, 6, 3, 1, 20, 4])
+              costs=[3, 3, 7, 6, 3, 1, 20, 4], workers=len(steps))
 
 
 def get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000, to=0.75, tr=0.9):

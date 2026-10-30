@@ -74,12 +74,13 @@ def _replay(fd, stream):
         stream.buffer.flush()
 
 
-def run_steps(steps, savedir, preludes, costs):
+def run_steps(steps, savedir, preludes, costs, workers=MAX_WORKERS, quiet=False):
     """Same as `for i, step in enumerate(steps): step(savedir)`, run in parallel.
 
     preludes[i]() restores, in a process that has run none of the steps, the global state
     steps[:i] leave behind (preludes has one more entry, for after the last step); costs[i]
-    orders the launches (largest first).
+    orders the launches (largest first). With quiet=True, a step that writes to stderr (a
+    warning, which a sequential run may print only once) counts as failed.
     """
     if not _usable() or len(steps) < 2:
         for step in steps:
@@ -95,7 +96,7 @@ def run_steps(steps, savedir, preludes, costs):
     sys.stdout.flush()
     sys.stderr.flush()
     pending = sorted(range(len(steps)), key=lambda i: -costs[i])
-    workers = min(MAX_WORKERS, _workers())
+    workers = min(workers, _workers())
     running, fds, ok = {}, {}, {}
     while pending or running:
         while pending and len(running) < workers:
@@ -110,7 +111,9 @@ def run_steps(steps, savedir, preludes, costs):
         for pid in list(running):
             p, status = os.waitpid(pid, os.WNOHANG)
             if p:
-                ok[running.pop(pid)] = os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0
+                i = running.pop(pid)
+                ok[i] = (os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0
+                         and not (quiet and os.fstat(fds[i][1]).st_size))
                 done = True
         if not done:
             time.sleep(0.02)
