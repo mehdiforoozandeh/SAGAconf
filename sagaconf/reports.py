@@ -10,6 +10,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from pybedtools import BedTool
 from scipy.interpolate import UnivariateSpline
 from sklearn import metrics
+from ._fork import run_steps
 from ._cluster_matching import Hungarian_algorithm, IoU_overlap, connect_bipartite, joint_overlap_prob, overall_overlap_ratio, overlap_matrix
 from ._reproducibility import NMI_from_matrix, joint_prob_MAP_with_posterior, joint_prob_with_binned_posterior, posterior_calibration
 from ._utils import logit_array
@@ -1029,21 +1030,40 @@ def get_all_ct(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000):
 
         loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
-    ct_binned_posterior_heatmap(loci1.copy(), loci2.copy(), savedir)
+    steps = [
+        lambda d: ct_binned_posterior_heatmap(loci1.copy(), loci2.copy(), d),
+        lambda d: ct_confus(loci1.copy(), loci2.copy(), d, w=w),
+        lambda d: ct_lable_calib(loci1.copy(), loci2.copy(), d),
+        lambda d: ct_granul(loci1.copy(), loci2.copy(), d),
+        lambda d: ct_boundar(loci1.copy(), loci2.copy(), d, match_definition="BM", max_distance=50),
+        lambda d: overall_boundary(loci1.copy(), loci2.copy(), d, match_definition="BM"),
+        lambda d: distance_vs_overlap(loci1.copy(), loci2.copy(), d, match_definition="BM"),
+        lambda d: distance_vs_overlap_3(loci1.copy(), loci2.copy(), d, match_definition="BM"),
+    ]
+    # Indicator files: a step that finds its own skips itself (and its plot-state reset).
+    indicators = ["binned_posterior_heatmap.txt", "raw_conditional_overlap_ratio.txt", "calib_logit_enr",
+                  "granularity.pdf", "len_bound.pdf", "len_bound_overall.pdf", "Dist_vs_Corresp",
+                  "Dist_vs_Corresp_3"]
+    if any(os.path.exists(savedir + "/" + f) for f in indicators):
+        for step in steps:
+            step(savedir)
+        return
 
-    ct_confus(loci1.copy(), loci2.copy(), savedir, w=w)
+    def after(i):
+        # Global state left by steps[:i]: each step ends by resetting the plot state (ct_lable_calib
+        # without plt.clf()); sns.set in the first step also re-maps the matplotlib color codes.
+        def prelude():
+            if i == 0:
+                return
+            sns.set_color_codes("deep")
+            plt.close("all")
+            plt.style.use('default')
+            if i != 3:
+                plt.clf()
+        return prelude
 
-    ct_lable_calib(loci1.copy(), loci2.copy(), savedir)
-
-    ct_granul(loci1.copy(), loci2.copy(), savedir)
-
-    ct_boundar(loci1.copy(), loci2.copy(), savedir, match_definition="BM", max_distance=50)
-
-    overall_boundary(loci1.copy(), loci2.copy(), savedir, match_definition="BM")
-
-    distance_vs_overlap(loci1.copy(), loci2.copy(), savedir, match_definition="BM")
-    
-    distance_vs_overlap_3(loci1.copy(), loci2.copy(), savedir, match_definition="BM")
+    run_steps(steps, savedir, [after(i) for i in range(len(steps) + 1)],
+              costs=[3, 3, 7, 6, 3, 1, 20, 4])
 
 
 def get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000, to=0.75, tr=0.9):
