@@ -533,6 +533,9 @@ def joint_prob_MAP_with_posterior(loci1, loci2, n_bins=50, conditional=False, st
 
     bi = 0
     strat_size = int(len(loci1)/n_bins)
+    labels2 = loci2.columns[3:]
+    num_labels2 = len(labels2)
+    fast = labels2.is_unique and loci1.columns[3:].is_unique and len(MAP1) == len(MAP2) == len(loci1)
     for r1_label in loci1.columns[3:]:
         for n in range(n_bins+1):
             xlabels.append("{} - bin #{}".format(r1_label, n+1))
@@ -544,6 +547,31 @@ def joint_prob_MAP_with_posterior(loci1, loci2, n_bins=50, conditional=False, st
         vector_pair.columns=["pv1", "map2", "map1"]
 
         vector_pair = vector_pair.sort_values("pv1").reset_index(drop=True)
+
+        n_rows = vector_pair.shape[0]
+        if fast and strat_size > 0 and bi + -(-n_rows // strat_size) <= joint.shape[0]:
+            # count (map2 label, bin) pairs among rows with map1 == r1_label in one pass
+            sel = vector_pair["map1"].to_numpy() == r1_label
+            codes = labels2.get_indexer(pd.Index(vector_pair["map2"].to_numpy()[sel], dtype=object))
+            bin_of = np.flatnonzero(sel) // strat_size
+            n_b = -(-n_rows // strat_size)
+            keep = codes >= 0
+            counts = np.bincount(bin_of[keep] * num_labels2 + codes[keep],
+                                 minlength=n_b * num_labels2).reshape(n_b, num_labels2)
+            for b in range(0, n_rows, strat_size):
+                size = min(b + strat_size, n_rows) - b
+                for r2_label in range(num_labels2):
+                    intersection_l_r = int(counts[b // strat_size, r2_label]) / (len(loci1) * num_labels)
+                    P_r = (size / len(loci1))
+                    if conditional:
+                        if intersection_l_r * P_r > 0:
+                            joint[bi, r2_label] =  (intersection_l_r / P_r ) * num_labels
+                        else:
+                            joint[bi, r2_label] =  0
+                    else:
+                        joint[bi, r2_label] =  intersection_l_r
+                bi += 1
+            continue
 
         for b in range(0, vector_pair.shape[0], strat_size):
             subset_pair_vector = vector_pair.iloc[b:b+strat_size,:]

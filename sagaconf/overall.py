@@ -329,16 +329,17 @@ def keep_reproducible_annotations(loci, bool_reprod_report):
 
 
 def condense_segments(coordMAP):
-    coordMAP = coordMAP.values.tolist()
-    i=0
-    while i+1 < len(coordMAP):
-        if coordMAP[i][0] == coordMAP[i+1][0] and coordMAP[i][3] == coordMAP[i+1][3]:
-            coordMAP[i+1][1] = coordMAP[i][1]
-            del coordMAP[i]
-
+    # one pass instead of deleting from the list: each run of rows with the same chr and MAP
+    # becomes its last row, with the start of its first row
+    rows = coordMAP.values.tolist()
+    coordMAP = []
+    for row in rows:
+        if coordMAP and coordMAP[-1][0] == row[0] and coordMAP[-1][3] == row[3]:
+            row[1] = coordMAP[-1][1]
+            coordMAP[-1] = row
         else:
-            i += 1
-    
+            coordMAP.append(row)
+
     return pd.DataFrame(coordMAP, columns=["chr", "start", "end", "MAP"])
 
 

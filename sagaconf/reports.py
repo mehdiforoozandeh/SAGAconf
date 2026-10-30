@@ -728,7 +728,27 @@ def distance_vs_overlap_3(loci_1, loci_2, savedir, match_definition="BM"):
         l : {x:[[0, 0],[0, 0]] for x in range(max_distance)} for l in loci_1.columns[3:]
     }
 
-    for i in range(loci_1.shape[0]):
+    labels1, labels2 = loci_1.columns[3:], loci_2.columns[3:]
+    codes1 = labels1.get_indexer(pd.Index(MAP1, dtype=object)) if labels1.is_unique else None
+    fast = (codes1 is not None and labels2.is_unique and len(MAP1) == len(MAP2) == loci_1.shape[0]
+            and len(MAP1) > 0 and codes1.min() >= 0)
+    if fast:
+        # same counts as the loop below, one window offset at a time
+        codes2 = labels2.get_indexer(pd.Index(MAP2, dtype=object))
+        target = np.array([labels2.get_loc(per_label_matches[l]) for l in labels1])[codes1]
+        n = len(MAP1)
+        pos = np.arange(n)
+        total = np.bincount(codes1, minlength=len(labels1))
+        for w in range(max_distance):
+            right = np.bincount(codes1[codes2[np.minimum(n - 1, pos + w)] == target], minlength=len(labels1))
+            left = np.bincount(codes1[codes2[np.maximum(0, pos - w)] == target], minlength=len(labels1))
+            for a, l in enumerate(labels1):
+                label_dist_dict[l][w][0][0] += int(right[a])
+                label_dist_dict[l][w][0][1] += int(total[a] - right[a])
+                label_dist_dict[l][w][1][0] += int(left[a])
+                label_dist_dict[l][w][1][1] += int(total[a] - left[a])
+
+    for i in range(loci_1.shape[0] if not fast else 0):
         for w in range(max_distance):
             l = MAP1[i]
 

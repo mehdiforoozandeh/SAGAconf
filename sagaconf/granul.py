@@ -55,12 +55,14 @@ def granularity_vs_agreement_nonsymmetric(loci_1, loci_2, k, disregard_posterior
         # to hard zero vs one matrix
         
         for c in loci_1.columns[3:]:
-            loci_1.loc[MAP1==c, c] = 1
-            loci_1.loc[MAP1!=c, c] = 0
+            is_c = MAP1==c
+            loci_1.loc[is_c, c] = 1
+            loci_1.loc[~is_c, c] = 0
         
         for c in loci_2.columns[3:]:
-            loci_2.loc[MAP2==c, c] = 1
-            loci_2.loc[MAP2!=c, c] = 0
+            is_c = MAP2==c
+            loci_2.loc[is_c, c] = 1
+            loci_2.loc[~is_c, c] = 0
 
     confmat = IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False)
     
