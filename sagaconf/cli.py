@@ -262,6 +262,86 @@ def _rval_hist(rvalues, savedir):
 
 # ---- `sagaconf` command ----------------------------------------------------------------------
 
+TOP_EPILOG = """\
+typical use:
+  sagaconf parse --saga chmm BASE_POSTERIORS/ 200 base/
+  sagaconf parse --saga chmm VERIF_POSTERIORS/ 200 verif/
+  sagaconf run base/parsed_posterior.bed verif/parsed_posterior.bed results/ \\
+      -bm base_mnemonics.txt -vm verif_mnemonics.txt
+
+Run `sagaconf parse --help` and `sagaconf run --help` for the input formats.
+"""
+
+PARSE_EPILOG = """\
+input (POSTERIORDIR):
+  chmm    The *_posterior.txt files that ChromHMM LearnModel writes with -printposterior,
+          for ONE cell type: one file per chromosome, named ..._<chr>_posterior.txt
+          (the field before "_posterior.txt" must contain "chr"). Each file has a
+          title line, a header line of state names (E1, E2, ...), then one row of
+          tab-separated posteriors per bin.
+  segway  posterior0.bedGraph, posterior1.bedGraph, ... one file per state, numbered
+          from 0, with posteriors as integers from 0 to 100. Every file must cover
+          the same bins; intervals wider than RESOLUTION are split into bins.
+
+output: OUTDIR/parsed_posterior.bed (tab-separated, header row) or .csv (with a
+leading index column): chr, start, end, then one posterior column per state.
+This is the input format of `sagaconf run`.
+"""
+
+RUN_EPILOG = """\
+input files (BASE, VERIF):
+  Parsed posterior files, as `sagaconf parse` writes them. The format is chosen by
+  ".bed" or ".csv" in the file name.
+    .bed  tab-separated, a header row: chr start end posterior0 ... posterior<K-1>
+          (posterior1 ... posterior<K> also works).
+    .csv  comma-separated, a leading unnamed index column, then the same columns.
+  One row per bin, every bin the same width: the resolution is read from the first
+  row (end - start). Both files must use the same bins and the same number of
+  states; rows are joined on (chr, start, end), so only the shared bins are scored.
+  -s keeps the rows whose chr is exactly "chr21".
+
+mnemonics files (-bm, -vm), optional; used only when both are given:
+  Tab-separated, header row "old<TAB>new", one row per state, for example:
+    old     new
+    1       Enhancer_low
+    2       Promoter_flanking
+  old  The state number, in the column order of the posterior file. Numbering may
+       start at 0 or at 1; the first row decides. With any other start no state is
+       named.
+  new  A name with at most one underscore. It is shortened to 4 characters, and to
+       3 after the underscore: Promoter_flanking becomes Prom_fla. Reports name each
+       state "<number>_<short name>"; a state without a row is "<number>_Unkn".
+
+running time and memory (version 1.2.0, genome-wide GM12878, 16 states, 24 CPUs):
+  full mode  ChromHMM (200 bp bins): about 3 minutes, peak memory about 50 GB.
+             Segway (100 bp bins): about 10 minutes, peak memory about 60 GB.
+  -s         reads the whole files but analyses chr21 only: about 1 to 2 minutes.
+  On Linux with 2 or more CPUs, independent analysis steps run in parallel
+  processes, kept within 65% of the memory limit (the Slurm or cgroup limit, else
+  the free memory of the machine). The output is the same as with one CPU; to use
+  one process, run on one CPU (for example `taskset -c 0 sagaconf run ...`).
+  While it runs, OUTDIR holds a copy of both input files (removed at the end).
+
+main outputs (in OUTDIR):
+  r_values.bed                  chr, start, end, MAP (most probable state), r_value
+  confident_segments.bed        the base bins that are reproduced (r_value >= -tr)
+  confident_segments_dense.bed  the same, adjacent bins of one state merged
+  r_values_report.txt, ratio_robust.txt   genome-wide and per-state summaries
+  Full mode also writes overlap, calibration, granularity and boundary reports as
+  PDF + SVG plots, each with a .txt file of the plotted values.
+
+exit status:
+  0  success
+  1  an error, or in full mode one or more analysis steps failed (listed on stderr;
+     the other steps still ran)
+  2  invalid arguments
+
+examples:
+  sagaconf run base.bed verif.bed results/ -bm base_mnem.txt -vm verif_mnem.txt
+  sagaconf run base.bed verif.bed results/ --mode rvalues -s      # quick check
+"""
+
+
 def _hidden_alias(parser, flag, dest, **kw):
     """Accept an old flag name without listing it in --help."""
     parser.add_argument(flag, dest=dest, help=argparse.SUPPRESS, default=argparse.SUPPRESS, **kw)
@@ -274,14 +354,16 @@ def build_parser():
         pkg_version = "unknown"
     parser = argparse.ArgumentParser(
         prog="sagaconf",
-        description="Calibrated reproducibility scores (r-values) for chromatin state annotations.")
+        description="Calibrated reproducibility scores (r-values) for chromatin state annotations.",
+        formatter_class=argparse.RawDescriptionHelpFormatter, epilog=TOP_EPILOG)
     parser.add_argument("--version", action="version", version="%(prog)s " + pkg_version)
     sub = parser.add_subparsers(dest="command", required=True, metavar="{parse,run}")
 
     p = sub.add_parser(
         "parse", help="convert ChromHMM or Segway posteriors into a parsed posterior file",
         description="Bin a SAGA model's posterior files into one parsed posterior file "
-                    "(chr, start, end, one column per state).")
+                    "(chr, start, end, one column per state).",
+        formatter_class=argparse.RawDescriptionHelpFormatter, epilog=PARSE_EPILOG)
     p.add_argument("posteriordir", help="directory with the SAGA model's posterior files")
     p.add_argument("resolution", type=int, help="bin size of the SAGA model, in bp")
     p.add_argument("outdir", help="directory for parsed_posterior.bed (or .csv); created if missing")
@@ -293,7 +375,8 @@ def build_parser():
     r = sub.add_parser(
         "run", help="score the reproducibility of a base annotation against a verification annotation",
         description="Compare a base and a verification annotation and write r-values, confident "
-                    "segments and reports to OUTDIR.")
+                    "segments and reports to OUTDIR.",
+        formatter_class=argparse.RawDescriptionHelpFormatter, epilog=RUN_EPILOG)
     r.add_argument("base", help="parsed posterior file (.bed or .csv) of the base annotation")
     r.add_argument("verif", help="parsed posterior file (.bed or .csv) of the verification annotation")
     r.add_argument("outdir", help="directory for the results; created if missing")

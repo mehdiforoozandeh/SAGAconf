@@ -118,7 +118,16 @@ A mnemonics file gives each state a biological name. It is a tab-separated file 
 header `old` and `new`. The `old` column holds the state number, in the column order of the
 parsed posterior file. The numbers can start at 0 or at 1. The `new` column holds the name.
 SAGAconf shortens each name to its first 4 characters (and to 3 characters after an
-underscore), so `Enhancer_low` becomes `Enha_low`.
+underscore), so `Enhancer_low` becomes `Enha_low`. Reports then name each state
+`<number>_<short name>`, for example `0_Enha_low`.
+
+Rules that are easy to miss:
+
+- SAGAconf uses the names only when you give both `-bm` and `-vm`.
+- The first row decides the numbering: `old` must start at 0 or at 1. With any other start,
+  no state gets a name.
+- A name can hold at most one underscore. A state with no usable row is named
+  `<number>_Unkn`.
 [`example/example_mnemonics.txt`](example/example_mnemonics.txt) is an example:
 
 ```
@@ -127,6 +136,32 @@ old	new
 2	Enhancer
 3	Promoter_flanking
 ```
+
+## Running from scripts and agents
+
+`sagaconf --help`, `sagaconf parse --help` and `sagaconf run --help` hold everything a script
+needs: the input and mnemonics formats, the main outputs, the cost, and the exit status.
+
+- **Input check.** Both parsed posterior files must use the same bins and the same number of
+  states. `sagaconf run` joins them on `chr`, `start` and `end`, and scores only the shared
+  bins. It reads the resolution from the first row. The file format follows the extension
+  in the name (`.bed` or `.csv`).
+- **Try it small first.** `-s` analyses chr21 only. `--mode rvalues -s` gives `r_values.bed`
+  for chr21 in a minute or two.
+- **Cost.** Version 1.2.0, genome-wide GM12878, 16 states, 24 CPUs:
+
+  | Full mode | Time | Peak memory |
+  |---|---|---|
+  | ChromHMM, 200 bp bins | about 3 minutes | about 50 GB |
+  | Segway, 100 bp bins | about 10 minutes | about 60 GB |
+
+  On Linux with 2 or more CPUs, SAGAconf runs independent analysis steps in parallel
+  processes. It keeps them within 65% of the memory limit: the Slurm or cgroup limit, else
+  the free memory of the machine. The output is the same as with one CPU. To use one
+  process, run on one CPU, for example `taskset -c 0 sagaconf run ...`. While it runs,
+  `OUTDIR` holds a copy of both input files.
+- **Exit status.** 0 is success. 1 is an error, or, in `full` mode, one or more failed
+  analysis steps (stderr lists them; the other steps still ran). 2 is an invalid argument.
 
 ## Output
 
