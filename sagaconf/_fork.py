@@ -284,10 +284,11 @@ class _Recorder:
             warnings.onceregistry.clear()
         kind = _Tee if self.tee else _Stream
         sys.stdout, sys.stderr = kind(self, "o", self.out), kind(self, "e", self.err)
-        warnings._showwarnmsg, warnings._filters_mutated = self._show, self._mutated
+        self.hooks = (self._show, self._mutated)  # bound once: each access makes a new object
+        warnings._showwarnmsg, warnings._filters_mutated = self.hooks
 
     def stop(self):
-        if warnings._showwarnmsg is not self._show or warnings._filters_mutated is not self._mutated \
+        if (warnings._showwarnmsg, warnings._filters_mutated) != self.hooks \
                 or warnings._showwarnmsg_impl is not self.impl or warnings.showwarning is not self.showwarning \
                 or list(warnings.filters) != self.filters:
             self.exact = False  # the steps after this one would see other warning settings
