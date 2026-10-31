@@ -178,6 +178,10 @@ def calibrate(loci_1, loci_2, ovr_threshold, window_bp, numbins=500, matching="s
     MAP2 = list(loci_2.iloc[:,3:].idxmax(axis=1))
     map2_codes, map2_uniques = pd.factorize(np.array(MAP2, dtype=object))
     map2_nan_pos = np.flatnonzero(map2_codes == -1).tolist()
+    range_index = loci_1.index.equals(pd.RangeIndex(len(MAP2))) and loci_1.index.name is None \
+        and loci_1.columns.is_unique
+    # concat below copies it: built once, not once per label
+    map2_series = None if range_index else pd.Series(MAP2)
 
     # determine the number of positions at each posterior bin
     strat_size = int(len(loci_1)/numbins)
@@ -202,9 +206,13 @@ def calibrate(loci_1, loci_2, ovr_threshold, window_bp, numbins=500, matching="s
 
         ##############################################################
 
-        vector_pair = pd.concat([loci_1[k], pd.Series(MAP2)], axis=1)
-        vector_pair.columns=["pv1", "map2"]
-        vector_pair = vector_pair.sort_values("pv1").reset_index()
+        if range_index:
+            # the same sort without the label column, which the steps below do not use
+            vector_pair = loci_1[k].sort_values().rename("pv1").reset_index()
+        else:
+            vector_pair = pd.concat([loci_1[k], map2_series], axis=1)
+            vector_pair.columns=["pv1", "map2"]
+            vector_pair = vector_pair.sort_values("pv1").reset_index()
         
         # is_match[j]: MAP2[j] is one of the matched labels
         match_set = set(above_threshold_match)
