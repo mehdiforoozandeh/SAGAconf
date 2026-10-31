@@ -803,7 +803,8 @@ def _save_async(plt, parts):
     if pid == 0:
         def body():
             plt.savefig(parts[0][0], format='pdf')
-            plt.savefig(parts[1][0], format='svg')
+            # plt.savefig, without the redraw it does after saving: this process then ends
+            plt.gcf().savefig(parts[1][0], format='svg')
         _child_main(fds, lambda: None, body)
     _S["savers"].append(pid)
     return True
@@ -840,7 +841,8 @@ def _save_svg_forked(plt, pdf, part):
             return False
         pid, fds = got
         if pid == 0:
-            _child_main(fds, lambda: None, lambda: plt.savefig(part[0], format='svg'))
+            # plt.savefig, without the redraw it does after saving: this process then ends
+            _child_main(fds, lambda: None, lambda: plt.gcf().savefig(part[0], format='svg'))
         try:
             plt.savefig(pdf, format='pdf')
             _wait_pid(pid)
