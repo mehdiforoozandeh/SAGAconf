@@ -1083,7 +1083,7 @@ def get_all_ct(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000):
     F = frame_bytes(loci1, loci2)
     run_steps(steps, savedir, [after_ct_steps(i) for i in range(len(steps) + 1)],
               costs=[211, 92, 130, 219, 56, 90, 140, 100],
-              mem=[int(m * F) for m in (1.5, 1.5, 2.5, 2.5, 1.5, 1.5, 2, 2)])
+              mem=[int(m * F) for m in (2, 2, 3, 3, 2, 2, 2, 2)])
 
 
 def get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000, to=0.75, tr=0.9):
@@ -1169,7 +1169,7 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000,
 
     F = frame_bytes(loci1, loci2)
     run_steps([reproduced, r_values, nmi], savedir, [lambda: None] * 4, costs=[2, 3, 1],
-              mem=[int(m * F) for m in (1.5, 1.5, 1)])
+              mem=[int(1.3 * F)] * 3)
 
 
 def post_clustering_keep_k_states(replicate_1_dir, replicate_2_dir, savedir, k, w, locis=False, write_csv=True, r_val=True):

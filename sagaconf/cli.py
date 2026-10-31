@@ -203,7 +203,7 @@ def _full(load, r_values, savedir, failed, verbose, w, merge_k, iou_threshold, r
     after = after_ct_steps(8)
     _fork.run_steps(steps, savedir, [lambda: None] + [after] * n,
                     costs=[3] + [1] * (n - 2) + [2],
-                    mem=[0] + [int(5 * F)] * (n - 2) + [int(2 * F)],
+                    mem=[0] + [int(4.5 * F)] * (n - 2) + [int(1.3 * F)],
                     inprocess=[0], restart={n - 1: 1})
 
 

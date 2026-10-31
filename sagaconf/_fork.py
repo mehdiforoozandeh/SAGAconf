@@ -29,7 +29,7 @@ import sys
 import time
 import warnings
 
-FRACTION = 0.7  # of the memory limit (cgroup, else machine) that the process tree may use
+FRACTION = 0.65  # of the memory limit (cgroup, else machine) that the process tree may use
 SAVER_BYTES = 512 << 20  # a forked figure save
 MAX_SAVERS = 4  # figure saves pending at once in one step's child
 
@@ -360,16 +360,22 @@ def _action(text, category, module, lineno):
 
 
 def _deprecations_hidden():
-    """True if DeprecationWarning and PendingDeprecationWarning from library code are ignored,
-    as Python's default filters do. Libraries initialize caches once per process, and some warn
-    when they do (matplotlib's pyparsing grammars): shown, those warnings would repeat once per
-    child, where a sequential run shows them once."""
+    """True if every deprecation warning (DeprecationWarning, PendingDeprecationWarning and the
+    subclasses defined so far) from library code is ignored, as Python's default filters do.
+    Libraries initialize caches once per process, and some warn when they do (matplotlib's
+    pyparsing grammars): shown, those warnings would repeat once per child, where a sequential
+    run shows them once."""
+    classes, todo = set(), [DeprecationWarning, PendingDeprecationWarning]
+    while todo:
+        c = todo.pop()
+        if c not in classes:
+            classes.add(c)
+            todo.extend(c.__subclasses__())
     for action, msg, cat, mod, ln in warnings.filters:
-        if action == "ignore" or mod == "__main__" or getattr(mod, "pattern", None) in ("__main__", "__main__\\Z"):
-            continue
-        if any(issubclass(c, cat) or issubclass(cat, c) for c in (DeprecationWarning, PendingDeprecationWarning)):
+        main_only = mod == "__main__" or getattr(mod, "pattern", None) in ("__main__", "__main__\\Z")
+        if action != "ignore" and not main_only and any(issubclass(c, cat) for c in classes):
             return False
-    return all(_action("", c, "a.library", 0) == "ignore" for c in (DeprecationWarning, PendingDeprecationWarning))
+    return all(_action("", c, "a.library", 0) == "ignore" for c in classes)
 
 
 def record(fn):
