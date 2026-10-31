@@ -142,34 +142,41 @@ def logit_array(array2D):
     return array2D
 
 
-def to_tsv(df, path, header, na_rep="", chunk=1 << 20):
+def to_tsv(df, path, header, na_rep=""):
     """Same file as df.to_csv(path, sep='\t', header=header, index=False, na_rep=na_rep).
 
     Columns are formatted as to_csv formats them (floats and ints with astype(str), NaN as
-    na_rep) and joined row by row, a chunk at a time; a frame with any other kind of column, or
-    with a string to_csv would quote, is written by to_csv.
+    na_rep) and joined row by row, a chunk at a time, ending lines with os.linesep as to_csv
+    does. A frame with any other kind of column, or with a string to_csv would quote, a path
+    to_csv would compress, or an na_rep longer than "nan" (to_csv may cut it), go to to_csv.
     """
     names = [str(c) for c in df.columns]
     arrays = [df.iloc[:, j].to_numpy() for j in range(df.shape[1])]
-    plain = len(df) > 0 and len(names) > 1 and all(type(c) is str for c in df.columns)
+    plain = (isinstance(path, str) and len(df) > 0 and len(names) > 1 and len(na_rep) <= 3
+             and all(type(c) is str for c in df.columns)
+             and not path.lower().endswith((".gz", ".bz2", ".zip", ".xz", ".zst", ".tar")))
     for v in arrays:
         if not plain:
             break
         if v.dtype == object:
-            plain = all(type(x) is str for x in pd.unique(v))
-            plain = plain and not any(_quoted(x) for x in pd.unique(v))
+            try:
+                u = pd.unique(v)
+            except TypeError:
+                u = [None]
+            plain = all(type(x) is str for x in u) and not any(_quoted(x) for x in u)
         else:
             plain = v.dtype.kind in "iuf"
     if not plain or any(_quoted(c) for c in names):
         return df.to_csv(path, sep='\t', header=header, index=False, na_rep=na_rep)
 
+    eol = os.linesep
     with open(path, "w", encoding="utf-8", newline="") as fh:
         if header:
-            fh.write("\t".join(names) + "\n")
-        for start in range(0, len(df), chunk):
+            fh.write("\t".join(names) + eol)
+        for start in range(0, len(df), 1 << 20):
             cols = []
             for v in arrays:
-                v = v[start:start + chunk]
+                v = v[start:start + (1 << 20)]
                 if v.dtype.kind == "f":
                     s = v.astype(str)
                     nan = np.isnan(v)
@@ -180,8 +187,9 @@ def to_tsv(df, path, header, na_rep="", chunk=1 << 20):
                 elif v.dtype.kind in "iu":
                     v = v.astype(str)
                 cols.append(v.tolist())
-            fh.write("\n".join(map("\t".join, zip(*cols))) + "\n")
+            fh.write(eol.join(map("\t".join, zip(*cols))) + eol)
 
 
 def _quoted(s):
+    # to_csv quotes a field with the separator, a quote or a line break, and an empty field
     return s == "" or any(ch in s for ch in '\t"\n\r')

@@ -12,7 +12,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import PolynomialFeatures
 from ._cluster_matching import _coverage, overlap_matrix
-from ._fork import run_steps, savefig_pdf_svg
+from ._fork import savefig_pdf_svg
 
 
 class posterior_calibration(object):
@@ -381,100 +381,68 @@ class posterior_calibration(object):
 
         return np.array(bins)
 
-    def perlabel_calibration_function(self, method="isoton_reg", num_bins=500, return_caliberated_matrix=True, scale=True, scale_columnwise=False, strat_size="def", general_in_parallel=False):
-        """general_in_parallel: draw the summary figure in a forked child while the per-label
-        figures are drawn (it is a new figure: the per-label ones do not change it); the per-label
-        results then stay in their child, and None is returned."""
+    def perlabel_calibration_function(self, method="isoton_reg", num_bins=500, return_caliberated_matrix=True, scale=True, scale_columnwise=False, strat_size="def"):
         perlabel_function = {}
         bins_dict = {}
         new_matrix = [self.loci_1.iloc[:,:3]]
         strat_size = int(len(self.loci_1)/num_bins)
 
-        precomputed = None
-        if general_in_parallel and not return_caliberated_matrix:
-            try:
-                precomputed = [self._label_bins(k, strat_size) for k in range(self.num_labels)]
-            except Exception:  # the sequential run below fails at the same point
-                precomputed = None
+        for k in range(self.num_labels):
+            kth_label = self.loci_1.iloc[:,3:].columns[k]
+            bins = self._label_bins(k, strat_size)
+            bins_dict[kth_label] = bins
+            self.perlabel_visualize_calibration(bins.copy(), kth_label, strat_size, scatter=True)
 
-        def per_label():
-            for k in range(self.num_labels):
-                kth_label = self.loci_1.columns[3 + k]
-                match_label = self.per_label_matches[kth_label]
-                bins = precomputed[k] if precomputed is not None else self._label_bins(k, strat_size)
-                bins_dict[kth_label] = bins
-                self.perlabel_visualize_calibration(bins.copy(), kth_label, strat_size, scatter=True)
+            if method=="spline":
+                f = UnivariateSpline(
+                    x= np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]),
+                    y=bins[:, 5], ext=3)
 
-                if method=="spline":
-                    f = UnivariateSpline(
-                        x= np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]),
-                        y=bins[:, 5], ext=3)
-
-                    r2 = r2_score(
-                        bins[:, 5], 
-                        f(
-                            np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))
-                        ))
+                r2 = r2_score(
+                    bins[:, 5], 
+                    f(
+                        np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))
+                    ))
                 
-                    print("R2 score for {}: {}".format(kth_label, r2))
+                print("R2 score for {}: {}".format(kth_label, r2))
 
-                else:
-                    if method=="isoton_reg":
-                        polyreg = IsotonicRegression(
-                        y_min=float(np.array(bins[:, 5]).min()), y_max=float(np.array(bins[:, 5]).max()), 
-                        out_of_bounds="clip")
+            else:
+                if method=="isoton_reg":
+                    polyreg = IsotonicRegression(
+                    y_min=float(np.array(bins[:, 5]).min()), y_max=float(np.array(bins[:, 5]).max()), 
+                    out_of_bounds="clip")
 
-                    if method == "poly_reg":
-                        make_pipeline(PolynomialFeatures(3), LinearRegression())
+                if method == "poly_reg":
+                    make_pipeline(PolynomialFeatures(3), LinearRegression())
                 
-                    polyreg.fit(
-                    np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), #x_train is the mean of each bin
-                    bins[:, 5]) # y_train is oe/ratio_correctly_labeled at each bin
+                polyreg.fit(
+                np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1)), #x_train is the mean of each bin
+                bins[:, 5]) # y_train is oe/ratio_correctly_labeled at each bin
 
-                    r2 = r2_score(
-                        bins[:, 5], 
-                        polyreg.predict(
-                            np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))))
+                r2 = r2_score(
+                    bins[:, 5], 
+                    polyreg.predict(
+                        np.reshape(np.array([(bins[i, 0] + bins[i, 1])/2 for i in range(len(bins))]), (-1,1))))
                 
-                    print("R2 score for {}: {}".format(kth_label, r2))
+                print("R2 score for {}: {}".format(kth_label, r2))
             
-                if return_caliberated_matrix:
-                    x = np.array(self.loci_1[kth_label])
-                    if method == "spline":
-                        calibrated_array = f(np.array(x))
-                    else:
-                        calibrated_array = polyreg.predict(
-                            np.reshape(np.array(x), (-1,1)))
-
-                    new_matrix.append(pd.DataFrame(calibrated_array, columns=[kth_label]))
-                
+            if return_caliberated_matrix:
+                x = np.array(self.loci_1.iloc[:,3:][kth_label])
+                if method == "spline":
+                    calibrated_array = f(np.array(x))
                 else:
-                    if method == "spline":
-                        perlabel_function[k] = [f, r2]
+                    calibrated_array = polyreg.predict(
+                        np.reshape(np.array(x), (-1,1)))
 
-                    else:
-                        perlabel_function[k] = [polyreg, r2]
+                new_matrix.append(pd.DataFrame(calibrated_array, columns=[kth_label]))
+                
+            else:
+                if method == "spline":
+                    perlabel_function[k] = [f, r2]
 
+                else:
+                    perlabel_function[k] = [polyreg, r2]
 
-        if precomputed is not None:
-            all_bins = {}
-            for k in range(self.num_labels):
-                all_bins[self.loci_1.columns[3 + k]] = precomputed[k]
-            savedir = self.savedir
-
-            def labels_step(d):
-                self.savedir = d
-                per_label()
-
-            def general_step(d):
-                self.savedir = d
-                self.general_visualize_calibration(all_bins, strat_size)
-
-            run_steps([labels_step, general_step], savedir, [lambda: None] * 3, costs=[2, 1], quiet=True)
-            self.savedir = savedir
-            return None
-
-        per_label()
         self.general_visualize_calibration(bins_dict, strat_size)
 
         if return_caliberated_matrix:
