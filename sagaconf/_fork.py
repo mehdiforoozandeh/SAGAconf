@@ -325,15 +325,34 @@ class _Recorder:
 
 
 def fresh():
-    """True when no warning is in any "once" registry (see _Recorder)."""
+    """True when no "once" registry holds a warning the current filters would show, so that a
+    step run in-process now shows what it would show in a child (see _Recorder): the registries
+    also remember ignored warnings, which change nothing."""
     for m in list(sys.modules.values()):
         try:
             reg = vars(m).get("__warningregistry__")
         except TypeError:
             continue
-        if isinstance(reg, dict) and set(reg) - {"version"}:
-            return False
+        if isinstance(reg, dict):
+            for key in list(reg):
+                if key == "version":
+                    continue
+                try:
+                    text, category, lineno = key
+                    if _action(text, category, m.__name__, lineno) != "ignore":
+                        return False
+                except Exception:
+                    return False
     return not warnings.onceregistry
+
+
+def _action(text, category, module, lineno):
+    # the filter warnings.warn_explicit applies
+    for action, msg, cat, mod, ln in warnings.filters:
+        if ((msg is None or msg.match(text)) and issubclass(category, cat)
+                and (mod is None or mod.match(module)) and (ln == 0 or lineno == ln)):
+            return action
+    return warnings.defaultaction
 
 
 def record(fn):
