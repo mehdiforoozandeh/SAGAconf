@@ -14,6 +14,19 @@ def perlabel_is_reproduced(reprod_report, loci_1):
     for k in labels:
         per_label_results[k] = [0, 0] # (True, False)
     
+    is_repr = reprod_report["is_repr"]
+    if is_repr.dtype == bool and not MAP1.isna().any() and isinstance(is_repr.index, pd.RangeIndex) \
+            and is_repr.index.start == 0 and is_repr.index.step == 1 and len(is_repr) >= len(MAP1) \
+            and isinstance(MAP1.index, pd.RangeIndex) and MAP1.index.start == 0 and MAP1.index.step == 1:
+        rep = is_repr.to_numpy()[:len(MAP1)]
+        map1 = MAP1.to_numpy()
+        for k in labels:
+            sel = map1 == k
+            n_true = int(np.count_nonzero(rep[sel]))
+            per_label_results[k][0] += n_true
+            per_label_results[k][1] += int(np.count_nonzero(sel)) - n_true
+        return per_label_results
+
     for t in range(len(MAP1)):
         if reprod_report["is_repr"][t]:
             per_label_results[MAP1[t]][0] +=1
@@ -163,6 +176,12 @@ def calibrate(loci_1, loci_2, ovr_threshold, window_bp, numbins=500, matching="s
         dyn_matching_map = dynamic_matches(loci_1, loci_2, w=window_bp)
         
     MAP2 = list(loci_2.iloc[:,3:].idxmax(axis=1))
+    map2_codes, map2_uniques = pd.factorize(np.array(MAP2, dtype=object))
+    map2_nan_pos = np.flatnonzero(map2_codes == -1).tolist()
+    range_index = loci_1.index.equals(pd.RangeIndex(len(MAP2))) and loci_1.index.name is None \
+        and loci_1.columns.is_unique
+    # concat below copies it: built once, not once per label
+    map2_series = None if range_index else pd.Series(MAP2)
 
     # determine the number of positions at each posterior bin
     strat_size = int(len(loci_1)/numbins)
@@ -187,38 +206,44 @@ def calibrate(loci_1, loci_2, ovr_threshold, window_bp, numbins=500, matching="s
 
         ##############################################################
 
-        vector_pair = pd.concat([loci_1[k], pd.Series(MAP2)], axis=1)
-        vector_pair.columns=["pv1", "map2"]
-        vector_pair = vector_pair.sort_values("pv1").reset_index()
+        if range_index:
+            # the same sort without the label column, which the steps below do not use
+            vector_pair = loci_1[k].sort_values().rename("pv1").reset_index()
+        else:
+            vector_pair = pd.concat([loci_1[k], map2_series], axis=1)
+            vector_pair.columns=["pv1", "map2"]
+            vector_pair = vector_pair.sort_values("pv1").reset_index()
         
+        # is_match[j]: MAP2[j] is one of the matched labels
+        match_set = set(above_threshold_match)
+        is_match = np.array([u in match_set for u in map2_uniques] + [False], dtype=bool)[map2_codes]
+        for j in map2_nan_pos:
+            is_match[j] = MAP2[j] in match_set
+        match_cumsum = np.concatenate([[0], np.cumsum(is_match, dtype=np.int64)])
+
+        positions = vector_pair["index"].to_numpy().astype(np.int64)
+        pv1_sorted = vector_pair["pv1"].to_numpy()
+        ####################### CHECK WINDOW #######################
+        if window_bin > 0:
+            leftmost = np.maximum(0, positions - window_bin)
+            rightmost = np.minimum(len(MAP2) - 1, positions + window_bin)
+            hit = (rightmost > leftmost) & (
+                match_cumsum[np.maximum(rightmost, leftmost)] - match_cumsum[leftmost] > 0)
+        else:
+            hit = is_match[positions]
+        hit_cumsum = np.concatenate([[0], np.cumsum(hit, dtype=np.int64)])
+        #############################################################
+
         bins = []
         for b in range(0, vector_pair.shape[0], strat_size):
             # [bin_start, bin_end, num_values_in_bin, ratio_matched]
-
-            subset_vector_pair = vector_pair.iloc[b:b+strat_size, :]
-            subset_vector_pair = subset_vector_pair.reset_index(drop=True)
-            
-            matched = 0
-            ####################### CHECK WINDOW #######################
-            for i in range(len(subset_vector_pair)):
-
-                if window_bin > 0 :
-                    leftmost = max(0, (subset_vector_pair["index"][i] - window_bin))
-                    rightmost = min((len(MAP2)-1), (subset_vector_pair["index"][i] + window_bin))
-
-                    neighbors_i = MAP2[leftmost:rightmost]
-
-                else:
-                    neighbors_i = [MAP2[subset_vector_pair["index"][i]]]
-
-                if (set(above_threshold_match) & set(neighbors_i)):
-                    matched += 1
-            #############################################################
+            e = min(b + strat_size, vector_pair.shape[0])
+            matched = int(hit_cumsum[e] - hit_cumsum[b])
             bins.append([
-                float(subset_vector_pair["pv1"][subset_vector_pair.index[0]]), 
-                float(subset_vector_pair["pv1"][subset_vector_pair.index[-1]]),
-                len(subset_vector_pair),
-                float(matched/len(subset_vector_pair))])
+                float(pv1_sorted[b]), 
+                float(pv1_sorted[e - 1]),
+                e - b,
+                float(matched/(e - b))])
         
         bins = np.array(bins)
         polyreg = IsotonicRegression(
@@ -250,9 +275,20 @@ def is_repr_posterior(
 
     calibrated_loci1 = calibrate(loci_1, loci_2, ovr_threshold, window_bp, matching=matching, always_include_best_match=always_include_best_match)
     # here I'm just looking at the calibrated score that is assigned to the MAP1 of each position (~>.9)
-    calibrated_reproducibility = []
-    for i in range(len(MAP1)):
-        calibrated_reproducibility.append(calibrated_loci1.loc[i, MAP1[i]])
+    calibrated_reproducibility = None
+    label_cols = calibrated_loci1.columns[3:]
+    dtypes = set(calibrated_loci1[c].dtype for c in label_cols)
+    idx = calibrated_loci1.index
+    if len(dtypes) == 1 and label_cols.is_unique and calibrated_loci1.columns.is_unique \
+            and isinstance(idx, pd.RangeIndex) and idx.start == 0 and idx.step == 1 and len(idx) >= len(MAP1):
+        col_pos = label_cols.get_indexer(pd.Index(MAP1, dtype=object))
+        if len(col_pos) == 0 or col_pos.min() >= 0:
+            values = np.column_stack([calibrated_loci1[c].to_numpy() for c in label_cols])
+            calibrated_reproducibility = list(values[np.arange(len(MAP1)), col_pos])
+    if calibrated_reproducibility is None:
+        calibrated_reproducibility = []
+        for i in range(len(MAP1)):
+            calibrated_reproducibility.append(calibrated_loci1.loc[i, MAP1[i]])
 
     if return_r:
         r = pd.concat([loci_1.chr, loci_1.start, loci_1.end, pd.Series(MAP1), pd.Series(calibrated_reproducibility)], axis=1)
@@ -301,16 +337,17 @@ def keep_reproducible_annotations(loci, bool_reprod_report):
 
 
 def condense_segments(coordMAP):
-    coordMAP = coordMAP.values.tolist()
-    i=0
-    while i+1 < len(coordMAP):
-        if coordMAP[i][0] == coordMAP[i+1][0] and coordMAP[i][3] == coordMAP[i+1][3]:
-            coordMAP[i+1][1] = coordMAP[i][1]
-            del coordMAP[i]
-
+    # one pass instead of deleting from the list: each run of rows with the same chr and MAP
+    # becomes its last row, with the start of its first row
+    rows = coordMAP.values.tolist()
+    coordMAP = []
+    for row in rows:
+        if coordMAP and coordMAP[-1][0] == row[0] and coordMAP[-1][3] == row[3]:
+            row[1] = coordMAP[-1][1]
+            coordMAP[-1] = row
         else:
-            i += 1
-    
+            coordMAP.append(row)
+
     return pd.DataFrame(coordMAP, columns=["chr", "start", "end", "MAP"])
 
 

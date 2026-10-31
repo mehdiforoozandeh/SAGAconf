@@ -53,14 +53,18 @@ def soft_coverage(loci_1, loci_2):
     return coverage1, coverage2
 
 
-def joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True):
+def joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True, maps=None):
     num_labels1 = len(loci_1.columns) -3
     num_labels2 = len(loci_2.columns) -3
     resolution = loci_1["end"][0] - loci_1["start"][0] 
     w = math.ceil(w/resolution)
 
-    MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
-    MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
+    # maps: (MAP1, MAP2) already computed by the caller from these loci
+    if maps is not None:
+        MAP1, MAP2 = maps
+    else:
+        MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
+        MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
 
     observed_overlap = {} 
 
@@ -70,10 +74,36 @@ def joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True):
 
     oo_mat = pd.DataFrame(np.zeros((num_labels1, num_labels2)), columns=loci_2.columns[3:], index=loci_1.columns[3:])
 
+    # integer counts by label code; same counts as the per-position loops below
+    labels1, labels2 = loci_1.columns[3:], loci_2.columns[3:]
+    codes1 = labels1.get_indexer(pd.Index(MAP1, dtype=object)) if labels1.is_unique else None
+    codes2 = labels2.get_indexer(pd.Index(MAP2, dtype=object)) if labels2.is_unique else None
+    fast = (codes1 is not None and codes2 is not None and len(MAP1) == len(MAP2) and len(MAP1) > 0
+            and codes1.min() >= 0 and codes2.min() >= 0 and (w == 0 or (symmetric == False and w > 0)))
+
     MAP1 = list(MAP1)
     MAP2 = list(MAP2)
-                
-    if w == 0:
+
+    if fast:
+        n = len(MAP1)
+        if w == 0:
+            counts = np.bincount(codes1 * num_labels2 + codes2, minlength=num_labels1 * num_labels2)
+            counts = counts.reshape(num_labels1, num_labels2)
+        else:
+            pos = np.arange(n)
+            leftmost = np.maximum(0, pos - w)
+            rightmost = np.maximum(np.minimum(pos + w, n - 1), leftmost)
+            counts = np.zeros((num_labels1, num_labels2), dtype=np.int64)
+            for b in range(num_labels2):
+                cs = np.concatenate([[0], np.cumsum(codes2 == b, dtype=np.int64)])
+                present = cs[rightmost] - cs[leftmost] > 0
+                counts[:, b] = np.bincount(codes1[present], minlength=num_labels1)
+        for a in range(num_labels1):
+            for b in range(num_labels2):
+                if counts[a, b] > 0:
+                    observed_overlap[str(labels1[a] + "|" + labels2[b])] += int(counts[a, b])
+
+    elif w == 0:
         for i in range(len(MAP1)):
             k = MAP1[i]
             j = MAP2[i]
@@ -102,24 +132,42 @@ def joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True):
     return oo_mat / len(loci_1)
 
 
-def IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False, overlap_coeff=False):
+def _coverage(MAP, loci):
+    """{k: len(MAP.loc[MAP == k])/len(loci) for each label k}, counting each label in one pass."""
+    labels = loci.columns[3:]
+    if not labels.is_unique or not MAP.index.is_unique:
+        return {k:len(MAP.loc[MAP == k])/len(loci) for k in labels}
+    codes = labels.get_indexer(pd.Index(MAP.to_numpy(), dtype=object))
+    counts = np.bincount(codes[codes >= 0], minlength=len(labels))
+    return {k: int(counts[i])/len(loci) for i, k in enumerate(labels)}
+
+
+def IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False, overlap_coeff=False, maps=None, parts=None):
+    """parts: (joint, coverage1, coverage2) of an earlier call with the same arguments, to reuse."""
     num_labels1 = len(loci_1.columns) - 3
     num_labels2 = len(loci_2.columns) - 3
     
     IoU = pd.DataFrame(np.zeros((num_labels1, num_labels2)), columns=loci_2.columns[3:], index=loci_1.columns[3:])
 
-    if soft and w == 0:
+    if parts is not None:
+        joint, coverage1, coverage2 = parts
+
+    elif soft and w == 0:
         joint = soft_joint_prob(loci_1, loci_2)
         coverage1, coverage2 = soft_coverage(loci_1, loci_2)
 
     else:
-        joint = joint_overlap_prob(loci_1, loci_2, w=w, symmetric=symmetric)
+        if maps is not None:
+            MAP1, MAP2 = maps
+        else:
+            MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
+            MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
 
-        MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
-        MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
+        # joint_overlap_prob would compute the same MAPs again
+        joint = joint_overlap_prob(loci_1, loci_2, w=w, symmetric=symmetric, maps=(MAP1, MAP2))
 
-        coverage1 = {k:len(MAP1.loc[MAP1 == k])/len(loci_1) for k in loci_1.columns[3:]}
-        coverage2 = {k:len(MAP2.loc[MAP2 == k])/len(loci_2) for k in loci_2.columns[3:]}
+        coverage1 = _coverage(MAP1, loci_1)
+        coverage2 = _coverage(MAP2, loci_2)
 
         # coverage1 = {k: joint.loc[k,:].sum() for k in joint.index}
         # coverage2 = {k: joint.loc[:,k].sum() for k in joint.columns}
@@ -178,11 +226,28 @@ def enrichment_of_overlap_matrix(loci_1, loci_2, OE_transform=True):
             observed_overlap[str(k + "|" + j)] = 0
             expected_overlap[str(k + "|" + j)] = coverage1[k] * coverage2[j] * len(MAP1)
 
-    for i in range(MAP1.shape[0]):
-        k = MAP1[i]
-        j = MAP2[i]
+    labels1, labels2 = loci_1.columns[3:], loci_2.columns[3:]
+    if labels1.is_unique and labels2.is_unique and len(MAP1) > 0 and len(MAP2) >= len(MAP1) \
+            and isinstance(MAP1.index, pd.RangeIndex) and MAP1.index.start == 0 and MAP1.index.step == 1 \
+            and isinstance(MAP2.index, pd.RangeIndex) and MAP2.index.start == 0 and MAP2.index.step == 1:
+        codes1 = labels1.get_indexer(pd.Index(MAP1.to_numpy(), dtype=object))
+        codes2 = labels2.get_indexer(pd.Index(MAP2.to_numpy()[:len(MAP1)], dtype=object))
+    else:
+        codes1 = codes2 = None
+    if codes1 is not None and codes1.min() >= 0 and codes2.min() >= 0:
+        # same integer counts as the per-position loop below
+        counts = np.bincount(codes1 * len(labels2) + codes2, minlength=len(labels1) * len(labels2))
+        counts = counts.reshape(len(labels1), len(labels2))
+        for a in range(len(labels1)):
+            for b in range(len(labels2)):
+                if counts[a, b] > 0:
+                    observed_overlap[str(labels1[a] + "|" + labels2[b])] += int(counts[a, b])
+    else:
+        for i in range(MAP1.shape[0]):
+            k = MAP1[i]
+            j = MAP2[i]
 
-        observed_overlap[str(k + "|" + j)] += 1
+            observed_overlap[str(k + "|" + j)] += 1
 
     oo_mat = pd.DataFrame(np.zeros((num_labels, num_labels)), columns=loci_2.columns[3:], index=loci_1.columns[3:])
     eo_mat = pd.DataFrame(np.zeros((num_labels, num_labels)), columns=loci_2.columns[3:], index=loci_1.columns[3:])

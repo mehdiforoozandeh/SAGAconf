@@ -113,8 +113,83 @@ def logit(p):
 def logit_array(array2D):
     array2D = np.array(array2D)
 
+    if array2D.ndim == 2 and array2D.dtype.kind == "f" and array2D.size > 0 and not np.isnan(array2D).any():
+        # values that are all float16 numbers (the loaded posteriors) index a table by their bits
+        with np.errstate(all="ignore"):
+            half = array2D.astype(np.float16)
+        if np.array_equal(half, array2D):
+            bits = half.view(np.uint16)
+            present = np.zeros(1 << 16, dtype=bool)
+            present[bits] = True
+            codes = np.flatnonzero(present)
+            values = codes.astype(np.uint16).view(np.float16).astype(array2D.dtype)
+            table = np.empty(1 << 16, dtype=array2D.dtype)
+            for k in range(len(codes)):
+                table[codes[k]] = logit(values[k])
+            return table[bits]
+
+        # logit depends only on the value: apply it once per distinct value
+        uniq, inverse = np.unique(array2D, return_inverse=True)
+        mapped = np.empty(len(uniq), dtype=array2D.dtype)
+        for k in range(len(uniq)):
+            mapped[k] = logit(uniq[k])
+        return mapped[inverse].reshape(array2D.shape)
+
     for i in range(array2D.shape[0]):
         for j in range(array2D.shape[1]):
             array2D[i,j] = logit(array2D[i,j])
 
     return array2D
+
+
+def to_tsv(df, path, header, na_rep=""):
+    """Same file as df.to_csv(path, sep='\t', header=header, index=False, na_rep=na_rep).
+
+    Columns are formatted as to_csv formats them (floats and ints with astype(str), NaN as
+    na_rep) and joined row by row, a chunk at a time, ending lines with os.linesep as to_csv
+    does. A frame with any other kind of column, or with a string to_csv would quote, a path
+    to_csv would compress, or an na_rep longer than "nan" (to_csv may cut it), go to to_csv.
+    """
+    names = [str(c) for c in df.columns]
+    arrays = [df.iloc[:, j].to_numpy() for j in range(df.shape[1])]
+    plain = (isinstance(path, str) and len(df) > 0 and len(names) > 1 and len(na_rep) <= 3
+             and all(type(c) is str for c in df.columns)
+             and not path.lower().endswith((".gz", ".bz2", ".zip", ".xz", ".zst", ".tar")))
+    for v in arrays:
+        if not plain:
+            break
+        if v.dtype == object:
+            try:
+                u = pd.unique(v)
+            except TypeError:
+                u = [None]
+            plain = all(type(x) is str for x in u) and not any(_quoted(x) for x in u)
+        else:
+            plain = v.dtype.kind in "iuf"
+    if not plain or any(_quoted(c) for c in names):
+        return df.to_csv(path, sep='\t', header=header, index=False, na_rep=na_rep)
+
+    eol = os.linesep
+    with open(path, "w", encoding="utf-8", newline="") as fh:
+        if header:
+            fh.write("\t".join(names) + eol)
+        for start in range(0, len(df), 1 << 20):
+            cols = []
+            for v in arrays:
+                v = v[start:start + (1 << 20)]
+                if v.dtype.kind == "f":
+                    s = v.astype(str)
+                    nan = np.isnan(v)
+                    if nan.any():
+                        s = s.astype(object)
+                        s[nan] = na_rep
+                    v = s
+                elif v.dtype.kind in "iu":
+                    v = v.astype(str)
+                cols.append(v.tolist())
+            fh.write(eol.join(map("\t".join, zip(*cols))) + eol)
+
+
+def _quoted(s):
+    # to_csv quotes a field with the separator, a quote or a line break, and an empty field
+    return s == "" or any(ch in s for ch in '\t"\n\r')

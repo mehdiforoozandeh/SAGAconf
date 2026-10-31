@@ -16,10 +16,11 @@ import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
 
+from . import _fork
 from ._chromhmm import ChrHMM_read_posteriordir
-from ._utils import mp_inplace_binning
+from ._utils import mp_inplace_binning, to_tsv
 from .overall import is_repr_posterior
-from .reports import (get_all_ct, get_overalls, get_rvals_activeregion, load_data,
+from .reports import (after_ct_steps, get_all_ct, get_overalls, get_rvals_activeregion, load_data,
                       overlap_vs_segment_length, post_clustering_keep_k_states, process_data,
                       quick_report, subset_data_to_activeregions)
 
@@ -87,7 +88,7 @@ def run_sagaconf(base, verif, savedir, mode="full", base_mnemonics="NA", verif_m
 
     elif mode == "rvalues":
         loci1, loci2 = load(True)
-        r_values(loci1, loci2).to_csv(savedir + "/r_values.bed", sep='\t', header=True, index=False)
+        to_tsv(r_values(loci1, loci2), savedir + "/r_values.bed", header=True)
 
     elif mode == "active-regions":
         loci1, loci2 = load(False)
@@ -113,45 +114,107 @@ def run_sagaconf(base, verif, savedir, mode="full", base_mnemonics="NA", verif_m
         post_clustering_keep_k_states(loci1, loci2, savedir, k=merge_k, locis=True, write_csv=False, w=w)
 
     else:  # full
-        # Each step is independent: a failure is reported with -v and the next step still runs.
-        # Failed steps are returned so the command can exit non-zero (GitHub issue #4).
-        try:
-            loci1, loci2 = load(True)
-            get_all_ct(loci1, loci2, savedir, locis=True, w=w)
-        except Exception as e:
-            failed.append("sample analysis (%s: %s)" % (type(e).__name__, e))
-            if verbose:
-                print("Failed to generated sample analysis.")
-
-        if merge_k != -1:
-            try:
-                loci1, loci2 = load(False)
-                post_clustering_keep_k_states(loci1, loci2, savedir, k=merge_k, locis=True, write_csv=False, w=w)
-            except Exception as e:
-                failed.append("merging states to k (%s: %s)" % (type(e).__name__, e))
-                if verbose:
-                    print("Failed to merge clusters up to k")
-
-        try:
-            loci1, loci2 = load(True)
-            get_overalls(loci1, loci2, savedir, locis=True, w=w, to=iou_threshold, tr=repr_threshold)
-        except Exception as e:
-            failed.append("genome-wide reproducibility (%s: %s)" % (type(e).__name__, e))
-            if verbose:
-                print("failed to get GW SAGAconf reproducibility results")
-
-        try:
-            rvalues = r_values(loci1, loci2)
-            rvalues.to_csv(savedir + "/r_values.bed", sep='\t', header=True, index=False)
-            _rval_hist(rvalues, savedir)
-        except Exception as e:
-            failed.append("r-values (%s: %s)" % (type(e).__name__, e))
-            if verbose:
-                print("failed to get GW SAGAconf reproducibility results")
+        _full(load, r_values, savedir, failed, verbose, w, merge_k, iou_threshold, repr_threshold)
 
     shutil.rmtree(replicate_1_dir, ignore_errors=True)
     shutil.rmtree(replicate_2_dir, ignore_errors=True)
     return failed
+
+
+def _full(load, r_values, savedir, failed, verbose, w, merge_k, iou_threshold, repr_threshold):
+    """Mode "full": the analysis steps in order. Each step is independent: a failure is
+    reported with -v, added to `failed` (so the command can exit non-zero, GitHub issue #4), and
+    the next step still runs. On Linux the steps after the first load run in parallel (see
+    _fork.py), with the same files, output, failures and messages as in this order."""
+    loci = {}  # the frames of the last load that succeeded: the r-values step uses them
+    # the sample step's load (its frames, and its recorded output): kept only until another
+    # load replaces loci["now"] here, so that the root holds one set of frames, as 1.1.2 does
+    cache = {}
+
+    def report(step, message, e):
+        failed.append("%s (%s: %s)" % (step, type(e).__name__, e))
+        if verbose:
+            print(message)
+        return False
+
+    def sample(d):
+        try:
+            loci["now"] = cache["frames"] if "frames" in cache else load(True)
+            get_all_ct(*loci["now"], d, locis=True, w=w)
+        except Exception as e:
+            return report("sample analysis", "Failed to generated sample analysis.", e)
+
+    def merge(d):
+        try:
+            cache.clear()
+            loci["now"] = load(False)
+            post_clustering_keep_k_states(*loci["now"], d, k=merge_k, locis=True, write_csv=False, w=w)
+        except Exception as e:
+            return report("merging states to k", "Failed to merge clusters up to k", e)
+
+    def overall(d):
+        ok = True
+        try:
+            if "events" in cache and _fork.in_step_child():
+                # the sample step's load, which this step's load would repeat: its frames,
+                # unchanged (the step's child was forked before anything changed them), and
+                # its output, produced again here
+                _fork.splice(cache["events"])
+                loci["now"] = cache["frames"]
+            else:
+                cache.clear()
+                loci["now"] = load(True)
+            get_overalls(*loci["now"], d, locis=True, w=w, to=iou_threshold, tr=repr_threshold)
+        except Exception as e:
+            ok = report("genome-wide reproducibility", "failed to get GW SAGAconf reproducibility results", e)
+
+        try:
+            if "now" not in loci:
+                _unbound_loci1()
+            rvalues = r_values(*loci["now"])
+            to_tsv(rvalues, d + "/r_values.bed", header=True)
+            _rval_hist(rvalues, d)
+        except Exception as e:
+            ok = report("r-values", "failed to get GW SAGAconf reproducibility results", e)
+        return ok
+
+    steps = [sample] + ([merge] if merge_k != -1 else []) + [overall]
+    # a step's child finds savedir empty: with earlier outputs there, the steps run in order
+    if _fork.usable() and not set(os.listdir(savedir)) - {"base_replicate", "verification_replicate"}:
+        try:
+            frames, events = _fork.record(lambda: load(True))
+        except Exception as e:
+            report("sample analysis", "Failed to generated sample analysis.", e)
+            for step in steps[1:]:
+                step(savedir)
+            return
+        cache["frames"] = frames
+        if events is not None:
+            cache["events"] = events
+        del frames
+    if "events" not in cache:
+        for step in steps:
+            step(savedir)
+        return
+
+    # The sample step (here) and the others (in children) run at once; each child starts from
+    # the state the steps before it leave (they all end as the sample step does: after_ct).
+    # A failed child reruns here, from the merging step if there is one (the r-values step
+    # would need its frames if the genome-wide step's load failed).
+    n = len(steps)
+    F = _fork.frame_bytes(*cache["frames"])
+    after = after_ct_steps(8)
+    _fork.run_steps(steps, savedir, [lambda: None] + [after] * n,
+                    costs=[3] + [1] * (n - 2) + [2],
+                    # the genome-wide step loads again if the cache is gone by its launch
+                    mem=[0] + [int(3.5 * F)] * (n - 2) + [lambda: int((1.3 if "events" in cache else 4.5) * F)],
+                    inprocess=[0], restart={n - 1: 1})
+
+
+def _unbound_loci1():
+    # the error 1.1.2's r-values step raised when no load had succeeded
+    loci1 = loci1  # noqa: F821
+    return loci1
 
 
 def _exit_if_failed(failed):
@@ -190,8 +253,7 @@ def _rval_hist(rvalues, savedir):
         axs[l].set_xlim([0, 1])
 
     plt.tight_layout()
-    plt.savefig('{}/rval_hist.pdf'.format(savedir), format='pdf')
-    plt.savefig('{}/rval_hist.svg'.format(savedir), format='svg')
+    _fork.savefig_pdf_svg('{}/rval_hist.pdf'.format(savedir), '{}/rval_hist.svg'.format(savedir))
     sns.reset_orig
     plt.close("all")
     plt.style.use('default')
@@ -199,6 +261,86 @@ def _rval_hist(rvalues, savedir):
 
 
 # ---- `sagaconf` command ----------------------------------------------------------------------
+
+TOP_EPILOG = """\
+typical use:
+  sagaconf parse --saga chmm BASE_POSTERIORS/ 200 base/
+  sagaconf parse --saga chmm VERIF_POSTERIORS/ 200 verif/
+  sagaconf run base/parsed_posterior.bed verif/parsed_posterior.bed results/ \\
+      -bm base_mnemonics.txt -vm verif_mnemonics.txt
+
+Run `sagaconf parse --help` and `sagaconf run --help` for the input formats.
+"""
+
+PARSE_EPILOG = """\
+input (POSTERIORDIR):
+  chmm    The *_posterior.txt files that ChromHMM LearnModel writes with -printposterior,
+          for ONE cell type: one file per chromosome, named ..._<chr>_posterior.txt
+          (the field before "_posterior.txt" must contain "chr"). Each file has a
+          title line, a header line of state names (E1, E2, ...), then one row of
+          tab-separated posteriors per bin.
+  segway  posterior0.bedGraph, posterior1.bedGraph, ... one file per state, numbered
+          from 0, with posteriors as integers from 0 to 100. Every file must cover
+          the same bins; intervals wider than RESOLUTION are split into bins.
+
+output: OUTDIR/parsed_posterior.bed (tab-separated, header row) or .csv (with a
+leading index column): chr, start, end, then one posterior column per state.
+This is the input format of `sagaconf run`.
+"""
+
+RUN_EPILOG = """\
+input files (BASE, VERIF):
+  Parsed posterior files, as `sagaconf parse` writes them. The format is chosen by
+  ".bed" or ".csv" in the file name.
+    .bed  tab-separated, a header row: chr start end posterior0 ... posterior<K-1>
+          (posterior1 ... posterior<K> also works).
+    .csv  comma-separated, a leading unnamed index column, then the same columns.
+  One row per bin, every bin the same width: the resolution is read from the first
+  row (end - start). Both files must use the same bins and the same number of
+  states; rows are joined on (chr, start, end), so only the shared bins are scored.
+  -s keeps the rows whose chr is exactly "chr21".
+
+mnemonics files (-bm, -vm), optional; used only when both are given:
+  Tab-separated, header row "old<TAB>new", one row per state, for example:
+    old     new
+    1       Enhancer_low
+    2       Promoter_flanking
+  old  The state number, in the column order of the posterior file. Numbering may
+       start at 0 or at 1; the first row decides. With any other start no state is
+       named.
+  new  A name with at most one underscore. It is shortened to 4 characters, and to
+       3 after the underscore: Promoter_flanking becomes Prom_fla. Reports name each
+       state "<number>_<short name>"; a state without a row is "<number>_Unkn".
+
+running time and memory (version 1.2.0, genome-wide GM12878, 16 states, 24 CPUs):
+  full mode  ChromHMM (200 bp bins): about 3 minutes, peak memory about 50 GB.
+             Segway (100 bp bins): about 10 minutes, peak memory about 60 GB.
+  -s         reads the whole files but analyses chr21 only: about 1 to 2 minutes.
+  On Linux with 2 or more CPUs, independent analysis steps run in parallel
+  processes, kept within 65% of the memory limit (the Slurm or cgroup limit, else
+  the free memory of the machine). The output is the same as with one CPU; to use
+  one process, run on one CPU (for example `taskset -c 0 sagaconf run ...`).
+  While it runs, OUTDIR holds a copy of both input files (removed at the end).
+
+main outputs (in OUTDIR):
+  r_values.bed                  chr, start, end, MAP (most probable state), r_value
+  confident_segments.bed        the base bins that are reproduced (r_value >= -tr)
+  confident_segments_dense.bed  the same, adjacent bins of one state merged
+  r_values_report.txt, ratio_robust.txt   genome-wide and per-state summaries
+  Full mode also writes overlap, calibration, granularity and boundary reports as
+  PDF + SVG plots, each with a .txt file of the plotted values.
+
+exit status:
+  0  success
+  1  an error, or in full mode one or more analysis steps failed (listed on stderr;
+     the other steps still ran)
+  2  invalid arguments
+
+examples:
+  sagaconf run base.bed verif.bed results/ -bm base_mnem.txt -vm verif_mnem.txt
+  sagaconf run base.bed verif.bed results/ --mode rvalues -s      # quick check
+"""
+
 
 def _hidden_alias(parser, flag, dest, **kw):
     """Accept an old flag name without listing it in --help."""
@@ -212,14 +354,16 @@ def build_parser():
         pkg_version = "unknown"
     parser = argparse.ArgumentParser(
         prog="sagaconf",
-        description="Calibrated reproducibility scores (r-values) for chromatin state annotations.")
+        description="Calibrated reproducibility scores (r-values) for chromatin state annotations.",
+        formatter_class=argparse.RawDescriptionHelpFormatter, epilog=TOP_EPILOG)
     parser.add_argument("--version", action="version", version="%(prog)s " + pkg_version)
     sub = parser.add_subparsers(dest="command", required=True, metavar="{parse,run}")
 
     p = sub.add_parser(
         "parse", help="convert ChromHMM or Segway posteriors into a parsed posterior file",
         description="Bin a SAGA model's posterior files into one parsed posterior file "
-                    "(chr, start, end, one column per state).")
+                    "(chr, start, end, one column per state).",
+        formatter_class=argparse.RawDescriptionHelpFormatter, epilog=PARSE_EPILOG)
     p.add_argument("posteriordir", help="directory with the SAGA model's posterior files")
     p.add_argument("resolution", type=int, help="bin size of the SAGA model, in bp")
     p.add_argument("outdir", help="directory for parsed_posterior.bed (or .csv); created if missing")
@@ -231,7 +375,8 @@ def build_parser():
     r = sub.add_parser(
         "run", help="score the reproducibility of a base annotation against a verification annotation",
         description="Compare a base and a verification annotation and write r-values, confident "
-                    "segments and reports to OUTDIR.")
+                    "segments and reports to OUTDIR.",
+        formatter_class=argparse.RawDescriptionHelpFormatter, epilog=RUN_EPILOG)
     r.add_argument("base", help="parsed posterior file (.bed or .csv) of the base annotation")
     r.add_argument("verif", help="parsed posterior file (.bed or .csv) of the verification annotation")
     r.add_argument("outdir", help="directory for the results; created if missing")
