@@ -453,7 +453,7 @@ def ct_lable_calib(loci_1, loci_2, pltsavedir):
         os.mkdir(pltsavedir+"/calib")
     calb = posterior_calibration(
         loci_1, loci_2, window_size=1000, savedir=pltsavedir+"/calib", allow_w=False)
-    calibrated_loci_1 = calb.perlabel_calibration_function(return_caliberated_matrix=False, general_in_parallel=True)
+    calibrated_loci_1 = calb.perlabel_calibration_function(return_caliberated_matrix=False)
 
     # if os.path.exists(pltsavedir+"/calib_logit_enr") == False:
     #     os.mkdir(pltsavedir+"/calib_logit_enr")

@@ -475,7 +475,10 @@ def _wait_any():
         got = False
         for pid, c in list(_S["live"].items()):
             if c["status"] is None:
-                p, status = os.waitpid(pid, os.WNOHANG)
+                try:
+                    p, status = os.waitpid(pid, os.WNOHANG)
+                except ChildProcessError:  # collected elsewhere: its result is unknown
+                    p, status = pid, 1 << 8
                 if p:
                     _collected(pid, status)
                     got = True
@@ -519,14 +522,12 @@ def _kill(pids):
     removes their partial files."""
     for pid in pids:
         if _S["live"][pid]["status"] is None:
+            targets = _descendants(pid)
             if _S["pool"].root == os.getpid():
-                targets = []
                 try:
                     os.killpg(pid, signal.SIGKILL)  # the child leads its own process group
                 except OSError:
                     pass
-            else:
-                targets = _descendants(pid)
             for p in [pid] + targets:
                 try:
                     os.kill(p, signal.SIGKILL)
