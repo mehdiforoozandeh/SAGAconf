@@ -17,7 +17,6 @@ whole process tree (FRACTION of the cgroup or machine memory, less what other pr
 a step that does not fit waits for a running child, or runs in-process if none is running.
 """
 import contextlib
-import fcntl
 import io
 import mmap
 import os
@@ -141,6 +140,7 @@ class _Pool:
         self.root, self.total, self.cpus = os.getpid(), _budget(), _cpus()
 
     def reserve(self, nbytes):
+        import fcntl  # POSIX only: forked children are used on Linux only
         fcntl.lockf(self.fd, fcntl.LOCK_EX)
         try:
             used, n, free = 0, 0, None
@@ -164,6 +164,7 @@ class _Pool:
     def assign(self, slot, pid):
         if slot is None:
             return
+        import fcntl
         fcntl.lockf(self.fd, fcntl.LOCK_EX)
         try:
             struct.pack_into("q", self.mm, 16 * slot, pid)
