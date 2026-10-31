@@ -225,6 +225,12 @@ class _Stream(io.TextIOBase):
     def fileno(self):
         return self._real.fileno()  # a write to it reaches the child's raw-output file
 
+    def close(self):
+        pass  # io.IOBase closes (and so flushes) an object it finalizes: a flush is output here
+
+    def __del__(self):
+        pass
+
 
 class _Tee(_Stream):
     """Stands in for sys.stdout / sys.stderr in-process: records and passes everything on."""
