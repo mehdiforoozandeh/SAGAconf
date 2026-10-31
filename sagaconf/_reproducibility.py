@@ -262,6 +262,10 @@ class posterior_calibration(object):
                 vector_pair = vector_pair.sort_values("pv1").reset_index(drop=True)
 
             MAP2 = list(self.MAPestimate2)
+            map2_sorted = vector_pair["map2"].to_numpy()
+            pv1_sorted = vector_pair["pv1"].to_numpy()
+            kth_cumsum = np.concatenate([[0], np.cumsum(map2_sorted == kth_label, dtype=np.int64)])
+            match_cumsum = np.concatenate([[0], np.cumsum(map2_sorted == match_label, dtype=np.int64)])
             for b in range(0, vector_pair.shape[0], strat_size):
                 # [bin_start, bin_end, num_values_in_bin, num_agreement, num_mislabeled, ratio_agreement]
                 if self.allow_w:
@@ -280,9 +284,30 @@ class posterior_calibration(object):
                             observed += 1
                     
                 else:
-                    subset_vector_pair = vector_pair.iloc[b:b+strat_size, :]
-                    observed = len(subset_vector_pair.loc[subset_vector_pair["map2"] == match_label])
-                    
+                    e = min(b + strat_size, vector_pair.shape[0])
+                    observed = int(match_cumsum[e] - match_cumsum[b])
+                    n_kth = int(kth_cumsum[e] - kth_cumsum[b])
+                    expected = self.coverage_2[match_label] * (e - b) if self.oe_transform else None
+
+                    if self.oe_transform:
+                        if observed==0:
+                            oe = np.log(
+                                (observed + 1)/
+                                (expected + 1))
+
+                        else:
+                            oe = np.log((observed)/(expected))
+                    else:
+                        oe = float(observed)/float(e - b)
+
+                    bins.append([
+                        float(pv1_sorted[b]), 
+                        float(pv1_sorted[e - 1]),
+                        e - b,
+                        n_kth,
+                        (e - b) - n_kth,
+                        oe])
+                    continue
                 
                 if self.oe_transform:
                     expected = self.coverage_2[match_label] * len(subset_vector_pair)
@@ -414,14 +439,25 @@ def joint_prob_with_binned_posterior(loci1, loci2, n_bins=50, conditional=False,
 
             vector_pair = vector_pair.sort_values("pv1").reset_index(drop=True)
 
+            # label codes of map2, to count each bin's labels in one pass
+            labels2 = loci2.columns[3:]
+            codes2 = labels2.get_indexer(pd.Index(vector_pair["map2"].to_numpy(), dtype=object)) \
+                if labels2.is_unique else None
+
             for b in range(0, vector_pair.shape[0], strat_size):
                 subset_pair_vector = vector_pair.iloc[b:b+strat_size,:]
+                if codes2 is not None:
+                    bin_codes = codes2[b:b+strat_size]
+                    bin_counts = np.bincount(bin_codes[bin_codes >= 0], minlength=len(labels2))
                 
                 for r2_label in range(len(loci2.columns[3:])):
-                    intersection_l_r = len(
-                        subset_pair_vector.loc[
-                        subset_pair_vector["map2"]==loci2.columns[3:][r2_label],:
-                        ]) / (len(loci1) * num_labels)
+                    if codes2 is not None:
+                        intersection_l_r = int(bin_counts[r2_label]) / (len(loci1) * num_labels)
+                    else:
+                        intersection_l_r = len(
+                            subset_pair_vector.loc[
+                            subset_pair_vector["map2"]==loci2.columns[3:][r2_label],:
+                            ]) / (len(loci1) * num_labels)
                     
                     P_r = (len(subset_pair_vector) / len(loci1))
 
@@ -508,6 +544,9 @@ def joint_prob_MAP_with_posterior(loci1, loci2, n_bins=50, conditional=False, st
 
     bi = 0
     strat_size = int(len(loci1)/n_bins)
+    labels2 = loci2.columns[3:]
+    num_labels2 = len(labels2)
+    fast = labels2.is_unique and loci1.columns[3:].is_unique and len(MAP1) == len(MAP2) == len(loci1)
     for r1_label in loci1.columns[3:]:
         for n in range(n_bins+1):
             xlabels.append("{} - bin #{}".format(r1_label, n+1))
@@ -519,6 +558,31 @@ def joint_prob_MAP_with_posterior(loci1, loci2, n_bins=50, conditional=False, st
         vector_pair.columns=["pv1", "map2", "map1"]
 
         vector_pair = vector_pair.sort_values("pv1").reset_index(drop=True)
+
+        n_rows = vector_pair.shape[0]
+        if fast and strat_size > 0 and bi + -(-n_rows // strat_size) <= joint.shape[0]:
+            # count (map2 label, bin) pairs among rows with map1 == r1_label in one pass
+            sel = vector_pair["map1"].to_numpy() == r1_label
+            codes = labels2.get_indexer(pd.Index(vector_pair["map2"].to_numpy()[sel], dtype=object))
+            bin_of = np.flatnonzero(sel) // strat_size
+            n_b = -(-n_rows // strat_size)
+            keep = codes >= 0
+            counts = np.bincount(bin_of[keep] * num_labels2 + codes[keep],
+                                 minlength=n_b * num_labels2).reshape(n_b, num_labels2)
+            for b in range(0, n_rows, strat_size):
+                size = min(b + strat_size, n_rows) - b
+                for r2_label in range(num_labels2):
+                    intersection_l_r = int(counts[b // strat_size, r2_label]) / (len(loci1) * num_labels)
+                    P_r = (size / len(loci1))
+                    if conditional:
+                        if intersection_l_r * P_r > 0:
+                            joint[bi, r2_label] =  (intersection_l_r / P_r ) * num_labels
+                        else:
+                            joint[bi, r2_label] =  0
+                    else:
+                        joint[bi, r2_label] =  intersection_l_r
+                bi += 1
+            continue
 
         for b in range(0, vector_pair.shape[0], strat_size):
             subset_pair_vector = vector_pair.iloc[b:b+strat_size,:]

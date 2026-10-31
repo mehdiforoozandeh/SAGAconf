@@ -492,8 +492,33 @@ def overall_boundary(loci_1, loci_2, savedir, match_definition="BM"):
     #========================================================================================#
     listofws = []
     overlaprecord = []
-    
-    for w in range(max_distance):
+
+    # label codes: m counts positions whose window holds the best match of their MAP1 label
+    codes1, uniq1 = pd.factorize(np.array(MAP1, dtype=object))
+    codes2, uniq2 = pd.factorize(np.array(MAP2, dtype=object))
+    fast = (len(MAP1) == len(MAP2) and len(MAP1) > 0 and codes1.min() >= 0 and codes2.min() >= 0
+            and all(u in per_label_matches for u in uniq1))
+    if fast:
+        pos_of = {u: c for c, u in enumerate(uniq2)}
+        target = np.array([pos_of.get(per_label_matches[u], -1) for u in uniq1], dtype=np.int64)[codes1]
+        cumsums = [np.concatenate([[0], np.cumsum(codes2 == c, dtype=np.int64)]) for c in range(len(uniq2))]
+        positions = np.arange(len(MAP1))
+        for w in range(max_distance):
+            if w == 0:
+                hit = target == codes2
+            else:
+                leftmost = np.maximum(0, positions - w)
+                rightmost = np.maximum(np.minimum(positions + w, len(MAP2) - 1), leftmost)
+                hit = np.zeros(len(MAP1), dtype=bool)
+                for c in range(len(uniq2)):
+                    sel = target == c
+                    hit[sel] = cumsums[c][rightmost[sel]] - cumsums[c][leftmost[sel]] > 0
+            m = int(np.count_nonzero(hit))
+
+            listofws.append(w)
+            overlaprecord.append(float(m) / len(loci_1))
+
+    for w in (range(max_distance) if not fast else ()):
         m = 0
         for i in range(len(MAP1)):
             k = MAP1[i]
@@ -527,6 +552,43 @@ def overall_boundary(loci_1, loci_2, savedir, match_definition="BM"):
     plt.clf()
 
 
+NO_MATCH = 2**62
+
+
+def _nearest_match(MAP1, MAP2, target_of, m):
+    """For bins i < m: distances to the nearest MAP2 == target_of[MAP1[i]] at or after i (up)
+    and at or before i (down); NO_MATCH where there is none on that side."""
+    n = len(MAP2)
+    map2 = np.array(MAP2, dtype=object)
+    targets = np.array([target_of[k] for k in MAP1[:m]], dtype=object)
+    pos = np.arange(n)
+    up = np.empty(m, dtype=np.int64)
+    down = np.empty(m, dtype=np.int64)
+    for t in set(targets.tolist()):
+        rows = np.flatnonzero(targets == t)
+        is_t = map2 == t
+        # next index >= i and previous index <= i where MAP2 == t (n and -1 if none)
+        nxt = np.minimum.accumulate(np.where(is_t, pos, n)[::-1])[::-1][rows]
+        prv = np.maximum.accumulate(np.where(is_t, pos, -1))[rows]
+        up[rows] = np.where(nxt == n, NO_MATCH, nxt - rows)
+        down[rows] = np.where(prv < 0, NO_MATCH, rows - prv)
+    return up, down
+
+
+def _distance_to_corresp(MAP1, MAP2, per_label_matches, max_distance):
+    """The per-bin distance list of distance_vs_overlap, from the nearest match up- and
+    downstream: the first w with a match in MAP2[i:i+w+1] (+w) or MAP2[i-w:i+1] (-w), else None.
+    Returns None where the loop's edge cases apply (no bins, no window)."""
+    n = len(MAP1)
+    if n == 0 or max_distance < 1 or len(MAP2) != n:
+        return None
+    up, down = _nearest_match(MAP1, MAP2, per_label_matches, n)
+    nearest = np.minimum(up, down)
+    out = np.where(up <= down, nearest, -nearest).astype(object)
+    out[nearest >= max_distance] = None
+    return [None if x is None else int(x) for x in out]
+
+
 def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
     indicator_file = savedir+"/Dist_vs_Corresp"
     if os.path.exists(indicator_file):
@@ -553,33 +615,35 @@ def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
         good_matches = sorted_k_vector.index[0]
         per_label_matches[k] = good_matches
     #========================================================================================#
-    distance_to_corresp = []
-    for i in range(len(MAP1)):
-        k = MAP1[i]
+    distance_to_corresp = _distance_to_corresp(MAP1, MAP2, per_label_matches, max_distance)
+    if distance_to_corresp is None:
+        distance_to_corresp = []
+        for i in range(len(MAP1)):
+            k = MAP1[i]
 
-        matched = False
-        for w in range(max_distance):
-            if matched==False and w == 0:
-                if MAP2[i] == per_label_matches[k]:
-                    distance_to_corresp.append(0)
-                    matched = True
+            matched = False
+            for w in range(max_distance):
+                if matched==False and w == 0:
+                    if MAP2[i] == per_label_matches[k]:
+                        distance_to_corresp.append(0)
+                        matched = True
 
-            elif matched==False and w > 0:
-                upst_neighbors = MAP2[i : min(i+w+1, len(MAP2))]
-                downst_neighbors = MAP2[max(0, i-w) : i+1]
-                if per_label_matches[k] in upst_neighbors:
-                    distance_to_corresp.append(w)
-                    matched = True
+                elif matched==False and w > 0:
+                    upst_neighbors = MAP2[i : min(i+w+1, len(MAP2))]
+                    downst_neighbors = MAP2[max(0, i-w) : i+1]
+                    if per_label_matches[k] in upst_neighbors:
+                        distance_to_corresp.append(w)
+                        matched = True
                 
-                elif per_label_matches[k] in downst_neighbors:
-                    distance_to_corresp.append(-1*w)
-                    matched = True
+                    elif per_label_matches[k] in downst_neighbors:
+                        distance_to_corresp.append(-1*w)
+                        matched = True
 
-            if matched:
-                break
+                if matched:
+                    break
 
-            elif matched==False and w==(max_distance-1):
-                distance_to_corresp.append(None)
+                elif matched==False and w==(max_distance-1):
+                    distance_to_corresp.append(None)
     
     nonefiltered = [x * resolution for x in distance_to_corresp if x is not None] 
     matched_ratio = len(nonefiltered) / len(distance_to_corresp)
@@ -703,7 +767,27 @@ def distance_vs_overlap_3(loci_1, loci_2, savedir, match_definition="BM"):
         l : {x:[[0, 0],[0, 0]] for x in range(max_distance)} for l in loci_1.columns[3:]
     }
 
-    for i in range(loci_1.shape[0]):
+    labels1, labels2 = loci_1.columns[3:], loci_2.columns[3:]
+    codes1 = labels1.get_indexer(pd.Index(MAP1, dtype=object)) if labels1.is_unique else None
+    fast = (codes1 is not None and labels2.is_unique and len(MAP1) == len(MAP2) == loci_1.shape[0]
+            and len(MAP1) > 0 and codes1.min() >= 0)
+    if fast:
+        # same counts as the loop below, one window offset at a time
+        codes2 = labels2.get_indexer(pd.Index(MAP2, dtype=object))
+        target = np.array([labels2.get_loc(per_label_matches[l]) for l in labels1])[codes1]
+        n = len(MAP1)
+        pos = np.arange(n)
+        total = np.bincount(codes1, minlength=len(labels1))
+        for w in range(max_distance):
+            right = np.bincount(codes1[codes2[np.minimum(n - 1, pos + w)] == target], minlength=len(labels1))
+            left = np.bincount(codes1[codes2[np.maximum(0, pos - w)] == target], minlength=len(labels1))
+            for a, l in enumerate(labels1):
+                label_dist_dict[l][w][0][0] += int(right[a])
+                label_dist_dict[l][w][0][1] += int(total[a] - right[a])
+                label_dist_dict[l][w][1][0] += int(left[a])
+                label_dist_dict[l][w][1][1] += int(total[a] - left[a])
+
+    for i in range(loci_1.shape[0] if not fast else 0):
         for w in range(max_distance):
             l = MAP1[i]
 
@@ -829,35 +913,54 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
         boundary_distances[k] = []
         count_unmatched_boundaries[k] = 0
 
-    for i in range(len(MAP1)-1):
-        # if MAP1[i] != MAP1[i+1]: 
-        #this means transition
-        """
-        now check how far should we go from point i in the other replicate to see a good match.
-        """
-        if MAP2[i] not in per_label_matches[MAP1[i]]:
-            matched = False
-            dist = 0
-            while matched == False and dist<max_distance:
-                if i + (-1*dist) >= 0:
-                    if MAP2[i + (-1*dist)] in per_label_matches[MAP1[i]]:
-                        matched = True
+    # positional lists index like the RangeIndex Series, without per-item pandas overhead
+    if isinstance(MAP1.index, pd.RangeIndex) and MAP1.index.start == 0 and MAP1.index.step == 1 \
+            and isinstance(MAP2.index, pd.RangeIndex) and MAP2.index.start == 0 and MAP2.index.step == 1:
+        MAP1 = list(MAP1)
+        MAP2 = list(MAP2)
 
-                if i + dist < len(MAP2):
-                    if MAP2[i + dist] in per_label_matches[MAP1[i]]:
-                        matched = True
+    best_match = {k: v[0] for k, v in per_label_matches.items() if len(v) == 1}
+    if len(best_match) == len(per_label_matches) and isinstance(MAP1, list) and isinstance(MAP2, list) \
+            and len(MAP1) == len(MAP2) and len(MAP1) > 1:
+        # the nearest best match at distance < max_distance, as in the loop below
+        m = len(MAP1) - 1
+        up, down = _nearest_match(MAP1, MAP2, best_match, m)
+        nearest = np.minimum(up, down)
+        for k, d in zip(MAP1[:m], nearest.tolist()):
+            if d < max_distance or d == 0:
+                boundary_distances[k].append(d)
+            else:
+                count_unmatched_boundaries[k] += 1
+    else:
+        for i in range(len(MAP1)-1):
+            # if MAP1[i] != MAP1[i+1]: 
+            #this means transition
+            """
+            now check how far should we go from point i in the other replicate to see a good match.
+            """
+            if MAP2[i] not in per_label_matches[MAP1[i]]:
+                matched = False
+                dist = 0
+                while matched == False and dist<max_distance:
+                    if i + (-1*dist) >= 0:
+                        if MAP2[i + (-1*dist)] in per_label_matches[MAP1[i]]:
+                            matched = True
 
-                if matched==False:
-                    dist += 1
+                    if i + dist < len(MAP2):
+                        if MAP2[i + dist] in per_label_matches[MAP1[i]]:
+                            matched = True
 
-            if matched==True:
-                boundary_distances[MAP1[i]].append(dist)
+                    if matched==False:
+                        dist += 1
 
-            else:  
-                count_unmatched_boundaries[MAP1[i]] += 1
+                if matched==True:
+                    boundary_distances[MAP1[i]].append(dist)
 
-        else:
-            boundary_distances[MAP1[i]].append(0)
+                else:  
+                    count_unmatched_boundaries[MAP1[i]] += 1
+
+            else:
+                boundary_distances[MAP1[i]].append(0)
 
     #========================================================================================#
     # plot histograms
