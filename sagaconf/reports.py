@@ -648,23 +648,21 @@ def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
                 elif matched==False and w==(max_distance-1):
                     distance_to_corresp.append(None)
     
-    # Every figure starts from the plot state the one before it resets to, so the figures are
-    # drawn in forked children (the same calls each), committed in order.
-    def overall(savedir):
-        nonefiltered = [x * resolution for x in distance_to_corresp if x is not None] 
-        matched_ratio = len(nonefiltered) / len(distance_to_corresp)
-        plt.hist(_as_hist_input(nonefiltered), bins=len(set(nonefiltered)), density=True, log=True, color='black', alpha=0.6, histtype="stepfilled")
-        plt.axvline(x=0, color='red', linestyle='dotted', linewidth=1.5)
-        plt.yticks(np.logspace(-6, 0, 7))
-        plt.xlabel("Distance (bp)")
-        plt.ylabel("Matched label density (log scale)")
-        plt.title("Correspondence vs. Distance -- Overall | overlap ratio = {:.2f}".format(matched_ratio))
-        plt.tight_layout()
-        savefig_pdf_svg(savedir+"/dist_vs_corresp_{}.pdf".format("overall"), savedir+"/dist_vs_corresp_{}.svg".format("overall"))
+    nonefiltered = [x * resolution for x in distance_to_corresp if x is not None] 
+    matched_ratio = len(nonefiltered) / len(distance_to_corresp)
+    plt.hist(_as_hist_input(nonefiltered), bins=len(set(nonefiltered)), density=True, log=True, color='black', alpha=0.6, histtype="stepfilled")
+    plt.axvline(x=0, color='red', linestyle='dotted', linewidth=1.5)
+    plt.yticks(np.logspace(-6, 0, 7))
+    plt.xlabel("Distance (bp)")
+    plt.ylabel("Matched label density (log scale)")
+    plt.title("Correspondence vs. Distance -- Overall | overlap ratio = {:.2f}".format(matched_ratio))
+    plt.tight_layout()
+    savefig_pdf_svg(savedir+"/dist_vs_corresp_{}.pdf".format("overall"), savedir+"/dist_vs_corresp_{}.svg".format("overall"))
 
-        sns.reset_orig
-        _reset_plot()
-
+    sns.reset_orig
+    plt.close("all")
+    plt.style.use('default')
+    plt.clf()
 
     #========================================================================================#
     perlabel = {}
@@ -728,7 +726,9 @@ def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
         sns.reset_orig
         _reset_plot()
 
-    figs = [overall] + [label_fig(k) for k in perlabel.keys()] + [subplot]
+    # Every figure starts from the plot state the one before it resets to, so the figures are
+    # drawn in forked children (the same calls each), committed in order.
+    figs = [label_fig(k) for k in perlabel.keys()] + [subplot]
     # each figure holds a list of up to one distance per bin: ~60 bytes per row
     fig_mem = (60 * len(MAP1) + (256 << 20),) * len(figs)
     run_steps(figs, savedir, [lambda: None] + [_reset_plot] * len(figs),
