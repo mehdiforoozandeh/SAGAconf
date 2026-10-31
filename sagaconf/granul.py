@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from ._cluster_matching import IoU_overlap
+from ._cluster_matching import IoU_overlap, _coverage, joint_overlap_prob
 from ._reproducibility import NMI_from_matrix
 
 
@@ -112,13 +112,34 @@ def _onehot_merging_is_exact(loci_1, loci_2, MAP1, MAP2):
             and isinstance(MAP2.index, pd.RangeIndex) and MAP2.index.start == 0 and MAP2.index.step == 1)
 
 
-def _granularity_from_counts(loci_1, loci_2, k, MAP1, MAP2):
+def granularity_all_labels(loci_1, loci_2, labels):
+    """Yields granularity_vs_agreement_nonsymmetric(loci_1.copy(), loci_2.copy(), k=c) for c in labels.
+
+    When the counts path applies, the MAPs, joint overlap and coverages (the same for every
+    label) are computed once, on the first label; the IoU matrix is still divided out per label,
+    as each label's call does (and warns)."""
+    MAP1 = loci_1.iloc[:,3:].idxmax(axis=1)
+    MAP2 = loci_2.iloc[:,3:].idxmax(axis=1)
+    if not _onehot_merging_is_exact(loci_1, loci_2, MAP1, MAP2):
+        for c in labels:
+            yield granularity_vs_agreement_nonsymmetric(loci_1.copy(), loci_2.copy(), k=c)
+        return
+    maps = (MAP1, MAP2)
+    parts = (joint_overlap_prob(loci_1, loci_2, w=0, symmetric=True, maps=maps),
+             _coverage(MAP1, loci_1), _coverage(MAP2, loci_2))
+    for c in labels:
+        confmat = IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False, maps=maps, parts=parts)
+        yield _granularity_from_counts(loci_1, loci_2, c, MAP1, MAP2, confmat)
+
+
+def _granularity_from_counts(loci_1, loci_2, k, MAP1, MAP2, confmat=None):
     """granularity_vs_agreement_nonsymmetric with disregard_posterior, from integer counts.
 
     The IoU of the 0/1 matrices depends only on the MAPs, which binarising keeps. Merging the
     first j+1 labels of sorted_k_vector makes MAP2 the merged label exactly where the original
     MAP2 is one of them, so the agreement and coverage counts are cumulative label counts."""
-    confmat = IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False, maps=(MAP1, MAP2))
+    if confmat is None:
+        confmat = IoU_overlap(loci_1, loci_2, w=0, symmetric=True, soft=False, maps=(MAP1, MAP2))
     sorted_k_vector = confmat.loc[k,:].sort_values(ascending=False)
 
     rank2 = sorted_k_vector.index.get_indexer(pd.Index(MAP2.to_numpy(), dtype=object))
