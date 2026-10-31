@@ -5,7 +5,6 @@ import os
 import pandas as pd
 import pybedtools
 import seaborn as sns
-import tempfile
 from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from pybedtools import BedTool
@@ -14,7 +13,7 @@ from sklearn import metrics
 from ._cluster_matching import Hungarian_algorithm, IoU_overlap, connect_bipartite, joint_overlap_prob, overall_overlap_ratio, overlap_matrix
 from ._reproducibility import NMI_from_matrix, joint_prob_MAP_with_posterior, joint_prob_with_binned_posterior, posterior_calibration
 from ._utils import logit_array, to_tsv
-from ._fork import frame_bytes, run_steps, savefig_pdf_svg
+from ._fork import frame_bytes, run_steps, savefig_pdf_svg, scratch_file
 from .granul import granularity_all_labels, granularity_vs_agreement_nonsymmetric, merge_clusters
 from .overall import condense_segments, is_repr_posterior, keep_reproducible_annotations, perlabel_is_reproduced, single_point_repr, write_MAPloci_in_BED
 from .run import intersect_parsed_posteriors, read_mnemonics
@@ -182,16 +181,14 @@ def convert_to_GenomeBrowser_viewable_BED(initial_rvalue_bed):
     r_vals['thickStart'] = r_vals['chromStart']
     r_vals['thickEnd'] = r_vals['chromEnd']
     r_vals = r_vals[['chrom', 'chromStart', 'chromEnd', 'name', 'score', 'strand', 'thickStart', 'thickEnd', 'itemRgb']]
-    # BedTool.from_dataframe(r_vals), with the file written by to_tsv and removed once saved
-    # (pybedtools removes its temporary files only at exit, which a forked child skips)
-    fd, tmp = tempfile.mkstemp(prefix="pybedtools.", suffix=".tmp")
-    os.close(fd)
-    try:
+    # BedTool.from_dataframe(r_vals), with the file written by to_tsv next to the output and
+    # removed once saved (pybedtools removes its temporary files only at exit, which a forked
+    # child skips)
+    out = initial_rvalue_bed.replace(".bed", "_UCSC_GenomeBrowser.bed")
+    with scratch_file(out + ".sagaconf_part") as tmp:
         to_tsv(r_vals, tmp, header=False, na_rep=".")
         bed = BedTool(tmp)
-        bed.saveas(initial_rvalue_bed.replace(".bed", "_UCSC_GenomeBrowser.bed"))
-    finally:
-        os.remove(tmp)
+        bed.saveas(out)
 
 
 def subset_data_to_activeregions(

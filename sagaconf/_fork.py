@@ -16,6 +16,7 @@ Memory: every child reserves an estimate of its peak extra memory from one budge
 whole process tree (FRACTION of the cgroup or machine memory, less what other processes use);
 a step that does not fit waits for a running child, or runs in-process if none is running.
 """
+import contextlib
 import fcntl
 import io
 import mmap
@@ -723,6 +724,21 @@ def _discard(mine, first, savedir, done=None):
         d = _step_dir(savedir, mine["tag"], j)
         _S["dirs"].discard(d)
         shutil.rmtree(d, ignore_errors=True)
+
+
+@contextlib.contextmanager
+def scratch_file(path):
+    """Yields path, a file to work in that is removed afterwards, also when this process is
+    interrupted or stopped with SIGTERM while running steps, or when its step is discarded."""
+    _S["parts"].add(path)
+    try:
+        yield path
+    finally:
+        _S["parts"].discard(path)
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
 
 
 # ---- figures ---------------------------------------------------------------------------------
