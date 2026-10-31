@@ -33,7 +33,8 @@ SAVER_BYTES = 512 << 20  # a forked figure save
 MAX_SAVERS = 4  # figure saves pending at once in one step's child
 
 _S = {"pool": None, "live": {}, "dirs": set(), "parts": set(), "savers": [], "step_child": False,
-      "depth": 0, "sig": None, "seq": 0, "rec": None}
+      "depth": 0, "sig": {}, "seq": 0, "rec": None, "own_dir": None}
+_SIGNALS = ("SIGINT", "SIGTERM", "SIGHUP")
 
 
 def _cpus():
@@ -51,7 +52,7 @@ def usable():
                 "_showwarnmsg", "_showwarnmsg_impl", "_showwarning_orig", "_filters_mutated"))
             and warnings.showwarning is warnings._showwarning_orig
             and getattr(warnings._showwarnmsg_impl, "__module__", None) == "warnings"
-            and _deprecations_hidden())
+            and _deprecations_hidden() and _pool() is not None)
 
 
 def frame_bytes(*frames):
@@ -110,7 +111,9 @@ def _cgroup():
 
 def _budget():
     """Bytes the process tree may use: FRACTION of the memory limit, less what other processes
-    of the same cgroup use now (this process's own use is subtracted at each reservation)."""
+    of the same cgroup use now (this process's own use is subtracted at each reservation).
+    Other sagaconf runs started later in the same cgroup or machine are not seen: each run
+    budgets for itself, so runs sharing one allocation must share it by other means."""
     own = _usage()
     avail = _kb_field(_read("/proc/meminfo"), "MemAvailable")
     total = None if avail is None else int(FRACTION * (avail + own))
@@ -134,9 +137,16 @@ class _Pool:
     SLOTS = 256
 
     def __init__(self):
+        import fcntl
         self.fd = os.memfd_create("sagaconf_budget")
-        os.ftruncate(self.fd, 16 * self.SLOTS)
-        self.mm = mmap.mmap(self.fd, 16 * self.SLOTS)
+        try:
+            os.ftruncate(self.fd, 16 * self.SLOTS)
+            self.mm = mmap.mmap(self.fd, 16 * self.SLOTS)
+            fcntl.lockf(self.fd, fcntl.LOCK_EX)
+            fcntl.lockf(self.fd, fcntl.LOCK_UN)
+        except BaseException:
+            os.close(self.fd)
+            raise
         self.root, self.total, self.cpus = os.getpid(), _budget(), _cpus()
 
     def reserve(self, nbytes):
@@ -183,9 +193,80 @@ def _alive(pid):
 
 
 def _pool():
+    """The budget pool, created on first use; None where it cannot be created (the memory file,
+    a mapping or a lock is denied): everything then runs in-process."""
     if _S["pool"] is None:
-        _S["pool"] = _Pool()
-    return _S["pool"]
+        try:
+            _S["pool"] = _Pool()
+        except (OSError, MemoryError, ValueError):
+            _S["pool"] = False
+        else:
+            _start_janitor()
+    return _S["pool"] or None
+
+
+# Removes the root's step directories and partial files if the root dies without doing it
+# (SIGKILL): it reads the directories the root works in until the pipe closes, which happens
+# when the root and all its children are gone; a normal run leaves nothing to remove.
+_JANITOR = r"""
+import os, shutil, signal, sys
+for name in ("SIGINT", "SIGHUP", "SIGTERM"):
+    signal.signal(getattr(signal, name), signal.SIG_IGN)
+data = b""
+while True:
+    chunk = os.read(0, 65536)
+    if not chunk:
+        break
+    data += chunk
+tag = ".sagaconf_step%s_" % sys.argv[1]
+for d in set(data.decode("utf-8", "surrogateescape").split("\0")) - {""}:
+    try:
+        names = os.listdir(d)
+    except OSError:
+        continue
+    for n in names:
+        p = os.path.join(d, n)
+        if n.startswith(tag):
+            shutil.rmtree(p, ignore_errors=True)
+        elif n.endswith(".sagaconf_part"):
+            try:
+                os.remove(p)
+            except OSError:
+                pass
+"""
+
+
+def _start_janitor():
+    try:
+        r, w = os.pipe()
+        pid = os.fork()
+    except OSError:
+        return
+    if pid == 0:
+        try:
+            os.dup2(r, 0)
+            null = os.open(os.devnull, os.O_RDWR)
+            os.dup2(null, 1)  # holds no pipe the caller reads to its end
+            os.dup2(null, 2)
+            os.execv(sys.executable, [sys.executable, "-S", "-c", _JANITOR, str(os.getppid())])
+        finally:
+            os._exit(1)
+    os.close(r)
+    _S["janitor"], _S["watched"] = w, set()
+
+
+def _watch(directory):
+    """Tells the janitor (in the root) that the root works in directory."""
+    w = _S.get("janitor")
+    if w is None or _S["pool"] is None or _S["pool"].root != os.getpid():
+        return
+    d = os.path.abspath(directory)
+    if d not in _S["watched"]:
+        _S["watched"].add(d)
+        try:
+            os.write(w, d.encode("utf-8", "surrogateescape") + b"\0")
+        except OSError:
+            pass
 
 
 # ---- recording output ------------------------------------------------------------------------
@@ -286,7 +367,9 @@ class _Recorder:
                     reg.clear()
             warnings.onceregistry.clear()
         kind = _Tee if self.tee else _Stream
-        sys.stdout, sys.stderr = kind(self, "o", self.out), kind(self, "e", self.err)
+        # a stream that is None stays None: print() and warnings then write nothing, as they do
+        sys.stdout = None if self.out is None else kind(self, "o", self.out)
+        sys.stderr = None if self.err is None else kind(self, "e", self.err)
         self.hooks = (self._show, self._mutated)  # bound once: each access makes a new object
         warnings._showwarnmsg, warnings._filters_mutated = self.hooks
 
@@ -398,14 +481,16 @@ def replay(events):
     registries) and warning-filter changes, in order."""
     for ev in events:
         tag = ev[0]
-        if tag == "o":
-            sys.stdout.write(ev[1])
-        elif tag == "e":
-            sys.stderr.write(ev[1])
-        elif tag == "of":
-            sys.stdout.flush()
-        elif tag == "ef":
-            sys.stderr.flush()
+        if tag in ("o", "of"):
+            stream = sys.stdout
+        elif tag in ("e", "ef"):
+            stream = sys.stderr
+        if tag in ("o", "e"):
+            if stream is not None:
+                stream.write(ev[1])
+        elif tag in ("of", "ef"):
+            if stream is not None:
+                stream.flush()
         elif tag == "m":
             warnings._filters_mutated()
         elif tag == "w":
@@ -423,46 +508,77 @@ def in_step_child():
 
 def splice(events):
     """In a step's child: the output recorded by record() is produced here."""
-    if not isinstance(sys.stdout, _Stream) or isinstance(sys.stdout, _Tee):
+    if _S["rec"] is None:
         raise RuntimeError("splice() outside a step's child")
-    sys.stdout._rec.events.append(("x", events))
+    _S["rec"].events.append(("x", events))
 
 
 # ---- children --------------------------------------------------------------------------------
 
-def _fork(slot, d=None, parts=None):
+def _fork(slot, d=None, parts=None, register=None):
     """Forks a child with a raw-output file and a record file: returns (pid, fds) in the parent,
-    (0, fds) in the child, or None if creating them failed (the caller then works in-process)."""
+    (0, fds) in the child, or None if creating them failed (the caller then works in-process).
+    register(pid) runs in the parent before an interrupt can arrive, so that a child is always
+    known to the code that must kill it."""
     fds = []
+    blocked = [getattr(signal, n) for n in _SIGNALS if hasattr(signal, n)]
+    old = signal.pthread_sigmask(signal.SIG_BLOCK, blocked)
     try:
-        fds.append(os.memfd_create("sagaconf_raw"))
-        fds.append(os.memfd_create("sagaconf_rec"))
-        if d is not None:
-            os.mkdir(d)
-            _S["dirs"].add(d)
-        pid = os.fork()
-    except (OSError, MemoryError):
-        for fd in fds:
-            os.close(fd)
-        if d is not None and d in _S["dirs"]:
-            _S["dirs"].discard(d)
-            shutil.rmtree(d, ignore_errors=True)
-        _pool().assign(slot, 0)
-        return None
-    if pid == 0:
-        leader = _S["pool"].root == os.getppid()
-        _S.update(live={}, dirs=set(), parts=set(), savers=[], step_child=True, depth=0, sig=None, rec=None)
-        if leader:
+        try:
+            fds.append(os.memfd_create("sagaconf_raw"))
+            fds.append(os.memfd_create("sagaconf_rec"))
+            if d is not None:
+                os.mkdir(d)
+                _S["dirs"].add(d)
+            parent = os.getpid()
+            pid = os.fork()
+        except (OSError, MemoryError):
+            for fd in fds:
+                os.close(fd)
+            if d is not None and d in _S["dirs"]:
+                _S["dirs"].discard(d)
+                shutil.rmtree(d, ignore_errors=True)
+            _pool().assign(slot, 0)
+            return None
+        if pid == 0:
+            leader = _S["pool"].root == parent
+            _S.update(live={}, dirs=set(), parts=set(), savers=[], step_child=True, depth=0, sig={},
+                      rec=None, own_dir=d)
+            if leader:
+                try:
+                    os.setpgid(0, 0)  # so that the root can kill the child's whole tree
+                except OSError:
+                    pass
             try:
-                os.setpgid(0, 0)  # so that the root can kill the child's whole tree
-            except OSError:
+                signal.signal(signal.SIGTERM, _on_signal)
+            except (ValueError, OSError):
                 pass
-        return 0, fds
-    _pool().assign(slot, pid)
-    _S["live"][pid] = {"slot": slot, "fds": fds, "status": None, "parts": parts or []}
-    if parts:
-        _S["parts"].update(t for t, _ in parts)
-    return pid, fds
+            _die_with_parent(parent)
+            return 0, fds
+        _pool().assign(slot, pid)
+        _S["live"][pid] = {"slot": slot, "fds": fds, "status": None, "parts": parts or [],
+                           "leader": _S["pool"].root == os.getpid()}
+        if parts:
+            _S["parts"].update(t for t, _ in parts)
+        if register is not None:
+            register(pid)
+        return pid, fds
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, old)
+
+
+def _die_with_parent(parent):
+    """In a child: SIGTERM when the parent dies (Linux prctl PR_SET_PDEATHSIG), so that no child
+    outlives the process that would commit or remove its work; the handler removes what this
+    child made."""
+    try:
+        import ctypes
+        libc = ctypes.CDLL(None, use_errno=True)
+        libc.prctl(1, int(signal.SIGTERM), 0, 0, 0)
+    except Exception:
+        pass
+    if os.getppid() != parent:  # the parent died before prctl took effect
+        _on_signal(signal.SIGTERM, None)
 
 
 def _child_main(fds, prelude, body):
@@ -520,19 +636,32 @@ def _collected(pid, status):
     c["slot"] = None
 
 
+def _reap(pid, block):
+    """Collects child pid if it has exited (waiting for it if block); first kills what is left
+    of its process group, where it leads one (e.g. the figure saves of a child that was
+    OOM-killed). True if collected."""
+    try:
+        if os.waitid(os.P_PID, pid, os.WEXITED | os.WNOWAIT | (0 if block else os.WNOHANG)) is None:
+            return False
+    except ChildProcessError:  # collected elsewhere: its result is unknown
+        _collected(pid, 1 << 8)
+        return True
+    if _S["live"][pid].get("leader"):
+        try:
+            os.killpg(pid, signal.SIGKILL)  # the zombie keeps the group id from being reused
+        except OSError:
+            pass
+    _collected(pid, os.waitpid(pid, 0)[1])
+    return True
+
+
 def _wait_any():
     """Collects whichever children of this process have exited, sleeping briefly if none has."""
     for _ in range(2):
         got = False
         for pid, c in list(_S["live"].items()):
-            if c["status"] is None:
-                try:
-                    p, status = os.waitpid(pid, os.WNOHANG)
-                except ChildProcessError:  # collected elsewhere: its result is unknown
-                    p, status = pid, 1 << 8
-                if p:
-                    _collected(pid, status)
-                    got = True
+            if c["status"] is None and _reap(pid, False):
+                got = True
         if got:
             return
         time.sleep(0.01)
@@ -540,7 +669,7 @@ def _wait_any():
 
 def _wait_pid(pid):
     if _S["live"][pid]["status"] is None:
-        _collected(pid, os.waitpid(pid, 0)[1])
+        _reap(pid, True)
 
 
 def _finish(pid):
@@ -585,10 +714,7 @@ def _kill(pids):
                 except OSError:
                     pass
     for pid in pids:
-        try:
-            _wait_pid(pid)
-        except ChildProcessError:
-            _collected(pid, 1 << 8)
+        _wait_pid(pid)
         for t, _ in _S["live"][pid]["parts"]:
             _S["parts"].discard(t)
             try:
@@ -613,34 +739,44 @@ def _kill_mine():
     _S["parts"].clear()
 
 
-def _on_sigterm(signum, frame):
-    prev = _S["sig"]
+def _on_signal(signum, frame):
+    """SIGTERM or SIGHUP (and, through _die_with_parent, the parent's death): kills this
+    process's children, removes their directories and partial files (and, in a step's child, its
+    own directory), then lets the signal act as it would have."""
+    prev = _S["sig"].get(signum)
     _kill_mine()
-    signal.signal(signal.SIGTERM, prev if prev is not None else signal.SIG_DFL)
-    os.kill(os.getpid(), signal.SIGTERM)
+    if _S["own_dir"] is not None:
+        shutil.rmtree(_S["own_dir"], ignore_errors=True)
+    signal.signal(signum, prev if prev is not None else signal.SIG_DFL)
+    os.kill(os.getpid(), signum)
 
 
 def _enter():
     if _S["depth"] == 0:
-        _S["sig"] = None
-        try:
-            prev = signal.getsignal(signal.SIGTERM)
-            if prev is not signal.SIG_IGN and prev is not _on_sigterm:
-                signal.signal(signal.SIGTERM, _on_sigterm)
-                _S["sig"] = prev
-        except (ValueError, OSError):  # not the main thread
-            pass
+        _S["sig"] = {}
+        for name in ("SIGTERM", "SIGHUP"):
+            if not hasattr(signal, name):
+                continue
+            sig = getattr(signal, name)
+            try:
+                prev = signal.getsignal(sig)
+                if prev is not signal.SIG_IGN and prev is not _on_signal:
+                    signal.signal(sig, _on_signal)
+                    _S["sig"][sig] = prev
+            except (ValueError, OSError):  # not the main thread
+                pass
     _S["depth"] += 1
 
 
 def _leave():
     _S["depth"] -= 1
-    if _S["depth"] == 0 and _S["sig"] is not None:
-        try:
-            signal.signal(signal.SIGTERM, _S["sig"])
-        except (ValueError, OSError):
-            pass
-        _S["sig"] = None
+    if _S["depth"] == 0:
+        for sig, prev in _S["sig"].items():
+            try:
+                signal.signal(sig, prev if prev is not None else signal.SIG_DFL)
+            except (ValueError, OSError):
+                pass
+        _S["sig"] = {}
 
 
 def _merge(src, dst):
@@ -659,7 +795,8 @@ def run_steps(steps, savedir, preludes, costs, mem, inprocess=(), restart=None):
     preludes[i]() restores, in a process that has run none of the steps, the global state that
     steps[:i] leave behind (preludes has one more entry, for after the last step). costs[i]
     orders the launches (largest first); mem[i] is step i's estimated peak extra memory in a
-    child. Steps listed in `inprocess` always run in this process, in their turn. A step that
+    child (a number, or a function returning one when the step is launched). Steps listed in
+    `inprocess` always run in this process, in their turn. A step that
     returns False (a failure it reported) or fails in its child is the last step whose children
     are kept: the steps after it run in-process. restart[j] = k (k < j): if step j fails in its
     child, the run is the sequential one from step k on, not from step j.
@@ -668,6 +805,7 @@ def run_steps(steps, savedir, preludes, costs, mem, inprocess=(), restart=None):
         for step in steps:
             step(savedir)
         return
+    _watch(savedir)
     _enter()
     mine = {"done": {}}
     try:
@@ -698,11 +836,11 @@ def _run(steps, savedir, preludes, costs, mem, inprocess, restart, mine):
         if pending and not nofork and time.monotonic() - tried > 0.2:
             tried = time.monotonic()
             for j in list(pending):  # launch what fits, most costly first
-                slot = pool.reserve(mem[j])
+                slot = pool.reserve(_need(mem, j))
                 if slot is None:
                     continue
                 d = _step_dir(savedir, tag, j)
-                got = _fork(slot, d)
+                got = _fork(slot, d, register=lambda pid: pids.__setitem__(j, pid))
                 if got is None:
                     nofork = True
                     break
@@ -710,7 +848,6 @@ def _run(steps, savedir, preludes, costs, mem, inprocess, restart, mine):
                 pid, fds = got
                 if pid == 0:
                     _child_main(fds, preludes[j], lambda: steps[j](d))
-                pids[j] = pid
                 tried = 0.0
 
         if i in pids or i in done:  # commit step i, once it and the steps restarting from it are done
@@ -733,8 +870,8 @@ def _run(steps, savedir, preludes, costs, mem, inprocess, restart, mine):
             if any(not done[j][0] for j in done if j >= i):
                 _discard(mine, i, savedir, done)
                 preludes[i]()
-                for step in steps[i:]:
-                    step(savedir)
+                for k in range(i, n):
+                    _run_here(steps[k], savedir, _need(mem, k))
                 return
             replay(done.pop(i)[1])
             d = _step_dir(savedir, tag, i)
@@ -751,12 +888,34 @@ def _run(steps, savedir, preludes, costs, mem, inprocess, restart, mine):
             pending.remove(i)
         preludes[i]()
         i += 1
-        if steps[i - 1](savedir) is False:
+        if _run_here(steps[i - 1], savedir, 0 if i - 1 in inprocess else _need(mem, i - 1)) is False:
             _discard(mine, i, savedir, done)
-            for step in steps[i:]:
-                step(savedir)
+            for k in range(i, n):
+                _run_here(steps[k], savedir, _need(mem, k))
             return
     preludes[n]()
+
+
+def _need(mem, j):
+    m = mem[j]
+    return int(m() if callable(m) else m)
+
+
+def _run_here(step, savedir, need):
+    """Runs step in this process. The root first reserves its estimated memory (need), waiting
+    for its running children (of any run_steps call) while it does not fit; the in-process work
+    of a child is covered by what its parent reserved for it."""
+    pool, slot = _pool(), None
+    if need and pool.root == os.getpid():
+        while True:
+            slot = pool.reserve(need)
+            if slot is not None or not _running():
+                break
+            _wait_any()
+    try:
+        return step(savedir)
+    finally:
+        pool.assign(slot, 0)
 
 
 def _running():
@@ -783,6 +942,7 @@ def scratch_file(path):
     """Yields path, a file to work in that is removed afterwards, also when this process is
     interrupted or stopped with SIGTERM while running steps, or when its step is discarded."""
     _S["parts"].add(path)
+    _watch(os.path.dirname(path) or ".")
     try:
         yield path
     finally:
@@ -811,8 +971,10 @@ def savefig_pdf_svg(pdf, svg):
         if _S["step_child"]:
             if _S["rec"] is not None and _save_async(plt, parts):
                 return
-        elif _save_svg_forked(plt, pdf, parts[1]):
-            return
+        else:
+            _watch(os.path.dirname(svg) or ".")
+            if _save_svg_forked(plt, pdf, parts[1]):
+                return
     plt.savefig(pdf, format='pdf')
     plt.savefig(svg, format='svg')
 

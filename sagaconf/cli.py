@@ -127,6 +127,9 @@ def _full(load, r_values, savedir, failed, verbose, w, merge_k, iou_threshold, r
     the next step still runs. On Linux the steps after the first load run in parallel (see
     _fork.py), with the same files, output, failures and messages as in this order."""
     loci = {}  # the frames of the last load that succeeded: the r-values step uses them
+    # the sample step's load (its frames, and its recorded output): kept only until another
+    # load replaces loci["now"] here, so that the root holds one set of frames, as 1.1.2 does
+    cache = {}
 
     def report(step, message, e):
         failed.append("%s (%s: %s)" % (step, type(e).__name__, e))
@@ -134,30 +137,32 @@ def _full(load, r_values, savedir, failed, verbose, w, merge_k, iou_threshold, r
             print(message)
         return False
 
-    def sample(d, first=None):
+    def sample(d):
         try:
-            loci["now"] = load(True) if first is None else first
+            loci["now"] = cache["frames"] if "frames" in cache else load(True)
             get_all_ct(*loci["now"], d, locis=True, w=w)
         except Exception as e:
             return report("sample analysis", "Failed to generated sample analysis.", e)
 
     def merge(d):
         try:
+            cache.clear()
             loci["now"] = load(False)
             post_clustering_keep_k_states(*loci["now"], d, k=merge_k, locis=True, write_csv=False, w=w)
         except Exception as e:
             return report("merging states to k", "Failed to merge clusters up to k", e)
 
-    def overall(d, cached=None):
+    def overall(d):
         ok = True
         try:
-            if cached is not None and _fork.in_step_child():
+            if "events" in cache and _fork.in_step_child():
                 # the sample step's load, which this step's load would repeat: its frames,
                 # unchanged (the step's child was forked before anything changed them), and
                 # its output, produced again here
-                _fork.splice(cached[1])
-                loci["now"] = cached[0]
+                _fork.splice(cache["events"])
+                loci["now"] = cache["frames"]
             else:
+                cache.clear()
                 loci["now"] = load(True)
             get_overalls(*loci["now"], d, locis=True, w=w, to=iou_threshold, tr=repr_threshold)
         except Exception as e:
@@ -174,20 +179,20 @@ def _full(load, r_values, savedir, failed, verbose, w, merge_k, iou_threshold, r
         return ok
 
     steps = [sample] + ([merge] if merge_k != -1 else []) + [overall]
-    first = None
     # a step's child finds savedir empty: with earlier outputs there, the steps run in order
     if _fork.usable() and not set(os.listdir(savedir)) - {"base_replicate", "verification_replicate"}:
         try:
-            first = _fork.record(lambda: load(True))
+            frames, events = _fork.record(lambda: load(True))
         except Exception as e:
             report("sample analysis", "Failed to generated sample analysis.", e)
             for step in steps[1:]:
                 step(savedir)
             return
-    if first is None or first[1] is None:
-        if first is not None:
-            sample(savedir, first[0])
-            steps = steps[1:]
+        cache["frames"] = frames
+        if events is not None:
+            cache["events"] = events
+        del frames
+    if "events" not in cache:
         for step in steps:
             step(savedir)
         return
@@ -196,14 +201,13 @@ def _full(load, r_values, savedir, failed, verbose, w, merge_k, iou_threshold, r
     # the state the steps before it leave (they all end as the sample step does: after_ct).
     # A failed child reruns here, from the merging step if there is one (the r-values step
     # would need its frames if the genome-wide step's load failed).
-    frames = first[0]
-    steps = [lambda d: sample(d, frames)] + steps[1:-1] + [lambda d: overall(d, first)]
     n = len(steps)
-    F = _fork.frame_bytes(*frames)
+    F = _fork.frame_bytes(*cache["frames"])
     after = after_ct_steps(8)
     _fork.run_steps(steps, savedir, [lambda: None] + [after] * n,
                     costs=[3] + [1] * (n - 2) + [2],
-                    mem=[0] + [int(4.5 * F)] * (n - 2) + [int(1.3 * F)],
+                    # the genome-wide step loads again if the cache is gone by its launch
+                    mem=[0] + [int(3.5 * F)] * (n - 2) + [lambda: int((1.3 if "events" in cache else 4.5) * F)],
                     inprocess=[0], restart={n - 1: 1})
 
 
