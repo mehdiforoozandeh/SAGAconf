@@ -10,142 +10,15 @@ from matplotlib.colors import LinearSegmentedColormap
 from pybedtools import BedTool
 from scipy.interpolate import UnivariateSpline
 from sklearn import metrics
-from ._cluster_matching import Hungarian_algorithm, IoU_overlap, connect_bipartite, joint_overlap_prob, overall_overlap_ratio, overlap_matrix
+from ._fork import run_steps, savefig_pdf_svg
+from ._utils import to_tsv
+from ._load import load_data, process_data
+from ._cluster_matching import IoU_overlap, joint_overlap_prob, overall_overlap_ratio, overlap_matrix
 from ._reproducibility import NMI_from_matrix, joint_prob_MAP_with_posterior, joint_prob_with_binned_posterior, posterior_calibration
-from ._utils import logit_array
-from .granul import granularity_vs_agreement_nonsymmetric, merge_clusters
+from .granul import granularity_all_labels, merge_clusters
 from .overall import condense_segments, is_repr_posterior, keep_reproducible_annotations, perlabel_is_reproduced, single_point_repr, write_MAPloci_in_BED
-from .run import intersect_parsed_posteriors, read_mnemonics
 
-
-def load_data(posterior1_dir, posterior2_dir, subset=False, logit_transform=False, force_WG=False):
-    print("loading and intersecting")
-    loci_1, loci_2 = intersect_parsed_posteriors(
-        posterior1_dir, 
-        posterior2_dir)
-
-    if subset and force_WG==False:
-        loci_1 = loci_1.loc[loci_1["chr"]=="chr21"].reset_index(drop=True)
-        loci_2 = loci_2.loc[loci_2["chr"]=="chr21"].reset_index(drop=True)
-
-    print("the shapes of the input matrices are: {}, {}".format(str(loci_1.shape), str(loci_2.shape)))
-
-    if logit_transform:
-        loci_1.iloc[:,3:] = logit_array(np.array(loci_1.iloc[:,3:]))
-        loci_2.iloc[:,3:] = logit_array(np.array(loci_2.iloc[:,3:]))
-
-    return loci_1, loci_2
-
-
-def process_data(loci_1, loci_2, replicate_1_dir, replicate_2_dir, mnemons=True, vm="NA", bm="NA", match=False, custom_order=True):
-    # print('generating confmat 1 ...')
-    num_labels = loci_1.shape[1]-3
-
-    loci_1.columns = ["chr", "start", "end"]+["posterior{}".format(i) for i in range(num_labels)]
-    loci_2.columns = ["chr", "start", "end"]+["posterior{}".format(i) for i in range(num_labels)]
-    
-    if mnemons:
-        print("loading mnemonics...")
-        if os.path.exists(
-            "/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics_rep1.txt") and os.path.exists(
-            "/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics_rep2.txt"):
-
-            print("reading concat mnemonics")
-            loci_1_mnemon = read_mnemonics("/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics_rep1.txt")
-            loci_2_mnemon = read_mnemonics("/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics_rep2.txt")
-        else:
-            print("reading mnemonics")
-            if bm == "NA":
-                bm = "/".join(replicate_1_dir.split("/")[:-1])+"/mnemonics.txt"
-            if vm == "NA":
-                vm = "/".join(replicate_2_dir.split("/")[:-1])+"/mnemonics.txt"
-
-            loci_1_mnemon = read_mnemonics(bm)
-            loci_2_mnemon = read_mnemonics(vm)
-
-        mnemon1_dict = {}
-        for i in loci_1_mnemon:
-            if len(i.split("_")) == 2:
-                mnemon1_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
-            if len(i.split("_")) == 3:
-                mnemon1_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4] + '_' + i.split("_")[2][:3]
-
-        mnemon2_dict = {}
-        for i in loci_2_mnemon:
-            if len(i.split("_")) == 2:
-                mnemon2_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4]
-            if len(i.split("_")) == 3:
-                mnemon2_dict[i.split("_")[0]] = i.split("_")[0]+'_'+i.split("_")[1][:4] + '_' + i.split("_")[2][:3]
-
-        #handle missing mnemonics
-        for i in range(num_labels):
-            if str(i) not in mnemon1_dict.keys():
-                mnemon1_dict[str(i)] = str(f"{i}_Unkn")
-            if str(i) not in mnemon2_dict.keys():
-                mnemon2_dict[str(i)] = str(f"{i}_Unkn")
-        
-        if match:
-            conf_mat = overlap_matrix(loci_1, loci_2, type="IoU")
-
-            assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
-            for i in range(len(assignment_pairs)):
-                assignment_pairs[i] = (mnemon1_dict[str(assignment_pairs[i][0])], mnemon2_dict[str(assignment_pairs[i][1])])
-            print(assignment_pairs)
-
-
-
-            loci_1, loci_2 = \
-                connect_bipartite(loci_1, loci_2, assignment_pairs, mnemon=True)
-            
-            print('connected barpartite')
-
-        else:
-            loci_1.columns = list(loci_1.columns[:3]) + [mnemon1_dict[c.replace("posterior","")] for c in loci_1.columns[3:]]
-            loci_2.columns = list(loci_2.columns[:3]) + [mnemon2_dict[c.replace("posterior","")] for c in loci_2.columns[3:]]
-
-    else:
-        if match:
-            conf_mat = overlap_matrix(loci_1, loci_2, type="IoU")
-
-            assignment_pairs = Hungarian_algorithm(conf_mat, conf_or_dis='conf')
-            loci_1, loci_2 = \
-                connect_bipartite(loci_1, loci_2, assignment_pairs, mnemon=False)
-
-            print('connected barpartite')
-    
-    if mnemons and custom_order:
-        SORT_ORDER = {"Prom": 0, "Prom_fla":1, "Enha":2, "Enha_low":3, "Biva":4, "Tran":5, "Cons":6, "Facu":7, "K9K3":8, "Quie":9, "Unkn":10}
-        try:
-            new_columns = []
-            for c in loci_1.columns[3:]:
-                l = "_".join(c.split("_")[1:])
-                new_columns.append(str(SORT_ORDER[l])+"_"+c)
-                
-            new_columns.sort()
-            for i in range(len(new_columns)):
-                new_columns[i] = new_columns[i][2:]
-
-            loci_1 = loci_1[["chr", "start", "end"] + new_columns]
-        except:
-            pass
-
-        ##########################################################################################
-        ##########################################################################################
-        try:
-            new_columns = []
-            for c in loci_2.columns[3:]:
-                l = "_".join(c.split("_")[1:])
-                new_columns.append(str(SORT_ORDER[l])+"_"+c)
-                
-            new_columns.sort()
-            for i in range(len(new_columns)):
-                new_columns[i] = new_columns[i][2:]
-
-            loci_2 = loci_2[["chr", "start", "end"] + new_columns]
-        except:
-            pass
-
-    return loci_1, loci_2
+FIG_WORKERS = 8
 
 
 def convert_to_GenomeBrowser_viewable_BED(initial_rvalue_bed):
@@ -173,13 +46,17 @@ def convert_to_GenomeBrowser_viewable_BED(initial_rvalue_bed):
         key = "_".join(name.split('_')[1:]).split('+')[0]
         return LABEL_COLOR_MAP.get(key, LABEL_COLOR_MAP['unkn'])
 
-    r_vals['itemRgb'] = r_vals['name'].apply(label_color)
-    r_vals['itemRgb'] = r_vals['itemRgb'].apply(lambda x: ','.join([str(int(i*255)) for i in x]))
+    # The color string depends only on the name: compute it once per distinct name.
+    rgb = {n: ','.join([str(int(i*255)) for i in label_color(n)]) for n in r_vals['name'].unique()}
+    r_vals['itemRgb'] = r_vals['name'].map(rgb)
     r_vals.insert(5, 'strand', '.')
     r_vals['thickStart'] = r_vals['chromStart']
     r_vals['thickEnd'] = r_vals['chromEnd']
     r_vals = r_vals[['chrom', 'chromStart', 'chromEnd', 'name', 'score', 'strand', 'thickStart', 'thickEnd', 'itemRgb']]
-    bed = BedTool.from_dataframe(r_vals)
+    # BedTool.from_dataframe(r_vals): the same temporary file, written by to_tsv
+    tmp = BedTool._tmp()
+    to_tsv(r_vals, tmp, header=False, na_rep=".")
+    bed = BedTool(tmp)
     bed.saveas(initial_rvalue_bed.replace(".bed", "_UCSC_GenomeBrowser.bed"))
 
 
@@ -275,8 +152,7 @@ def ct_binned_posterior_heatmap(loci_1, loci_2, savedir, n_bins=10):
     plt.xlabel('Replicate 2 Labels')
     plt.ylabel("Replicate 1 Labels")
     plt.tight_layout()
-    plt.savefig('{}/binned_posterior_heatmap.pdf'.format(savedir), format='pdf')
-    plt.savefig('{}/binned_posterior_heatmap.svg'.format(savedir), format='svg')
+    savefig_pdf_svg('{}/binned_posterior_heatmap.pdf'.format(savedir), '{}/binned_posterior_heatmap.svg'.format(savedir))
     sns.reset_orig
     plt.close("all")
     plt.style.use('default')
@@ -316,8 +192,7 @@ def ct_confus(loci_1, loci_2, savedir, w=1000):
     plt.xlabel('Replicate 2 Labels')
     plt.ylabel("Replicate 1 Labels")
     plt.tight_layout()
-    plt.savefig('{}/heatmap.pdf'.format(savedir), format='pdf')
-    plt.savefig('{}/heatmap.svg'.format(savedir), format='svg')
+    savefig_pdf_svg('{}/heatmap.pdf'.format(savedir), '{}/heatmap.svg'.format(savedir))
     sns.reset_orig
     plt.close("all")
     plt.style.use('default')
@@ -352,8 +227,7 @@ def ct_confus(loci_1, loci_2, savedir, w=1000):
     plt.xlabel('Replicate 2 Labels')
     plt.ylabel("Replicate 1 Labels")
     plt.tight_layout()
-    plt.savefig('{}/heatmap_w.pdf'.format(savedir), format='pdf')
-    plt.savefig('{}/heatmap_w.svg'.format(savedir), format='svg')
+    savefig_pdf_svg('{}/heatmap_w.pdf'.format(savedir), '{}/heatmap_w.svg'.format(savedir))
     sns.reset_orig
     plt.close("all")
     plt.style.use('default')
@@ -379,12 +253,13 @@ def ct_granul(loci_1, loci_2, savedir):
 
     fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[25, 16])
     label_being_plotted = 0
+    records = granularity_all_labels(loci_1, loci_2, list(loci_1.columns[3:])[:num_labels])
 
     for i in range(n_rows):
         for j in range(n_cols):
             if label_being_plotted < num_labels:
                 c = list(loci_1.columns[3:])[label_being_plotted]
-                cr, ar, ovr_rec = granularity_vs_agreement_nonsymmetric(loci_1.copy(), loci_2.copy(), k=c)
+                cr, ar, ovr_rec = next(records)
 
                 perfect_agr = [0] + [1 for i in range(len(ar) - 1)]
                 realAUC = metrics.auc(cr, ar)
@@ -408,8 +283,7 @@ def ct_granul(loci_1, loci_2, savedir):
     # fig.text(0.5, 0.02, 'Coverage' , ha='center')
     # fig.text(0.02, 0.5, 'Agreement', va='center', rotation='vertical')
     plt.tight_layout()
-    plt.savefig(savedir+"/granularity.pdf", format='pdf')
-    plt.savefig(savedir+"/granularity.svg", format='svg')
+    savefig_pdf_svg(savedir+"/granularity.pdf", savedir+"/granularity.svg")
 
     plt.clf()
     sns.reset_orig
@@ -428,8 +302,7 @@ def ct_granul(loci_1, loci_2, savedir):
     with open(savedir+"/AUC_mAUC.txt", 'w') as f:
         f.write(str(p_to_r_auc_record))
 
-    plt.savefig(savedir+"/barplot.pdf", format='pdf')
-    plt.savefig(savedir+"/barplot.svg", format='svg')
+    savefig_pdf_svg(savedir+"/barplot.pdf", savedir+"/barplot.svg")
 
     sns.reset_orig
     plt.close("all")
@@ -449,7 +322,7 @@ def ct_lable_calib(loci_1, loci_2, pltsavedir):
         os.mkdir(pltsavedir+"/calib")
     calb = posterior_calibration(
         loci_1, loci_2, window_size=1000, savedir=pltsavedir+"/calib", allow_w=False)
-    calibrated_loci_1 = calb.perlabel_calibration_function(return_caliberated_matrix=False)
+    calibrated_loci_1 = calb.perlabel_calibration_function(return_caliberated_matrix=False, general_in_parallel=True)
 
     # if os.path.exists(pltsavedir+"/calib_logit_enr") == False:
     #     os.mkdir(pltsavedir+"/calib_logit_enr")
@@ -543,8 +416,7 @@ def overall_boundary(loci_1, loci_2, savedir, match_definition="BM"):
     
     plt.title("Overall", fontsize=12)
     plt.tight_layout()
-    plt.savefig(savedir+"/len_bound_{}.pdf".format("overall"), format='pdf')
-    plt.savefig(savedir+"/len_bound_{}.svg".format("overall"), format='svg')
+    savefig_pdf_svg(savedir+"/len_bound_{}.pdf".format("overall"), savedir+"/len_bound_{}.svg".format("overall"))
 
     sns.reset_orig
     plt.close("all")
@@ -645,22 +517,22 @@ def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
                 elif matched==False and w==(max_distance-1):
                     distance_to_corresp.append(None)
     
-    nonefiltered = [x * resolution for x in distance_to_corresp if x is not None] 
-    matched_ratio = len(nonefiltered) / len(distance_to_corresp)
-    plt.hist(nonefiltered, bins=len(set(nonefiltered)), density=True, log=True, color='black', alpha=0.6, histtype="stepfilled")
-    plt.axvline(x=0, color='red', linestyle='dotted', linewidth=1.5)
-    plt.yticks(np.logspace(-6, 0, 7))
-    plt.xlabel("Distance (bp)")
-    plt.ylabel("Matched label density (log scale)")
-    plt.title("Correspondence vs. Distance -- Overall | overlap ratio = {:.2f}".format(matched_ratio))
-    plt.tight_layout()
-    plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format("overall"), format='pdf')
-    plt.savefig(savedir+"/dist_vs_corresp_{}.svg".format("overall"), format='svg')
+    # Every figure starts from the plot state the one before it resets to, so the figures are
+    # drawn in forked children (the same calls each), committed in order.
+    def overall(savedir):
+        nonefiltered = [x * resolution for x in distance_to_corresp if x is not None] 
+        matched_ratio = len(nonefiltered) / len(distance_to_corresp)
+        plt.hist(_as_hist_input(nonefiltered), bins=len(set(nonefiltered)), density=True, log=True, color='black', alpha=0.6, histtype="stepfilled")
+        plt.axvline(x=0, color='red', linestyle='dotted', linewidth=1.5)
+        plt.yticks(np.logspace(-6, 0, 7))
+        plt.xlabel("Distance (bp)")
+        plt.ylabel("Matched label density (log scale)")
+        plt.title("Correspondence vs. Distance -- Overall | overlap ratio = {:.2f}".format(matched_ratio))
+        plt.tight_layout()
+        savefig_pdf_svg(savedir+"/dist_vs_corresp_{}.pdf".format("overall"), savedir+"/dist_vs_corresp_{}.svg".format("overall"))
 
-    sns.reset_orig
-    plt.close("all")
-    plt.style.use('default')
-    plt.clf()
+        sns.reset_orig
+        _reset_plot()
 
 
     #========================================================================================#
@@ -672,58 +544,71 @@ def distance_vs_overlap(loci_1, loci_2, savedir, match_definition="BM"):
         perlabel[MAP1[i]].append(distance_to_corresp[i])
 
     #========================================================================================#
-    for k in perlabel.keys():
-        distance_to_corresp_k = perlabel[k]
-        nonefiltered = [x * resolution for x in distance_to_corresp_k if x is not None] 
-        matched_ratio = len(nonefiltered) / len(distance_to_corresp_k)
+    def label_fig(k):
+        def fig(savedir):
+            distance_to_corresp_k = perlabel[k]
+            nonefiltered = [x * resolution for x in distance_to_corresp_k if x is not None] 
+            matched_ratio = len(nonefiltered) / len(distance_to_corresp_k)
 
-        plt.hist(nonefiltered, bins=len(set(nonefiltered)), density=True, log=True, color='black', alpha=0.6, histtype="stepfilled")
-        plt.axvline(x=0, color='red', linestyle='dotted', linewidth=1.5)
-        plt.yticks(np.logspace(-6, 0, 7))
-        plt.xlabel("Distance (bp)")
-        plt.ylabel("Matched label density (log scale)")
-        plt.title("Correspondence vs. Distance -- {} | overlap ratio = {:.2f}".format(k, matched_ratio))
-        plt.tight_layout()
-        plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format(k), format='pdf')
-        plt.savefig(savedir+"/dist_vs_corresp_{}.svg".format(k), format='svg')
+            plt.hist(_as_hist_input(nonefiltered), bins=len(set(nonefiltered)), density=True, log=True, color='black', alpha=0.6, histtype="stepfilled")
+            plt.axvline(x=0, color='red', linestyle='dotted', linewidth=1.5)
+            plt.yticks(np.logspace(-6, 0, 7))
+            plt.xlabel("Distance (bp)")
+            plt.ylabel("Matched label density (log scale)")
+            plt.title("Correspondence vs. Distance -- {} | overlap ratio = {:.2f}".format(k, matched_ratio))
+            plt.tight_layout()
+            savefig_pdf_svg(savedir+"/dist_vs_corresp_{}.pdf".format(k), savedir+"/dist_vs_corresp_{}.svg".format(k))
 
-        sns.reset_orig
-        plt.close("all")
-        plt.style.use('default')
-        plt.clf()
+            sns.reset_orig
+            _reset_plot()
+        return fig
 
 
     #========================================================================================#
-    num_labels = loci_1.shape[1]-3
-    n_cols = math.floor(math.sqrt(num_labels))
-    n_rows = math.ceil(num_labels / n_cols)
+    def subplot(savedir):
+        num_labels = loci_1.shape[1]-3
+        n_cols = math.floor(math.sqrt(num_labels))
+        n_rows = math.ceil(num_labels / n_cols)
 
-    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[25, 16])
-    label_being_plotted = 0
+        fig, axs = plt.subplots(n_rows, n_cols, sharex=True, sharey=True, figsize=[25, 16])
+        label_being_plotted = 0
     
-    for i in range(n_rows):
-        for j in range(n_cols):
-            if label_being_plotted < num_labels:
-                k = loci_1.columns[3:][label_being_plotted]
-                distance_to_corresp_k = perlabel[k]
-                nonefiltered = [x * resolution for x in distance_to_corresp_k if x is not None] 
-                matched_ratio = len(nonefiltered) / len(distance_to_corresp_k)
+        for i in range(n_rows):
+            for j in range(n_cols):
+                if label_being_plotted < num_labels:
+                    k = loci_1.columns[3:][label_being_plotted]
+                    distance_to_corresp_k = perlabel[k]
+                    nonefiltered = [x * resolution for x in distance_to_corresp_k if x is not None] 
+                    matched_ratio = len(nonefiltered) / len(distance_to_corresp_k)
 
-                axs[i,j].hist(
-                    nonefiltered, bins=len(set(nonefiltered)), density=True, log=True, 
-                    color='black', alpha=0.6, histtype="stepfilled")
+                    axs[i,j].hist(
+                        _as_hist_input(nonefiltered), bins=len(set(nonefiltered)), density=True, log=True, 
+                        color='black', alpha=0.6, histtype="stepfilled")
 
-                axs[i,j].axvline(x=0, color='red', linestyle='dotted', linewidth=2)
-                axs[i,j].set_yticks(np.logspace(-6, 0, 7))
-                axs[i,j].set_title("{} | overlap ratio = {:.2f}".format(k, matched_ratio), fontsize=15)
-                axs[i,j].tick_params(axis='both', which='major', labelsize=15) 
-                label_being_plotted += 1
+                    axs[i,j].axvline(x=0, color='red', linestyle='dotted', linewidth=2)
+                    axs[i,j].set_yticks(np.logspace(-6, 0, 7))
+                    axs[i,j].set_title("{} | overlap ratio = {:.2f}".format(k, matched_ratio), fontsize=15)
+                    axs[i,j].tick_params(axis='both', which='major', labelsize=15) 
+                    label_being_plotted += 1
         
-    plt.tight_layout()
-    plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format("subplot"), format='pdf')
-    plt.savefig(savedir+"/dist_vs_corresp_{}.svg".format("subplot"), format='svg')
+        plt.tight_layout()
+        savefig_pdf_svg(savedir+"/dist_vs_corresp_{}.pdf".format("subplot"), savedir+"/dist_vs_corresp_{}.svg".format("subplot"))
 
-    sns.reset_orig
+        sns.reset_orig
+        _reset_plot()
+
+    figs = [overall] + [label_fig(k) for k in perlabel.keys()] + [subplot]
+    run_steps(figs, savedir, [lambda: None] + [_reset_plot] * len(figs),
+              costs=[1] * (len(figs) - 1) + [3], workers=FIG_WORKERS, quiet=True)
+
+
+def _as_hist_input(values):
+    # hist turns a list of ints into one int64 array element by element (slow on millions of
+    # bins); handing it that array directly takes the same path from there on.
+    return np.array(values, dtype=np.int64) if values else values
+
+
+def _reset_plot():
     plt.close("all")
     plt.style.use('default')
     plt.clf()
@@ -850,8 +735,7 @@ def distance_vs_overlap_3(loci_1, loci_2, savedir, match_definition="BM"):
                 label_being_plotted += 1
         
     plt.tight_layout()
-    plt.savefig(savedir+"/dist_vs_corresp_{}.pdf".format("subplot"), format='pdf')
-    plt.savefig(savedir+"/dist_vs_corresp_{}.svg".format("subplot"), format='svg')
+    savefig_pdf_svg(savedir+"/dist_vs_corresp_{}.pdf".format("subplot"), savedir+"/dist_vs_corresp_{}.svg".format("subplot"))
 
     sns.reset_orig
     plt.close("all")
@@ -1009,13 +893,27 @@ def ct_boundar(loci_1, loci_2, outdir, match_definition="BM", max_distance=50):
                 label_being_plotted += 1
             
     plt.tight_layout()
-    plt.savefig(outdir+"/len_bound.pdf", format='pdf')
-    plt.savefig(outdir+"/len_bound.svg", format='svg')
+    savefig_pdf_svg(outdir+"/len_bound.pdf", outdir+"/len_bound.svg")
 
     sns.reset_orig
     plt.close("all")
     plt.style.use('default')
     plt.clf()
+
+
+def after_ct_steps(i):
+    """Restores the global state the first i get_all_ct steps leave behind (all 8: i=8)."""
+    # Each step ends by resetting the plot state (ct_lable_calib without plt.clf()); sns.set in
+    # the first step also re-maps the matplotlib color codes.
+    def prelude():
+        if i == 0:
+            return
+        sns.set_color_codes("deep")
+        plt.close("all")
+        plt.style.use('default')
+        if i != 3:
+            plt.clf()
+    return prelude
 
 
 def get_all_ct(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000):
@@ -1029,21 +927,27 @@ def get_all_ct(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000):
 
         loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
 
-    ct_binned_posterior_heatmap(loci1.copy(), loci2.copy(), savedir)
+    steps = [
+        lambda d: ct_binned_posterior_heatmap(loci1.copy(), loci2.copy(), d),
+        lambda d: ct_confus(loci1.copy(), loci2.copy(), d, w=w),
+        lambda d: ct_lable_calib(loci1.copy(), loci2.copy(), d),
+        lambda d: ct_granul(loci1.copy(), loci2.copy(), d),
+        lambda d: ct_boundar(loci1.copy(), loci2.copy(), d, match_definition="BM", max_distance=50),
+        lambda d: overall_boundary(loci1.copy(), loci2.copy(), d, match_definition="BM"),
+        lambda d: distance_vs_overlap(loci1.copy(), loci2.copy(), d, match_definition="BM"),
+        lambda d: distance_vs_overlap_3(loci1.copy(), loci2.copy(), d, match_definition="BM"),
+    ]
+    # Indicator files: a step that finds its own skips itself (and its plot-state reset).
+    indicators = ["binned_posterior_heatmap.txt", "raw_conditional_overlap_ratio.txt", "calib_logit_enr",
+                  "granularity.pdf", "len_bound.pdf", "len_bound_overall.pdf", "Dist_vs_Corresp",
+                  "Dist_vs_Corresp_3"]
+    if any(os.path.exists(savedir + "/" + f) for f in indicators):
+        for step in steps:
+            step(savedir)
+        return
 
-    ct_confus(loci1.copy(), loci2.copy(), savedir, w=w)
-
-    ct_lable_calib(loci1.copy(), loci2.copy(), savedir)
-
-    ct_granul(loci1.copy(), loci2.copy(), savedir)
-
-    ct_boundar(loci1.copy(), loci2.copy(), savedir, match_definition="BM", max_distance=50)
-
-    overall_boundary(loci1.copy(), loci2.copy(), savedir, match_definition="BM")
-
-    distance_vs_overlap(loci1.copy(), loci2.copy(), savedir, match_definition="BM")
-    
-    distance_vs_overlap_3(loci1.copy(), loci2.copy(), savedir, match_definition="BM")
+    run_steps(steps, savedir, [after_ct_steps(i) for i in range(len(steps) + 1)],
+              costs=[3, 3, 7, 6, 3, 1, 20, 4], workers=len(steps))
 
 
 def get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000, to=0.75, tr=0.9):
@@ -1061,67 +965,73 @@ def get_overalls(replicate_1_dir, replicate_2_dir, savedir, locis=False, w=1000,
 
         loci1, loci2 = process_data(loci1, loci2, replicate_1_dir, replicate_2_dir, mnemons=True, match=False)
     
-    ##################################################################################################################
+    # The three parts are independent: they run in parallel, each writing its own files.
+    def reproduced(savedir):
+        ##################################################################################################################
 
-    bool_reprod_report = single_point_repr(
-        loci1, loci2, ovr_threshold=to, window_bp=w, posterior=True, reproducibility_threshold=tr)
+        bool_reprod_report = single_point_repr(
+            loci1, loci2, ovr_threshold=to, window_bp=w, posterior=True, reproducibility_threshold=tr)
 
-    ##################################################################################################################
+        ##################################################################################################################
 
-    reproduced_loci1 = keep_reproducible_annotations(loci1, bool_reprod_report)
-    write_MAPloci_in_BED(reproduced_loci1, savedir)
-    # reproduced_loci1.to_csv(savedir + "/confident_posteriors.bed", sep='\t', header=True, index=False)
+        reproduced_loci1 = keep_reproducible_annotations(loci1, bool_reprod_report)
+        write_MAPloci_in_BED(reproduced_loci1, savedir)
+        # reproduced_loci1.to_csv(savedir + "/confident_posteriors.bed", sep='\t', header=True, index=False)
 
-    ##################################################################################################################
+        ##################################################################################################################
 
-    bool_reprod_report = pd.concat(
-        [loci1["chr"], loci1["start"], loci1["end"], pd.Series(bool_reprod_report)], axis=1)
-    bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
+        bool_reprod_report = pd.concat(
+            [loci1["chr"], loci1["start"], loci1["end"], pd.Series(bool_reprod_report)], axis=1)
+        bool_reprod_report.columns = ["chr", "start", "end", "is_repr"]
         
-    # bool_reprod_report.to_csv(savedir+"/boolean_reproducibility_report_POSTERIOR.csv")
+        # bool_reprod_report.to_csv(savedir+"/boolean_reproducibility_report_POSTERIOR.csv")
 
-    general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
-    perlabel_rec = {}
-    lab_rep = perlabel_is_reproduced(bool_reprod_report, loci1)
-    for k, v in lab_rep.items():
-        perlabel_rec[k] = v[0]/ (v[0]+v[1])
+        general_rep_score = len(bool_reprod_report.loc[bool_reprod_report["is_repr"]==True]) / len(bool_reprod_report)
+        perlabel_rec = {}
+        lab_rep = perlabel_is_reproduced(bool_reprod_report, loci1)
+        for k, v in lab_rep.items():
+            perlabel_rec[k] = v[0]/ (v[0]+v[1])
 
-    with open(savedir+"/ratio_robust.txt", "w") as scorefile:
-        scorefile.write("general ratio robust = {}\n".format(general_rep_score))
-        for k, v in perlabel_rec.items():
-            scorefile.write("{} ratio robust = {}\n".format(k, str(v)))
+        with open(savedir+"/ratio_robust.txt", "w") as scorefile:
+            scorefile.write("general ratio robust = {}\n".format(general_rep_score))
+            for k, v in perlabel_rec.items():
+                scorefile.write("{} ratio robust = {}\n".format(k, str(v)))
 
-    ##################################################################################################################
-    rvalues = is_repr_posterior(
-            loci1, loci2, ovr_threshold=to, window_bp=w, matching="static",
-            always_include_best_match=True, return_r=True)
+    def r_values(savedir):
+        ##################################################################################################################
+        rvalues = is_repr_posterior(
+                loci1, loci2, ovr_threshold=to, window_bp=w, matching="static",
+                always_include_best_match=True, return_r=True)
     
-    rvalues.to_csv(savedir+"/r_values.bed", sep='\t', header=True, index=False)
-    convert_to_GenomeBrowser_viewable_BED(savedir+"/r_values.bed")
+        to_tsv(rvalues, savedir+"/r_values.bed", header=True)
+        convert_to_GenomeBrowser_viewable_BED(savedir+"/r_values.bed")
 
-    avg_r = np.mean(np.array(rvalues["r_value"]))
-    perlabel_r = {}
+        avg_r = np.mean(np.array(rvalues["r_value"]))
+        perlabel_r = {}
 
-    labels = rvalues.MAP.unique()
+        labels = rvalues.MAP.unique()
 
-    for l in range(len(labels)):
-        r_l = rvalues.loc[rvalues["MAP"] == labels[l], "r_value"]
-        perlabel_r[labels[l]] = np.mean(np.array(r_l))
+        for l in range(len(labels)):
+            r_l = rvalues.loc[rvalues["MAP"] == labels[l], "r_value"]
+            perlabel_r[labels[l]] = np.mean(np.array(r_l))
     
-    with open(savedir+"/r_values_report.txt", "w") as scorefile:
-        scorefile.write("GW average r_value = {}\n".format(avg_r))
-        for k, v in perlabel_r.items():
-            scorefile.write("{} average r_value = {}\n".format(k, str(v)))
+        with open(savedir+"/r_values_report.txt", "w") as scorefile:
+            scorefile.write("GW average r_value = {}\n".format(avg_r))
+            for k, v in perlabel_r.items():
+                scorefile.write("{} average r_value = {}\n".format(k, str(v)))
 
-    ##################################################################################################################
+    def nmi(savedir):
+        ##################################################################################################################
 
 
-    MAP_NMI =  NMI_from_matrix(joint_overlap_prob(loci1, loci2, w=0, symmetric=True))
-    POST_NMI = NMI_from_matrix(joint_prob_MAP_with_posterior(loci1, loci2, n_bins=200, conditional=False, stratified=True), posterior=True)
+        MAP_NMI =  NMI_from_matrix(joint_overlap_prob(loci1, loci2, w=0, symmetric=True))
+        POST_NMI = NMI_from_matrix(joint_prob_MAP_with_posterior(loci1, loci2, n_bins=200, conditional=False, stratified=True), posterior=True)
 
-    with open(savedir+"/NMI.txt", "w") as scorefile:
-        scorefile.write("NMI with MAP = {}\n".format(MAP_NMI))
-        scorefile.write("NMI with binned posterior of R1 (n_bins=200) = {}\n".format(POST_NMI))
+        with open(savedir+"/NMI.txt", "w") as scorefile:
+            scorefile.write("NMI with MAP = {}\n".format(MAP_NMI))
+            scorefile.write("NMI with binned posterior of R1 (n_bins=200) = {}\n".format(POST_NMI))
+
+    run_steps([reproduced, r_values, nmi], savedir, [lambda: None] * 4, costs=[2, 3, 1], quiet=True)
 
 
 def post_clustering_keep_k_states(replicate_1_dir, replicate_2_dir, savedir, k, w, locis=False, write_csv=True, r_val=True):
@@ -1527,8 +1437,7 @@ def overlap_vs_segment_length(replicate_1_dir, replicate_2_dir, savedir, locis=T
     # Show the legend in this subplot
     fig.legend(lines, labels, loc='center', ncol=len(labels), bbox_to_anchor=(0.5, 0.5), bbox_transform=ax_legend.transAxes)
     plt.tight_layout()
-    plt.savefig(f"{savedir}/naive_overlap_v_segment_length.pdf", format='pdf')
-    plt.savefig(f"{savedir}/naive_overlap_v_segment_length.svg", format='svg')
+    savefig_pdf_svg(f"{savedir}/naive_overlap_v_segment_length.pdf", f"{savedir}/naive_overlap_v_segment_length.svg")
 
 
 if __name__=="__main__":  
