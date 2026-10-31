@@ -45,12 +45,14 @@ def _cpus():
 
 
 def usable():
-    """True where steps can run in forked children (Linux, 2+ CPUs, standard warning display)."""
+    """True where steps can run in forked children (Linux, 2+ CPUs, standard warning display,
+    library deprecation warnings ignored)."""
     return (sys.platform.startswith("linux") and hasattr(os, "fork") and hasattr(os, "memfd_create")
             and _cpus() >= 2 and all(hasattr(warnings, n) for n in (
                 "_showwarnmsg", "_showwarnmsg_impl", "_showwarning_orig", "_filters_mutated"))
             and warnings.showwarning is warnings._showwarning_orig
-            and getattr(warnings._showwarnmsg_impl, "__module__", None) == "warnings")
+            and getattr(warnings._showwarnmsg_impl, "__module__", None) == "warnings"
+            and _deprecations_hidden())
 
 
 def frame_bytes(*frames):
@@ -348,12 +350,26 @@ def fresh():
 
 
 def _action(text, category, module, lineno):
-    # the filter warnings.warn_explicit applies
+    # the action warnings.warn_explicit takes (a str in a filter must match exactly)
+    def matched(pattern, s):
+        return pattern is None or (pattern == s if type(pattern) is str else bool(pattern.match(s)))
     for action, msg, cat, mod, ln in warnings.filters:
-        if ((msg is None or msg.match(text)) and issubclass(category, cat)
-                and (mod is None or mod.match(module)) and (ln == 0 or lineno == ln)):
+        if matched(msg, text) and issubclass(category, cat) and matched(mod, module) and (ln == 0 or lineno == ln):
             return action
     return warnings.defaultaction
+
+
+def _deprecations_hidden():
+    """True if DeprecationWarning and PendingDeprecationWarning from library code are ignored,
+    as Python's default filters do. Libraries initialize caches once per process, and some warn
+    when they do (matplotlib's pyparsing grammars): shown, those warnings would repeat once per
+    child, where a sequential run shows them once."""
+    for action, msg, cat, mod, ln in warnings.filters:
+        if action == "ignore" or mod == "__main__" or getattr(mod, "pattern", None) in ("__main__", "__main__\\Z"):
+            continue
+        if any(issubclass(c, cat) or issubclass(cat, c) for c in (DeprecationWarning, PendingDeprecationWarning)):
+            return False
+    return all(_action("", c, "a.library", 0) == "ignore" for c in (DeprecationWarning, PendingDeprecationWarning))
 
 
 def record(fn):
