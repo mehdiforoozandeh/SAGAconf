@@ -34,7 +34,7 @@ SAVER_BYTES = 512 << 20  # a forked figure save
 MAX_SAVERS = 4  # figure saves pending at once in one step's child
 
 _S = {"pool": None, "live": {}, "dirs": set(), "parts": set(), "savers": [], "step_child": False,
-      "depth": 0, "sig": None, "seq": 0}
+      "depth": 0, "sig": None, "seq": 0, "rec": None}
 
 
 def _cpus():
@@ -444,7 +444,7 @@ def _fork(slot, d=None, parts=None):
         return None
     if pid == 0:
         leader = _S["pool"].root == os.getppid()
-        _S.update(live={}, dirs=set(), parts=set(), savers=[], step_child=True, depth=0, sig=None)
+        _S.update(live={}, dirs=set(), parts=set(), savers=[], step_child=True, depth=0, sig=None, rec=None)
         if leader:
             try:
                 os.setpgid(0, 0)  # so that the root can kill the child's whole tree
@@ -466,6 +466,7 @@ def _child_main(fds, prelude, body):
         os.dup2(fds[0], 2)
         rec = _Recorder(tee=False)
         rec.start()
+        _S["rec"] = rec
         try:
             prelude()
             if any(ev[0] != "m" for ev in rec.events):
@@ -474,6 +475,7 @@ def _child_main(fds, prelude, body):
             ok = body() is not False
         finally:
             rec.stop()
+            _S["rec"] = None
         ok = _drain() and ok
         if ok and rec.exact and os.fstat(fds[0]).st_size == 0:
             _write_all(fds[1], pickle.dumps(rec.events, protocol=pickle.HIGHEST_PROTOCOL))
@@ -789,17 +791,18 @@ def scratch_file(path):
 def savefig_pdf_svg(pdf, svg):
     """Same as plt.savefig(pdf, format='pdf'); plt.savefig(svg, format='svg').
 
-    In a step's child, a forked child saves both while the step goes on (the step's child waits
-    for it before it ends). Elsewhere, a forked child saves the SVG from the same figure state
-    while this process saves the PDF. (Saving draws the figure without changing what a later
-    save or plot draws.) A forked save that prints, warns or fails is done again here, or, in a
-    step's child, fails the step, which then runs again in-process.
+    In a step's child, a forked child does both while the step goes on; its record goes where
+    the step called this, and the step's child waits for it before it ends. Elsewhere, a forked
+    child saves the SVG from the same figure state while this process saves the PDF; it must
+    print and warn nothing, else the SVG is saved again here. (Saving draws the figure without
+    changing what a later save or plot draws.) If a forked save fails, the SVG is saved here,
+    or, in a step's child, the step fails and runs again in-process.
     """
     from matplotlib import pyplot as plt
     parts = [(pdf + ".sagaconf_part", pdf), (svg + ".sagaconf_part", svg)]
     if usable() and not any(os.path.lexists(t) for t, _ in parts):
         if _S["step_child"]:
-            if _save_async(plt, parts):
+            if _S["rec"] is not None and _save_async(plt, parts):
                 return
         elif _save_svg_forked(plt, pdf, parts[1]):
             return
@@ -820,23 +823,27 @@ def _save_async(plt, parts):
     if pid == 0:
         def body():
             plt.savefig(parts[0][0], format='pdf')
-            # plt.savefig, without the redraw it does after saving: this process then ends
-            plt.gcf().savefig(parts[1][0], format='svg')
+            plt.savefig(parts[1][0], format='svg')
         _child_main(fds, lambda: None, body)
+    place = []  # the save's record, filled in by _drain
+    _S["rec"].events.append(("x", place))
+    _S["live"][pid]["place"] = place
     _S["savers"].append(pid)
     return True
 
 
 def _drain():
-    """Waits for this step child's figure saves; renames their files into place if every save
-    was silent and succeeded (else removes them). True if they all were."""
+    """Waits for this step child's figure saves; if they all succeeded, puts their records in
+    place and renames their files into place (else removes the files). True if they did."""
     ok = True
     for pid in _S["savers"]:
         _wait_pid(pid)
     for pid in _S["savers"]:
-        parts = _S["live"][pid]["parts"]
+        parts, place = _S["live"][pid]["parts"], _S["live"][pid]["place"]
         good, events = _finish(pid)
-        ok = ok and good and not events
+        ok = ok and good
+        if good:
+            place.extend(events)
         for t, final in parts:
             _S["parts"].discard(t)
             if ok:
@@ -858,8 +865,7 @@ def _save_svg_forked(plt, pdf, part):
             return False
         pid, fds = got
         if pid == 0:
-            # plt.savefig, without the redraw it does after saving: this process then ends
-            _child_main(fds, lambda: None, lambda: plt.gcf().savefig(part[0], format='svg'))
+            _child_main(fds, lambda: None, lambda: plt.savefig(part[0], format='svg'))
         try:
             plt.savefig(pdf, format='pdf')
             _wait_pid(pid)
